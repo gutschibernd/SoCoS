@@ -44,8 +44,10 @@ def _felder(modell):
     ]
 
 
-def vor_speichern(sender, instance, **kwargs):
+def vor_speichern(sender, instance, raw=False, **kwargs):
     """Merkt sich den Stand aus der Datenbank, solange er noch da ist."""
+    if raw:
+        return
     if instance.pk is None:
         instance._protokoll_alt = None
         return
@@ -59,8 +61,20 @@ def vor_speichern(sender, instance, **kwargs):
     )
 
 
-def nach_speichern(sender, instance, created, **kwargs):
+def nach_speichern(sender, instance, created, raw=False, **kwargs):
+    """
+    `raw=True` heißt: Die Zeile kommt aus `loaddata`, also aus einer Sicherung.
+
+    Ohne diese Ausnahme schriebe jedes Einspielen für jede Zeile einen frischen
+    „angelegt"-Eintrag. Der wiederhergestellte Bestand wäre dann nicht mehr
+    deckungsgleich mit dem Archiv — und ausgerechnet das Protokoll, das sagen
+    soll, wer wann was getan hat, behauptete, ein Wiedereinspieler habe alles
+    neu angelegt.
+    """
     from socos.models import Protokolleintrag
+
+    if raw:
+        return
 
     alt = getattr(instance, "_protokoll_alt", None)
     instance._protokoll_alt = None
