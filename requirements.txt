@@ -1,0 +1,21 @@
+# Anwendung
+Django==5.2.7
+djangorestframework==3.16.1
+psycopg[binary]==3.2.10
+django-environ==0.12.0
+whitenoise==6.9.0
+
+# Anmeldung gegen Rateversuche.
+# django-ipware ist KEIN optionales Extra: fehlt es, liest axes stillschweigend
+# nur REMOTE_ADDR und ignoriert jede AXES_IPWARE_*-Einstellung. Hinter dem Proxy
+# wäre das die Adresse des Proxys — ein einziger Angreifer sperrte damit alle
+# Nutzer gleichzeitig aus.
+django-axes==8.0.0
+django-ipware==7.0.1
+
+# Server
+gunicorn==23.0.0
+
+# Tests
+pytest==8.4.2
+pytest-django==4.11.1
