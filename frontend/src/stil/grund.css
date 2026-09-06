@@ -1,0 +1,30 @@
+@import "./farben.css";
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--grund);
+  color: var(--text);
+  font-family: var(--schrift);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  /* Am Handy darf nichts unter der Notch oder dem Homebalken liegen. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+a { color: var(--marke); text-decoration: none; }
+a:hover { color: var(--marke-dunkel); }
+
+/* 16 px, sonst zoomt iOS beim Hineintippen in das Feld. */
+input, select, textarea, button {
+  font-family: inherit;
+  font-size: 16px;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+  outline: 2px solid var(--marke-rand);
+  outline-offset: 1px;
+}
+
+.zahl { font-family: var(--schrift-zahl); letter-spacing: -0.02em; }

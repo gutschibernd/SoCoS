@@ -1,0 +1,143 @@
+{% load static %}<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Anmelden · SoCoS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+/*
+ * Zweite Kopie der Palette aus frontend/src/stil/farben.css.
+ *
+ * Diese Seite läuft **ohne** das React-Bundle — sie muss stehen, bevor
+ * irgendetwas geladen ist. Die Namen sind hier bewusst dieselben, damit
+ * jemand, der eine Farbe ändert, diese zweite Stelle findet.
+ */
+:root {
+  color-scheme: light;
+  --grund: #EFEDE6;
+  --flaeche: #FFFFFF;
+  --rand: #DFDBD1;
+  --rand-stark: #C9C4B7;
+  --text: #16272B;
+  --text-leise: #7C8A8C;
+  --marke: #14595F;
+  --marke-dunkel: #0F4448;
+  --marke-rand: #A8C6C4;
+  --warnung: #9C4229;
+  --warnung-hell: #F7E6DF;
+  --kante: 2px;
+  --griff: 44px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --grund: #12191A;
+    --flaeche: #1A2325;
+    --rand: #2C393B;
+    --rand-stark: #3D4D50;
+    --text: #E6E9E6;
+    --text-leise: #9AA8AA;
+    --marke: #5EA8A8;
+    --marke-dunkel: #0F4448;
+    --marke-rand: #3A6B6C;
+    --warnung: #D98A6D;
+    --warnung-hell: #33211C;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--grund);
+  color: var(--text);
+  font-family: Figtree, system-ui, sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+}
+.karte {
+  width: 100%;
+  max-width: 380px;
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: var(--kante);
+  border-top: 3px solid var(--marke);
+  padding: 28px 26px 26px;
+}
+.marke { display: flex; align-items: baseline; gap: 8px; margin-bottom: 22px; }
+.marke b { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+.marke span {
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-leise);
+}
+label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+input[type=email], input[type=text], input[type=password] {
+  width: 100%;
+  /* 16 px, sonst zoomt iOS beim Hineintippen. */
+  font: inherit; font-size: 16px;
+  min-height: var(--griff);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  color: var(--text);
+  background: var(--flaeche);
+  border: 1px solid var(--rand-stark);
+  border-radius: var(--kante);
+}
+input:focus-visible { outline: 2px solid var(--marke-rand); outline-offset: 1px; }
+button {
+  width: 100%;
+  min-height: var(--griff);
+  font: inherit; font-size: 16px; font-weight: 600;
+  color: #FFFFFF; background: var(--marke);
+  border: 0; border-radius: var(--kante);
+  cursor: pointer;
+}
+button:hover { background: var(--marke-dunkel); }
+.fehler {
+  background: var(--warnung-hell);
+  color: var(--warnung);
+  border-radius: var(--kante);
+  padding: 11px 13px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+.hinweis { margin: 18px 0 0; font-size: 13px; color: var(--text-leise); line-height: 1.5; }
+</style>
+</head>
+<body>
+<main class="karte">
+  <div class="marke"><b>Sopharmis</b><span>SoCoS</span></div>
+
+  {% if form.errors %}
+    <div class="fehler" role="alert">
+      E-Mail oder Passwort stimmen nicht.
+      <br />Nach fünf Fehlversuchen ist das Konto für eine Stunde gesperrt.
+    </div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <label for="id_username">E-Mail</label>
+    <input type="email" name="username" id="id_username" autocomplete="username"
+           autocapitalize="none" autocorrect="off" required autofocus
+           value="{{ form.username.value|default:'' }}" />
+
+    <label for="id_password">Passwort</label>
+    <input type="password" name="password" id="id_password"
+           autocomplete="current-password" required />
+
+    <button type="submit">Anmelden</button>
+    <input type="hidden" name="next" value="{{ next }}" />
+  </form>
+
+  <p class="hinweis">
+    Es gibt keine Selbstanmeldung. Konten legt ein Administrator an.
+  </p>
+</main>
+</body>
+</html>

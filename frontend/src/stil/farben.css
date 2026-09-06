@@ -1,0 +1,135 @@
+/*
+ * Die Palette. **Alle** Farbwerte der Anwendung stehen hier und nirgends sonst —
+ * kein Farbwert in einer Komponente, kein style={{ color: … }}.
+ *
+ * Es gibt eine zweite Kopie dieser Werte in vorlagen/anmelden.html: die
+ * Anmeldeseite läuft ohne das React-Bundle. Die Namen sind dort dieselben,
+ * damit man die zweite Stelle findet.
+ *
+ * Die Werte kommen aus dem abgestimmten Entwurf (entwurf/Sopharmis Internal
+ * v6 leer.dc.html) und sind verbindlich.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Flächen */
+  --grund: #efede6;
+  --flaeche: #ffffff;
+  --flaeche-leise: #f7f5f0;
+  --rand: #dfdbd1;
+  --rand-stark: #c9c4b7;
+
+  /* Text */
+  --text: #16272b;
+  --text-leise: #7c8a8c;
+  --text-sehr-leise: #8b979a;
+
+  /* Marke */
+  --marke: #14595f;
+  --marke-dunkel: #0f4448;
+  --marke-tiefer: #0a3336;
+  --marke-hell: #e2eeec;
+  --marke-rand: #a8c6c4;
+  --akzent: #8a5638;
+  --akzent-hell: #f4ebe1;
+
+  /* Kopfleiste */
+  --kopf-grund: #0f4448;
+  --kopf-text: #dce8e7;
+  --kopf-text-leise: #8fb4b5;
+  --kopf-rand: #2a6a6e;
+  --kopf-aktiv: #e8d9be;
+
+  /* Zustände */
+  --gut: #4c6b41;
+  --gut-hell: #e9efe3;
+  --warnung: #9c4229;
+  --warnung-hell: #f7e6df;
+  --ruhend: #a0a9ab;
+  --ruhend-hell: #f1efe8;
+  --wartend: #5b4a6b;
+  --wartend-hell: #ede8f0;
+
+  /* Maße */
+  --kante: 2px;          /* eckige Kanten, verbindlich aus dem Entwurf */
+  --griff: 44px;         /* was der Finger trifft, ist mindestens so hoch */
+  --schrift: Figtree, system-ui, -apple-system, sans-serif;
+  --schrift-zahl: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-thema="hell"]) {
+    color-scheme: dark;
+
+    --grund: #12191a;
+    --flaeche: #1a2325;
+    --flaeche-leise: #202b2d;
+    --rand: #2c393b;
+    --rand-stark: #3d4d50;
+
+    --text: #e6e9e6;
+    --text-leise: #9aa8aa;
+    --text-sehr-leise: #869496;
+
+    --marke: #5ea8a8;
+    --marke-dunkel: #0f4448;
+    --marke-tiefer: #0a3336;
+    --marke-hell: #1d3436;
+    --marke-rand: #3a6b6c;
+    --akzent: #c88a63;
+    --akzent-hell: #2e2420;
+
+    --kopf-grund: #0d3a3d;
+    --kopf-text: #cfe0df;
+    --kopf-text-leise: #7fa2a3;
+    --kopf-rand: #1f5559;
+    --kopf-aktiv: #e8d9be;
+
+    --gut: #8fb37f;
+    --gut-hell: #1f2a1e;
+    --warnung: #d98a6d;
+    --warnung-hell: #33211c;
+    --ruhend: #6f7b7d;
+    --ruhend-hell: #212a2b;
+    --wartend: #a898bb;
+    --wartend-hell: #262130;
+  }
+}
+
+:root[data-thema="dunkel"] {
+  color-scheme: dark;
+
+  --grund: #12191a;
+  --flaeche: #1a2325;
+  --flaeche-leise: #202b2d;
+  --rand: #2c393b;
+  --rand-stark: #3d4d50;
+
+  --text: #e6e9e6;
+  --text-leise: #9aa8aa;
+  --text-sehr-leise: #869496;
+
+  --marke: #5ea8a8;
+  --marke-dunkel: #0f4448;
+  --marke-tiefer: #0a3336;
+  --marke-hell: #1d3436;
+  --marke-rand: #3a6b6c;
+  --akzent: #c88a63;
+  --akzent-hell: #2e2420;
+
+  --kopf-grund: #0d3a3d;
+  --kopf-text: #cfe0df;
+  --kopf-text-leise: #7fa2a3;
+  --kopf-rand: #1f5559;
+  --kopf-aktiv: #e8d9be;
+
+  --gut: #8fb37f;
+  --gut-hell: #1f2a1e;
+  --warnung: #d98a6d;
+  --warnung-hell: #33211c;
+  --ruhend: #6f7b7d;
+  --ruhend-hell: #212a2b;
+  --wartend: #a898bb;
+  --wartend-hell: #262130;
+}

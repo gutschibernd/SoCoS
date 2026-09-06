@@ -1,7 +1,9 @@
 """Ansichten außerhalb der API."""
 
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.db import connection
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.cache import never_cache
 
 
@@ -30,3 +32,23 @@ def healthz(request):
             status=503,
         )
     return JsonResponse({"status": "gesund"})
+
+
+@login_required
+def anwendung(request):
+    """
+    Liefert die gebaute React-Anwendung.
+
+    Lokal läuft stattdessen der Vite-Server auf 5176 und reicht `/api/` hierher
+    weiter; diese Ansicht greift also nur in Produktion — und dann gibt es
+    `frontend/dist/index.html`. Fehlt die Datei, sagt die Antwort, was zu tun
+    ist, statt einen Stacktrace zu zeigen.
+    """
+    seite = settings.WURZEL / "frontend" / "dist" / "index.html"
+    if not seite.exists():
+        return HttpResponse(
+            "Die Oberfläche ist nicht gebaut. `cd frontend && npm run build`.",
+            status=503,
+            content_type="text/plain; charset=utf-8",
+        )
+    return HttpResponse(seite.read_text(encoding="utf-8"))

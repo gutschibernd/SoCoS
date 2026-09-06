@@ -79,6 +79,10 @@ source .venv/bin/activate && pytest
 cd frontend && npm test
 ```
 
+Beide Läufer gehören zu jedem Commit. Ein Frontend-Testläufer, der erst später
+eingeführt wird, wird nie eingeführt — und die erste Rechenfunktion im Frontend
+bleibt ungeprüft.
+
 Vor einem Deploy zusätzlich:
 
 ```bash
