@@ -1,0 +1,33 @@
+# Kunden- und Personendaten. Kommt nie ins Repository: was einmal in der
+# Versionsgeschichte steht, holt auch ein `git rm` nicht mehr heraus.
+daten/
+
+# Geheimnisse
+.env
+.env.local
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+/medien/
+/statisch_gesammelt/
+*.sqlite3
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Sicherungen
+/sicherungen/
+
+# macOS / Editor
+.DS_Store
+.idea/
+.vscode/

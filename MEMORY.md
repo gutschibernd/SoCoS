@@ -1,0 +1,167 @@
+# MEMORY — Warum-Entscheidungen, Fallen, offene Punkte
+
+Neueste Einträge oben. Dieses Dokument beantwortet die Fragen, die man dem Code in
+zwei Jahren nicht mehr ansieht. Es wird **im selben Commit** gepflegt, sobald eine
+Änderung ein Schema, eine Architekturentscheidung oder einen fachlichen Sonderfall
+betrifft.
+
+---
+
+## 2026-09-06 — Fachliche Festlegungen aus der Abstimmung mit Bernd
+
+Erste Runde Fragen und Antworten. Grundlage für das Datenmodell.
+
+### Leitplanke über allem
+
+**Die Software wird nicht künstlich verkompliziert.** Drei Nutzer, ein internes
+Werkzeug. Im Zweifel die kleinere Variante bauen. Keine Konfigurierbarkeit ohne
+zweiten konkreten Fall, keine Abstraktion „für später". Gilt für alle Aufgaben,
+nicht nur für einzelne Funktionen.
+
+### Team
+
+Anna Weissenbacher, Bernd Gutschi, Florian Dorighi. Mehr Nutzer sind absehbar nicht
+geplant; die Leser-Rolle existiert für den Fall, dass Mitarbeiter dazukommen.
+
+### Struktur
+
+Vier Ebenen: **Projekt → Bereich → Arbeitspaket → Unteraufgabe.** Unteraufgaben waren
+im Entwurf schon angelegt (`item.subs`) und sind ausdrücklich gewünscht.
+
+„Overhead" ist **kein Sonderfall im Code**, sondern ein ganz normales Projekt, das
+angelegt wird. Sonst gäbe es zwei Wege, Zeit zu verbuchen, und jede Auswertung müsste
+beide kennen.
+
+Bereichsart bleibt die feste Aufzählung `dev` · `fin` · `ziel`. Sie ist nur die
+Vorlage für die Stufenliste, sonst nichts.
+
+### Stufen
+
+Ein **Bereich** trägt seine eigene Stufenliste (Name + Dauer in Monaten). Beim Anlegen
+wird sie aus der Vorlage seiner Art kopiert und ist danach frei änderbar.
+
+**Warum kopieren statt vererben:** „je Projekt anpassbar" wäre auch über eine
+Vererbungskette mit Überschreibungen zu haben. Die müsste man aber bei jeder Anzeige
+auflösen, und man sieht einem Bereich dann nicht an, welche Stufen für ihn gelten.
+Eine kopierte Liste ist ein Wert, kein Verweis — sie ist beim Lesen fertig.
+
+Vorlagen (Namen sind bestätigt, Dauern sind der Stand aus dem Entwurf):
+
+| Art | Stufen (Monate) |
+|---|---|
+| `dev` | Konzept 1 · Umsetzung 3 · Test 2 · Abschluss 1 |
+| `fin` | Vorbereitung 1 · Einreichung 1 · Entscheidung 2 · Abrechnung 1 |
+| `ziel` | Definition 1 · Abstimmung 1 · Verankert 1 |
+
+### Paketstatus
+
+**Sieben Werte**, nicht die fünf aus dem JSON-Entwurf:
+`offen · laeuft · eingereicht · zugesagt · fertig · verworfen · offene_frage`
+
+Die fünf im JSON waren eine Vereinfachung. Für Förderanträge sind „eingereicht" und
+„zugesagt" die entscheidenden Zwischenzustände — genau die, die man wissen will.
+
+### Zeit
+
+- Buchung hängt **am Arbeitspaket** (Pflicht), nicht am Projekt. Projekt und Bereich
+  ergeben sich daraus. Unteraufgaben bekommen keine eigenen Buchungen — eine Ebene
+  reicht, sonst zerfällt jede Auswertung in zwei Töpfe.
+- **Rundung auf 5 Minuten erst in der Auswertung**, nie beim Speichern. Gespeichert
+  werden Start und Ende sekundengenau. Wer beim Erfassen rundet, kann die Rundung
+  nicht mehr zurücknehmen, wenn die Regel sich ändert.
+- **Nacherfassen ist eine eigene Funktion** mit eigenem Untermenü, kein Sonderfall im
+  Clock-in. Vergessene Zeiten sind der Normalfall, nicht die Ausnahme.
+- **Vergessener Clock-out:** Eine Buchung, die über das Tagesende hinausläuft, wird
+  am Tagesende beendet und als **Entwurf** markiert. Sie muss beim nächsten Öffnen
+  bestätigt oder korrigiert werden und zählt bis dahin in keiner Auswertung mit.
+  Ein Entwurf ist damit sichtbar unfertig — besser als eine 14-Stunden-Buchung, die
+  echt aussieht.
+- Notiz beim Clock-out bleibt überspringbar (mit Rückfrage), so wie im Entwurf.
+- Fremde Buchungen ändern dürfen Admin **und** Bearbeiter; löschen nur Admin.
+
+### Geld
+
+**Keine Abrechnung.** Kein Stundensatz, keine Umsatzsteuer, kein Rechnungsnummernkreis,
+keine Förderabrechnung. Sopharmis ist förderfinanziert und stellt niemandem eine
+Rechnung. Damit entfällt auch die im Startprompt beschriebene „eingefrorene
+Rechnungsposition" — **es gibt derzeit keinen Beleg im System.** Die Grenze zwischen
+gerechnet und eingefroren liegt aktuell also so: **alles wird gerechnet.**
+
+Was es gibt:
+
+- **Kontostand** als Stichtagswert. Beliebig viele Stichtage, jeder wird über sein
+  Datum einem Monat zugeordnet. Kein Zwang, genau einen pro Monat zu haben.
+- **Fixkosten** — der wiederkehrende Monatsbetrag. Basis für Verlauf und Prognose.
+- **Monatskosten** — was in einem konkreten Monat tatsächlich angefallen ist.
+- **Runway** wird gerechnet: Kontostand ÷ erwartete Monatskosten. Erwartet =
+  Durchschnitt der letzten drei erfassten Monatskosten, solange es drei gibt, sonst
+  die Fixkosten. *(So verstanden aus „mach da einfach was schlaues" — wenn die
+  Prognose anders gemeint war, steht sie an einer Stelle in `socos/services/` und ist
+  in fünf Minuten geändert.)*
+
+### Zeitnachweis
+
+**PDF-Export der Stunden eines Monats als saubere Tabelle** — je Person einzeln
+herunterladbar und einmal für alle zusammen. Das ist der einzige Berichtsbedarf.
+
+### Rollen
+
+Drei Django-Gruppen. Entschieden wird ausschließlich serverseitig, die Schwellen
+stehen an genau einer Stelle in `socos/berechtigung.py`.
+
+| | Admin (Bernd, Florian) | Bearbeiter (Anna) | Leser (später) |
+|---|---|---|---|
+| Alles sehen, inkl. Finanzen und fremder Stunden | ✓ | ✓ | ✓ |
+| Eigene Zeiten buchen und ändern | ✓ | ✓ | — |
+| Fremde Zeiten ändern | ✓ | ✓ | — |
+| Projekte, Bereiche, Pakete, Kontakte pflegen | ✓ | ✓ | — |
+| Finanzen eintragen | ✓ | — | — |
+| Löschen | ✓ | — | — |
+| Nutzer und Rollen verwalten | ✓ | — | — |
+
+Der Leser sieht **alles**, auch Kontostand, Runway und die Stunden der anderen — so
+ausdrücklich entschieden. Profil-Stammdaten (Adresse, Geburtsdatum) sieht nur man
+selbst und der Admin.
+
+### Regulatorik
+
+Die Zeitdokumentation **muss auditierbar sein**.
+
+- **Es gibt kein hartes Löschen.** Alles wird weich gelöscht: verschwindet aus den
+  Listen, bleibt im Protokoll, ist für den Admin wiederherstellbar. **Ein** Mechanismus
+  — kein zweiter Storno-Weg daneben, den man beim nächsten Modell vergisst.
+- **Änderungsprotokoll: wer, wann, was, alt → neu je Feld.** Keine Begründungspflicht
+  bei nachträglichen Änderungen.
+
+### Vorerst nicht gebaut
+
+- **Termine und Tasks** — bewusst zurückgestellt. Bernd geht die Liste erst durch.
+- **Datenimport** aus `daten/sopharmis-daten.json` — die Datei wird erst gekürzt.
+  Der Import kommt danach.
+- **Fremdsysteme** (Kalender, Buchhaltung) — derzeit keine, ggf. später.
+
+### Betrieb
+
+- Domain: **socos.sopharmis.com** (Subdomain von sopharmis.com).
+- VPS bei **Hetzner**, kommt später. Lokal wird zuerst gebaut.
+- **Sicherung außer Haus und Restore-Test: offener Punkt**, siehe unten.
+
+---
+
+## 2026-09-06 — Python 3.12 statt 3.14
+
+Lokal liegen 3.12 und 3.14. Genommen wird **3.12**: Django 5.2 nennt 3.10–3.13 als
+unterstützt, und bei 3.14 hängt man an Wheels, die es für Randabhängigkeiten noch
+nicht überall gibt. Es gibt keinen Grund, das Risiko für nichts einzugehen.
+
+---
+
+## Offene Punkte
+
+- [ ] **Kopie außer Haus** — wohin, und verschlüsselt ja/nein. Bei Personendaten
+      wäre verschlüsselt die Antwort; dann braucht der Schlüssel einen Ort, der
+      nicht im selben Archiv liegt.
+- [ ] **Restore-Test mit Datum** in SERVER.md. Ein Restore ohne Test ist kein Backup.
+- [ ] Prognoseformel für den Runway bestätigen (siehe oben, Abschnitt Geld).
+- [ ] Termine/Tasks: Modell festlegen, sobald Bernd die Liste gekürzt hat.
+- [ ] Datenimport bauen, sobald `daten/sopharmis-daten.json` bereinigt ist.

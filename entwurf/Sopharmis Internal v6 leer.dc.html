@@ -1,0 +1,2293 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #EFEDE6; font-family: Figtree, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #14595F; text-decoration: none; }
+  a:hover { color: #0E4046; }
+  input { font-family: inherit; }
+  input:focus { outline: 2px solid #A8C6C4; outline-offset: 1px; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #DDD9D0; border-radius: 10px; border: 3px solid #EFEDE6; }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: #EFEDE6; color: #16272B; font-size: 15px;">
+
+  <div style="background: #0F4448; color: #DCE8E7; border-bottom: 1px solid #0A3336;">
+    <div style="max-width: 1400px; margin: 0 auto; padding: 10px 22px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div onClick="{{ onOpenDash }}" style="display: flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid #2A6A6E; border-radius: 2px; cursor: pointer;" style-hover="background: #16565A;">
+        <div style="font-size: 16px; font-weight: 600; color: #FFFFFF; letter-spacing: -0.01em;">Sopharmis</div>
+        <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #6E9A9C; padding-top: 2px;">Intern</div>
+      </div>
+
+      <nav style="display: flex; gap: 2px; min-width: 0;">
+        <sc-for list="{{ nav }}" as="item" hint-placeholder-count="4">
+          <div onClick="{{ item.onClick }}" style="padding: 9px 18px; border-radius: 2px; cursor: pointer; font-size: 14px; font-weight: 600; white-space: nowrap; background: {{ item.bg }}; color: {{ item.fg }};" style-hover="background: #16565A;">{{ item.label }}</div>
+        </sc-for>
+      </nav>
+
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 14px;">
+        <div style="position: relative;">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 7px 8px 7px 14px; border: 1px solid #2A6A6E; border-radius: 2px; background: {{ clockBg }}; min-width: 0;">
+            <div style="width: 7px; height: 7px; border-radius: 50%; background: {{ clockDot }}; flex: 0 0 7px;"></div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; color: #FFFFFF; white-space: nowrap;">{{ clockTime }}</div>
+            <div style="font-size: 13px; color: #8FB4B5; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ clockWhereLabel }}</div>
+            <div onClick="{{ toggleBarMenu }}" title="Buchung wählen" style="padding: 7px 10px; border-radius: 2px; border: 1px solid #2A6A6E; color: #DCE8E7; font-size: 12px; cursor: pointer; white-space: nowrap; flex: 0 0 auto;" style-hover="background: #16565A;">{{ barMenuCaret }}</div>
+            <div onClick="{{ toggleClock }}" title="{{ clockBtnHint }}" style="padding: 7px 14px; border-radius: 2px; background: {{ clockBtnBg }}; color: {{ clockBtnFg }}; font-size: 13px; font-weight: 600; cursor: {{ clockBtnCursor }}; white-space: nowrap; flex: 0 0 auto;">{{ clockBtnLabel }}</div>
+          </div>
+          <sc-if value="{{ barMenuOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; right: 0; top: 100%; margin-top: 6px; width: 320px; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; border-color: #C9C4B7; overflow: hidden; z-index: 60;">
+              <div style="padding: 11px 14px; border-bottom: 1px solid #F0EEE8; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Letzte Buchungen</div>
+              <sc-for list="{{ recentTop3 }}" as="r" hint-placeholder-count="3">
+                <div onClick="{{ r.onClick }}" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #F4F2EC; cursor: pointer; background: {{ r.bg }};" style-hover="background: #F0F6F5;">
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 14px; font-weight: 500; color: #16272B; line-height: 1.35;">{{ r.label }}</div>
+                    <div style="font-size: 12px; color: #8B979A; margin-top: 2px;">{{ r.meta }}</div>
+                  </div>
+                  <div style="font-size: 12px; font-weight: 600; color: {{ r.actionFg }}; white-space: nowrap;">{{ r.action }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <div onClick="{{ onOpenProfil }}" title="Profil" style="display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 6px; border: 1px solid #1D5A5E; border-radius: 2px; cursor: pointer; background: {{ profilChipBg }};" style-hover="background: #16565A;">
+          <div style="width: 27px; height: 27px; border-radius: 2px; background: {{ profil.color }}; color: #0F4448; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ profil.initials }}</div>
+          <span style="font-size: 14px; color: #DCE8E7; white-space: nowrap;">{{ profil.name }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width: 1400px; margin: 0 auto; padding: 18px 22px 44px;">
+
+    <sc-if value="{{ showTitle }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
+        <h1 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em;">{{ pageTitle }}</h1>
+        <div style="font-size: 14px; color: #7C8A8C;">{{ pageSub }}</div>
+        <sc-if value="{{ isProjekt }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ onOpenStruktur }}" style="margin-left: auto; background: #FFFFFF; border: 1px solid #C9C4B7; border-radius: 2px; padding: 10px 16px; font-size: 14px; font-weight: 600; color: #14595F; cursor: pointer; white-space: nowrap;" style-hover="border-color: #A8C6C4;">Struktur bearbeiten →</div>
+        </sc-if>
+        <sc-if value="{{ isStruktur }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ onOpenProjekt }}" style="margin-left: auto; background: #FFFFFF; border: 1px solid #C9C4B7; border-radius: 2px; padding: 10px 16px; font-size: 14px; font-weight: 600; color: #14595F; cursor: pointer; white-space: nowrap;" style-hover="border-color: #A8C6C4;">← Zurück zum Projekt</div>
+        </sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{ deepOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 30px; padding-bottom: 18px; border-bottom: 1px solid #E4E1DA;">
+        <div onClick="{{ onBack }}" style="display: flex; align-items: center; gap: 9px; padding: 12px 18px; border: 1px solid #D8D3C6; border-radius: 3px; background: #FFFFFF; cursor: pointer; font-size: 15px; font-weight: 600; color: #14595F; min-height: 46px;" style-hover="border-color: #A8C6C4;">
+          <span style="font-size: 17px;">←</span><span>Kontakte</span>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.02em;">{{ deepTitle }}</div>
+          <div style="font-size: 15px; color: #8B979A; margin-top: 3px;">{{ deepSub }}</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+          <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 15px 17px; border-top: 3px solid #14595F;">
+            <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Kontostand</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 26px; margin-top: 7px; letter-spacing: -0.02em;">{{ fin.balance }}</div>
+            <div style="font-size: 13px; color: {{ balanceHintFg }}; margin-top: 4px;">{{ balanceHint }}</div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 15px 17px; border-top: 3px solid #8A5638;">
+            <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Kosten / Monat</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 26px; margin-top: 7px; letter-spacing: -0.02em;">{{ fin.burn }}</div>
+            <div style="font-size: 13px; color: #7C8A8C; margin-top: 4px;">Fixkosten</div>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 15px 17px; border-top: 3px solid #4C6B41;">
+            <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Runway</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 26px; margin-top: 7px; letter-spacing: -0.02em; color: {{ fin.runwayFg }};">{{ fin.runway }}</div>
+            <div style="font-size: 13px; color: #7C8A8C; margin-top: 4px;">{{ runwayUntil }}</div>
+          </div>
+          <div onClick="{{ onOpenZeit }}" style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 15px 17px; border-top: 3px solid #8B979A; cursor: pointer;">
+            <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Woche Team</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 26px; margin-top: 7px; letter-spacing: -0.02em;">{{ teamWeekTotal }}</div>
+            <div style="font-size: 13px; color: #7C8A8C; margin-top: 4px;">{{ teamCount }}</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+
+          <div style="min-width: 0; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 18px 20px; display: flex; flex-direction: column;">
+            <h2 style="margin: 0 0 14px; font-size: 15px; font-weight: 600;">Termine im Projekt</h2>
+            <div style="flex: 1; display: flex; flex-direction: column;">
+              <sc-if value="{{ noDeadlines }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size: 13px; color: #A9B2B4;">Noch kein Termin erfasst</div>
+              </sc-if>
+              <sc-for list="{{ deadlines }}" as="w" hint-placeholder-count="4">
+                <div style="display: flex; gap: 12px; flex: 1;">
+                  <div style="display: flex; flex-direction: column; align-items: center; padding-top: 5px;">
+                    <div style="width: 9px; height: 9px; border-radius: 50%; background: {{ w.dotBg }}; flex: 0 0 9px;"></div>
+                    <div style="width: 1px; flex: 1; background: #E4E1DA; min-height: 16px;"></div>
+                  </div>
+                  <div style="flex: 1; min-width: 0; padding-bottom: 14px;">
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: {{ w.dayFg }};">{{ w.day }}</div>
+                    <div style="font-size: 14px; font-weight: 500; margin-top: 2px; line-height: 1.35;">{{ w.title }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="min-width: 0; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 18px 20px; display: flex; flex-direction: column;">
+            <h2 style="margin: 0 0 14px; font-size: 15px; font-weight: 600;">Team jetzt</h2>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 14px;">
+              <sc-for list="{{ teamLive }}" as="l" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 11px;">
+                  <div style="width: 28px; height: 28px; border-radius: 2px; background: {{ l.color }}; color: #0F4448; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex: 0 0 28px;">{{ l.initials }}</div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ l.where }}</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: {{ l.metaFg }}; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ l.meta }}</div>
+                  </div>
+                </div>
+              </sc-for>
+              <div style="padding-top: 12px; border-top: 1px solid #F0EEE8; display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+                <div style="font-size: 12px; color: #8B979A;">{{ liveCount }}</div>
+                <div onClick="{{ onOpenZeit }}" style="font-size: 12px; font-weight: 600; color: #14595F; cursor: pointer; white-space: nowrap;">Zeit →</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="grid-column: span 2; min-width: 0; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 18px 20px; display: flex; flex-direction: column;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="margin: 0; font-size: 15px; font-weight: 600;">Stunden pro Person</h2>
+              <div style="font-size: 13px; color: #8B979A;">diese Woche</div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 16px;">
+              <div style="display: flex; flex-direction: column; justify-content: space-between; height: 150px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #A9B2B4; text-align: right;">
+                <sc-for list="{{ weekAxis }}" as="a" hint-placeholder-count="4">
+                  <div>{{ a.label }}</div>
+                </sc-for>
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="position: relative; height: 150px; border-bottom: 1px solid #DFDBD1;">
+                  <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div style="border-top: 1px solid #F0EEE8;"></div>
+                    <div style="border-top: 1px solid #F0EEE8;"></div>
+                    <div style="border-top: 1px solid #F0EEE8;"></div>
+                    <div></div>
+                  </div>
+                  <div style="position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: space-around; gap: 18px; padding: 0 12px;">
+                    <sc-for list="{{ weekStats }}" as="w" hint-placeholder-count="3">
+                      <div style="flex: 1; max-width: 56px; background: {{ w.color }}; height: {{ w.barH }}; border-top: 3px solid #14595F;"></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-around; gap: 18px; padding: 0 12px; margin-top: 6px;">
+                  <sc-for list="{{ weekStats }}" as="w" hint-placeholder-count="3">
+                    <div style="flex: 1; max-width: 56px; text-align: center;">
+                      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px;">{{ w.hours }}</div>
+                      <div style="font-size: 11px; color: #A9B2B4;">{{ w.initials }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top: auto; padding-top: 16px;">
+              <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Verteilung auf Projekte</div>
+              <div style="display: flex; height: 12px; margin-top: 10px; border-radius: 2px; overflow: hidden;">
+                <sc-for list="{{ weekSplit }}" as="p" hint-placeholder-count="3">
+                  <div style="background: {{ p.color }}; width: {{ p.pct }};"></div>
+                </sc-for>
+              </div>
+              <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px;">
+                <sc-for list="{{ weekSplit }}" as="p" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: center; gap: 9px; font-size: 13px;">
+                    <div style="width: 9px; height: 9px; background: {{ p.color }}; flex: 0 0 9px;"></div>
+                    <span>{{ p.label }}</span>
+                    <span style="font-family: 'IBM Plex Mono', monospace; color: #6B7A7E;">{{ p.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+
+          <div style="grid-column: span 3; min-width: 0; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 18px 20px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+              <h2 style="margin: 0; font-size: 15px; font-weight: 600;">Projektfortschritt</h2>
+              <div onClick="{{ onOpenProjekt }}" style="font-size: 13px; font-weight: 600; color: #14595F; cursor: pointer;">Projekt →</div>
+            </div>
+
+            <sc-for list="{{ progress }}" as="p" hint-placeholder-count="2">
+              <div style="margin-top: 20px;">
+                <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+                  <div style="width: 9px; height: 9px; background: {{ p.accent }}; flex: 0 0 9px;"></div>
+                  <div style="font-size: 14px; font-weight: 600;">{{ p.title }}</div>
+                  <div style="font-size: 13px; color: #8B979A;">{{ p.meta }}</div>
+                </div>
+                <div style="display: flex; gap: 3px; margin-top: 10px;">
+                  <sc-for list="{{ p.steps }}" as="st" hint-placeholder-count="6">
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="height: 26px; background: {{ st.bg }};"></div>
+                      <div style="font-size: 11px; color: {{ st.fg }}; margin-top: 6px; line-height: 1.3;">{{ st.label }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+
+            <div style="margin-top: 22px; padding-top: 16px; border-top: 1px solid #F0EEE8;">
+              <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Förderschienen</div>
+              <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px;">
+                <sc-for list="{{ fundings }}" as="f" hint-placeholder-count="4">
+                  <div style="border: 1px solid #DFDBD1; border-left: 3px solid {{ f.accent }}; padding: 10px 12px; min-width: 0;">
+                    <div style="font-size: 13px; font-weight: 600; line-height: 1.3;">{{ f.title }}</div>
+                    <div style="font-size: 12px; color: #8B979A; margin-top: 3px; line-height: 1.35;">{{ f.meta }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="min-width: 0; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 16px 18px; display: flex; flex-direction: column;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px;">
+              <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #33454A;">{{ taskHead }}</h2>
+              <sc-if value="{{ notAddingTask }}" hint-placeholder-val="{{ true }}">
+                <span onClick="{{ onAddTask }}" style="font-size: 12px; font-weight: 600; color: #14595F; cursor: pointer;">+ Task</span>
+              </sc-if>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+              <sc-for list="{{ myTasks }}" as="t" hint-placeholder-count="5">
+                <div style="display: flex; align-items: center; gap: 9px;">
+                  <div onClick="{{ t.onToggleDone }}" style="width: 15px; height: 15px; border: 1.5px solid {{ t.boxBorder }}; background: {{ t.boxBg }}; color: #FFFFFF; border-radius: 2px; flex: 0 0 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px;">{{ t.check }}</div>
+                  <div style="flex: 1; min-width: 0; font-size: 13px; color: {{ t.titleFg }}; text-decoration: {{ t.strike }};">{{ t.title }}</div>
+                  <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: {{ t.dueFg }}; white-space: nowrap;">{{ t.dueShort }}</div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ addingTask }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; align-items: center; gap: 9px;">
+                  <div style="width: 15px; height: 15px; border: 1.5px dashed #C6C0B2; border-radius: 2px; flex: 0 0 15px;"></div>
+                  <input value="{{ draftTask }}" onChange="{{ onDraftTask }}" onKeyDown="{{ onSubmitTask }}" placeholder="Was ist zu tun? Enter" style="flex: 1; min-width: 0; border: none; background: transparent; font-size: 13px; padding: 2px 0;" />
+                  <div onClick="{{ onCancelTask }}" style="font-size: 12px; color: #8B979A; cursor: pointer;">Abbrechen</div>
+                </div>
+              </sc-if>
+              <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid #F0EEE8; font-size: 12px; color: #8B979A;">{{ taskFoot }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 18px 20px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <h2 style="margin: 0; font-size: 15px; font-weight: 600;">Kontostand-Verlauf</h2>
+            <div style="font-size: 13px; color: #8B979A;">{{ finSub }}</div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 18px;">
+            <div style="display: flex; flex-direction: column; justify-content: space-between; height: 168px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #A9B2B4; text-align: right;">
+              <sc-for list="{{ finAxis }}" as="a" hint-placeholder-count="5">
+                <div>{{ a.label }}</div>
+              </sc-for>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="position: relative; height: 168px; border-bottom: 1px solid #DFDBD1;">
+                <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div style="border-top: 1px solid #F0EEE8;"></div>
+                  <div style="border-top: 1px solid #F0EEE8;"></div>
+                  <div style="border-top: 1px solid #F0EEE8;"></div>
+                  <div style="border-top: 1px solid #F0EEE8;"></div>
+                  <div></div>
+                </div>
+                <div style="position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 4px;">
+                  <sc-for list="{{ fin.months }}" as="m" hint-placeholder-count="12">
+                    <div style="flex: 1; background: {{ m.bg }}; height: {{ m.h }};"></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display: flex; gap: 4px; margin-top: 6px;">
+                <sc-for list="{{ fin.months }}" as="m" hint-placeholder-count="12">
+                  <div style="flex: 1; min-width: 0; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #A9B2B4; text-align: center;">{{ m.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid #F0EEE8;">
+            <sc-if value="{{ balanceDue }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <div style="font-size: 14px; color: #9C4229;">Monatsaufgabe: Kontostand eintragen</div>
+                <sc-if value="{{ editingBalance }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input value="{{ draftBalance }}" onChange="{{ onDraftBalance }}" onKeyDown="{{ onSubmitBalance }}" placeholder="82400" style="border: 1px solid #DFDBD1; border-radius: 2px; padding: 10px 12px; font-size: 15px; width: 130px; font-family: 'IBM Plex Mono', monospace; text-align: right;" />
+                    <div onClick="{{ onSaveBalance }}" style="padding: 10px 17px; border-radius: 2px; background: #14595F; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;">Speichern</div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ notEditingBalance }}" hint-placeholder-val="{{ true }}">
+                  <div onClick="{{ onEditBalance }}" style="padding: 9px 17px; border-radius: 2px; background: #14595F; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;">Jetzt eintragen</div>
+                </sc-if>
+              </div>
+            </sc-if>
+            <sc-if value="{{ balanceDone }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size: 14px; color: #4C6B41;">{{ balanceDoneLabel }}</div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isProjekt }}">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+          <sc-for list="{{ pkKpis }}" as="k" hint-placeholder-count="4">
+            <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; border-top: 3px solid {{ k.accent }}; padding: 15px 17px;">
+              <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">{{ k.label }}</div>
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 26px; margin-top: 7px; letter-spacing: -0.02em; color: {{ k.fg }};">{{ k.value }}</div>
+              <div style="font-size: 13px; color: #7C8A8C; margin-top: 4px;">{{ k.meta }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display: flex; align-items: stretch; flex-wrap: wrap; gap: 12px;">
+          <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; display: flex; overflow: hidden;">
+            <sc-for list="{{ projFilters }}" as="f" hint-placeholder-count="3">
+              <div onClick="{{ f.onClick }}" style="padding: 12px 18px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; border-left: 1px solid {{ f.divider }}; background: {{ f.bg }}; color: {{ f.fg }};">{{ f.label }}</div>
+            </sc-for>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 16px;">
+            <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600; white-space: nowrap;">Status</span>
+            <select value="{{ statFilter }}" onChange="{{ onStatFilter }}" style="border: none; background: transparent; font-size: 14px; font-weight: 600; color: #16272B; padding: 12px 4px 12px 0; cursor: pointer;">
+              <sc-for list="{{ statOptions }}" as="o" hint-placeholder-count="6">
+                <option value="{{ o.label }}">{{ o.label }}</option>
+              </sc-for>
+            </select>
+          </div>
+        </div>
+
+        <div style="background: #0F4448; border-radius: 2px; padding: 16px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;">
+          <div style="min-width: 0;">
+            <div style="font-size: 17px; font-weight: 600; color: #FFFFFF; letter-spacing: -0.015em;">Sopharmis</div>
+            <div style="font-size: 13px; color: #8FB4B5; margin-top: 3px;">„Safe Medication @ home“</div>
+          </div>
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 26px; flex-wrap: wrap;">
+            <sc-for list="{{ rootStats }}" as="r" hint-placeholder-count="3">
+              <div>
+                <div style="font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #6E9A9C; font-weight: 600;">{{ r.label }}</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 17px; color: #FFFFFF; margin-top: 3px;">{{ r.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ noProjects }}" hint-placeholder-val="{{ false }}">
+          <div style="background: #FFFFFF; border: 1px dashed #D3CEC2; border-radius: 2px; padding: 40px 24px; text-align: center;">
+            <div style="font-size: 16px; font-weight: 600;">Noch kein Projekt angelegt</div>
+            <div style="font-size: 14px; color: #6B7A7E; margin-top: 6px;">Über „Struktur bearbeiten“ Bereiche und Arbeitspakete anlegen.</div>
+            <div onClick="{{ onOpenStruktur }}" style="display: inline-block; margin-top: 16px; padding: 10px 18px; border-radius: 2px; background: #14595F; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;">Struktur bearbeiten</div>
+          </div>
+        </sc-if>
+
+        <sc-for list="{{ projBlocks }}" as="p" hint-placeholder-count="2">
+          <div style="border-left: 6px solid {{ p.accent }}; padding-left: 12px; display: flex; flex-direction: column; gap: 12px;">
+
+            <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 18px; font-weight: 600; letter-spacing: -0.015em;">{{ p.title }}</div>
+                <div style="font-size: 13px; color: #6B7A7E; margin-top: 3px;">{{ p.sub }}</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">gebucht</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; margin-top: 3px;">{{ p.tracked }}</div>
+              </div>
+              <div onClick="{{ p.onClock }}" style="padding: 10px 16px; border-radius: 2px; background: {{ p.btnBg }}; color: {{ p.btnFg }}; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">{{ p.btnLabel }}</div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; align-items: start;">
+              <sc-for list="{{ p.areas }}" as="a" hint-placeholder-count="3">
+                <div style="min-width: 0; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 0;">
+                  <div style="display: flex; align-items: center; gap: 11px; padding: 12px 16px; border-bottom: 1px solid #F0EEE8; background: #FAF9F6;">
+                    <div style="width: 8px; height: 8px; background: {{ a.accent }}; flex: 0 0 8px;"></div>
+                    <div style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ a.title }}</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #8B979A; white-space: nowrap;">{{ a.stats }}</div>
+                  </div>
+
+                  <sc-for list="{{ a.pkgs }}" as="k" hint-placeholder-count="3">
+                    <div onClick="{{ k.onSelect }}" style="padding: 13px 16px; border-bottom: 1px solid #F4F2EC; border-left: 3px solid {{ k.selBorder }}; background: {{ k.bg }}; cursor: pointer;" style-hover="background: #FAF9F6;">
+                      <div style="display: flex; align-items: baseline; gap: 10px;">
+                        <div style="flex: 1; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.35;">{{ k.title }}</div>
+                        <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; background: {{ k.chipBg }}; color: {{ k.chipFg }}; white-space: nowrap;">{{ k.status }}</div>
+                      </div>
+                      <sc-if value="{{ k.hasNote }}" hint-placeholder-val="{{ true }}">
+                        <div style="font-size: 12px; color: #8B979A; margin-top: 4px; line-height: 1.4;">{{ k.note }}</div>
+                      </sc-if>
+                      <div style="display: flex; gap: 2px; margin-top: 10px;">
+                        <sc-for list="{{ k.stages }}" as="st" hint-placeholder-count="4">
+                          <div onClick="{{ st.onClick }}" title="{{ st.title }}" style="flex: {{ st.flex }}; min-width: 0; height: 8px; background: {{ st.bg }}; cursor: pointer;"></div>
+                        </sc-for>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                        <div style="flex: 1; min-width: 0; font-size: 12px; color: #8B979A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ k.phase }}</div>
+                        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #A9B2B4; white-space: nowrap;">{{ k.months }}</div>
+                        <div onClick="{{ k.onClock }}" style="padding: 6px 12px; border-radius: 2px; background: {{ k.btnBg }}; color: {{ k.btnFg }}; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;">{{ k.btnLabel }}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+
+                  <sc-if value="{{ a.empty }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding: 14px 16px; font-size: 13px; color: #A9B2B4;">Kein Paket in diesem Filter</div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ hasSelPkg }}" hint-placeholder-val="{{ false }}">
+        <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 0;">
+          <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid #F0EEE8;">
+            <div style="min-width: 0;">
+              <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">{{ pk.where }}</div>
+              <div style="font-size: 17px; font-weight: 600; letter-spacing: -0.015em; margin-top: 4px;">{{ pk.title }}</div>
+            </div>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Status</span>
+              <div style="display: flex; border: 1px solid #DFDBD1; border-radius: 2px; overflow: hidden;">
+                <sc-for list="{{ pkStatusBtns }}" as="b" hint-placeholder-count="5">
+                  <div onClick="{{ b.onClick }}" style="padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; border-left: 1px solid {{ b.divider }}; background: {{ b.bg }}; color: {{ b.fg }};">{{ b.label }}</div>
+                </sc-for>
+              </div>
+              <div onClick="{{ pk.onClock }}" style="padding: 10px 16px; border-radius: 2px; background: {{ pk.btnBg }}; color: {{ pk.btnFg }}; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">{{ pk.btnLabel }}</div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);">
+            <div style="padding: 18px 20px; border-right: 1px solid #F0EEE8;">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+                <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Fortschritt in Stufen</div>
+                <div style="font-size: 13px; color: #8B979A;">{{ pk.progressMeta }}</div>
+              </div>
+              <div style="display: flex; gap: 3px; margin-top: 14px;">
+                <sc-for list="{{ pkStages }}" as="st" hint-placeholder-count="4">
+                  <div onClick="{{ st.onClick }}" style="flex: {{ st.flex }}; min-width: 0; cursor: pointer;">
+                    <div style="height: 30px; background: {{ st.bg }};"></div>
+                    <div style="font-size: 12px; font-weight: 500; color: {{ st.fg }}; margin-top: 7px; line-height: 1.3;">{{ st.label }}</div>
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #A9B2B4; margin-top: 2px;">{{ st.months }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #F0EEE8;">
+                <input value="{{ pkNote }}" onChange="{{ onPkNote }}" onKeyDown="{{ onPkNoteKey }}" placeholder="Notiz zum Paket" style="flex: 1; min-width: 0; border: 1px solid #DFDBD1; border-radius: 2px; padding: 11px 13px; font-size: 14px;" />
+                <div onClick="{{ onPkNoteSave }}" style="padding: 11px 17px; border-radius: 2px; background: #14595F; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Speichern</div>
+              </div>
+            </div>
+
+            <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Gebuchte Zeit</div>
+              <div style="display: flex; flex-direction: column;">
+                <sc-for list="{{ pkBookings }}" as="b" hint-placeholder-count="3">
+                  <div style="display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid #F0EEE8;">
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #A9B2B4; min-width: 62px; flex: 0 0 62px;">{{ b.time }}</div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-size: 13px; line-height: 1.4;">{{ b.note }}</div>
+                      <div style="font-size: 12px; color: #A9B2B4; margin-top: 2px;">{{ b.who }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ pkNoBookings }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding: 10px 0; border-top: 1px solid #F0EEE8; font-size: 13px; color: #A9B2B4;">Noch keine Buchung auf dieses Paket</div>
+                </sc-if>
+              </div>
+              <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid #F0EEE8; display: flex; flex-direction: column; gap: 7px;">
+                <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px;"><span style="color: #8B979A;">Geplant</span><span style="font-family: 'IBM Plex Mono', monospace;">{{ pk.planMonths }}</span></div>
+                <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px;"><span style="color: #8B979A;">Abgeschlossen</span><span style="font-family: 'IBM Plex Mono', monospace;">{{ pk.doneMonths }}</span></div>
+                <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px;"><span style="color: #8B979A;">Gebucht</span><span style="font-family: 'IBM Plex Mono', monospace;">{{ pk.tracked }}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isStruktur }}">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+
+        <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; display: flex; align-items: stretch; flex-wrap: wrap;">
+          <div style="padding: 12px 14px; display: flex; align-items: center; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600; border-right: 1px solid #F0EEE8; white-space: nowrap;">Neues Paket</div>
+          <input value="{{ npkTitle }}" onChange="{{ onNpkTitle }}" onKeyDown="{{ onNpkKey }}" placeholder="Name des Pakets" style="border: none; background: transparent; font-size: 14px; padding: 12px 12px; flex: 1 1 160px; min-width: 0; border-right: 1px solid #F0EEE8;" />
+          <select value="{{ npkArea }}" onChange="{{ onNpkArea }}" style="border: none; background: transparent; font-size: 14px; padding: 12px 12px; flex: 1 1 230px; min-width: 0; border-right: 1px solid #F0EEE8; color: #16272B;">
+            <sc-for list="{{ areaShortOptions }}" as="o" hint-placeholder-count="5">
+              <option value="{{ o.id }}">{{ o.label }}</option>
+            </sc-for>
+          </select>
+          <input value="{{ npkNote }}" onChange="{{ onNpkNote }}" onKeyDown="{{ onNpkKey }}" placeholder="Notiz" style="border: none; background: transparent; font-size: 14px; padding: 12px 12px; flex: 2 1 150px; min-width: 0; border-right: 1px solid #F0EEE8;" />
+          <div onClick="{{ onNpkSave }}" style="padding: 12px 20px; background: #14595F; color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; white-space: nowrap;">Anlegen</div>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; display: flex; align-items: stretch; flex-wrap: wrap;">
+          <div style="padding: 12px 14px; display: flex; align-items: center; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600; border-right: 1px solid #F0EEE8; white-space: nowrap;">Neuer Bereich</div>
+          <input value="{{ narTitle }}" onChange="{{ onNarTitle }}" onKeyDown="{{ onNarKey }}" placeholder="Name des Bereichs" style="border: none; background: transparent; font-size: 14px; padding: 12px 12px; flex: 1 1 200px; min-width: 0; border-right: 1px solid #F0EEE8;" />
+          <select value="{{ narPart }}" onChange="{{ onNarPart }}" style="border: none; background: transparent; font-size: 14px; padding: 12px 12px; flex: 1 1 160px; min-width: 0; border-right: 1px solid #F0EEE8; color: #16272B;">
+            <sc-for list="{{ partOptions }}" as="o" hint-placeholder-count="2">
+              <option value="{{ o.id }}">{{ o.label }}</option>
+            </sc-for>
+          </select>
+          <select value="{{ narKind }}" onChange="{{ onNarKind }}" style="border: none; background: transparent; font-size: 14px; padding: 12px 12px; flex: 1 1 160px; min-width: 0; border-right: 1px solid #F0EEE8; color: #16272B;">
+            <sc-for list="{{ kindOptions }}" as="o" hint-placeholder-count="3">
+              <option value="{{ o.id }}">{{ o.label }}</option>
+            </sc-for>
+          </select>
+          <div onClick="{{ onNarSave }}" style="padding: 12px 20px; background: #4C6B41; color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; white-space: nowrap;">Anlegen</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); gap: 12px; align-items: start;">
+          <sc-for list="{{ areaEdit }}" as="a" hint-placeholder-count="5">
+            <div style="min-width: 0; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 0;">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #F0EEE8; background: #FAF9F6;">
+                <div style="width: 8px; height: 8px; background: {{ a.accent }}; flex: 0 0 8px;"></div>
+                <input value="{{ a.title }}" onChange="{{ a.onTitle }}" style="flex: 1; min-width: 0; border: 1px solid transparent; border-radius: 2px; background: transparent; font-size: 14px; font-weight: 600; padding: 7px 8px;" style-focus="border-color: #C9C4B7; background: #FFFFFF;" />
+                <div style="font-size: 12px; color: #8B979A; white-space: nowrap;">{{ a.part }}</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #A9B2B4; white-space: nowrap;">{{ a.kindLabel }}</div>
+              </div>
+
+              <sc-for list="{{ a.pkgs }}" as="k" hint-placeholder-count="3">
+                <div style="padding: 10px 14px; border-bottom: 1px solid #F4F2EC;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C0C7C6; min-width: 20px; flex: 0 0 20px;">{{ k.pos }}</div>
+                    <input value="{{ k.title }}" onChange="{{ k.onTitle }}" style="flex: 1; min-width: 0; border: 1px solid transparent; border-radius: 2px; background: transparent; font-size: 14px; font-weight: 500; padding: 8px;" style-focus="border-color: #C9C4B7; background: #FFFFFF;" />
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-left: 28px; flex-wrap: wrap;">
+                    <select value="{{ k.areaId }}" onChange="{{ k.onArea }}" style="flex: 1 1 200px; min-width: 0; border: 1px solid #E7E3DA; border-radius: 2px; background: #FFFFFF; font-size: 13px; padding: 7px 8px; color: #5C6A6D;">
+                      <sc-for list="{{ areaShortOptions }}" as="o" hint-placeholder-count="5">
+                        <option value="{{ o.id }}">{{ o.label }}</option>
+                      </sc-for>
+                    </select>
+                    <div onClick="{{ k.onUp }}" style="padding: 7px 12px; border: 1px solid #E7E3DA; border-radius: 2px; font-size: 12px; font-weight: 600; color: {{ k.upFg }}; cursor: pointer; white-space: nowrap;" style-hover="border-color: #A8C6C4;">Höher</div>
+                    <div onClick="{{ k.onDown }}" style="padding: 7px 12px; border: 1px solid #E7E3DA; border-radius: 2px; font-size: 12px; font-weight: 600; color: {{ k.downFg }}; cursor: pointer; white-space: nowrap;" style-hover="border-color: #A8C6C4;">Tiefer</div>
+                    <div onClick="{{ k.onRemove }}" style="padding: 7px 12px; border: 1px solid #E7E3DA; border-radius: 2px; font-size: 12px; font-weight: 600; color: #9C4229; cursor: pointer; white-space: nowrap;" style-hover="border-color: #C99B86;">Entfernen</div>
+                  </div>
+                </div>
+              </sc-for>
+
+              <sc-if value="{{ a.empty }}" hint-placeholder-val="{{ false }}">
+                <div style="padding: 12px 14px; font-size: 13px; color: #A9B2B4;">Noch kein Paket in diesem Bereich</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isZeit }}">
+      <div style="display: flex; flex-direction: column; gap: 28px;">
+
+        <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 16px 20px;">
+          <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+              <div style="width: 9px; height: 9px; border-radius: 50%; background: {{ zeitDot }}; flex: 0 0 9px;"></div>
+              <div>
+                <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">{{ zeitClockKicker }}</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; letter-spacing: -0.02em; margin-top: 3px;">{{ clockTime }}</div>
+              </div>
+              <div style="font-size: 15px; color: #4A585B; min-width: 0;">{{ clockWhere }}</div>
+            </div>
+
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div style="position: relative;">
+                <div onClick="{{ toggleZeitMenu }}" style="padding: 11px 18px; border: 1px solid #C9C4B7; border-radius: 2px; background: #FFFFFF; font-size: 14px; font-weight: 600; color: #14595F; cursor: pointer; display: flex; align-items: center; gap: 10px;" style-hover="border-color: #A8C6C4;">
+                  <span>Buchung wählen</span><span style="font-family: 'IBM Plex Mono', monospace; color: #8B979A;">{{ zeitMenuCaret }}</span>
+                </div>
+                <sc-if value="{{ zeitMenuOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; right: 0; top: 100%; margin-top: 6px; width: 360px; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; border-color: #C9C4B7; overflow: hidden; z-index: 40;">
+                    <div style="padding: 11px 14px; border-bottom: 1px solid #F0EEE8; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Letzte 5 Buchungen</div>
+                    <sc-for list="{{ recentTop5 }}" as="r" hint-placeholder-count="5">
+                      <div onClick="{{ r.onClick }}" style="display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid #F4F2EC; cursor: pointer; background: {{ r.bg }};" style-hover="background: #F0F6F5;">
+                        <div style="flex: 1; min-width: 0;">
+                          <div style="font-size: 14px; font-weight: 500; line-height: 1.35;">{{ r.label }}</div>
+                          <div style="font-size: 12px; color: #8B979A; margin-top: 2px;">{{ r.meta }}</div>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: {{ r.actionFg }}; white-space: nowrap;">{{ r.action }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <sc-if value="{{ noClockTarget }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ onOpenStruktur }}" style="font-size: 13px; color: #9C4229; cursor: pointer; white-space: nowrap;">Erst ein Arbeitspaket anlegen →</div>
+              </sc-if>
+              <div onClick="{{ toggleClock }}" style="padding: 11px 20px; border-radius: 2px; background: {{ zeitBtnBg }}; color: {{ zeitBtnFg }}; font-size: 14px; font-weight: 600; cursor: {{ clockBtnCursor }};">{{ clockBtnLabel }}</div>
+            </div>
+          </div>
+        </div>
+
+        <section>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.015em;">Diese Woche</h2>
+            <div style="font-size: 15px; color: #8B979A; margin-top: 6px;">Gebucht auf Projektteile, nicht auf einzelne Arbeitspakete</div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+            <sc-for list="{{ weekStats }}" as="w" hint-placeholder-count="3">
+              <div style="background: #FFFFFF; border: 1px solid #E4E1DA; border-radius: 18px; padding: 26px; text-align: center;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: {{ w.color }}; color: #0F4448; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; margin: 0 auto;">{{ w.initials }}</div>
+                <div style="font-size: 17px; font-weight: 600; margin-top: 12px;">{{ w.name }}</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 40px; font-weight: 500; letter-spacing: -0.03em; margin-top: 14px;">{{ w.hours }}</div>
+                <div style="font-size: 15px; color: #8B979A; margin-top: 2px;">Stunden</div>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 22px; text-align: left;">
+                  <sc-for list="{{ w.split }}" as="s" hint-placeholder-count="3">
+                    <div>
+                      <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 14px; color: #4A5A5E;">
+                        <span>{{ s.label }}</span><span style="font-family: 'IBM Plex Mono', monospace; color: #8B979A;">{{ s.value }}</span>
+                      </div>
+                      <div style="height: 6px; border-radius: 99px; background: #EDEAE3; margin-top: 7px; overflow: hidden;">
+                        <div style="height: 100%; background: {{ s.color }}; width: {{ s.pct }};"></div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.015em;">Clock-ins</h2>
+            <div style="font-size: 15px; color: #8B979A; margin-top: 6px;">{{ entriesSummary }} · {{ entriesTotal }}</div>
+          </div>
+          <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;">
+            <sc-for list="{{ timeFilters }}" as="f" hint-placeholder-count="4">
+              <div onClick="{{ f.onClick }}" style="font-size: 15px; font-weight: 500; padding: 11px 18px; border-radius: 99px; cursor: pointer; min-height: 44px; display: flex; align-items: center; background: {{ f.bg }}; color: {{ f.fg }};">{{ f.label }}</div>
+            </sc-for>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #E4E1DA; border-radius: 18px; overflow: hidden;">
+            <sc-for list="{{ entries }}" as="e" hint-placeholder-count="7">
+              <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 16px; padding: 18px 24px; border-bottom: 1px solid #F2F0EA;">
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #8B979A; min-width: 62px;">{{ e.date }}</div>
+                <div style="flex: 1; min-width: 180px;">
+                  <div style="font-size: 17px; font-weight: 500;">{{ e.part }}</div>
+                  <div style="font-size: 14px; color: #8B979A; margin-top: 3px; font-family: 'IBM Plex Mono', monospace;">{{ e.span }}</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="width: 28px; height: 28px; border-radius: 50%; background: {{ e.color }}; color: #0F4448; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ e.initials }}</div>
+                  <span style="font-size: 15px;">{{ e.person }}</span>
+                </div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; min-width: 62px; text-align: right;">{{ e.duration }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isKontakte }}">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+
+        <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; display: flex; align-items: stretch; flex-wrap: wrap;">
+          <div style="padding: 12px 14px; display: flex; align-items: center; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600; border-right: 1px solid #F0EEE8; white-space: nowrap;">Neuer Kontakt</div>
+          <input value="{{ qcName }}" onChange="{{ onQcName }}" onKeyDown="{{ onQcKey }}" placeholder="Name" style="border: none; background: transparent; font-size: 14px; padding: 12px 12px; min-width: 0; flex: 1 1 100px; border-right: 1px solid #F0EEE8;" />
+          <input value="{{ qcRole }}" onChange="{{ onQcRole }}" onKeyDown="{{ onQcKey }}" placeholder="Rolle" style="border: none; background: transparent; font-size: 14px; padding: 12px 12px; min-width: 0; flex: 1 1 100px; border-right: 1px solid #F0EEE8;" />
+          <div style="position: relative; flex: 1 1 200px; min-width: 0; border-right: 1px solid #F0EEE8;">
+            <div onClick="{{ toggleQcOrg }}" style="padding: 12px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; height: 100%;" style-hover="background: #FAF9F6;">
+              <div style="flex: 1; min-width: 0; font-size: 14px; color: {{ qcOrgFg }}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ qcOrgLabel }}</div>
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #8B979A;">{{ qcOrgCaret }}</span>
+            </div>
+            <sc-if value="{{ qcOrgOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; border-color: #C9C4B7; max-height: 260px; overflow-y: auto; z-index: 40;">
+                <sc-for list="{{ qcOrgOptions }}" as="o" hint-placeholder-count="6">
+                  <div onClick="{{ o.onClick }}" style="padding: 11px 14px; border-bottom: 1px solid #F4F2EC; cursor: pointer; font-size: 14px; background: {{ o.bg }};" style-hover="background: #F0F6F5;">{{ o.label }}</div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <input value="{{ qcNote }}" onChange="{{ onQcNote }}" onKeyDown="{{ onQcKey }}" placeholder="Nutzen oder Interesse" style="border: none; background: transparent; font-size: 14px; padding: 12px 12px; min-width: 0; flex: 2 1 130px; border-right: 1px solid #F0EEE8;" />
+          <div onClick="{{ onQcSave }}" style="padding: 12px 18px; background: #14595F; color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; white-space: nowrap;">Anlegen</div>
+        </div>
+
+        <div style="display: flex; align-items: stretch; flex-wrap: wrap; gap: 12px;">
+          <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Suchen: Organisation, Person, Nutzen" style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; flex: 1 1 320px; min-width: 0; font-size: 14px; padding: 12px 16px;" />
+          <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; display: flex; overflow: hidden;">
+            <sc-for list="{{ crmFilters }}" as="f" hint-placeholder-count="3">
+              <div onClick="{{ f.onClick }}" style="padding: 12px 18px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; border-left: 1px solid {{ f.divider }}; background: {{ f.bg }}; color: {{ f.fg }};">{{ f.label }}</div>
+            </sc-for>
+          </div>
+          <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 12px 18px; display: flex; align-items: center; gap: 14px; white-space: nowrap;">
+            <span style="font-size: 14px; color: #6B7A7E;">{{ crmHint }}</span>
+          </div>
+          <div onClick="{{ toggleNewOrg }}" style="background: #FFFFFF; border: 1px solid #C9C4B7; border-radius: 2px; padding: 12px 18px; display: flex; align-items: center; font-size: 14px; font-weight: 600; color: #14595F; cursor: pointer; white-space: nowrap;" style-hover="border-color: #A8C6C4;">{{ newOrgLabel }}</div>
+        </div>
+
+        <sc-if value="{{ newOrgOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; display: flex; align-items: stretch; flex-wrap: wrap;">
+            <div style="padding: 12px 16px; display: flex; align-items: center; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600; border-right: 1px solid #F0EEE8; white-space: nowrap;">Neue Organisation</div>
+            <input value="{{ orgName }}" onChange="{{ onOrgName }}" onKeyDown="{{ onOrgKey }}" placeholder="Name der Organisation" style="border: none; background: transparent; font-size: 14px; padding: 12px 14px; flex: 1 1 220px; min-width: 0; border-right: 1px solid #F0EEE8;" />
+            <div style="display: flex; border-right: 1px solid #F0EEE8;">
+              <sc-for list="{{ orgTypes }}" as="t" hint-placeholder-count="4">
+                <div onClick="{{ t.onClick }}" style="padding: 12px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; border-left: 1px solid {{ t.divider }}; background: {{ t.bg }}; color: {{ t.fg }};">{{ t.label }}</div>
+              </sc-for>
+            </div>
+            <input value="{{ orgNoteNew }}" onChange="{{ onOrgNoteNew }}" onKeyDown="{{ onOrgKey }}" placeholder="Nutzen oder Interesse" style="border: none; background: transparent; font-size: 14px; padding: 12px 14px; flex: 2 1 240px; min-width: 0; border-right: 1px solid #F0EEE8;" />
+            <div onClick="{{ onOrgSave }}" style="padding: 12px 22px; background: #4C6B41; color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; white-space: nowrap;">Anlegen</div>
+          </div>
+        </sc-if>
+
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start;">
+          <sc-for list="{{ board }}" as="col" hint-placeholder-count="3">
+            <div style="min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 0 2px;">
+                <div style="width: 9px; height: 9px; background: {{ col.accent }}; flex: 0 0 9px;"></div>
+                <div style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600;">{{ col.label }}</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8B979A;">{{ col.count }}</div>
+              </div>
+
+              <sc-for list="{{ col.orgs }}" as="o" hint-placeholder-count="2">
+                <div onClick="{{ o.onSelect }}" style="min-width: 0; background: {{ o.bg }}; border: 1px solid {{ o.border }}; border-left: 3px solid {{ o.accent }}; border-radius: 2px; padding: 14px 16px; cursor: pointer;" style-hover="border-color: #A8C6C4;">
+                  <div style="display: flex; align-items: baseline; gap: 10px;">
+                    <div style="flex: 1; min-width: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.012em; line-height: 1.3;">{{ o.name }}</div>
+                    <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; background: {{ o.typeBg }}; color: {{ o.typeFg }}; white-space: nowrap;">{{ o.type }}</div>
+                  </div>
+                  <div style="font-size: 13px; color: #6B7A7E; margin-top: 7px; line-height: 1.45;">{{ o.note }}</div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 12px;">
+                    <div style="display: flex; gap: 4px;">
+                      <sc-for list="{{ o.people }}" as="p" hint-placeholder-count="2">
+                        <div title="{{ p.name }}" style="width: 24px; height: 24px; border-radius: 2px; background: {{ p.color }}; color: #0F4448; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;">{{ p.initials }}</div>
+                      </sc-for>
+                    </div>
+                    <div style="flex: 1; min-width: 0; font-size: 12px; color: #8B979A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ o.peopleCount }}</div>
+                    <div style="font-size: 12px; font-weight: 600; color: {{ o.waitFg }}; white-space: nowrap;">{{ o.wait }}</div>
+                  </div>
+                </div>
+              </sc-for>
+
+              <sc-if value="{{ col.empty }}" hint-placeholder-val="{{ false }}">
+                <div style="border: 1px dashed #D3CEC2; border-radius: 2px; padding: 16px; font-size: 13px; color: #A9B2B4; text-align: center;">Keine Organisation in dieser Stufe</div>
+              </sc-if>
+            </div>
+          </sc-for>
+
+          <div style="min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 0 2px;">
+              <div style="width: 9px; height: 9px; background: #8B979A; flex: 0 0 9px;"></div>
+              <div style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600;">Lose Kontakte</div>
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #8B979A;">{{ looseCount }}</div>
+            </div>
+            <sc-for list="{{ loose }}" as="p" hint-placeholder-count="2">
+              <div style="min-width: 0; background: #FFFFFF; border: 1px solid #DFDBD1; border-left: 3px solid #8B979A; border-radius: 2px; padding: 14px 16px;">
+                <div style="display: flex; align-items: baseline; gap: 10px;">
+                  <div style="flex: 1; min-width: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.012em; line-height: 1.3;">{{ p.name }}</div>
+                  <div style="width: 8px; height: 8px; border-radius: 50%; background: {{ p.ballDot }}; flex: 0 0 8px;"></div>
+                </div>
+                <div style="font-size: 13px; color: #6B7A7E; margin-top: 7px; line-height: 1.45;">{{ p.what }}</div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 12px;">
+                  <div style="flex: 1; min-width: 0; font-size: 12px; color: #8B979A;">{{ p.role }}</div>
+                  <div onClick="{{ p.onAssign }}" style="font-size: 12px; font-weight: 600; color: #14595F; cursor: pointer; white-space: nowrap;">{{ p.assignLabel }}</div>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ looseEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="border: 1px dashed #D3CEC2; border-radius: 2px; padding: 16px; font-size: 13px; color: #A9B2B4; text-align: center;">Keine losen Kontakte</div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 0;">
+          <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid #F0EEE8;">
+            <div style="font-size: 17px; font-weight: 600; letter-spacing: -0.015em; min-width: 0;">{{ sel.name }}</div>
+            <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 9px; border-radius: 2px; background: {{ sel.typeBg }}; color: {{ sel.typeFg }};">{{ sel.type }}</div>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Stufe</span>
+              <div style="display: flex; border: 1px solid #DFDBD1; border-radius: 2px; overflow: hidden;">
+                <sc-for list="{{ selStages }}" as="st" hint-placeholder-count="3">
+                  <div onClick="{{ st.onClick }}" style="padding: 9px 15px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; border-left: 1px solid {{ st.divider }}; background: {{ st.bg }}; color: {{ st.fg }};">{{ st.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr);">
+
+            <div style="padding: 18px 20px; border-right: 1px solid #F0EEE8; display: flex; flex-direction: column; gap: 12px;">
+              <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Nutzen und Interesse</div>
+              <input value="{{ selNote }}" onChange="{{ onSelNote }}" onKeyDown="{{ onSelNoteKey }}" placeholder="Worum geht es hier?" style="border: 1px solid #DFDBD1; border-radius: 2px; padding: 12px 14px; font-size: 14px; width: 100%;" />
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div onClick="{{ onSelNoteSave }}" style="padding: 9px 17px; border-radius: 2px; background: #14595F; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;">Speichern</div>
+                <div style="font-size: 13px; color: #4C6B41;">{{ selNoteSaved }}</div>
+              </div>
+              <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid #F0EEE8; display: flex; flex-direction: column; gap: 7px;">
+                <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px;"><span style="color: #8B979A;">Kontakte</span><span style="font-family: 'IBM Plex Mono', monospace;">{{ sel.peopleCount }}</span></div>
+                <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px;"><span style="color: #8B979A;">Offen bei uns</span><span style="font-family: 'IBM Plex Mono', monospace; color: {{ sel.openFg }};">{{ sel.openCount }}</span></div>
+                <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px;"><span style="color: #8B979A;">Letzter Kontakt</span><span style="font-family: 'IBM Plex Mono', monospace;">{{ sel.last }}</span></div>
+              </div>
+            </div>
+
+            <div style="padding: 18px 20px; border-right: 1px solid #F0EEE8; display: flex; flex-direction: column; gap: 12px;">
+              <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Personen</div>
+              <div style="display: flex; flex-direction: column;">
+                <sc-for list="{{ selPeople }}" as="p" hint-placeholder-count="2">
+                  <div style="display: flex; align-items: center; gap: 11px; padding: 10px 0; border-top: 1px solid #F0EEE8;">
+                    <div style="width: 28px; height: 28px; border-radius: 2px; background: {{ p.color }}; color: #0F4448; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex: 0 0 28px;">{{ p.initials }}</div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</div>
+                      <div style="font-size: 12px; color: #8B979A; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.role }}</div>
+                    </div>
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: {{ p.ballDot }}; flex: 0 0 8px;" title="{{ p.ballText }}"></div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ selNoPeople }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 12px 0; border-top: 1px solid #F0EEE8; font-size: 13px; color: #A9B2B4;">Noch keine Person zugeordnet</div>
+                </sc-if>
+              </div>
+              <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid #F0EEE8; display: flex; flex-direction: column; gap: 8px;">
+                <input value="{{ npName }}" onChange="{{ onNpName }}" onKeyDown="{{ onNpKey }}" placeholder="Person hinzufügen" style="border: 1px solid #DFDBD1; border-radius: 2px; padding: 11px 13px; font-size: 14px; width: 100%;" />
+                <div style="display: flex; gap: 8px;">
+                  <input value="{{ npRole }}" onChange="{{ onNpRole }}" onKeyDown="{{ onNpKey }}" placeholder="Rolle" style="flex: 1; min-width: 0; border: 1px solid #DFDBD1; border-radius: 2px; padding: 11px 13px; font-size: 14px;" />
+                  <div onClick="{{ onNpSave }}" style="padding: 11px 17px; border-radius: 2px; background: #14595F; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Zuordnen</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+                <div style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Verlauf</div>
+                <div style="font-size: 12px; color: #A9B2B4;">{{ selLogCount }}</div>
+              </div>
+              <div style="display: flex; flex-direction: column;">
+                <sc-for list="{{ selLogs }}" as="l" hint-placeholder-count="3">
+                  <div style="display: flex; gap: 12px; padding: 11px 0; border-top: 1px solid #F0EEE8;">
+                    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #A9B2B4; min-width: 76px; flex: 0 0 76px; padding-top: 2px;">{{ l.date }}</div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <div style="flex: 1; min-width: 0; font-size: 14px; font-weight: 500;">{{ l.title }}</div>
+                        <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; background: {{ l.chipBg }}; color: {{ l.chipFg }}; white-space: nowrap;">{{ l.kind }}</div>
+                      </div>
+                      <div style="font-size: 13px; color: #6B7A7E; margin-top: 3px; line-height: 1.45;">{{ l.body }}</div>
+                      <div style="font-size: 12px; color: #A9B2B4; margin-top: 3px;">{{ l.who }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid #F0EEE8; display: flex; gap: 8px;">
+                <input value="{{ olDraft }}" onChange="{{ onOlDraft }}" onKeyDown="{{ onOlKey }}" placeholder="Notiz, Mail oder Call festhalten" style="flex: 1; min-width: 0; border: 1px solid #DFDBD1; border-radius: 2px; padding: 11px 13px; font-size: 14px;" />
+                <div onClick="{{ onOlSave }}" style="padding: 11px 17px; border-radius: 2px; background: #8A5638; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">Eintragen</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ reviewOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position: fixed; inset: 0; background: rgba(15, 39, 43, 0.46); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 60;">
+        <div style="background: #FFFFFF; border-radius: 20px; padding: 32px 30px; width: 100%; max-width: 540px;">
+          <sc-if value="{{ reviewAsk }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="text-align: center;">
+                <div style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B979A; font-weight: 600;">Review</div>
+                <div style="font-size: 24px; font-weight: 600; margin-top: 10px; letter-spacing: -0.02em;">Was hast du gemacht?</div>
+                <div style="font-size: 15px; color: #6B7A7E; margin-top: 8px;">{{ review.where }}</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 30px; font-weight: 500; margin-top: 14px; letter-spacing: -0.02em;">{{ review.duration }}</div>
+              </div>
+              <input value="{{ review.note }}" onChange="{{ onReviewNote }}" onKeyDown="{{ onReviewKey }}" placeholder="In einem Satz: woran hast du gearbeitet?" style="width: 100%; margin-top: 24px; border: 1px solid #E4E1DA; border-radius: 11px; padding: 16px; font-size: 17px;" />
+              <div style="display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 24px;">
+                <div onClick="{{ onReviewSave }}" style="padding: 16px 26px; border-radius: 11px; background: #14595F; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer; min-height: 52px; display: flex; align-items: center;">Speichern und Clock-out</div>
+                <div onClick="{{ onReviewSkip }}" style="padding: 16px 20px; font-size: 16px; color: #8B979A; cursor: pointer; min-height: 52px; display: flex; align-items: center;">Skip</div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ reviewWarn }}" hint-placeholder-val="{{ false }}">
+            <div style="text-align: center;">
+              <div style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #9C4229; font-weight: 600;">Wirklich überspringen?</div>
+              <div style="font-size: 21px; font-weight: 600; margin-top: 12px; letter-spacing: -0.015em; line-height: 1.35;">Ohne Review weiß später niemand, wofür die {{ review.duration }} verbucht wurden.</div>
+              <div style="font-size: 16px; color: #6B7A7E; margin-top: 12px; line-height: 1.55;">Die Zeit wird trotzdem gebucht, nur ohne Beschreibung.</div>
+              <div style="display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 26px;">
+                <div onClick="{{ onReviewBack }}" style="padding: 16px 26px; border-radius: 11px; background: #14595F; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer; min-height: 52px; display: flex; align-items: center;">Zurück zum Review</div>
+                <div onClick="{{ onReviewSkipConfirm }}" style="padding: 16px 20px; font-size: 16px; color: #9C4229; font-weight: 600; cursor: pointer; min-height: 52px; display: flex; align-items: center;">Trotzdem überspringen</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isProfil }}">
+      <div style="max-width: 620px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px;">
+
+        <div style="background: #FFFFFF; border: 1px solid #E4E1DA; border-radius: 20px; padding: 32px 28px; text-align: center;">
+          <div style="width: 74px; height: 74px; border-radius: 50%; background: {{ profil.color }}; color: #0F4448; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; margin: 0 auto;">{{ profil.initials }}</div>
+          <div style="font-size: 24px; font-weight: 600; margin-top: 16px; letter-spacing: -0.02em;">{{ profil.name }}</div>
+          <div style="font-size: 16px; color: #6B7A7E; margin-top: 5px;">{{ profil.role }}</div>
+          <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 20px;">
+            <sc-for list="{{ profilSwitch }}" as="p" hint-placeholder-count="3">
+              <div onClick="{{ p.onClick }}" style="padding: 11px 17px; border-radius: 99px; cursor: pointer; font-size: 14px; font-weight: 500; min-height: 44px; display: flex; align-items: center; background: {{ p.bg }}; color: {{ p.fg }}; border: 1px solid {{ p.border }};">{{ p.label }}</div>
+            </sc-for>
+          </div>
+          <div style="font-size: 13px; color: #A0A9AB; margin-top: 14px;">Angemeldet als {{ profil.name }}</div>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #E4E1DA; border-radius: 20px; padding: 30px 28px;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.015em;">Stammdaten</h2>
+            <div style="font-size: 15px; color: #8B979A; margin-top: 6px;">Nur du kannst dein Profil bearbeiten</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #4A5A5E; margin-bottom: 8px;">Name</div>
+              <input value="{{ pName }}" onChange="{{ onPName }}" placeholder="Vor- und Nachname" style="width: 100%; border: 1px solid #E4E1DA; border-radius: 10px; padding: 14px 15px; font-size: 16px;" />
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #4A5A5E; margin-bottom: 8px;">Rolle</div>
+              <input value="{{ pRole }}" onChange="{{ onPRole }}" placeholder="z.B. Technik, Regulatorik, Finanzen" style="width: 100%; border: 1px solid #E4E1DA; border-radius: 10px; padding: 14px 15px; font-size: 16px;" />
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #4A5A5E; margin-bottom: 8px;">E-Mail</div>
+              <input value="{{ pMail }}" onChange="{{ onPMail }}" placeholder="name@sopharmis.com" style="width: 100%; border: 1px solid #E4E1DA; border-radius: 10px; padding: 14px 15px; font-size: 16px;" />
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #4A5A5E; margin-bottom: 8px;">Telefon</div>
+              <input value="{{ pPhone }}" onChange="{{ onPPhone }}" placeholder="+43" style="width: 100%; border: 1px solid #E4E1DA; border-radius: 10px; padding: 14px 15px; font-size: 16px;" />
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #4A5A5E; margin-bottom: 8px;">Adresse</div>
+              <input value="{{ pStreet }}" onChange="{{ onPStreet }}" placeholder="Straße und Nummer" style="width: 100%; border: 1px solid #E4E1DA; border-radius: 10px; padding: 14px 15px; font-size: 16px;" />
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #4A5A5E; margin-bottom: 8px;">Ort</div>
+              <input value="{{ pCity }}" onChange="{{ onPCity }}" placeholder="PLZ und Ort" style="width: 100%; border: 1px solid #E4E1DA; border-radius: 10px; padding: 14px 15px; font-size: 16px;" />
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 600; color: #4A5A5E; margin-bottom: 8px;">Geburtsdatum</div>
+              <input value="{{ pBorn }}" onChange="{{ onPBorn }}" placeholder="TT.MM.JJJJ" style="width: 100%; border: 1px solid #E4E1DA; border-radius: 10px; padding: 14px 15px; font-size: 16px;" />
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 26px; padding-top: 22px; border-top: 1px solid #EDEAE3;">
+            <div onClick="{{ onProfilSave }}" style="padding: 15px 26px; border-radius: 11px; background: #14595F; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer; min-height: 50px; display: flex; align-items: center;">Speichern</div>
+            <div style="font-size: 15px; color: #4C6B41;">{{ profilSaved }}</div>
+          </div>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #E4E1DA; border-radius: 20px; padding: 30px 28px;">
+          <div style="text-align: center; margin-bottom: 22px;">
+            <h2 style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.015em;">Deine Zeit</h2>
+            <div style="font-size: 15px; color: #8B979A; margin-top: 6px;">September</div>
+          </div>
+          <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;">
+            <div style="text-align: center;">
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 34px; font-weight: 500; letter-spacing: -0.03em;">{{ profil.hours }}</div>
+              <div style="font-size: 14px; color: #8B979A; margin-top: 4px;">Stunden</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 34px; font-weight: 500; letter-spacing: -0.03em;">{{ profil.clockState }}</div>
+              <div style="font-size: 14px; color: #8B979A; margin-top: 4px;">{{ profil.clockNote }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Dashboard&quot;,&quot;Projekt&quot;,&quot;Zeit&quot;,&quot;Kontakte&quot;],&quot;default&quot;:&quot;Dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const TEAM = [
+  { id: "u1", name: "Du", initials: "DU", color: "#BFD9CE" }
+];
+
+const ST = {
+  offen:      { label: "offen",      bg: "#F1EFE8", fg: "#5C6A6D" },
+  laeuft:     { label: "läuft",      bg: "#E2EEEC", fg: "#14595F" },
+  eingereicht:{ label: "eingereicht",bg: "#EDE8F0", fg: "#5B4A6B" },
+  zugesagt:   { label: "zugesagt",   bg: "#E9EFE3", fg: "#4C6B41" },
+  fertig:     { label: "fertig",     bg: "#E9EFE3", fg: "#4C6B41" },
+  verworfen:  { label: "verworfen",  bg: "#F1EFE8", fg: "#A0A9AB" },
+  offenFrage: { label: "offene Frage", bg: "#F7E6DF", fg: "#9C4229" }
+};
+
+const PARTS = [];
+
+const SIDE = [];
+
+const TASKS = [];
+
+const DEADLINES = [];
+
+const ENTRIES = [];
+
+const WEEK = [];
+
+const KIND = {
+  Meeting: { bg: "#E2EEEC", fg: "#14595F" },
+  Mail: { bg: "#F1EFE8", fg: "#5C6A6D" },
+  Call: { bg: "#F4EBE1", fg: "#8A5638" },
+  Event: { bg: "#E9EFE3", fg: "#4C6B41" }
+};
+
+const ORGS = [];
+
+const PEOPLE = [];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const map = { "Dashboard": "dash", "Projekt": "projekt", "Zeit": "zeit", "Kontakte": "kontakte" };
+    this.state = {
+      view: map[props.startView] || "dash",
+      sub: "ueber",
+      open: {},
+      clockOn: false, clockPart: "", clockItem: null, seconds: 0,
+      done: {}, addingTask: false, addingGroup: null, addingPerson: false, addingLog: false,
+      personId: null, filter: "all", pfilter: "Alle", neu: {}, neuSaved: "",
+      orgs: ORGS.map(o => Object.assign({}, o)), newOrg: {}, orgSaved: "", orgId: null,
+      selOrgId: null, qc: {}, qcOrgOpen: false, orgNotes: {}, orgStages: {}, orgLogs: {}, orgOf: {},
+      np: {}, ol: "", newOrgOpen: false, noteSavedId: null,
+      balance: 0, burn: 0, balanceSaved: false,
+      me: "u1",
+      profiles: (function () {
+        const m = {};
+        TEAM.forEach(t => { m[t.id] = { name: t.name, role: "", mail: "", phone: "", street: "", city: "", born: "" }; });
+        return m;
+      })(),
+      profilSaved: "",
+      items: (function () {
+        const m = {};
+        PARTS.forEach(p => p.groups.forEach(g => { m[g.id] = g.items.map(i => Object.assign({}, i)); }));
+        return m;
+      })(),
+      modal: null, groupMeta: {}, partMeta: {},
+      review: null, reviewStage: "ask", reviewNote: "", reviewLog: [], recentOpen: false, pendingClock: null,
+      barOpen: false, zeitOpen: false,
+      pkgStage: {}, pkgStatus: {}, pkgArea: {}, pkgOrder: {}, pkgTitle: {}, pkgNote: {},
+      pkgExtra: [], pkgHidden: {}, areaExtra: [], areaTitle: {},
+      selPkg: null, projFilter: "Alle", statFilter: "Alle", npk: {}, nar: {},
+      recents: [],
+      extraTasks: [], extraItems: {}, extraPeople: [], extraLogs: {}, cleared: {},
+      d: { task: "", item: "", name: "", org: "", log: "", query: "", balance: "" }
+    };
+  }
+  componentDidMount() { this.iv = setInterval(() => { if (this.state.clockOn) this.setState(s => ({ seconds: s.seconds + 1 })); }, 1000); }
+  componentWillUnmount() { clearInterval(this.iv); }
+
+  set(k) { return e => { const v = e.target.value; this.setState(s => ({ d: Object.assign({}, s.d, { [k]: v }) })); }; }
+  clock(t) { const p = n => String(n).padStart(2, "0"); return p(Math.floor(t / 3600)) + ":" + p(Math.floor(t / 60) % 60) + ":" + p(t % 60); }
+  member(id) { return TEAM.find(m => m.id === id) || TEAM[0] || { id: "u1", name: "—", initials: "NN", color: "#BFD9CE" }; }
+  initialsOf(n) { return n.trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "NN"; }
+  eur(n) { return "€ " + n.toLocaleString("de-AT"); }
+  neuSet(key) {
+    if (!this._neuH) this._neuH = {};
+    if (!this._neuH[key]) this._neuH[key] = e => {
+      const v = e.target.value;
+      this.setState(st => ({ neu: Object.assign({}, st.neu, { [key]: v }), neuSaved: "" }));
+    };
+    return this._neuH[key];
+  }
+  profSet(key) {
+    if (!this._profH) this._profH = {};
+    if (!this._profH[key]) this._profH[key] = e => {
+      const v = e.target.value;
+      this.setState(st => ({
+        profiles: Object.assign({}, st.profiles, { [st.me]: Object.assign({}, st.profiles[st.me], { [key]: v }) }),
+        profilSaved: ""
+      }));
+    };
+    return this._profH[key];
+  }
+  saveOrg() {
+    const n = this.state.newOrg || {};
+    if (!(n.name || "").trim()) return;
+    const name = n.name.trim();
+    const o = {
+      id: "o" + Date.now(), name: name,
+      short: name.split(/\s+/).slice(0, 1).join("").slice(0, 3).toUpperCase(),
+      type: n.type || "Partner", stage: "Erstkontakt", note: (n.note || "").trim() || "Neu angelegt."
+    };
+    this.setState(st => ({ orgs: [o].concat(st.orgs), newOrg: {}, orgSaved: name + " angelegt." }));
+  }
+  saveNeu() {
+    const n = this.state.neu || {};
+    if (!(n.name || "").trim()) return;
+    const p = {
+      id: "n" + Date.now(), name: n.name.trim(), initials: this.initialsOf(n.name),
+      role: (n.role || "").trim() || "—",
+      orgId: n.orgId || null,
+      org: (function (self) { const o2 = self.state.orgs.filter(x => x.id === n.orgId)[0]; return o2 ? o2.name : "Loser Kontakt"; })(this),
+      type: (function (self) { const o2 = self.state.orgs.filter(x => x.id === n.orgId)[0]; return o2 ? o2.type : "Lose"; })(this),
+      stage: "Erstkontakt", part: (n.part || "").trim() || "Nicht zugeordnet",
+      owner: this.member(this.state.me).name, last: "heute",
+      ball: n.ball || "us", ballWhat: (n.note || "").trim() || "Erstkontakt aufnehmen", ballAge: "0 Tage",
+      history: [{ date: "02.09.2026", kind: "Event", title: "Kontakt erfasst", body: (n.note || "").trim() || "Ohne Notiz erfasst." }]
+    };
+    this.setState(st => ({ extraPeople: [p].concat(st.extraPeople), neu: {}, neuSaved: p.name + " angelegt.", personId: p.id }));
+  }
+  askReview() {
+    this.setState(st => ({ review: { where: st.clockPart, seconds: st.seconds }, reviewStage: "ask", reviewNote: "", clockOn: false, pendingClock: null }));
+  }
+  finishReview(note) {
+    const pending = this.state.pendingClock;
+    this.setState(st => ({
+      reviewLog: [{ where: st.review.where, seconds: st.review.seconds, note: note }].concat(st.reviewLog),
+      review: null, reviewNote: "", reviewStage: "ask", clockItem: null, seconds: 0, pendingClock: null
+    }), () => { if (pending) this.doStartClock(pending.part, pending.itemId); });
+  }
+  startClock(part, itemId) {
+    if (this.state.clockOn) {
+      this.setState(st => ({
+        review: { where: st.clockPart, seconds: st.seconds },
+        reviewStage: "ask", reviewNote: "", clockOn: false, recentOpen: false,
+        pendingClock: { part: part, itemId: itemId || null }
+      }));
+      return;
+    }
+    this.doStartClock(part, itemId);
+  }
+  doStartClock(part, itemId) {
+    this.setState(st => ({
+      clockOn: true, clockPart: part, clockItem: itemId || null, seconds: 0, recentOpen: false,
+      recents: [{ label: part, itemId: itemId || null, meta: "gerade eben" }]
+        .concat(st.recents.filter(r => r.label !== part)).slice(0, 5)
+    }));
+  }
+  moveItem(gid, idx, dir) {
+    this.setState(st => {
+      const list = (st.items[gid] || []).slice();
+      const j = idx + dir;
+      if (j < 0 || j >= list.length) return {};
+      const tmp = list[idx]; list[idx] = list[j]; list[j] = tmp;
+      return { items: Object.assign({}, st.items, { [gid]: list }) };
+    });
+  }
+  groupList() {
+    const out = [];
+    PARTS.forEach(p => p.groups.forEach(g => out.push({ id: g.id, label: p.title + " · " + g.title, accent: p.accent })));
+    return out;
+  }
+  commitBalance() {
+    const raw = (this._bal !== undefined && this._bal !== null) ? this._bal : (this.state.d.balance || "");
+    const v = parseInt(String(raw).replace(/[^\d]/g, ""), 10);
+    if (!v) return;
+    this._bal = "";
+    this.setState(p => ({ balance: v, balanceSaved: true, editingBalance: false, d: Object.assign({}, p.d, { balance: "" }) }));
+  }
+  allPeople() {
+    const st = this.state, ex = st.extraPeople, seen = {};
+    ex.forEach(p => { seen[p.id] = 1; });
+    const map = st.orgOf || {};
+    return ex.concat(PEOPLE.filter(p => !seen[p.id])).map(p => {
+      if (!map[p.id]) return p;
+      const o = st.orgs.filter(x => x.id === map[p.id])[0];
+      return o ? Object.assign({}, p, { orgId: o.id, org: o.name, type: o.type }) : p;
+    });
+  }
+  pkgModel() {
+    const s = this.state;
+    const smap = { offen: "offen", laeuft: "laeuft", eingereicht: "wartet", zugesagt: "fertig", fertig: "fertig", verworfen: "pausiert", offenFrage: "offen" };
+    const kindOf = t => /entwicklung|hardware|software/i.test(t) ? "dev" : /finanz/i.test(t) ? "fin" : "ziel";
+    const areas = [];
+    const base = [];
+    PARTS.forEach(p => {
+      p.groups.forEach(g => {
+        areas.push({
+          id: g.id, partId: p.id, partTitle: p.title, accent: p.accent,
+          title: s.areaTitle[g.id] || g.title, kind: kindOf(g.title)
+        });
+        (g.items || []).forEach(i => {
+          if (i.subs && i.subs.length) {
+            i.subs.forEach((sub, si) => base.push({
+              id: i.id + "s" + si, area: g.id, title: sub.label,
+              note: i.title + (sub.meta ? " · " + sub.meta : ""),
+              status: sub.strike ? "pausiert" : smap[i.status] || "offen"
+            }));
+          } else {
+            base.push({ id: i.id, area: g.id, title: i.title, note: i.note || "", status: smap[i.status] || "offen" });
+          }
+        });
+      });
+    });
+    s.areaExtra.forEach(x => areas.push(Object.assign({}, x, { title: s.areaTitle[x.id] || x.title })));
+    const all = base.concat(s.pkgExtra).filter(x => !s.pkgHidden[x.id]).map(x => ({
+      id: x.id, title: s.pkgTitle[x.id] || x.title,
+      note: s.pkgNote[x.id] !== undefined ? s.pkgNote[x.id] : x.note,
+      area: s.pkgArea[x.id] || x.area, baseStatus: x.status
+    }));
+    return { areas: areas, pkgs: all };
+  }
+  stagesFor(kind) {
+    if (kind === "fin") return [["Vorbereitung", 1], ["Einreichung", 1], ["Entscheidung", 2], ["Abrechnung", 1]];
+    if (kind === "ziel") return [["Definition", 1], ["Abstimmung", 1], ["Verankert", 1]];
+    return [["Konzept", 1], ["Umsetzung", 3], ["Test", 2], ["Abschluss", 1]];
+  }
+  stageOf(pkg, stages) {
+    const s = this.state;
+    if (s.pkgStage[pkg.id] !== undefined) return s.pkgStage[pkg.id];
+    const st = s.pkgStatus[pkg.id] || pkg.baseStatus;
+    if (st === "fertig") return stages.length;
+    if (st === "laeuft") return 1;
+    if (st === "wartet") return 2;
+    return 0;
+  }
+  setStage(id, n, total) {
+    const st = n <= 0 ? "offen" : n >= total ? "fertig" : "laeuft";
+    this.setState(p => ({
+      pkgStage: Object.assign({}, p.pkgStage, { [id]: n }),
+      pkgStatus: Object.assign({}, p.pkgStatus, { [id]: st }),
+      selPkg: id
+    }));
+  }
+  movePkg(id, areaId, dir) {
+    this.setState(p => {
+      const list = this.pkgModel().pkgs.filter(x => x.area === areaId).map(x => x.id);
+      const order = (p.pkgOrder[areaId] || []).filter(x => list.indexOf(x) >= 0);
+      list.forEach(x => { if (order.indexOf(x) < 0) order.push(x); });
+      const i = order.indexOf(id), j = i + dir;
+      if (i < 0 || j < 0 || j >= order.length) return {};
+      order[i] = order[j]; order[j] = id;
+      return { pkgOrder: Object.assign({}, p.pkgOrder, { [areaId]: order }) };
+    });
+  }
+  addPkg() {
+    const n = this.state.npk || {};
+    const areas = this.pkgModel().areas;
+    const areaId = n.area || (areas[0] || {}).id;
+    if (!(n.title || "").trim() || !areaId) return;
+    const id = "p" + Date.now();
+    this.setState(p => ({
+      pkgExtra: p.pkgExtra.concat([{ id: id, area: areaId, title: n.title.trim(), note: (n.note || "").trim(), status: "offen" }]),
+      npk: {}, selPkg: id
+    }));
+  }
+  addArea() {
+    const n = this.state.nar || {};
+    if (!(n.title || "").trim()) return;
+    const part = PARTS.filter(p => p.id === (n.part || (PARTS[0] || {}).id))[0];
+    if (!part) return;
+    this.setState(p => ({
+      areaExtra: p.areaExtra.concat([{
+        id: "a" + Date.now(), partId: part.id, partTitle: part.title, accent: part.accent,
+        title: n.title.trim(), kind: n.kind || "dev"
+      }]), nar: {}
+    }));
+  }
+  assignToOrg(pid) {
+    this.setState(st => ({ orgOf: Object.assign({}, st.orgOf, { [pid]: st.selOrgId }) }));
+  }
+  bind(key, fn) {
+    if (!this._hb) this._hb = {};
+    if (!this._hb[key]) this._hb[key] = e => fn(e.target.value);
+    return this._hb[key];
+  }
+  saveQuick() {
+    const q = this.state.qc || {};
+    if (!(q.name || "").trim()) return;
+    const org = this.state.orgs.filter(o => o.id === q.orgId)[0];
+    const p = {
+      id: "n" + Date.now(), name: q.name.trim(), initials: this.initialsOf(q.name),
+      role: (q.role || "").trim() || "—",
+      orgId: org ? org.id : null, org: org ? org.name : "Loser Kontakt",
+      type: org ? org.type : "Lose", stage: org ? org.stage : "Erstkontakt",
+      part: "Nicht zugeordnet", owner: this.member(this.state.me).name, last: "heute",
+      ball: "us", ballWhat: (q.note || "").trim() || "Erstkontakt aufnehmen", ballAge: "0 Tage",
+      history: [{ date: "03.09.2026", kind: "Event", title: "Kontakt erfasst", body: (q.note || "").trim() || "Ohne Notiz erfasst." }]
+    };
+    this.setState(st => ({
+      extraPeople: [p].concat(st.extraPeople), qc: {}, qcOrgOpen: false,
+      selOrgId: org ? org.id : st.selOrgId, personId: p.id
+    }));
+  }
+  addOrgPerson(orgId) {
+    const n = this.state.np || {};
+    if (!(n.name || "").trim() || !orgId) return;
+    const org = this.state.orgs.filter(o => o.id === orgId)[0];
+    const p = {
+      id: "n" + Date.now(), name: n.name.trim(), initials: this.initialsOf(n.name),
+      role: (n.role || "").trim() || "—", orgId: orgId, org: org.name, type: org.type,
+      stage: org.stage, part: "Nicht zugeordnet", owner: this.member(this.state.me).name,
+      last: "heute", ball: "us", ballWhat: "Erstkontakt aufnehmen", ballAge: "0 Tage",
+      history: [{ date: "03.09.2026", kind: "Event", title: "Kontakt erfasst", body: "Über " + org.name + " zugeordnet." }]
+    };
+    this.setState(st => ({ extraPeople: [p].concat(st.extraPeople), np: {} }));
+  }
+  addOrgLog(orgId) {
+    const t = (this.state.ol || "").trim();
+    if (!t || !orgId) return;
+    const entry = { date: "03.09.2026", kind: "Call", title: "Notiz", body: t, who: this.member(this.state.me).name };
+    this.setState(st => ({ orgLogs: Object.assign({}, st.orgLogs, { [orgId]: [entry].concat(st.orgLogs[orgId] || []) }), ol: "" }));
+  }
+
+  renderVals() {
+    const s = this.state, d = s.d;
+
+    const nav = [["Dashboard", "dash"], ["Projekt", "projekt"], ["Zeit", "zeit"], ["Kontakte", "kontakte"]].map(([label, key]) => ({
+      label,
+      bg: (s.view === key || (key === "projekt" && s.view === "struktur")) ? "#E8D9BE" : "transparent",
+      fg: (s.view === key || (key === "projekt" && s.view === "struktur")) ? "#0F4448" : "#B8CFCE",
+      onClick: () => this.setState({ view: key })
+    }));
+
+    const titles = {
+      dash: ["Dashboard", "Finanzlage, Termine und deine Tasks"],
+      projekt: ["Projekt", "Sopharmis · zwei Projektteile"],
+      struktur: ["Struktur bearbeiten", "Bereiche und Arbeitspakete ordnen"],
+      zeit: ["Zeit", "Clock-in auf Projekte und Arbeitspakete"],
+      kontakte: ["Kontakte", "Organisationen, Personen und offene Punkte"],
+      profil: ["Profil", "Deine Stammdaten"]
+    };
+
+
+
+    const burn = s.burn;
+    const balance = s.balance;
+    const runwayM = burn > 0 ? balance / burn : 0;
+    const MN = ["Jän", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+    const lastCovered = Math.floor(runwayM);
+    const count = Math.max(6, Math.min(13, lastCovered + 2));
+    const months = [];
+    for (let i = 0; i < count; i++) {
+      const remaining = Math.max(0, balance - i * burn);
+      const h = balance > 0 ? Math.max(5, Math.round(remaining / balance * 100)) : 3;
+      months.push({
+        label: MN[(8 + i) % 12],
+        h: h + "%",
+        bg: i < lastCovered ? "#14595F" : i === lastCovered ? "#E8D9BE" : "#EDEAE3"
+      });
+    }
+
+    const myTasks = TASKS.concat(s.extraTasks).map(x => {
+      const isDone = !!s.done[x.id];
+      return {
+        title: x.title, part: x.part,
+        dueLabel: isDone ? "erledigt" : x.dueLabel,
+        dueShort: isDone ? "erledigt" : String(x.dueLabel).replace("bis ", "").replace(" fällig", "").replace("kein Datum", "—").replace("diese Woche", "KW 36"),
+        dueFg: isDone ? "#8B979A" : x.overdue ? "#9C4229" : "#8B979A",
+        titleFg: isDone ? "#9BA5A7" : "#16272B",
+        strike: isDone ? "line-through" : "none",
+        rowBg: isDone ? "#FAF9F6" : "#FFFFFF",
+        check: isDone ? "✓" : "",
+        boxBg: isDone ? "#5F7346" : "transparent",
+        boxBorder: isDone ? "#5F7346" : "#C6C0B2",
+        onToggleDone: () => this.setState(p => ({ done: Object.assign({}, p.done, { [x.id]: !p.done[x.id] }) }))
+      };
+    });
+
+    const parts = PARTS.map((p, pi) => ({
+      title: (s.partMeta[p.id] || {}).title || p.title,
+      sub: (s.partMeta[p.id] || {}).note !== undefined ? s.partMeta[p.id].note : p.sub,
+      accent: p.accent, tracked: p.tracked,
+      onEdit: () => this.setState({ modal: { kind: "part", id: p.id, title: (s.partMeta[p.id] || {}).title || p.title, note: (s.partMeta[p.id] || {}).note !== undefined ? s.partMeta[p.id].note : p.sub, where: "Projektteil" } }),
+      leftLine: pi === 0 ? "transparent" : "#C3BFB2",
+      rightLine: pi === PARTS.length - 1 ? "transparent" : "#C3BFB2",
+      btnLabel: s.clockOn && s.clockPart === p.title ? "Clock-out" : "Clock-in",
+      btnBg: s.clockOn && s.clockPart === p.title ? "#F7E6DF" : p.accent,
+      btnFg: s.clockOn && s.clockPart === p.title ? "#9C4229" : "#FFFFFF",
+      onClockIn: () => { if (s.clockOn && s.clockPart === p.title) this.askReview(); else this.startClock(p.title, null); },
+      groups: p.groups.map(g => {
+        const openG = !!s.open[g.id];
+        const items = s.items[g.id] || [];
+        const gm = s.groupMeta[g.id] || {};
+        return {
+          title: gm.title || g.title,
+          meta: gm.note !== undefined ? gm.note : g.meta,
+          open: openG, caret: openG ? "–" : "+",
+          onEdit: () => this.setState({ modal: { kind: "group", id: g.id, title: gm.title || g.title, note: gm.note !== undefined ? gm.note : g.meta, where: p.title + " · Gruppe" } }),
+          headBg: "#FFFFFF", headBorder: openG ? "#D8D3C6" : "#E4E1DA",
+          adding: s.addingGroup === g.id, notAdding: s.addingGroup !== g.id,
+          onAdd: () => this.setState({ addingGroup: g.id }),
+          onCancel: () => this.setState({ addingGroup: null }),
+          onSubmit: e => {
+            if (e.key !== "Enter" || !d.item.trim()) return;
+            this.setState(st => ({
+              items: Object.assign({}, st.items, { [g.id]: (st.items[g.id] || []).concat([{ id: "i" + Date.now(), title: d.item.trim(), status: "offen" }]) }),
+              d: Object.assign({}, st.d, { item: "" }), addingGroup: null
+            }));
+          },
+          onToggle: () => this.setState(st => ({ open: Object.assign({}, st.open, { [g.id]: !st.open[g.id] }) })),
+          items: items.map((i, ii) => ({
+            title: i.title, status: ST[i.status].label, chipBg: ST[i.status].bg, chipFg: ST[i.status].fg,
+            note: i.note || "", hasNote: !!i.note,
+            cardBg: s.clockOn && s.clockItem === i.id ? "#F0F6F5" : "#FFFFFF",
+            cardBorder: s.clockOn && s.clockItem === i.id ? "#9EC3C1" : "#E4E1DA",
+            clockLabel: s.clockOn && s.clockItem === i.id ? "Clock-out" : "Clock-in",
+            clockBg: s.clockOn && s.clockItem === i.id ? "#F7E6DF" : "#EFF6F5",
+            clockFg: s.clockOn && s.clockItem === i.id ? "#9C4229" : "#14595F",
+            tracked: i.tracked ? i.tracked + " gebucht" : "",
+            onClockIn: () => { if (s.clockOn && s.clockItem === i.id) this.askReview(); else this.startClock(p.title + " · " + i.title, i.id); },
+            onUp: () => this.moveItem(g.id, ii, -1),
+            onDown: () => this.moveItem(g.id, ii, 1),
+            onEdit: () => this.setState({ modal: { groupId: g.id, id: i.id, title: i.title, note: i.note || "", status: i.status, where: p.title + " · " + g.title } }),
+            hasSubs: !!(i.subs && i.subs.length),
+            subs: (i.subs || []).map(sub => ({
+              label: sub.label, meta: sub.meta || "",
+              fg: sub.strike ? "#A0A9AB" : "#33454A",
+              strike: sub.strike ? "line-through" : "none"
+            }))
+          }))
+        };
+      })
+    }));
+
+    const logged = s.reviewLog.map(r => ({
+      date: "heute", part: r.where, span: r.note, person: s.me,
+      duration: (function (sec) { const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60; return h + ":" + String(m).padStart(2, "0"); })(r.seconds)
+    }));
+    const allEntries = logged.concat(ENTRIES);
+    const filtered = s.filter === "all" ? allEntries : allEntries.filter(e => e.person === s.filter);
+    const total = filtered.reduce((a, e) => { const p = e.duration.split(":").map(Number); return a + p[0] * 60 + p[1]; }, 0);
+
+    const q = (d.query || "").toLowerCase();
+    const listed = this.allPeople().filter(p => {
+      if (s.pfilter === "Wartet auf uns" && !(p.ball === "us" && !s.cleared[p.id])) return false;
+      if (s.pfilter === "Ohne Organisation" && p.orgId) return false;
+      if (!q) return true;
+      return (p.name + " " + p.org + " " + p.role + " " + p.part).toLowerCase().indexOf(q) >= 0;
+    });
+    const person = this.allPeople().find(p => p.id === s.personId) || listed[0] || this.allPeople()[0]
+      || { id: null, name: "—", initials: "NN", role: "", org: "", type: "Lose", stage: "Erstkontakt", part: "", owner: "", last: "—", ball: "them", ballWhat: "", ballAge: "0 Tage", history: [] };
+    const history = (s.extraLogs[person.id] || []).concat(person.history || []);
+
+    const counts = {};
+    this.allPeople().forEach(p => { counts[p.type] = (counts[p.type] || 0) + 1; });
+    const maxType = Math.max.apply(null, Object.keys(counts).map(k => counts[k]).concat([1]));
+    const typeColors = { "Förderstelle": "#14595F", "Forschung": "#8A5638", "Gesundheitsfonds": "#5F7346", "Lose": "#8B979A" };
+    const typeStats = Object.keys(counts).map(k => ({
+      label: k, count: counts[k], color: typeColors[k] || "#8B979A", pct: Math.round(counts[k] / maxType * 100) + "%"
+    }));
+
+    const sCounts = {};
+    this.allPeople().forEach(p => { sCounts[p.stage] = (sCounts[p.stage] || 0) + 1; });
+    const maxStage = Math.max.apply(null, Object.keys(sCounts).map(k => sCounts[k]).concat([1]));
+    const stageColors = { "Erstkontakt": "#C8D2CE", "Antrag läuft": "#2C7076", "Partner": "#5F7346" };
+    const stageStats = Object.keys(sCounts).map(k => ({
+      label: k, count: sCounts[k], color: stageColors[k] || "#8B979A", pct: Math.round(sCounts[k] / maxStage * 100) + "%"
+    }));
+
+    const pieGradient = function (list) {
+      const sum = list.reduce((x, y) => x + y.count, 0) || 1;
+      let acc = 0;
+      const stops = list.map(x => {
+        const from = acc / sum * 100;
+        acc += x.count;
+        const to = acc / sum * 100;
+        return x.color + " " + from.toFixed(2) + "% " + to.toFixed(2) + "%";
+      });
+      return "conic-gradient(" + stops.join(", ") + ")";
+    };
+    const newLast = s.extraPeople.length;
+
+    const newest = this.allPeople().slice(0, 3).map(p => {
+      const h = ((s.extraLogs[p.id] || []).concat(p.history))[0];
+      return {
+        name: p.name, initials: p.initials, org: p.org === p.name ? p.role : p.org, date: h.date,
+        kind: h.kind, body: h.body, chipBg: (KIND[h.kind] || KIND.Mail).bg, chipFg: (KIND[h.kind] || KIND.Mail).fg,
+        onOpen: () => this.setState({ sub: "liste", personId: p.id })
+      };
+    });
+
+    const monthOrder = { "Jän": 1, "Feb": 2, "Mär": 3, "Apr": 4, "Mai": 5, "Jun": 6, "Jul": 7, "Aug": 8, "Sep": 9, "Okt": 10, "Nov": 11, "Dez": 12 };
+    const chronik = [].concat.apply([], this.allPeople().map(p =>
+      ((s.extraLogs[p.id] || []).concat(p.history || [])).map(h => ({
+        date: h.date, kind: h.kind, title: h.title, body: h.body,
+        name: p.name, initials: p.initials, org: p.org === p.name ? p.role : p.org,
+        chipBg: (KIND[h.kind] || KIND.Mail).bg, chipFg: (KIND[h.kind] || KIND.Mail).fg,
+        sortKey: (function (dt) { const q = dt.split("."); return (q[2] || "") + (q[1] || "") + (q[0] || ""); })(h.date),
+        onOpen: () => this.setState({ sub: "liste", personId: p.id })
+      }))
+    )).sort((x, y) => x.sortKey < y.sortKey ? 1 : x.sortKey > y.sortKey ? -1 : 0);
+
+    const onUs = this.allPeople().filter(p => p.ball === "us" && !s.cleared[p.id]);
+    const onThem = this.allPeople().filter(p => p.ball === "them" && !s.cleared[p.id]);
+    const ageFg = a => parseInt(a, 10) >= 14 ? "#9C4229" : "#8B979A";
+
+    const subnav = [
+      ["Wartet", "warten", String(onUs.length + onThem.length), "Wer auf uns wartet und auf wen wir warten"],
+      ["Suche", "liste", "", "Kontakt suchen und Verlauf ansehen"],
+      ["Unternehmen", "orgs", String(s.orgs.length), "Organisationen anlegen und Kontakte zuordnen"],
+      ["Chronik", "chronik", String(chronik.length), "Alles, was zuletzt passiert ist"],
+      ["Neuer Kontakt", "neu", "", "Person mit Organisation und Notiz erfassen"]
+    ].map(([label, key, count, desc], i) => ({
+      label, count, desc,
+      countFg: "#8B979A",
+      divider: i === 0 ? "transparent" : "#DFDBD1",
+      onClick: () => this.setState({ sub: key })
+    }));
+
+    const weekVals = WEEK.map(w => parseFloat(w.hours.replace(",", ".")));
+    const weekMax = weekVals.length ? Math.max(8, Math.ceil(Math.max.apply(null, weekVals) / 8) * 8) : 8;
+    const nfmt = n => (Math.round(n * 10) / 10).toFixed(1).replace(".", ",");
+    const weekAxis = [1, 2 / 3, 1 / 3, 0].map(f => ({ label: f === 0 ? "0" : Math.round(weekMax * f) + " h" }));
+    const teamWeekTotal = nfmt(weekVals.reduce((a, b) => a + b, 0)) + " h";
+
+    const splitAgg = {};
+    WEEK.forEach(w => w.split.forEach(x => {
+      const v = parseFloat(String(x.value).replace(",", ".")) || 0;
+      if (!splitAgg[x.label]) splitAgg[x.label] = { label: x.label, color: x.color, sum: 0 };
+      splitAgg[x.label].sum += v;
+    }));
+    const splitList = Object.keys(splitAgg).map(k => splitAgg[k]).sort((a, b) => b.sum - a.sum);
+    const splitTotal = splitList.reduce((a, x) => a + x.sum, 0) || 1;
+    const weekSplit = splitList.map(x => ({
+      label: x.label, color: x.color, value: nfmt(x.sum) + " h",
+      pct: Math.round(x.sum / splitTotal * 100) + "%"
+    }));
+
+    const filled = { laeuft: true, fertig: true, zugesagt: true };
+    const progress = PARTS.map(p => {
+      const dev = p.groups.filter(g => /Entwicklung/i.test(g.title))[0] || p.groups[0];
+      const list = s.items[dev.id] || [];
+      let cur = 0;
+      list.forEach((i, ix) => { if (filled[i.status]) cur = ix + 1; });
+      const active = list[Math.max(0, cur - 1)];
+      return {
+        title: (s.partMeta[p.id] || {}).title || p.title,
+        accent: p.accent,
+        meta: "Stufe " + Math.max(1, cur) + " von " + list.length + (active ? " · " + String(active.title).replace(/^\d+\.\s*/, "") : ""),
+        steps: list.map((i, ix) => ({
+          label: String(i.title).replace(/^\d+\.\s*/, ""),
+          bg: ix < cur ? p.accent : "#E3E7E4",
+          fg: ix < cur ? "#33454A" : "#A9B2B4"
+        }))
+      };
+    });
+
+    const fundings = [];
+    PARTS.forEach(p => p.groups.filter(g => /Finanz/i.test(g.title)).forEach(g => {
+      (s.items[g.id] || []).forEach(i => {
+        if (i.subs && i.subs.length) {
+          i.subs.forEach(sub => fundings.push({
+            title: sub.label,
+            meta: sub.strike ? "verworfen" : (sub.meta || ST[i.status].label),
+            accent: sub.strike ? "#C3C9C4" : "#4C6B41"
+          }));
+        } else {
+          fundings.push({ title: i.title, meta: i.note || ST[i.status].label, accent: ST[i.status].fg });
+        }
+      });
+    }));
+    const fundings8 = fundings.slice(0, 8);
+
+    const kontaktKacheln = [
+      { label: "Kontakte", value: String(this.allPeople().length), meta: "+" + newLast + " diesen Monat", accent: "#14595F", fg: "#16272B" },
+      { label: "Warten auf uns", value: String(onUs.length), meta: onUs.length ? "wir sind am Zug" : "nichts offen", accent: "#C05C34", fg: onUs.length ? "#9C4229" : "#16272B" },
+      { label: "Wir warten auf", value: String(onThem.length), meta: "Rückmeldung ausständig", accent: "#8A5638", fg: "#16272B" },
+      { label: "Organisationen", value: String(s.orgs.length), meta: "Förderstellen und Partner", accent: "#4C6B41", fg: "#16272B" }
+    ];
+    const chronikTop = chronik.slice(0, 5);
+    const orgAccent = t => t === "Förderstelle" ? "#14595F" : t === "Forschung" ? "#8A5638" : t === "Gesundheitsfonds" ? "#5B4A6B" : "#4C6B41";
+    const orgTop = s.orgs.slice(0, 4).map(o => {
+      const members = this.allPeople().filter(p => p.orgId === o.id);
+      return {
+        name: o.name, stage: o.stage, accent: orgAccent(o.type),
+        count: members.length + (members.length === 1 ? " Kontakt" : " Kontakte"),
+        onOpen: () => this.setState({ sub: "orgs" })
+      };
+    });
+
+    const finAxis = [1, 0.75, 0.5, 0.25, 0].map(f => ({ label: Math.round(balance * f).toLocaleString("de-AT") }));
+    const runwayUntil = "bis " + MN[(8 + lastCovered) % 12] + " " + (2026 + Math.floor((8 + lastCovered) / 12));
+    const liveOn = s.clockOn ? 1 : 0;
+    const liveCount = liveOn + " von " + TEAM.length + " eingestempelt";
+    const openTasks = myTasks.filter(t => t.check !== "✓").length;
+    const overdueTasks = myTasks.filter(t => t.dueFg === "#9C4229").length;
+    const taskFoot = overdueTasks ? overdueTasks + " heute · " + Math.max(0, openTasks - overdueTasks) + " später" : openTasks + " offen";
+
+    const canClock = PARTS.length > 0 || s.recents.length > 0;
+    const bookingPicks = s.recents.slice(0, 5).map(r => {
+      const running = s.clockOn && s.clockPart === r.label;
+      return {
+        label: r.label, meta: running ? "läuft seit " + this.clock(s.seconds) : r.meta,
+        bg: running ? "#F0F6F5" : "#FFFFFF",
+        action: running ? "Clock-out" : "Clock-in",
+        actionFg: running ? "#9C4229" : "#14595F",
+        onClick: () => {
+          this.setState({ barOpen: false, zeitOpen: false });
+          if (running) this.askReview(); else this.startClock(r.label, r.itemId);
+        }
+      };
+    });
+
+    const STG = ["Erstkontakt", "Antrag läuft", "Partner"];
+    const stgAccent = { "Erstkontakt": "#C99B86", "Antrag läuft": "#14595F", "Partner": "#4C6B41" };
+    const typeBgOf = t => t === "Partner" ? "#E9EFE3" : t === "Forschung" ? "#F4EBE1" : t === "Gesundheitsfonds" ? "#EDE8F0" : "#E2EEEC";
+    const typeFgOf = t => t === "Partner" ? "#4C6B41" : t === "Forschung" ? "#8A5638" : t === "Gesundheitsfonds" ? "#5B4A6B" : "#14595F";
+    const stageOf = o => s.orgStages[o.id] || o.stage;
+    const noteOf = o => (s.orgNotes[o.id] !== undefined ? s.orgNotes[o.id] : o.note);
+    const peopleOfOrg = id => this.allPeople().filter(p => p.orgId === id);
+    const openOfOrg = id => peopleOfOrg(id).filter(p => p.ball === "us" && !s.cleared[p.id]).length;
+    const waitOfOrg = id => peopleOfOrg(id).filter(p => p.ball === "them" && !s.cleared[p.id]).length;
+    const qc = s.qc || {};
+    const qs = (d.query || "").toLowerCase();
+    const crmFilter = s.pfilter === "Warten auf uns" || s.pfilter === "Wir warten" ? s.pfilter : "Alle";
+    const orgVisible = o => {
+      if (crmFilter === "Warten auf uns" && !openOfOrg(o.id)) return false;
+      if (crmFilter === "Wir warten" && !waitOfOrg(o.id)) return false;
+      if (!qs) return true;
+      return (o.name + " " + noteOf(o) + " " + peopleOfOrg(o.id).map(p => p.name + " " + p.role).join(" ")).toLowerCase().indexOf(qs) >= 0;
+    };
+    const selId = s.orgs.filter(o => o.id === s.selOrgId).length ? s.selOrgId : (s.orgs[0] || {}).id;
+    const selOrg = s.orgs.filter(o => o.id === selId)[0] || { id: null, name: "Keine Organisation", type: "Partner", note: "", stage: "Erstkontakt" };
+    const board = STG.map(st => {
+      const list = s.orgs.filter(o => stageOf(o) === st && orgVisible(o));
+      return {
+        label: st, accent: stgAccent[st], count: list.length, empty: list.length === 0,
+        orgs: list.map(o => {
+          const pl = peopleOfOrg(o.id), open = openOfOrg(o.id);
+          return {
+            name: o.name, type: o.type, typeBg: typeBgOf(o.type), typeFg: typeFgOf(o.type),
+            note: noteOf(o), accent: stgAccent[st],
+            bg: o.id === selId ? "#FAF9F6" : "#FFFFFF",
+            border: o.id === selId ? "#A8C6C4" : "#DFDBD1",
+            people: pl.slice(0, 4).map(p => ({ initials: p.initials, name: p.name, color: typeBgOf(p.type) })),
+            peopleCount: pl.length ? pl.length + (pl.length === 1 ? " Kontakt" : " Kontakte") : "keine Person",
+            wait: open ? open + " offen bei uns" : "",
+            waitFg: "#9C4229",
+            onSelect: () => this.setState({ selOrgId: o.id, noteSavedId: null })
+          };
+        })
+      };
+    });
+    const selPl = peopleOfOrg(selId);
+    const selLogs = (s.orgLogs[selId] || []).map(l => Object.assign({}, l, { chipBg: (KIND[l.kind] || KIND.Mail).bg, chipFg: (KIND[l.kind] || KIND.Mail).fg }))
+      .concat([].concat.apply([], selPl.map(p => ((s.extraLogs[p.id] || []).concat(p.history || [])).map(l => ({
+        date: l.date, kind: l.kind, title: l.title, body: l.body, who: p.name,
+        chipBg: (KIND[l.kind] || KIND.Mail).bg, chipFg: (KIND[l.kind] || KIND.Mail).fg
+      })))));
+    const looseList = this.allPeople().filter(p => !p.orgId).filter(p =>
+      !qs || (p.name + " " + p.role + " " + (p.ballWhat || "")).toLowerCase().indexOf(qs) >= 0
+    );
+    const totalOrgPeople = this.allPeople().filter(p => p.orgId).length;
+
+    const PKST = {
+      offen:    { label: "offen",        bg: "#F1EFE8", fg: "#5C6A6D", dot: "#C3C9C4" },
+      laeuft:   { label: "läuft",        bg: "#E2EEEC", fg: "#14595F", dot: "#14595F" },
+      pausiert: { label: "pausiert",     bg: "#F3EFE7", fg: "#8A6A38", dot: "#C9A96A" },
+      wartet:   { label: "wartet extern",bg: "#F7E6DF", fg: "#9C4229", dot: "#C05C34" },
+      fertig:   { label: "fertig",       bg: "#E9EFE3", fg: "#4C6B41", dot: "#5F7346" }
+    };
+    const PKORDER = ["offen", "laeuft", "pausiert", "wartet", "fertig"];
+    const model = this.pkgModel();
+    const self = this;
+    const decorate = pkg => {
+      const area = model.areas.filter(x => x.id === pkg.area)[0] || model.areas[0];
+      const defs = self.stagesFor(area.kind);
+      const cur = self.stageOf(pkg, defs);
+      const statusKey = s.pkgStatus[pkg.id] || pkg.baseStatus;
+      const st = PKST[statusKey] || PKST.offen;
+      const plan = defs.reduce((x, d) => x + d[1], 0);
+      const done = defs.slice(0, cur).reduce((x, d) => x + d[1], 0);
+      const running = s.clockOn && s.clockItem === pkg.id;
+      return {
+        id: pkg.id, title: pkg.title, note: pkg.note, area: area, statusKey: statusKey,
+        status: st.label, chipBg: st.bg, chipFg: st.fg, dot: st.dot,
+        defs: defs, cur: cur, plan: plan, done: done, running: running,
+        hasNote: !!pkg.note,
+        phase: cur >= defs.length ? "abgeschlossen" : (defs[cur] ? "nächste Stufe: " + defs[cur][0] : ""),
+        months: done + " / " + plan + " Mon.",
+        stages: defs.map((d, di) => ({
+          label: d[0], months: d[1] + " Mon.", flex: String(d[1]),
+          title: d[0] + " · " + d[1] + " Monate",
+          bg: di < cur ? area.accent : "#E7E4DC",
+          fg: di < cur ? "#33454A" : "#A9B2B4",
+          onClick: () => self.setStage(pkg.id, di + 1, defs.length)
+        })),
+        btnLabel: running ? "Clock-out" : "Clock-in",
+        btnBg: running ? "#F7E6DF" : "#14595F",
+        btnFg: running ? "#9C4229" : "#FFFFFF",
+        onClock: () => { if (running) self.askReview(); else self.startClock(area.partTitle + " · " + pkg.title, pkg.id); },
+        onSelect: () => self.setState({ selPkg: pkg.id })
+      };
+    };
+    const deco = model.pkgs.map(decorate);
+    const ordered = areaId => {
+      const list = deco.filter(x => x.area.id === areaId);
+      const order = s.pkgOrder[areaId];
+      if (!order) return list;
+      return list.slice().sort((x, y) => {
+        const a = order.indexOf(x.id), b = order.indexOf(y.id);
+        return (a < 0 ? 999 : a) - (b < 0 ? 999 : b);
+      });
+    };
+    const pf = s.projFilter, sf = s.statFilter;
+    const visible = x => (pf === "Alle" || x.area.partTitle === pf) && (sf === "Alle" || x.status === sf);
+    const selPkg = deco.filter(x => x.id === s.selPkg)[0] || deco[0] || null;
+
+    const cnt = k => deco.filter(x => x.statusKey === k).length;
+    const pkKpis = [
+      { label: "Arbeitspakete", value: String(deco.length), meta: model.areas.length + " Bereiche", accent: "#14595F", fg: "#16272B" },
+      { label: "laufend", value: String(cnt("laeuft")), meta: cnt("pausiert") ? cnt("pausiert") + " pausiert" : "kein Paket pausiert", accent: "#4C6B41", fg: "#16272B" },
+      { label: "wartet extern", value: String(cnt("wartet")), meta: "Rückmeldung ausständig", accent: "#C05C34", fg: cnt("wartet") ? "#9C4229" : "#16272B" },
+      { label: "fertig", value: cnt("fertig") + " / " + deco.length, meta: cnt("offen") + " noch nicht begonnen", accent: "#8B979A", fg: "#16272B" }
+    ];
+    const areaCards = model.areas.filter(ar => pf === "Alle" || ar.partTitle === pf).map(ar => {
+      const all = ordered(ar.id), vis = all.filter(visible);
+      const fin = all.filter(x => x.statusKey === "fertig").length;
+      return {
+        title: ar.title, part: ar.partTitle, accent: ar.accent,
+        stats: fin + " / " + all.length + " fertig",
+        pkgs: vis.map(x => Object.assign({}, x, {
+          bg: selPkg && x.id === selPkg.id ? "#FAF9F6" : "#FFFFFF",
+          selBorder: selPkg && x.id === selPkg.id ? ar.accent : "transparent"
+        })),
+        empty: vis.length === 0
+      };
+    });
+    const areaEdit = model.areas.map(ar => {
+      const list = ordered(ar.id);
+      return {
+        title: ar.title, part: ar.partTitle, accent: ar.accent,
+        kindLabel: ar.kind === "fin" ? "Förderschiene" : ar.kind === "ziel" ? "Ziel" : "Entwicklung",
+        onTitle: e => { const v = e.target.value; this.setState(st => ({ areaTitle: Object.assign({}, st.areaTitle, { [ar.id]: v }) })); },
+        empty: list.length === 0,
+        pkgs: list.map((x, xi) => ({
+          title: x.title, areaId: ar.id, pos: String(xi + 1),
+          upFg: xi === 0 ? "#C9C4B7" : "#5C6A6D",
+          downFg: xi === list.length - 1 ? "#C9C4B7" : "#5C6A6D",
+          onTitle: e => { const v = e.target.value; this.setState(st => ({ pkgTitle: Object.assign({}, st.pkgTitle, { [x.id]: v }) })); },
+          onArea: e => { const v = e.target.value; this.setState(st => ({ pkgArea: Object.assign({}, st.pkgArea, { [x.id]: v }) })); },
+          onUp: () => this.movePkg(x.id, ar.id, -1),
+          onDown: () => this.movePkg(x.id, ar.id, 1),
+          onRemove: () => this.setState(st => ({ pkgHidden: Object.assign({}, st.pkgHidden, { [x.id]: true }) }))
+        }))
+      };
+    });
+    const tree = PARTS.map(p => {
+      const running = s.clockOn && s.clockPart === p.title;
+      return {
+        title: (s.partMeta[p.id] || {}).title || p.title,
+        sub: (s.partMeta[p.id] || {}).note !== undefined ? s.partMeta[p.id].note : p.sub,
+        accent: p.accent, tracked: p.tracked,
+        btnLabel: running ? "Clock-out" : "Clock-in",
+        btnBg: running ? "#F7E6DF" : p.accent,
+        btnFg: running ? "#9C4229" : "#FFFFFF",
+        onClock: () => { if (running) this.askReview(); else this.startClock(p.title, null); },
+        areas: model.areas.filter(x => x.partId === p.id).map(ar => {
+          const all = ordered(ar.id), vis = all.filter(visible);
+          const fin = all.filter(x => x.statusKey === "fertig").length;
+          return {
+            title: ar.title, accent: ar.accent,
+            stats: fin + " / " + all.length + " fertig",
+            pkgs: vis.map(x => Object.assign({}, x, {
+              bg: selPkg && x.id === selPkg.id ? "#FAF9F6" : "#FFFFFF",
+              selBorder: selPkg && x.id === selPkg.id ? ar.accent : "transparent"
+            })),
+            empty: vis.length === 0
+          };
+        })
+      };
+    }).filter(x => pf === "Alle" || x.title === pf);
+
+    const bookings = s.reviewLog.filter(l => selPkg && l.where.indexOf(selPkg.title) >= 0).map(l => ({
+      time: this.clock(l.seconds), note: l.note, who: this.member(s.me).name
+    }));
+    const areaOptions = model.areas.map(x => ({ id: x.id, label: x.partTitle + " · " + x.title }));
+
+    return {
+      nav,
+      pkKpis: pkKpis,
+      projFilters: ["Alle"].concat(PARTS.map(p => p.title)).map((l, i) => ({
+        label: l, divider: i === 0 ? "transparent" : "#DFDBD1",
+        bg: pf === l ? "#0F4448" : "#FFFFFF", fg: pf === l ? "#FFFFFF" : "#5C6A6D",
+        onClick: () => this.setState({ projFilter: l })
+      })),
+      statFilter: sf,
+      statOptions: ["Alle"].concat(PKORDER.map(k => PKST[k].label)).map(l => ({ label: l })),
+      onStatFilter: e => { const v = e.target.value; this.setState({ statFilter: v }); },
+      pkHint: deco.length + " Pakete · " + model.areas.length + " Bereiche · " + PARTS.length + " Projektteile",
+      onOpenStruktur: () => this.setState({ view: "struktur" }),
+      rootStats: [
+        { label: "Projektteile", value: String(PARTS.length) },
+        { label: "Pakete", value: String(deco.length) },
+        { label: "laufend", value: String(cnt("laeuft")) },
+        { label: "fertig", value: String(cnt("fertig")) }
+      ],
+      noProjects: PARTS.length === 0,
+      hasSelPkg: !!selPkg,
+      projBlocks: tree.map(p => Object.assign({}, p, {
+        areas: areaCards.filter(a => a.part === p.title)
+      })),
+      areaCards: areaCards,
+      areaEdit: areaEdit,
+      areaShortOptions: model.areas.map(x => ({ id: x.id, label: x.title + " · " + x.partTitle })),
+      pk: selPkg ? {
+        title: selPkg.title, where: selPkg.area.partTitle + " · " + selPkg.area.title,
+        progressMeta: selPkg.phase, planMonths: selPkg.plan + " Monate",
+        doneMonths: selPkg.done + " Monate", tracked: selPkg.running ? "läuft" : "—",
+        btnLabel: selPkg.btnLabel, btnBg: selPkg.btnBg, btnFg: selPkg.btnFg, onClock: selPkg.onClock
+      } : { title: "—", where: "", progressMeta: "", planMonths: "—", doneMonths: "—", tracked: "—", btnLabel: "Clock-in", btnBg: "#14595F", btnFg: "#FFFFFF", onClock: () => {} },
+      pkStages: selPkg ? selPkg.stages : [],
+      pkStatusBtns: PKORDER.map((k, i) => ({
+        label: PKST[k].label, divider: i === 0 ? "transparent" : "#DFDBD1",
+        bg: selPkg && selPkg.statusKey === k ? PKST[k].dot : "#FFFFFF",
+        fg: selPkg && selPkg.statusKey === k ? "#FFFFFF" : "#5C6A6D",
+        onClick: () => { if (selPkg) this.setState(st => ({ pkgStatus: Object.assign({}, st.pkgStatus, { [selPkg.id]: k }) })); }
+      })),
+      pkNote: selPkg ? selPkg.note : "",
+      onPkNote: e => { const v = e.target.value; if (selPkg) this.setState(st => ({ pkgNote: Object.assign({}, st.pkgNote, { [selPkg.id]: v }) })); },
+      onPkNoteKey: () => {},
+      onPkNoteSave: () => {},
+      pkBookings: bookings,
+      pkNoBookings: bookings.length === 0,
+      areaOptions: areaOptions,
+      partOptions: PARTS.map(p => ({ id: p.id, label: p.title })),
+      kindOptions: [{ id: "dev", label: "Entwicklung" }, { id: "fin", label: "Förderschiene" }, { id: "ziel", label: "Ziel" }],
+      npkTitle: (s.npk || {}).title || "",
+      onNpkTitle: e => { const v = e.target.value; this.setState(st => ({ npk: Object.assign({}, st.npk, { title: v }) })); },
+      npkNote: (s.npk || {}).note || "",
+      onNpkNote: e => { const v = e.target.value; this.setState(st => ({ npk: Object.assign({}, st.npk, { note: v }) })); },
+      npkArea: (s.npk || {}).area || (areaOptions[0] || {}).id,
+      onNpkArea: e => { const v = e.target.value; this.setState(st => ({ npk: Object.assign({}, st.npk, { area: v }) })); },
+      onNpkKey: e => { if (e.key === "Enter") this.addPkg(); },
+      onNpkSave: () => this.addPkg(),
+      narTitle: (s.nar || {}).title || "",
+      onNarTitle: e => { const v = e.target.value; this.setState(st => ({ nar: Object.assign({}, st.nar, { title: v }) })); },
+      narPart: (s.nar || {}).part || (PARTS[0] || {}).id || "",
+      onNarPart: e => { const v = e.target.value; this.setState(st => ({ nar: Object.assign({}, st.nar, { part: v }) })); },
+      narKind: (s.nar || {}).kind || "dev",
+      onNarKind: e => { const v = e.target.value; this.setState(st => ({ nar: Object.assign({}, st.nar, { kind: v }) })); },
+      onNarKey: e => { if (e.key === "Enter") this.addArea(); },
+      onNarSave: () => this.addArea(),
+      crmFilters: ["Alle", "Warten auf uns", "Wir warten"].map((l, i) => ({
+        label: l, divider: i === 0 ? "transparent" : "#DFDBD1",
+        bg: crmFilter === l ? "#0F4448" : "#FFFFFF",
+        fg: crmFilter === l ? "#FFFFFF" : "#5C6A6D",
+        onClick: () => this.setState({ pfilter: l })
+      })),
+      crmHint: s.orgs.length + " Organisationen · " + this.allPeople().length + " Kontakte · " + totalOrgPeople + " zugeordnet",
+      board: board,
+      loose: looseList.map(p => ({
+        name: p.name, role: p.role,
+        what: s.cleared[p.id] ? "nichts offen" : p.ballWhat,
+        ballDot: s.cleared[p.id] ? "#DDD9D0" : p.ball === "us" ? "#B75536" : "#C8D2CE",
+        assignLabel: "zu " + ((s.orgs.filter(o => o.id === selId)[0] || {}).short || "Org") + " →",
+        onAssign: () => this.assignToOrg(p.id)
+      })),
+      looseCount: looseList.length,
+      looseEmpty: looseList.length === 0,
+      qcName: qc.name || "", onQcName: this.bind("qcName", v => this.setState(st => ({ qc: Object.assign({}, st.qc, { name: v }) }))),
+      qcRole: qc.role || "", onQcRole: this.bind("qcRole", v => this.setState(st => ({ qc: Object.assign({}, st.qc, { role: v }) }))),
+      qcNote: qc.note || "", onQcNote: this.bind("qcNote", v => this.setState(st => ({ qc: Object.assign({}, st.qc, { note: v }) }))),
+      onQcKey: e => { if (e.key === "Enter") this.saveQuick(); },
+      onQcSave: () => this.saveQuick(),
+      qcOrgOpen: s.qcOrgOpen === true,
+      qcOrgCaret: s.qcOrgOpen ? "▴" : "▾",
+      qcOrgLabel: (s.orgs.filter(o => o.id === qc.orgId)[0] || {}).name || "Ohne Organisation",
+      qcOrgFg: qc.orgId ? "#16272B" : "#8B979A",
+      toggleQcOrg: () => this.setState(p => ({ qcOrgOpen: !p.qcOrgOpen })),
+      qcOrgOptions: [{ id: null, name: "Ohne Organisation" }].concat(s.orgs).map(o => ({
+        label: o.name, bg: (qc.orgId || null) === o.id ? "#F0F6F5" : "#FFFFFF",
+        onClick: () => this.setState({ qc: Object.assign({}, qc, { orgId: o.id }), qcOrgOpen: false })
+      })),
+      newOrgOpen: s.newOrgOpen === true,
+      newOrgLabel: s.newOrgOpen ? "Schließen" : "+ Organisation",
+      toggleNewOrg: () => this.setState(p => ({ newOrgOpen: !p.newOrgOpen })),
+      orgName: (s.newOrg || {}).name || "", onOrgName: this.bind("orgName", v => this.setState(st => ({ newOrg: Object.assign({}, st.newOrg, { name: v }), orgSaved: "" }))),
+      orgNoteNew: (s.newOrg || {}).note || "", onOrgNoteNew: this.bind("orgNoteNew", v => this.setState(st => ({ newOrg: Object.assign({}, st.newOrg, { note: v }), orgSaved: "" }))),
+      onOrgKey: e => { if (e.key === "Enter") this.saveOrg(); },
+      sel: {
+        name: selOrg.name, type: selOrg.type, typeBg: typeBgOf(selOrg.type), typeFg: typeFgOf(selOrg.type),
+        peopleCount: String(selPl.length),
+        openCount: String(openOfOrg(selId)), openFg: openOfOrg(selId) ? "#9C4229" : "#16272B",
+        last: (selLogs[0] || {}).date || "—"
+      },
+      selStages: STG.map((st, i) => ({
+        label: st, divider: i === 0 ? "transparent" : "#DFDBD1",
+        bg: stageOf(selOrg) === st ? stgAccent[st] : "#FFFFFF",
+        fg: stageOf(selOrg) === st ? "#FFFFFF" : "#5C6A6D",
+        onClick: () => this.setState(p => ({ orgStages: Object.assign({}, p.orgStages, { [selId]: st }) }))
+      })),
+      selNote: noteOf(selOrg) || "",
+      onSelNote: this.bind("selNote", v => this.setState(st => ({ orgNotes: Object.assign({}, st.orgNotes, { [st.selOrgId || selId]: v }), noteSavedId: null }))),
+      onSelNoteKey: e => { if (e.key === "Enter") this.setState({ noteSavedId: selId }); },
+      onSelNoteSave: () => this.setState({ noteSavedId: selId }),
+      selNoteSaved: s.noteSavedId === selId ? "Gespeichert." : "",
+      selPeople: selPl.map(p => ({
+        name: p.name, initials: p.initials, role: p.role, color: typeBgOf(p.type),
+        ballDot: s.cleared[p.id] ? "#DDD9D0" : p.ball === "us" ? "#B75536" : "#C8D2CE",
+        ballText: s.cleared[p.id] ? "nichts offen" : p.ball === "us" ? "wir sind am Zug: " + p.ballWhat : "wir warten: " + p.ballWhat
+      })),
+      selNoPeople: selPl.length === 0,
+      npName: (s.np || {}).name || "", onNpName: this.bind("npName", v => this.setState(st => ({ np: Object.assign({}, st.np, { name: v }) }))),
+      npRole: (s.np || {}).role || "", onNpRole: this.bind("npRole", v => this.setState(st => ({ np: Object.assign({}, st.np, { role: v }) }))),
+      onNpKey: e => { if (e.key === "Enter") this.addOrgPerson(selId); },
+      onNpSave: () => this.addOrgPerson(selId),
+      selLogs: selLogs.slice(0, 6),
+      selLogCount: selLogs.length + (selLogs.length === 1 ? " Eintrag" : " Einträge"),
+      olDraft: s.ol || "", onOlDraft: this.bind("olDraft", v => this.setState({ ol: v })),
+      onOlKey: e => { if (e.key === "Enter") this.addOrgLog(selId); },
+      onOlSave: () => this.addOrgLog(selId),
+      isDash: s.view === "dash", isProjekt: s.view === "projekt", isStruktur: s.view === "struktur", isZeit: s.view === "zeit", isKontakte: s.view === "kontakte", isProfil: s.view === "profil",
+      pageTitle: titles[s.view][0], pageSub: titles[s.view][1],
+
+      clockBg: s.clockOn ? "#16565A" : "#123E42",
+      clockLabel: s.clockOn ? "Clock-in · " + s.clockPart : "Kein Clock-in",
+      clockTime: this.clock(s.seconds),
+      clockBtnLabel: s.clockOn ? "Clock-out" : "Clock-in",
+      clockBtnBg: s.clockOn ? "#E8D9BE" : (canClock ? "#DCE8E7" : "#2A6A6E"),
+      clockBtnFg: s.clockOn || canClock ? "#0F4448" : "#78A0A2",
+      toggleClock: () => {
+        if (this.state.clockOn) { this.askReview(); return; }
+        if (!canClock) return;
+        const first = bookingPicks[0];
+        if (first) { first.onClick(); return; }
+        const p = PARTS[0];
+        this.startClock(p.title, null);
+      },
+      canClock: canClock,
+      clockBtnCursor: s.clockOn || canClock ? "pointer" : "not-allowed",
+      clockBtnHint: s.clockOn || canClock ? "" : "Erst ein Arbeitspaket anlegen",
+
+      finSub: (balance > 0 ? "Kontostand und Fixkosten aus den Stammdaten" : "Kontostand und Fixkosten noch nicht erfasst")
+        + (lastCovered > 12 ? " · Runway reicht über die nächsten 12 Monate hinaus" : ""),
+      fin: {
+        balance: this.eur(balance), burn: this.eur(burn),
+        runway: runwayM.toFixed(1).replace(".", ",") + " Mon.",
+        runwayFg: runwayM < 6 ? "#9C4229" : "#16272B",
+        months
+      },
+      balanceDue: !s.balanceSaved, balanceDone: s.balanceSaved,
+      balanceDoneLabel: "Kontostand eingetragen: " + this.eur(balance),
+      editingBalance: s.editingBalance === true, notEditingBalance: s.editingBalance !== true,
+      draftBalance: d.balance,
+      onDraftBalance: e => {
+        const v = e.target.value;
+        this._bal = v;
+        this.setState(st => ({ d: Object.assign({}, st.d, { balance: v }) }));
+      },
+      onEditBalance: () => { this._bal = ""; this.setState({ editingBalance: true }); },
+      onSaveBalance: () => this.commitBalance(),
+      onSubmitBalance: e => { if (e.key === "Enter") this.commitBalance(); },
+
+      myTasks,
+      addingTask: s.addingTask, notAddingTask: !s.addingTask,
+      draftTask: d.task, onDraftTask: this.set("task"),
+      onAddTask: () => this.setState({ addingTask: true }),
+      onCancelTask: () => this.setState({ addingTask: false }),
+      onSubmitTask: e => {
+        if (e.key !== "Enter" || !d.task.trim()) return;
+        this.setState(p => ({
+          extraTasks: p.extraTasks.concat([{ id: "n" + Date.now(), title: d.task.trim(), part: "Nicht zugeordnet", dueLabel: "kein Datum" }]),
+          d: Object.assign({}, p.d, { task: "" }), addingTask: false
+        }));
+      },
+
+      profil: (function (self) {
+        const p = s.profiles[s.me], m = self.member(s.me);
+        const hrs = { c1: "62,5", c2: "71,0", c3: "94,5" };
+        return {
+          name: p.name || m.name, role: p.role || "Gründer", initials: m.initials, color: m.color,
+          hours: hrs[s.me], clockState: s.clockOn && s.me === "c1" ? self.clock(s.seconds) : "—",
+          clockNote: s.clockOn && s.me === "c1" ? "läuft: " + s.clockPart : "kein Clock-in"
+        };
+      })(this),
+      profilChipBg: s.view === "profil" ? "rgba(255,255,255,0.16)" : "transparent",
+      onOpenProfil: () => this.setState({ view: "profil" }),
+      profilSwitch: TEAM.map(m => ({
+        label: s.profiles[m.id].name || m.name,
+        bg: s.me === m.id ? "#0F4448" : "#FFFFFF",
+        fg: s.me === m.id ? "#FFFFFF" : "#6B7A7E",
+        border: s.me === m.id ? "#0F4448" : "#E4E1DA",
+        onClick: () => this.setState({ me: m.id, profilSaved: "" })
+      })),
+      pName: s.profiles[s.me].name || "", onPName: this.profSet("name"),
+      pRole: s.profiles[s.me].role || "", onPRole: this.profSet("role"),
+      pMail: s.profiles[s.me].mail || "", onPMail: this.profSet("mail"),
+      pPhone: s.profiles[s.me].phone || "", onPPhone: this.profSet("phone"),
+      pStreet: s.profiles[s.me].street || "", onPStreet: this.profSet("street"),
+      pCity: s.profiles[s.me].city || "", onPCity: this.profSet("city"),
+      pBorn: s.profiles[s.me].born || "", onPBorn: this.profSet("born"),
+      profilSaved: s.profilSaved,
+      onProfilSave: () => this.setState({ profilSaved: "Gespeichert." }),
+
+      monthSub: "September, alle drei zusammen",
+      monthTiles: [
+        { kicker: "Team", value: "228,0", meta: "Stunden im September", bg: "#FFFFFF", border: "#E4E1DA", fg: "#16272B", kickerFg: "#8B979A", metaFg: "#8B979A" },
+        { kicker: "Du", value: "62,5", meta: "Stunden im September", bg: "#FFFFFF", border: "#E4E1DA", fg: "#16272B", kickerFg: "#8B979A", metaFg: "#8B979A" },
+        { kicker: "Meiste Stunden", value: "117,0", meta: "Arzneimittelspender · 51 %", bg: "#0F4448", border: "#0F4448", fg: "#FFFFFF", kickerFg: "#8FB4B5", metaFg: "#A9C9C6" },
+        { kicker: "Overhead", value: "9,5", meta: "4 % der Teamzeit", bg: "#FFFFFF", border: "#E4E1DA", fg: "#16272B", kickerFg: "#8B979A", metaFg: "#8B979A" }
+      ],
+      onOpenZeit: () => this.setState({ view: "zeit" }),
+
+
+      noDeadlines: DEADLINES.length === 0,
+      deadlines: DEADLINES.map(x => ({ day: x.day, title: x.title, meta: x.meta, dayFg: x.today ? "#9C4229" : "#8B979A", dotBg: x.today ? "#C05C34" : "#14595F" })),
+      onOpenDash: () => this.setState({ view: "dash" }),
+      onOpenProjekt: () => this.setState({ view: "projekt" }),
+      clockDot: s.clockOn ? "#8FCB9B" : "#4E7B7E",
+      clockWhere: s.clockOn ? s.clockPart : "kein Clock-in",
+      clockWhereLabel: s.clockOn ? (s.clockPart || "ohne Zuordnung") : "kein Clock-in",
+      balanceHint: balance > 0 ? (s.balanceSaved ? "heute aktualisiert" : "Update offen") : "noch nicht erfasst",
+      balanceHintFg: s.balanceSaved ? "#4C6B41" : "#9C4229",
+      runwayUntil: burn > 0 ? runwayUntil : "Fixkosten fehlen",
+      teamWeekTotal: teamWeekTotal,
+      teamCount: TEAM.length + (TEAM.length === 1 ? " Person" : " Personen"),
+      liveCount: liveCount,
+      taskHead: "Meine Tasks · " + openTasks + " offen",
+      taskFoot: taskFoot,
+      progress: progress,
+      fundings: fundings8,
+      finAxis: finAxis,
+      teamLive: TEAM.map(t => ({
+        id: t.id, initials: t.initials, color: t.color,
+        where: s.clockOn && t.id === s.me ? (s.clockPart || "ohne Zuordnung") : "kein Clock-in",
+        meta: s.clockOn && t.id === s.me ? "läuft" : "—",
+        metaFg: s.clockOn && t.id === s.me ? "#4C6B41" : "#8B979A"
+      })),
+
+      reviewOpen: !!s.review,
+      reviewAsk: !!s.review && s.reviewStage === "ask",
+      reviewWarn: !!s.review && s.reviewStage === "warn",
+      review: { where: s.review ? s.review.where : "", duration: s.review ? this.clock(s.review.seconds) : "", note: s.reviewNote },
+      onReviewNote: e => { const v = e.target.value; this.setState({ reviewNote: v }); },
+      onReviewKey: e => { if (e.key === "Enter" && this.state.reviewNote.trim()) this.finishReview(this.state.reviewNote.trim()); },
+      onReviewSave: () => { const n = this.state.reviewNote.trim(); if (!n) { this.setState({ reviewStage: "warn" }); return; } this.finishReview(n); },
+      onReviewSkip: () => this.setState({ reviewStage: "warn" }),
+      onReviewBack: () => this.setState({ reviewStage: "ask" }),
+      onReviewSkipConfirm: () => this.finishReview("— kein Review"),
+
+      quickSub: s.clockOn ? "Läuft: " + s.clockPart : "Weiter beim letzten Task oder einen der letzten auswählen",
+      resume: (function (self) {
+        const r = s.recents[0];
+        const on = s.clockOn && r && s.clockPart === r.label;
+        return {
+          kicker: on ? "läuft" : "Weitermachen",
+          label: r ? r.label : "Kein letzter Task",
+          meta: on ? self.clock(s.seconds) : (r ? r.meta : "—"),
+          bg: on ? "#0F4448" : "#FFFFFF",
+          fg: on ? "#FFFFFF" : "#16272B",
+          border: on ? "#0F4448" : "#A8C6C4",
+          kickerFg: on ? "#8FB4B5" : "#14595F",
+          metaFg: on ? "#E8D9BE" : "#8B979A",
+          onClick: () => { if (!r) return; if (on) self.askReview(); else self.startClock(r.label, r.itemId); }
+        };
+      })(this),
+      barMenuOpen: s.barOpen === true,
+      barMenuCaret: s.barOpen ? "▴" : "▾",
+      toggleBarMenu: () => this.setState(p => ({ barOpen: !p.barOpen, zeitOpen: false })),
+      zeitMenuOpen: s.zeitOpen === true,
+      zeitMenuCaret: s.zeitOpen ? "▴" : "▾",
+      toggleZeitMenu: () => this.setState(p => ({ zeitOpen: !p.zeitOpen, barOpen: false })),
+      zeitDot: s.clockOn ? "#5F7346" : "#C3C9C4",
+      zeitClockKicker: s.clockOn ? "läuft" : "kein Clock-in",
+      zeitBtnBg: s.clockOn ? "#F7E6DF" : (canClock ? "#14595F" : "#EDEAE3"),
+      zeitBtnFg: s.clockOn ? "#9C4229" : (canClock ? "#FFFFFF" : "#A9B2B4"),
+      noClockTarget: !s.clockOn && !canClock,
+      recentTop3: bookingPicks.slice(0, 3),
+      recentTop5: bookingPicks.slice(0, 5),
+      recentOpen: s.recentOpen === true,
+      recentHint: s.recents.length > 1 ? "Letzte " + Math.min(4, s.recents.length - 1) + " Tasks" : "Noch keine weiteren",
+      toggleRecent: () => this.setState(p => ({ recentOpen: !p.recentOpen })),
+      recentList: s.recents.slice(1, 5).map(r => ({
+        label: r.label, meta: r.meta,
+        onClick: () => { this.setState({ recentOpen: false }); this.startClock(r.label, r.itemId); }
+      })),
+      quickOut: {
+        kicker: s.clockOn ? "aktiv" : "nichts läuft",
+        label: s.clockOn ? "Clock-out" : "Kein Clock-in",
+        meta: s.clockOn ? "Review öffnen" : "—",
+        bg: s.clockOn ? "#F7E6DF" : "#FBFAF7",
+        fg: s.clockOn ? "#9C4229" : "#A0A9AB",
+        border: s.clockOn ? "#EBCFC2" : "#E4E1DA",
+        kickerFg: s.clockOn ? "#B77A5E" : "#B4BBB6",
+        metaFg: s.clockOn ? "#9C4229" : "#B4BBB6",
+        onClick: () => { if (this.state.clockOn) this.askReview(); }
+      },
+
+      parts, sideBlocks: SIDE,
+      modalOpen: !!s.modal,
+      modal: Object.assign({ title: "", note: "", where: "" }, s.modal || {}, { isItem: !s.modal || !s.modal.kind }),
+      onModalTitle: e => { const v = e.target.value; this.setState(st => ({ modal: Object.assign({}, st.modal, { title: v }) })); },
+      onModalNote: e => { const v = e.target.value; this.setState(st => ({ modal: Object.assign({}, st.modal, { note: v }) })); },
+      modalStatuses: Object.keys(ST).map(k => ({
+        label: ST[k].label,
+        bg: s.modal && s.modal.status === k ? ST[k].bg : "#FFFFFF",
+        fg: s.modal && s.modal.status === k ? ST[k].fg : "#6B7A7E",
+        border: s.modal && s.modal.status === k ? ST[k].fg : "#E4E1DA",
+        onClick: () => this.setState(st => ({ modal: Object.assign({}, st.modal, { status: k }) }))
+      })),
+      modalGroups: this.groupList().map(g => {
+        const here = s.modal && s.modal.groupId === g.id;
+        return {
+          label: g.label, dot: g.accent, hint: here ? "aktuell" : "",
+          bg: here ? "#F0F6F5" : "#FFFFFF", fg: "#16272B", border: here ? "#9EC3C1" : "#E4E1DA",
+          onClick: () => this.setState(st => ({ modal: Object.assign({}, st.modal, { groupId: g.id }) }))
+        };
+      }),
+      onModalClose: () => this.setState({ modal: null }),
+      onModalSave: () => this.setState(st => {
+        const m = st.modal;
+        if (!m || !m.title.trim()) return { modal: null };
+        if (m.kind === "part") {
+          return { partMeta: Object.assign({}, st.partMeta, { [m.id]: { title: m.title.trim(), note: m.note } }), modal: null };
+        }
+        if (m.kind === "group") {
+          return { groupMeta: Object.assign({}, st.groupMeta, { [m.id]: { title: m.title.trim(), note: m.note } }), modal: null };
+        }
+        const items = Object.assign({}, st.items);
+        Object.keys(items).forEach(k => { items[k] = items[k].filter(x => x.id !== m.id); });
+        const old = [].concat.apply([], Object.keys(st.items).map(k => st.items[k])).filter(x => x.id === m.id)[0] || {};
+        const updated = Object.assign({}, old, { id: m.id, title: m.title.trim(), note: m.note, status: m.status });
+        items[m.groupId] = (items[m.groupId] || []).concat([updated]);
+        return { items: items, modal: null };
+      }),
+      onModalDelete: () => this.setState(st => {
+        const m = st.modal;
+        const items = Object.assign({}, st.items);
+        Object.keys(items).forEach(k => { items[k] = items[k].filter(x => x.id !== m.id); });
+        return { items: items, modal: null };
+      }),
+      draftItem: d.item, onDraftItem: this.set("item"),
+
+      weekStats: WEEK.map(w => Object.assign({}, this.member(w.id), w, {
+        barH: Math.round(parseFloat(w.hours.replace(",", ".")) / weekMax * 100) + "%"
+      })),
+      weekAxis: weekAxis,
+      weekSplit: weekSplit,
+      entries: filtered.map(e => {
+        const m = this.member(e.person);
+        return Object.assign({}, e, { person: m.name, initials: m.initials, color: m.color });
+      }),
+      entriesSummary: filtered.length + " Clock-ins",
+      entriesTotal: Math.floor(total / 60) + " h " + String(total % 60).padStart(2, "0") + " min",
+      timeFilters: [{ id: "all", label: "Alle" }].concat(TEAM.map(m => ({ id: m.id, label: m.name }))).map(f => ({
+        label: f.label,
+        bg: s.filter === f.id ? "#5F7346" : "#FFFFFF",
+        fg: s.filter === f.id ? "#FFFFFF" : "#5C6A6D",
+        onClick: () => this.setState({ filter: f.id })
+      })),
+
+      orgList: s.orgs.map(o => {
+        const members = this.allPeople().filter(p => p.orgId === o.id);
+        return {
+          name: o.name, short: o.short, type: o.type, stage: o.stage, note: o.note,
+          count: members.length + (members.length === 1 ? " Kontakt" : " Kontakte"),
+          people: members.map(m => ({ name: m.name, role: m.role, onOpen: () => this.setState({ sub: "liste", personId: m.id }) })),
+          typeBg: o.type === "Partner" ? "#E9EFE3" : o.type === "Forschung" ? "#F4EBE1" : o.type === "Gesundheitsfonds" ? "#EDE8F0" : "#E2EEEC",
+          typeFg: o.type === "Partner" ? "#4C6B41" : o.type === "Forschung" ? "#8A5638" : o.type === "Gesundheitsfonds" ? "#5B4A6B" : "#14595F"
+        };
+      }),
+      orgFields: [["name", "Name", "z.B. Apotheke Musterstraße"], ["note", "Notiz", "Worum geht es mit dieser Organisation?"]].map(([key, label, placeholder]) => ({
+        label, placeholder, value: (s.newOrg || {})[key] || "",
+        onChange: e2 => { const v = e2.target.value; this.setState(st => ({ newOrg: Object.assign({}, st.newOrg, { [key]: v }), orgSaved: "" })); }
+      })),
+      orgTypes: ["Partner", "Förderstelle", "Forschung", "Gesundheitsfonds"].map((l, i) => ({
+        label: l, divider: i === 0 ? "#D8D3C6" : "transparent",
+        bg: (s.newOrg || {}).type === l ? "#8A5638" : "#FFFFFF",
+        fg: (s.newOrg || {}).type === l ? "#FFFFFF" : "#5C6A6D",
+        onClick: () => this.setState(st => ({ newOrg: Object.assign({}, st.newOrg, { type: l }), orgSaved: "" }))
+      })),
+      orgSaved: s.orgSaved || "",
+      onOrgSave: () => this.saveOrg(),
+      neuOrgOptions: [{ id: null, label: "Ohne — loser Kontakt" }].concat(s.orgs.map(o => ({ id: o.id, label: o.name }))).map(o => ({
+        label: o.label,
+        bg: ((s.neu || {}).orgId || null) === o.id ? "#0F4448" : "#FFFFFF",
+        fg: ((s.neu || {}).orgId || null) === o.id ? "#FFFFFF" : "#5C6A6D",
+        onClick: () => this.setState(st => ({ neu: Object.assign({}, st.neu, { orgId: o.id }), neuSaved: "" }))
+      })),
+      showTitle: !(s.view === "kontakte" && s.sub !== "ueber"),
+      headerMax: (s.view === "kontakte" && s.sub !== "ueber") ? "12px" : "520px",
+      headerCollapsed: s.view === "kontakte" && s.sub !== "ueber",
+      deepOpen: s.view === "kontakte" && s.sub !== "ueber",
+      deepTitle: { warten: "Wartet", liste: "Suche", chronik: "Chronik", neu: "Neuer Kontakt", orgs: "Unternehmen / Partner" }[s.sub] || "",
+      deepSub: { warten: onUs.length + " offen bei uns · " + onThem.length + " bei den anderen", liste: this.allPeople().length + " Kontakte", chronik: chronik.length + " Einträge", neu: "Wird sofort durchsuchbar", orgs: s.orgs.length + " Organisationen" }[s.sub] || "",
+      onBack: () => this.setState({ sub: "ueber" }),
+      neuName: (s.neu || {}).name || "", onNeuName: this.neuSet("name"),
+      neuRole: (s.neu || {}).role || "", onNeuRole: this.neuSet("role"),
+      neuPart: (s.neu || {}).part || "", onNeuPart: this.neuSet("part"),
+      neuNote: (s.neu || {}).note || "", onNeuNote: this.neuSet("note"),
+      neuTypes: ["Förderstelle", "Forschung", "Gesundheitsfonds", "Lose"].map((l, i) => ({
+        label: l, divider: i === 0 ? "#D8D3C6" : "transparent",
+        bg: (s.neu || {}).type === l ? "#8A5638" : "#FFFFFF",
+        fg: (s.neu || {}).type === l ? "#FFFFFF" : "#5C6A6D",
+        onClick: () => this.setState(st => ({ neu: Object.assign({}, st.neu, { type: l }), neuSaved: "" }))
+      })),
+      neuBall: [["Wir", "us"], ["Die anderen", "them"]].map(([l, v], i) => ({
+        label: l, divider: i === 0 ? "#D8D3C6" : "transparent",
+        bg: (s.neu || {}).ball === v ? "#0F4448" : "#FFFFFF",
+        fg: (s.neu || {}).ball === v ? "#FFFFFF" : "#5C6A6D",
+        onClick: () => this.setState(st => ({ neu: Object.assign({}, st.neu, { ball: v }), neuSaved: "" }))
+      })),
+      neuSaved: s.neuSaved || "",
+      onNeuSave: () => this.saveNeu(),
+      chronikSub: chronik.length + " Einträge, neueste zuerst",
+      chronik: chronik,
+      hasQuery: q.length > 0,
+      searchHint: q.length > 0
+        ? listed.length + (listed.length === 1 ? " Treffer" : " Treffer")
+        : "Tippen zum Suchen · " + this.allPeople().length + " Kontakte erfasst",
+      miniStats: [
+        { value: String(this.allPeople().length), label: "Kontakte gesamt", fg: "#16272B" },
+        { value: "+" + newLast, label: "diesen Monat erfasst", fg: "#4C6B41" },
+        { value: String(onUs.length), label: "warten auf uns", fg: onUs.length ? "#9C4229" : "#16272B" }
+      ],
+      pies: [
+        { title: "Nach Kategorie", gradient: pieGradient(typeStats), legend: typeStats },
+        { title: "Nach Stufe", gradient: pieGradient(stageStats), legend: stageStats }
+      ],
+      newest,
+
+      waitingOnUs: onUs.map(p => ({
+        name: p.name, initials: p.initials, what: p.ballWhat, age: p.ballAge, ageFg: ageFg(p.ballAge), owner: p.owner,
+        btnLabel: "Erledigt", btnBg: "#5F7346", btnFg: "#FFFFFF",
+        onDone: () => this.setState(st => ({ cleared: Object.assign({}, st.cleared, { [p.id]: true }) }))
+      })),
+      noneOnUs: onUs.length === 0,
+      waitingOnThem: onThem.map(p => ({
+        name: p.name, initials: p.initials, what: p.ballWhat, age: p.ballAge, ageFg: ageFg(p.ballAge), owner: p.owner,
+        onOpen: () => this.setState({ sub: "liste", personId: p.id })
+      })),
+
+      query: d.query, onQuery: this.set("query"),
+      personFilters: ["Alle", "Wartet auf uns", "Ohne Organisation"].map((l, i) => ({
+        label: l,
+        bg: s.pfilter === l ? "#8A5638" : "#FFFFFF",
+        fg: s.pfilter === l ? "#FFFFFF" : "#5C6A6D",
+        divider: i === 0 ? "#D8D3C6" : "transparent",
+        onClick: () => this.setState({ pfilter: l })
+      })),
+      people: listed.map(p => ({
+        name: p.name, initials: p.initials, stage: p.stage, org: (p.org === p.name ? p.role : p.org) + " · " + p.part,
+        ballDot: s.cleared[p.id] ? "#DDD9D0" : p.ball === "us" ? "#B75536" : "#C8D2CE",
+        bg: p.id === person.id ? "#FAF6F1" : "#FFFFFF",
+        onSelect: () => this.setState({ personId: p.id })
+      })),
+      noResults: listed.length === 0,
+      person: Object.assign({}, person, {
+        org: person.org === person.name ? "" : person.org,
+        ball: s.cleared[person.id] ? "Nichts offen" : person.ball === "us" ? "Wir sind am Zug: " + person.ballWhat : "Wir warten: " + person.ballWhat,
+        ballFg: s.cleared[person.id] ? "#4C6B41" : person.ball === "us" ? "#9C4229" : "#6B7A7E",
+        historyCount: history.length + (history.length === 1 ? " Eintrag" : " Einträge"),
+        history: history.map(h => Object.assign({}, h, { chipBg: (KIND[h.kind] || KIND.Mail).bg, chipFg: (KIND[h.kind] || KIND.Mail).fg }))
+      }),
+      addingPerson: s.addingPerson, notAddingPerson: !s.addingPerson,
+      draftName: d.name, onDraftName: this.set("name"),
+      draftOrg: d.org, onDraftOrg: this.set("org"),
+      onAddPerson: () => this.setState({ addingPerson: true }),
+      onCancelPerson: () => this.setState({ addingPerson: false }),
+      onSubmitPerson: e => {
+        if (e.key !== "Enter" || !d.name.trim()) return;
+        const p = { id: "n" + Date.now(), name: d.name.trim(), initials: this.initialsOf(d.name), role: "—", org: d.org.trim() || "Loser Kontakt", type: d.org.trim() ? "Förderstelle" : "Lose", stage: "Erstkontakt", part: "Nicht zugeordnet", owner: "Cofounder 1", last: "heute", ball: "us", ballWhat: "Erstkontakt aufnehmen", ballAge: "0 Tage", history: [{ date: "02.09.2026", kind: "Event", title: "Erfasst", body: d.org.trim() ? "Über " + d.org.trim() + " erfasst." : "Ohne Organisation erfasst." }] };
+        this.setState(st => ({ extraPeople: [p].concat(st.extraPeople), d: Object.assign({}, st.d, { name: "", org: "" }), addingPerson: false, personId: p.id }));
+      },
+      addingLog: s.addingLog, notAddingLog: !s.addingLog,
+      draftLog: d.log, onDraftLog: this.set("log"),
+      onAddLog: () => this.setState({ addingLog: true }),
+      onCancelLog: () => this.setState({ addingLog: false }),
+      onSubmitLog: e => {
+        if (e.key !== "Enter" || !d.log.trim()) return;
+        const entry = { date: "02.09.2026", kind: "Call", title: "Notiz", body: d.log.trim() };
+        this.setState(st => ({
+          extraLogs: Object.assign({}, st.extraLogs, { [person.id]: [entry].concat(st.extraLogs[person.id] || []) }),
+          d: Object.assign({}, st.d, { log: "" }), addingLog: false
+        }));
+      }
+    };
+  }
+}
+
+</script>
+</body>
+</html>
