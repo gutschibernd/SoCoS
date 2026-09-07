@@ -156,6 +156,8 @@ export type Teammitglied = {
   farbe: string;
   funktion: string;
   email: string;
+  is_active: boolean;
+  rolle: "admin" | "bearbeiter" | "leser" | null;
 };
 
 export const useTeam = () =>
@@ -178,7 +180,7 @@ export function useNeuLaden() {
   const speicher = useQueryClient();
   return () => {
     for (const schluessel of [
-      "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen", "team", "ich",
+      "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen", "team", "ich", "protokoll",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

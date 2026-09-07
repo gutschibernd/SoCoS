@@ -3,6 +3,7 @@ import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
 import { useSeite, type Seite } from "./basis/router";
 import { Zustand } from "./basis/Zustand";
 import { Kopf } from "./bausteine/Kopf";
+import { Meldungen } from "./bausteine/Meldungen";
 import { Dashboard } from "./ansichten/Dashboard";
 import { Kontakte } from "./ansichten/Kontakte";
 import { Profil } from "./ansichten/Profil";
@@ -35,6 +36,7 @@ export function App() {
   return (
     <>
       <Kopf ich={ich.data} seite={seite} wechseln={wechseln} />
+      <Meldungen />
       <main className="seite">
         <div className="titelzeile">
           <h1>{TITEL[seite].titel}</h1>

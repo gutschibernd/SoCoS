@@ -104,6 +104,23 @@ DJANGO_DEBUG=0 python manage.py check --deploy
 Die Ausgabe muss leer sein und leer bleiben. Jede bewusst stillgelegte Warnung wird
 im Code begründet.
 
+## Probedaten
+
+Zum Ausprobieren mit Inhalt — **nur lokal**, am Server verweigert der Befehl den
+Dienst. Alle Namen darin sind erfunden; echte Daten kommen aus `daten/`.
+
+```bash
+python manage.py probedaten --mit-probenutzern
+```
+
+```bash
+python manage.py probedaten --entfernen
+```
+
+`--mit-probenutzern` legt zwei zusätzliche Konten an, damit die Teamansichten
+etwas zeigen. Ihre Adressen enden auf `.invalid` (per RFC 2606 reserviert) und
+sie haben kein Passwort — anmelden kann sich damit niemand.
+
 ## Sicherung
 
 ```bash

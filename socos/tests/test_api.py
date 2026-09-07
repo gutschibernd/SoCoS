@@ -410,3 +410,130 @@ class TestWeichesLoeschenUndSchutz:
         )
         with pytest.raises(ProtectedError):
             Arbeitspaket.objects.filter(pk=paket.pk).delete()
+
+
+@pytest.mark.django_db
+class TestNutzerverwaltung:
+    def test_admin_setzt_eine_rolle(self, client, admin_nutzer, leser):
+        client.force_login(admin_nutzer)
+        antwort = client.post(
+            f"/api/nutzer/{leser.pk}/rolle/",
+            {"rolle": "bearbeiter"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 200
+        assert antwort.json()["rolle"] == "bearbeiter"
+        leser.refresh_from_db()
+        assert {g.name for g in leser.groups.all()} == {"bearbeiter"}
+
+    def test_die_eigene_rolle_nicht(self, client, admin_nutzer):
+        """
+        Sonst nimmt sich der letzte Admin versehentlich selbst die Rechte und
+        kommt an die Nutzerverwaltung nicht mehr heran.
+        """
+        client.force_login(admin_nutzer)
+        antwort = client.post(
+            f"/api/nutzer/{admin_nutzer.pk}/rolle/",
+            {"rolle": "leser"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 400
+        from socos import berechtigung
+
+        assert berechtigung.rolle(admin_nutzer) == "admin"
+
+    def test_bearbeiter_darf_keine_rollen_vergeben(self, client, bearbeiter, leser):
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            f"/api/nutzer/{leser.pk}/rolle/", {"rolle": "admin"}, content_type="application/json"
+        )
+        assert antwort.status_code == 403
+
+    def test_unbekannte_rolle_wird_abgewiesen(self, client, admin_nutzer, leser):
+        client.force_login(admin_nutzer)
+        antwort = client.post(
+            f"/api/nutzer/{leser.pk}/rolle/", {"rolle": "chef"}, content_type="application/json"
+        )
+        assert antwort.status_code == 400
+
+    def test_stilllegen_und_wieder_aktivieren(self, client, admin_nutzer, leser):
+        client.force_login(admin_nutzer)
+        assert client.post(f"/api/nutzer/{leser.pk}/stilllegen/").status_code == 200
+        leser.refresh_from_db()
+        assert leser.is_active is False
+        assert client.post(f"/api/nutzer/{leser.pk}/aktivieren/").status_code == 200
+        leser.refresh_from_db()
+        assert leser.is_active is True
+
+    def test_das_eigene_konto_nicht_stilllegen(self, client, admin_nutzer):
+        client.force_login(admin_nutzer)
+        assert client.post(f"/api/nutzer/{admin_nutzer.pk}/stilllegen/").status_code == 400
+
+    def test_konten_werden_nicht_geloescht(self, client, admin_nutzer, leser):
+        """
+        An einem Konto hängen Zeitbuchungen, die im Nachweis stehen bleiben
+        müssen. Django hat mit is_active bereits den richtigen Schalter.
+        """
+        client.force_login(admin_nutzer)
+        antwort = client.delete(f"/api/nutzer/{leser.pk}/")
+        assert antwort.status_code == 400
+        assert "stillgelegt" in str(antwort.json())
+
+    def test_stillgelegte_sieht_nur_der_admin(self, client, admin_nutzer, bearbeiter, leser):
+        """Sonst stünden sie in jeder Auswahlliste im Weg."""
+        leser.is_active = False
+        leser.save()
+
+        client.force_login(bearbeiter)
+        assert leser.pk not in [n["id"] for n in client.get("/api/nutzer/").json()]
+
+        client.force_login(admin_nutzer)
+        assert leser.pk in [n["id"] for n in client.get("/api/nutzer/").json()]
+
+
+@pytest.mark.django_db
+class TestProtokollAnsehen:
+    def test_alle_duerfen_es_lesen(self, client, leser, paket):
+        """
+        „Wer hat diese Zeit nachträglich geändert" ist in einem MedTech-Umfeld
+        keine Neugier.
+        """
+        antwort = client.get("/api/protokoll/")
+        assert antwort.status_code in (401, 403)
+        client.force_login(leser)
+        antwort = client.get("/api/protokoll/")
+        assert antwort.status_code == 200
+        assert len(antwort.json()) > 0
+
+    def test_niemand_darf_es_aendern(self, client, admin_nutzer):
+        """Ein Protokoll, das man ändern kann, beantwortet die Frage nicht mehr."""
+        client.force_login(admin_nutzer)
+        eintrag = client.get("/api/protokoll/").json()[0]
+        assert client.delete(f"/api/protokoll/{eintrag['id']}/").status_code == 405
+        assert (
+            client.patch(
+                f"/api/protokoll/{eintrag['id']}/",
+                {"aktion": "angelegt"},
+                content_type="application/json",
+            ).status_code
+            == 405
+        )
+
+    def test_eine_geaenderte_zeit_steht_mit_alt_und_neu_darin(
+        self, client, bearbeiter, paket
+    ):
+        start = timezone.now() - timedelta(hours=3)
+        b = Zeitbuchung.objects.create(
+            person=bearbeiter, paket=paket, start=start, ende=start + timedelta(hours=1)
+        )
+        client.force_login(bearbeiter)
+        client.patch(
+            f"/api/zeiten/{b.pk}/", {"notiz": "korrigiert"}, content_type="application/json"
+        )
+
+        eintraege = client.get(
+            f"/api/protokoll/?modell=socos.Zeitbuchung&objekt={b.pk}"
+        ).json()
+        aenderung = [e for e in eintraege if e["aktion"] == "geaendert"][0]
+        assert aenderung["aenderungen"]["notiz"] == {"alt": "", "neu": "korrigiert"}
+        assert aenderung["nutzer_text"] == "Bearbeitende Person"

@@ -33,13 +33,21 @@ class NutzerSerializer(serializers.ModelSerializer):
     ein ungenanntes Feld.
     """
 
+    rolle = serializers.SerializerMethodField()
+
     class Meta:
         model = Nutzer
         fields = [
             "id", "name", "initialen", "farbe", "funktion", "email", "telefon",
-            "strasse", "ort", "geburtsdatum", "is_active",
+            "strasse", "ort", "geburtsdatum", "is_active", "rolle",
         ]
-        read_only_fields = ["id", "is_active"]
+        # is_active und rolle sind hier bewusst nur lesbar. Geändert werden sie
+        # über eigene Aktionen — ein PATCH, das nebenbei eine Rolle mitschickt,
+        # ist zu leicht versehentlich abzuschicken.
+        read_only_fields = ["id", "is_active", "rolle"]
+
+    def get_rolle(self, nutzer):
+        return berechtigung.rolle(nutzer)
 
     def to_representation(self, instanz):
         daten = super().to_representation(instanz)

@@ -2,6 +2,9 @@ import { useState } from "react";
 
 import { hole } from "../basis/api";
 import { useNeuLaden, type Ich } from "../basis/daten";
+import { melden } from "../basis/meldungen";
+import { Protokoll } from "../bausteine/Protokoll";
+import { Team } from "../bausteine/Team";
 
 const FELDER: { schluessel: string; titel: string; typ?: string }[] = [
   { schluessel: "name", titel: "Name" },
@@ -23,10 +26,12 @@ export function Profil({ ich }: { ich: Ich }) {
   async function speichern() {
     await hole(`/nutzer/${ich.id}/`, { method: "PATCH", body: JSON.stringify(werte) });
     setGespeichert(true);
+    melden("gut", "Profil gespeichert.");
     neuLaden();
   }
 
   return (
+    <div className="spalte">
     <div className="karte" style={{ maxWidth: 620 }}>
       <h2>Stammdaten</h2>
       <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--text-leise)" }}>
@@ -60,6 +65,10 @@ export function Profil({ ich }: { ich: Ich }) {
         </a>
         {gespeichert && <span style={{ color: "var(--gut)", fontSize: 14 }}>Gespeichert.</span>}
       </div>
+    </div>
+
+    {ich.darf.nutzer_verwalten && <Team ich={ich} />}
+    <Protokoll />
     </div>
   );
 }

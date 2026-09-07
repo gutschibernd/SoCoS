@@ -313,7 +313,15 @@ class MonatskostenViewSet(SocosViewSet):
 
 class NutzerViewSet(SocosViewSet):
     serializer_class = ser.NutzerSerializer
-    queryset = Nutzer.objects.filter(is_active=True)
+    queryset = Nutzer.objects.all()
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        # Stillgelegte Konten sieht nur der Admin. Für alle anderen wären sie
+        # in jeder Auswahlliste im Weg.
+        if not berechtigung.ist_admin(self.request.user):
+            menge = menge.filter(is_active=True)
+        return menge
 
     def perform_update(self, serializer):
         # Sein Profil bearbeitet jeder selbst; fremde nur der Admin.
@@ -322,6 +330,64 @@ class NutzerViewSet(SocosViewSet):
         ):
             raise PermissionDenied("Nur das eigene Profil.")
         serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Konten werden nicht gelöscht, sondern stillgelegt.
+
+        Django hat mit `is_active` bereits diesen Schalter, und an einem Konto
+        hängen Zeitbuchungen, die im Nachweis stehen bleiben müssen.
+        """
+        raise ValidationError(
+            {"detail": "Konten werden stillgelegt, nicht gelöscht. Dafür gibt es "
+                       "„stilllegen“ — die gebuchten Zeiten bleiben erhalten."}
+        )
+
+    @action(detail=True, methods=["post"])
+    def rolle(self, request, pk=None):
+        """Setzt die Rolle. Nur der Admin, und niemals die eigene."""
+        from django.contrib.auth.models import Group
+
+        if not berechtigung.darf_nutzer_verwalten(request.user):
+            raise PermissionDenied("Rollen vergibt ein Admin.")
+
+        nutzer = self.get_object()
+        if nutzer == request.user:
+            # Sonst nimmt sich der letzte Admin versehentlich selbst die
+            # Rechte und kommt an die Nutzerverwaltung nicht mehr heran.
+            raise ValidationError({"detail": "Die eigene Rolle kann man hier nicht ändern."})
+
+        neue = request.data.get("rolle")
+        if neue not in berechtigung.ALLE_ROLLEN:
+            raise ValidationError(
+                {"rolle": f"Erlaubt sind: {', '.join(berechtigung.ALLE_ROLLEN)}."}
+            )
+
+        nutzer.groups.clear()
+        nutzer.groups.add(Group.objects.get(name=neue))
+        nutzer.is_staff = neue == berechtigung.ADMIN
+        nutzer.save(update_fields=["is_staff"])
+        return Response(self.get_serializer(nutzer).data)
+
+    @action(detail=True, methods=["post"])
+    def stilllegen(self, request, pk=None):
+        if not berechtigung.darf_nutzer_verwalten(request.user):
+            raise PermissionDenied("Konten verwaltet ein Admin.")
+        nutzer = self.get_object()
+        if nutzer == request.user:
+            raise ValidationError({"detail": "Das eigene Konto kann man nicht stilllegen."})
+        nutzer.is_active = False
+        nutzer.save(update_fields=["is_active"])
+        return Response(self.get_serializer(nutzer).data)
+
+    @action(detail=True, methods=["post"])
+    def aktivieren(self, request, pk=None):
+        if not berechtigung.darf_nutzer_verwalten(request.user):
+            raise PermissionDenied("Konten verwaltet ein Admin.")
+        nutzer = self.get_object()
+        nutzer.is_active = True
+        nutzer.save(update_fields=["is_active"])
+        return Response(self.get_serializer(nutzer).data)
 
 
 class ProtokollViewSet(viewsets.ReadOnlyModelViewSet):

@@ -148,6 +148,37 @@ Die Zeitdokumentation **muss auditierbar sein**.
 
 ---
 
+## 2026-09-07 — Betriebsfunktionen: sichtbare Fehler, Team, Protokoll
+
+Drei Dinge, ohne die sich die Anwendung nicht sauber betreiben lässt:
+
+**Ein fehlgeschlagenes Speichern war unsichtbar.** Der Knopf reagierte, die
+Zeile änderte sich nicht, und niemand wusste, ob es geklappt hat. Bei einer
+Zeiterfassung heißt das: jemand glaubt, seine Stunden seien gebucht, und sie
+sind es nicht. `basis/meldungen.ts` zeigt jetzt jeden schreibenden Fehlschlag
+als Banner — mit einem Satz, der sagt, was los ist (409 nennt, was im Weg
+steht). **Nur schreibende Aufrufe**; lesende haben ihren Weg über `Zustand`,
+sonst stünde bei jedem Netzwackler ein Banner im Bild. Ein Fehler verschwindet
+nicht von selbst, eine Erfolgsmeldung nach vier Sekunden schon: Ein Fehler, den
+man wegblinzeln kann, wird übersehen.
+
+**Eine abgelaufene Sitzung führt jetzt von überall zur Anmeldung**, nicht nur
+beim ersten Abruf. Sonst klickt jemand weiter und wundert sich, warum nichts
+gespeichert wird.
+
+**Nutzerverwaltung und Änderungsprotokoll** stehen auf der Profilseite. Rollen
+vergeben und Konten stilllegen darf nur der Admin — und **nicht für sich
+selbst**: Sonst nimmt sich der letzte Admin versehentlich die Rechte und kommt
+an die Verwaltung nicht mehr heran. Konten werden nie gelöscht, nur stillgelegt;
+an ihnen hängen Zeiten, die im Nachweis stehen bleiben müssen.
+
+**Kein Anlegeformular für Konten im Browser.** Das bleibt bei `nutzer_anlegen`
+und `nutzer_passwort` an der Kommandozeile. Ein Formular hieße, dass irgendwann
+jemand ein Passwort in ein Feld tippt — und damit in den Browserverlauf und in
+den Passwortspeicher.
+
+---
+
 ## 2026-09-07 — UI/UX-Durchgang: fünf gemessene Befunde
 
 Vollständiger Durchgang an 1280×800 und 375×812, hell und dunkel, mit

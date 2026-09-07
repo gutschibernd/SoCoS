@@ -507,3 +507,45 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   .tabelle td.zeilen-aktionen { justify-content: flex-end; }
   .tabelle td.zeilen-aktionen::before { content: "Aktionen"; }
 }
+
+/* --- Meldungen ----------------------------------------------------------- */
+/*
+ * Oben, über allem, aber nicht mittig im Weg: Ein Fehler beim Speichern muss
+ * auffallen, ohne die Arbeit zu unterbrechen.
+ */
+
+.meldungen {
+  position: fixed; z-index: 90;
+  top: calc(12px + env(safe-area-inset-top)); right: 16px; left: 16px;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+  pointer-events: none;
+}
+.meldung {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 12px;
+  max-width: 460px; padding: 12px 12px 12px 15px;
+  border-radius: var(--kante); border: 1px solid;
+  font-size: 14px; line-height: 1.45;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+}
+.meldung-fehler { background: var(--warnung-hell); border-color: var(--warnung); color: var(--warnung); }
+.meldung-gut { background: var(--gut-hell); border-color: var(--gut); color: var(--gut); }
+.meldung button {
+  flex: 0 0 auto; min-width: 32px; min-height: 32px;
+  background: none; border: 0; cursor: pointer;
+  color: inherit; font-size: 14px;
+}
+
+.team-punkt {
+  display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px;
+}
+.team-du {
+  margin-left: 8px; padding: 2px 7px; border-radius: var(--kante);
+  background: var(--marke-hell); color: var(--marke); font-size: 11px; font-weight: 600;
+}
+.protokoll-modell {
+  display: inline-block; margin-right: 8px; padding: 1px 6px; border-radius: var(--kante);
+  background: var(--flaeche-leise); color: var(--text-leise); font-size: 11px; font-weight: 600;
+}
+.protokoll-feld { font-size: 13px; line-height: 1.5; }
+.protokoll-feld b { font-weight: 600; }
