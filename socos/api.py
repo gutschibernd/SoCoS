@@ -376,6 +376,44 @@ def ich(request):
 
 
 @api_view(["GET"])
+def zeitnachweis(request):
+    """
+    Der Zeitnachweis eines Monats als PDF — für eine Person oder fürs Team.
+
+    `?monat=JJJJ-MM` und wahlweise `?person=<id>`. Ohne Monat der laufende.
+    """
+    from django.http import HttpResponse
+
+    from socos.services import zeitnachweis as nachweis
+
+    roh = request.query_params.get("monat")
+    if roh:
+        try:
+            jahr, monat_nr = roh.split("-")
+            monat = date(int(jahr), int(monat_nr), 1)
+        except (ValueError, TypeError):
+            raise ValidationError({"monat": f"„{roh}“ ist kein Monat im Format JJJJ-MM."})
+    else:
+        monat = timezone.localdate().replace(day=1)
+
+    person = None
+    if kennung := request.query_params.get("person"):
+        person = Nutzer.objects.filter(pk=kennung).first()
+        if person is None:
+            raise ValidationError({"person": "Diesen Nutzer gibt es nicht."})
+
+    daten = nachweis.erzeugen(monat, person)
+    antwort = HttpResponse(daten, content_type="application/pdf")
+    # `attachment`, nicht `inline`: Der Nachweis wird abgelegt und verschickt,
+    # nicht überflogen. Ein PDF, das sich im Tab öffnet, muss man erst wieder
+    # von Hand speichern.
+    antwort["Content-Disposition"] = (
+        f'attachment; filename="{nachweis.dateiname(monat, person)}"'
+    )
+    return antwort
+
+
+@api_view(["GET"])
 def dashboard(request):
     """
     Alles, was das Dashboard braucht — in einem Abruf.

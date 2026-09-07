@@ -4,6 +4,7 @@ import { alsDauer } from "../basis/zeit";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zustand } from "../basis/Zustand";
+import { Finanzeingabe } from "../bausteine/Finanzeingabe";
 
 const EURO = new Intl.NumberFormat("de-AT", { style: "currency", currency: "EUR" });
 const DATUM = new Intl.DateTimeFormat("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -167,6 +168,8 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
           </>
         )}
       </div>
+
+      {ich.darf.finanzen_eintragen && <Finanzeingabe />}
 
       <div className="karte">
         <h2>Kontostand-Verlauf</h2>

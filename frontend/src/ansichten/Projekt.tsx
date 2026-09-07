@@ -13,6 +13,7 @@ import { Zustand } from "../basis/Zustand";
 import { alsDauer } from "../basis/zeit";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
+import { Feldtext } from "../bausteine/Feldtext";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 
 const STATUS: { wert: string; text: string }[] = [
@@ -26,6 +27,11 @@ const STATUS: { wert: string; text: string }[] = [
 ];
 
 const ART: Record<string, string> = { dev: "Entwicklung", fin: "Finanzierung", ziel: "Ziele" };
+
+/** Ein PATCH auf eine Ressource. Das Neuladen entscheidet der Aufrufer. */
+async function aendern(pfad: string, daten: Record<string, unknown>): Promise<void> {
+  await hole(pfad, { method: "PATCH", body: JSON.stringify(daten) });
+}
 
 export function Projekt({ ich }: { ich: Ich }) {
   const abfrage = useProjekte();
@@ -184,9 +190,22 @@ function ProjektKarte({
   return (
     <div className="karte" style={{ borderTop: `3px solid ${projekt.farbe}` }}>
       <div className="projekt-kopf">
-        <div>
-          <h3>{projekt.titel}</h3>
-          {projekt.untertitel && <div className="unter">{projekt.untertitel}</div>}
+        <div style={{ minWidth: 200 }}>
+          <h3>
+            <Feldtext
+              wert={projekt.titel}
+              aendern={ich.darf.bearbeiten}
+              speichern={(titel) => aendern(`/projekte/${projekt.id}/`, { titel })}
+            />
+          </h3>
+          <div className="unter">
+            <Feldtext
+              wert={projekt.untertitel}
+              platzhalter="Untertitel …"
+              aendern={ich.darf.bearbeiten}
+              speichern={(untertitel) => aendern(`/projekte/${projekt.id}/`, { untertitel })}
+            />
+          </div>
         </div>
         <span className="zahl gebucht">{alsDauer(projekt.gebuchte_sekunden)} gebucht</span>
         {ich.darf.loeschen && (
@@ -202,10 +221,12 @@ function ProjektKarte({
           satz="Bereiche gliedern das Projekt — Entwicklung, Finanzierung, Ziele. Jeder bringt seine eigene Stufenleiste mit."
         />
       ) : (
-        projekt.bereiche.map((bereich) => (
+        projekt.bereiche.map((bereich, i) => (
           <BereichBlock
             key={bereich.id}
             bereich={bereich}
+            geschwister={projekt.bereiche}
+            stelle={i}
             ich={ich}
             statusFilter={statusFilter}
             neuLaden={neuLaden}
@@ -245,17 +266,38 @@ function ProjektKarte({
 
 function BereichBlock({
   bereich,
+  geschwister,
+  stelle,
   ich,
   statusFilter,
   neuLaden,
 }: {
   bereich: Bereich;
+  geschwister: Bereich[];
+  stelle: number;
   ich: Ich;
   statusFilter: string;
   neuLaden: () => void;
 }) {
   const [neuesPaket, setNeuesPaket] = useState("");
+  const [loeschen, setLoeschen] = useState(false);
   const pakete = bereich.pakete.filter((p) => statusFilter === "alle" || p.status === statusFilter);
+
+  async function verschieben(richtung: -1 | 1) {
+    const nachbar = geschwister[stelle + richtung];
+    if (!nachbar) return;
+    // Beide Nummern tauschen, nicht nur eine hochzählen: Sonst wandern zwei
+    // Einträge auf dieselbe Zahl und die Reihenfolge wird zufällig.
+    await aendern(`/bereiche/${bereich.id}/`, { reihenfolge: stelle + richtung });
+    await aendern(`/bereiche/${nachbar.id}/`, { reihenfolge: stelle });
+    neuLaden();
+  }
+
+  async function entfernen() {
+    await hole(`/bereiche/${bereich.id}/`, { method: "DELETE" });
+    setLoeschen(false);
+    neuLaden();
+  }
 
   async function paketAnlegen() {
     if (!neuesPaket.trim()) return;
@@ -270,7 +312,14 @@ function BereichBlock({
   return (
     <section className="bereich">
       <h4>
-        {bereich.titel}
+        <Feldtext
+          wert={bereich.titel}
+          aendern={ich.darf.bearbeiten}
+          speichern={async (titel) => {
+            await aendern(`/bereiche/${bereich.id}/`, { titel });
+            neuLaden();
+          }}
+        />
         {/* Die Art nur zeigen, wenn sie etwas hinzufügt. „Entwicklung
             Entwicklung" ist Rauschen, das man beim Lesen jedes Mal aussortiert. */}
         {ART[bereich.art].toLowerCase() !== bereich.titel.trim().toLowerCase() && (
@@ -281,7 +330,31 @@ function BereichBlock({
             .map((s) => `${s.name} (${s.monate} Mon.)`)
             .join(" · ")}. Der Fortschritt rechnet über die Monate, nicht über die Anzahl.`}
         />
+        {ich.darf.bearbeiten && (
+          <span className="ordnen">
+            <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben">
+              ↑
+            </button>
+            <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Nach unten">
+              ↓
+            </button>
+            {ich.darf.loeschen && (
+              <button type="button" className="mini" onClick={() => setLoeschen(true)}>
+                Entfernen
+              </button>
+            )}
+          </span>
+        )}
       </h4>
+
+      {loeschen && (
+        <Loeschdialog
+          name={bereich.titel}
+          was="Der Bereich mit allen Arbeitspaketen darin"
+          abbrechen={() => setLoeschen(false)}
+          loeschen={entfernen}
+        />
+      )}
 
       {pakete.length === 0 ? (
         <Leerstelle
@@ -293,8 +366,15 @@ function BereichBlock({
           }
         />
       ) : (
-        pakete.map((paket) => (
-          <PaketZeile key={paket.id} paket={paket} ich={ich} neuLaden={neuLaden} />
+        pakete.map((paket, i) => (
+          <PaketZeile
+            key={paket.id}
+            paket={paket}
+            geschwister={pakete}
+            stelle={i}
+            ich={ich}
+            neuLaden={neuLaden}
+          />
         ))
       )}
 
@@ -318,14 +398,21 @@ function BereichBlock({
 
 function PaketZeile({
   paket,
+  geschwister,
+  stelle,
   ich,
   neuLaden,
 }: {
   paket: Paket;
+  geschwister: Paket[];
+  stelle: number;
   ich: Ich;
   neuLaden: () => void;
 }) {
   const [offen, setOffen] = useState(false);
+  const [neueAufgabe, setNeueAufgabe] = useState("");
+  const [loeschen, setLoeschen] = useState(false);
+  const [fehler, setFehler] = useState("");
   const gesamtMonate = paket.stufen.reduce((s, x) => s + x.monate, 0) || 1;
 
   async function stufeSetzen(stand: number) {
@@ -339,8 +426,13 @@ function PaketZeile({
     neuLaden();
   }
 
-  async function statusSetzen(status: string) {
-    await hole(`/pakete/${paket.id}/`, { method: "PATCH", body: JSON.stringify({ status }) });
+  async function verschieben(richtung: -1 | 1) {
+    const nachbar = geschwister[stelle + richtung];
+    if (!nachbar) return;
+    // Beide Nummern tauschen, nicht nur eine hochzählen: Sonst landen zwei
+    // Pakete auf derselben Zahl und die Reihenfolge wird zufällig.
+    await aendern(`/pakete/${paket.id}/`, { reihenfolge: stelle + richtung });
+    await aendern(`/pakete/${nachbar.id}/`, { reihenfolge: stelle });
     neuLaden();
   }
 
@@ -349,19 +441,62 @@ function PaketZeile({
     neuLaden();
   }
 
+  async function entfernen() {
+    setFehler("");
+    try {
+      await hole(`/pakete/${paket.id}/`, { method: "DELETE" });
+      setLoeschen(false);
+      neuLaden();
+    } catch (e) {
+      // Der Server lässt ein Paket nicht entfernen, an dem Zeiten hängen. Das
+      // ist kein Absturz, sondern die Auskunft, die man hier braucht.
+      setFehler(
+        e instanceof Error && "istInVerwendung" in e && (e as { istInVerwendung: boolean }).istInVerwendung
+          ? "Auf dieses Paket sind Zeiten gebucht. Setz es auf „verworfen“ oder „fertig“ — die Buchungen sollen im Nachweis stehen bleiben."
+          : "Das hat nicht geklappt.",
+      );
+    }
+  }
+
+  async function aufgabeAnlegen() {
+    if (!neueAufgabe.trim()) return;
+    await hole("/unteraufgaben/", {
+      method: "POST",
+      body: JSON.stringify({
+        paket: paket.id,
+        titel: neueAufgabe.trim(),
+        reihenfolge: paket.unteraufgaben.length,
+      }),
+    });
+    setNeueAufgabe("");
+    neuLaden();
+  }
+
   return (
     <article className="paket">
       <div className="paket-kopf">
-        <button type="button" className="paket-titel" onClick={() => setOffen((o) => !o)}>
+        <button type="button" className="paket-aufklappen" onClick={() => setOffen((o) => !o)} aria-expanded={offen}>
           <span aria-hidden>{offen ? "▾" : "▸"}</span>
-          {paket.titel}
         </button>
+        <span className="paket-titel">
+          <Feldtext
+            wert={paket.titel}
+            aendern={ich.darf.bearbeiten}
+            speichern={async (titel) => {
+              await aendern(`/pakete/${paket.id}/`, { titel });
+              neuLaden();
+            }}
+          />
+        </span>
 
         {ich.darf.bearbeiten ? (
           <select
             className={`status status-${paket.status}`}
             value={paket.status}
-            onChange={(e) => statusSetzen(e.target.value)}
+            onChange={async (e) => {
+              await aendern(`/pakete/${paket.id}/`, { status: e.target.value });
+              neuLaden();
+            }}
             aria-label={`Status von ${paket.titel}`}
           >
             {STATUS.map((s) => (
@@ -379,15 +514,32 @@ function PaketZeile({
         <span className="zahl fortschritt">{paket.fortschritt} %</span>
 
         {ich.darf.bearbeiten && (
-          <button type="button" className="knopf-still" onClick={uhrStarten}>
-            Clock-in
-          </button>
+          <>
+            <button type="button" className="knopf-still" onClick={uhrStarten}>
+              Clock-in
+            </button>
+            <span className="ordnen">
+              <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben">
+                ↑
+              </button>
+              <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Nach unten">
+                ↓
+              </button>
+              {ich.darf.loeschen && (
+                <button type="button" className="mini" onClick={() => setLoeschen(true)}>
+                  ✕
+                </button>
+              )}
+            </span>
+          </>
         )}
       </div>
 
       <div className="balken">
         <i style={{ width: `${paket.fortschritt}%` }} />
       </div>
+
+      {fehler && <p className="rueckmeldung schlecht">{fehler}</p>}
 
       {offen && (
         <div className="paket-tiefe">
@@ -408,19 +560,91 @@ function PaketZeile({
             ))}
           </div>
 
-          {paket.notiz && <p className="notiz">{paket.notiz}</p>}
+          <div className="notiz">
+            <Feldtext
+              wert={paket.notiz}
+              mehrzeilig
+              platzhalter="Notiz zum Paket …"
+              aendern={ich.darf.bearbeiten}
+              speichern={async (notiz) => {
+                await aendern(`/pakete/${paket.id}/`, { notiz });
+                neuLaden();
+              }}
+            />
+          </div>
 
-          {paket.unteraufgaben.length > 0 && (
-            <ul className="unteraufgaben">
-              {paket.unteraufgaben.map((u) => (
-                <li key={u.id}>
-                  <input type="checkbox" checked={u.erledigt} readOnly />
-                  <span data-erledigt={u.erledigt ? "ja" : "nein"}>{u.titel}</span>
-                </li>
-              ))}
-            </ul>
+          <ul className="unteraufgaben">
+            {paket.unteraufgaben.map((u) => (
+              <li key={u.id}>
+                <input
+                  type="checkbox"
+                  checked={u.erledigt}
+                  disabled={!ich.darf.bearbeiten}
+                  aria-label={u.titel}
+                  onChange={async (e) => {
+                    await aendern(`/unteraufgaben/${u.id}/`, { erledigt: e.target.checked });
+                    neuLaden();
+                  }}
+                />
+                <span data-erledigt={u.erledigt ? "ja" : "nein"}>
+                  <Feldtext
+                    wert={u.titel}
+                    aendern={ich.darf.bearbeiten}
+                    speichern={async (titel) => {
+                      await aendern(`/unteraufgaben/${u.id}/`, { titel });
+                      neuLaden();
+                    }}
+                  />
+                </span>
+                {ich.darf.loeschen && (
+                  <button
+                    type="button"
+                    className="mini"
+                    title={`„${u.titel}“ entfernen`}
+                    onClick={async () => {
+                      await hole(`/unteraufgaben/${u.id}/`, { method: "DELETE" });
+                      neuLaden();
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          {ich.darf.bearbeiten && (
+            <div className="feld-reihe" style={{ marginTop: 8 }}>
+              <input
+                className="feld"
+                placeholder="Neue Unteraufgabe"
+                value={neueAufgabe}
+                onChange={(e) => setNeueAufgabe(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && aufgabeAnlegen()}
+              />
+              <button type="button" className="knopf-still" onClick={aufgabeAnlegen}>
+                Hinzufügen
+              </button>
+            </div>
           )}
         </div>
+      )}
+
+      {loeschen && (
+        <Loeschdialog
+          name={paket.titel}
+          was="Das Arbeitspaket mit seinen Unteraufgaben"
+          milder={{
+            text: "Auf „verworfen“ setzen",
+            tun: async () => {
+              await aendern(`/pakete/${paket.id}/`, { status: "verworfen" });
+              setLoeschen(false);
+              neuLaden();
+            },
+          }}
+          abbrechen={() => setLoeschen(false)}
+          loeschen={entfernen}
+        />
       )}
     </article>
   );

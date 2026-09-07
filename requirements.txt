@@ -13,6 +13,10 @@ whitenoise==6.9.0
 django-axes==8.0.0
 django-ipware==7.0.1
 
+# Zeitnachweis als PDF. Reines Python, keine Systempakete — anders als
+# WeasyPrint, das Pango und Cairo braucht und damit den Serverbau verkompliziert.
+reportlab==4.4.4
+
 # Server
 gunicorn==23.0.0
 

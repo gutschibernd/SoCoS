@@ -10,8 +10,10 @@ import {
   type Organisation,
 } from "../basis/daten";
 import { Zustand } from "../basis/Zustand";
+import { Feldtext } from "../bausteine/Feldtext";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
+import { Loeschdialog } from "../bausteine/Loeschdialog";
 
 const SPUREN: { wert: Organisation["stufe"]; titel: string }[] = [
   { wert: "erstkontakt", titel: "Erstkontakt" },
@@ -19,7 +21,18 @@ const SPUREN: { wert: Organisation["stufe"]; titel: string }[] = [
   { wert: "partner", titel: "Partner" },
 ];
 
+const ARTEN = [
+  { wert: "meeting", text: "Meeting" },
+  { wert: "mail", text: "Mail" },
+  { wert: "call", text: "Call" },
+  { wert: "event", text: "Event" },
+];
+
 const DATUM = new Intl.DateTimeFormat("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+async function aendern(pfad: string, daten: Record<string, unknown>): Promise<void> {
+  await hole(pfad, { method: "PATCH", body: JSON.stringify(daten) });
+}
 
 export function Kontakte({ ich }: { ich: Ich }) {
   const organisationen = useOrganisationen();
@@ -31,8 +44,11 @@ export function Kontakte({ ich }: { ich: Ich }) {
   const [neueOrg, setNeueOrg] = useState({ name: "", typ: "" });
   const [neuerKontakt, setNeuerKontakt] = useState({ name: "", funktion: "", organisation: "" });
   const [gewaehlt, setGewaehlt] = useState<number | null>(null);
+  const [loeschen, setLoeschen] = useState<{ pfad: string; name: string; was: string } | null>(null);
+  const [fehler, setFehler] = useState("");
 
-  if (!organisationen.data) return <Zustand abfrage={organisationen} erneut={() => organisationen.refetch()} />;
+  if (!organisationen.data)
+    return <Zustand abfrage={organisationen} erneut={() => organisationen.refetch()} />;
   if (!kontakte.data) return <Zustand abfrage={kontakte} erneut={() => kontakte.refetch()} />;
 
   async function orgAnlegen() {
@@ -59,13 +75,33 @@ export function Kontakte({ ich }: { ich: Ich }) {
     neuLaden();
   }
 
+  async function entfernen() {
+    if (!loeschen) return;
+    setFehler("");
+    try {
+      await hole(loeschen.pfad, { method: "DELETE" });
+      setLoeschen(null);
+      setGewaehlt(null);
+      neuLaden();
+    } catch (e) {
+      setFehler(
+        e instanceof Error && "istInVerwendung" in e && (e as { istInVerwendung: boolean }).istInVerwendung
+          ? "Daran hängen noch Personen oder Verlaufseinträge. Die zuerst entfernen oder umhängen."
+          : "Das hat nicht geklappt.",
+      );
+      setLoeschen(null);
+    }
+  }
+
   const passt = (k: Kontakt) =>
     (ballFilter === "alle" || k.ball === ballFilter) &&
-    (!suche || `${k.name} ${k.organisation_name} ${k.funktion}`.toLowerCase().includes(suche.toLowerCase()));
+    (!suche ||
+      `${k.name} ${k.organisation_name} ${k.funktion} ${k.offener_punkt}`
+        .toLowerCase()
+        .includes(suche.toLowerCase()));
 
   const lose = kontakte.data.filter((k) => k.organisation === null && passt(k));
   const gewaehlterKontakt = kontakte.data.find((k) => k.id === gewaehlt) ?? null;
-
   const leer = organisationen.data.length === 0 && kontakte.data.length === 0;
 
   return (
@@ -95,6 +131,14 @@ export function Kontakte({ ich }: { ich: Ich }) {
               Kontakt
             </button>
           </div>
+        </div>
+      )}
+
+      {fehler && (
+        <div className="karte">
+          <p className="rueckmeldung schlecht" style={{ margin: 0 }}>
+            {fehler}
+          </p>
         </div>
       )}
 
@@ -136,10 +180,77 @@ export function Kontakte({ ich }: { ich: Ich }) {
                       <div className="org" key={o.id}>
                         <div className="org-kopf">
                           <i>{o.kurz}</i>
-                          <b>{o.name}</b>
+                          <b>
+                            <Feldtext
+                              wert={o.name}
+                              aendern={ich.darf.bearbeiten}
+                              speichern={async (name) => {
+                                await aendern(`/organisationen/${o.id}/`, { name });
+                                neuLaden();
+                              }}
+                            />
+                          </b>
+                          {ich.darf.loeschen && (
+                            <button
+                              type="button"
+                              className="mini"
+                              title={`„${o.name}“ entfernen`}
+                              onClick={() =>
+                                setLoeschen({
+                                  pfad: `/organisationen/${o.id}/`,
+                                  name: o.name,
+                                  was: "Die Organisation",
+                                })
+                              }
+                            >
+                              ✕
+                            </button>
+                          )}
                         </div>
-                        {o.typ && <div className="org-typ">{o.typ}</div>}
-                        {o.nutzen && <p className="org-nutzen">{o.nutzen}</p>}
+
+                        {ich.darf.bearbeiten && (
+                          <select
+                            className="feld feld-klein"
+                            value={o.stufe}
+                            onChange={async (e) => {
+                              await aendern(`/organisationen/${o.id}/`, { stufe: e.target.value });
+                              neuLaden();
+                            }}
+                            aria-label={`Stufe von ${o.name}`}
+                          >
+                            {SPUREN.map((sp) => (
+                              <option key={sp.wert} value={sp.wert}>
+                                {sp.titel}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        <div className="org-typ">
+                          <Feldtext
+                            wert={o.typ}
+                            platzhalter="Typ …"
+                            aendern={ich.darf.bearbeiten}
+                            speichern={async (typ) => {
+                              await aendern(`/organisationen/${o.id}/`, { typ });
+                              neuLaden();
+                            }}
+                          />
+                        </div>
+
+                        <div className="org-nutzen">
+                          <Feldtext
+                            wert={o.nutzen}
+                            mehrzeilig
+                            platzhalter="Was bringt uns dieser Kontakt?"
+                            aendern={ich.darf.bearbeiten}
+                            speichern={async (nutzen) => {
+                              await aendern(`/organisationen/${o.id}/`, { nutzen });
+                              neuLaden();
+                            }}
+                          />
+                        </div>
+
                         <ul className="org-personen">
                           {o.kontakte.filter(passt).map((k) => (
                             <li key={k.id}>
@@ -181,35 +292,207 @@ export function Kontakte({ ich }: { ich: Ich }) {
           </div>
 
           {gewaehlterKontakt && (
-            <div className="karte">
-              <h2>{gewaehlterKontakt.name}</h2>
-              <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-leise)" }}>
-                {gewaehlterKontakt.funktion || "—"}
-                {gewaehlterKontakt.organisation_name && ` · ${gewaehlterKontakt.organisation_name}`}
-              </p>
-              {gewaehlterKontakt.offener_punkt && (
-                <p style={{ margin: "0 0 12px", fontSize: 14 }}>
-                  <b>Offen:</b> {gewaehlterKontakt.offener_punkt}
-                </p>
-              )}
-              {gewaehlterKontakt.verlauf.length === 0 ? (
-                <Leerstelle was="Noch kein Verlauf" satz="Halte hier fest, was besprochen wurde — in einem halben Jahr weiß es sonst niemand mehr." />
-              ) : (
-                <ul className="verlauf">
-                  {gewaehlterKontakt.verlauf.map((v) => (
-                    <li key={v.id}>
-                      <span className="zahl datum">{DATUM.format(new Date(v.datum))}</span>
-                      <div>
-                        <b>{v.titel}</b>
-                        {v.text && <p>{v.text}</p>}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <KontaktTiefe
+              kontakt={gewaehlterKontakt}
+              organisationen={organisationen.data}
+              ich={ich}
+              neuLaden={neuLaden}
+              schliessen={() => setGewaehlt(null)}
+              zumLoeschen={() =>
+                setLoeschen({
+                  pfad: `/kontakte/${gewaehlterKontakt.id}/`,
+                  name: gewaehlterKontakt.name,
+                  was: "Die Person mit ihrem Verlauf",
+                })
+              }
+            />
           )}
         </>
+      )}
+
+      {loeschen && (
+        <Loeschdialog
+          name={loeschen.name}
+          was={loeschen.was}
+          abbrechen={() => setLoeschen(null)}
+          loeschen={entfernen}
+        />
+      )}
+    </div>
+  );
+}
+
+function KontaktTiefe({
+  kontakt,
+  organisationen,
+  ich,
+  neuLaden,
+  schliessen,
+  zumLoeschen,
+}: {
+  kontakt: Kontakt;
+  organisationen: Organisation[];
+  ich: Ich;
+  neuLaden: () => void;
+  schliessen: () => void;
+  zumLoeschen: () => void;
+}) {
+  const [eintrag, setEintrag] = useState({ art: "call", titel: "", text: "" });
+
+  async function verlaufAnlegen() {
+    if (!eintrag.titel.trim()) return;
+    await hole("/verlauf/", {
+      method: "POST",
+      body: JSON.stringify({
+        kontakt: kontakt.id,
+        art: eintrag.art,
+        titel: eintrag.titel.trim(),
+        text: eintrag.text.trim(),
+      }),
+    });
+    setEintrag({ art: "call", titel: "", text: "" });
+    neuLaden();
+  }
+
+  return (
+    <div className="karte" style={{ borderTop: "3px solid var(--marke)" }}>
+      <div className="projekt-kopf">
+        <div style={{ minWidth: 200 }}>
+          <h3>
+            <Feldtext
+              wert={kontakt.name}
+              aendern={ich.darf.bearbeiten}
+              speichern={async (name) => {
+                await aendern(`/kontakte/${kontakt.id}/`, { name });
+                neuLaden();
+              }}
+            />
+          </h3>
+          <div className="unter">
+            <Feldtext
+              wert={kontakt.funktion}
+              platzhalter="Rolle …"
+              aendern={ich.darf.bearbeiten}
+              speichern={async (funktion) => {
+                await aendern(`/kontakte/${kontakt.id}/`, { funktion });
+                neuLaden();
+              }}
+            />
+          </div>
+        </div>
+        <button type="button" className="knopf-still" onClick={schliessen}>
+          Schließen
+        </button>
+        {ich.darf.loeschen && (
+          <button type="button" className="knopf-still" onClick={zumLoeschen}>
+            Entfernen
+          </button>
+        )}
+      </div>
+
+      {ich.darf.bearbeiten && (
+        <div className="feld-reihe" style={{ marginBottom: 14 }}>
+          <select
+            className="feld"
+            value={kontakt.organisation ?? ""}
+            onChange={async (e) => {
+              await aendern(`/kontakte/${kontakt.id}/`, {
+                organisation: e.target.value ? Number(e.target.value) : null,
+              });
+              neuLaden();
+            }}
+            aria-label="Organisation"
+          >
+            <option value="">Loser Kontakt</option>
+            {organisationen.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+          <select
+            className="feld"
+            value={kontakt.ball}
+            onChange={async (e) => {
+              await aendern(`/kontakte/${kontakt.id}/`, { ball: e.target.value });
+              neuLaden();
+            }}
+            aria-label="Wer ist am Zug"
+          >
+            <option value="uns">Am Zug: wir</option>
+            <option value="ihnen">Am Zug: die anderen</option>
+          </select>
+        </div>
+      )}
+
+      <div style={{ marginBottom: 16 }}>
+        <span className="beschriftung-klein">Offener Punkt</span>
+        <div style={{ fontSize: 15 }}>
+          <Feldtext
+            wert={kontakt.offener_punkt}
+            platzhalter="Was steht als Nächstes an?"
+            aendern={ich.darf.bearbeiten}
+            speichern={async (offener_punkt) => {
+              await aendern(`/kontakte/${kontakt.id}/`, { offener_punkt });
+              neuLaden();
+            }}
+          />
+        </div>
+      </div>
+
+      {ich.darf.bearbeiten && (
+        <div className="nachtrag" style={{ marginBottom: 14 }}>
+          <div className="feld-reihe">
+            <select className="feld" style={{ flex: "0 1 130px" }} value={eintrag.art} onChange={(e) => setEintrag({ ...eintrag, art: e.target.value })} aria-label="Art">
+              {ARTEN.map((a) => (
+                <option key={a.wert} value={a.wert}>
+                  {a.text}
+                </option>
+              ))}
+            </select>
+            <input className="feld" placeholder="Worum ging es?" value={eintrag.titel} onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })} />
+            <input className="feld" placeholder="Ergebnis, nächster Schritt …" value={eintrag.text} onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })} onKeyDown={(e) => e.key === "Enter" && verlaufAnlegen()} />
+            <button type="button" className="knopf" onClick={verlaufAnlegen}>
+              Eintragen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {kontakt.verlauf.length === 0 ? (
+        <Leerstelle
+          was="Noch kein Verlauf"
+          satz="Halte hier fest, was besprochen wurde — in einem halben Jahr weiß es sonst niemand mehr."
+        />
+      ) : (
+        <ul className="verlauf">
+          {kontakt.verlauf.map((v) => (
+            <li key={v.id}>
+              <span className="zahl datum">{DATUM.format(new Date(v.datum))}</span>
+              <div style={{ flex: 1 }}>
+                <b>{v.titel}</b>
+                {v.text && <p>{v.text}</p>}
+                <span className="verlauf-fuss">
+                  {ARTEN.find((a) => a.wert === v.art)?.text ?? v.art}
+                  {v.wer_name && ` · ${v.wer_name}`}
+                </span>
+              </div>
+              {ich.darf.loeschen && (
+                <button
+                  type="button"
+                  className="mini"
+                  title="Eintrag entfernen"
+                  onClick={async () => {
+                    await hole(`/verlauf/${v.id}/`, { method: "DELETE" });
+                    neuLaden();
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

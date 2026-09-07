@@ -23,5 +23,6 @@ router.register("protokoll", api.ProtokollViewSet, basename="protokoll")
 urlpatterns = [
     path("ich/", api.ich, name="ich"),
     path("dashboard/", api.dashboard, name="dashboard"),
+    path("zeitnachweis/", api.zeitnachweis, name="zeitnachweis"),
     path("", include(router.urls)),
 ]

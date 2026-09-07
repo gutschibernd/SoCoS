@@ -149,6 +149,18 @@ export const useBuchungen = (parameter: Record<string, string> = {}) => {
   });
 };
 
+export type Teammitglied = {
+  id: number;
+  name: string;
+  initialen: string;
+  farbe: string;
+  funktion: string;
+  email: string;
+};
+
+export const useTeam = () =>
+  useQuery({ queryKey: ["team"], queryFn: () => hole<Teammitglied[]>("/nutzer/") });
+
 export const useOrganisationen = () =>
   useQuery({ queryKey: ["organisationen"], queryFn: () => hole<Organisation[]>("/organisationen/") });
 
@@ -165,7 +177,9 @@ export const useKontakte = () =>
 export function useNeuLaden() {
   const speicher = useQueryClient();
   return () => {
-    for (const schluessel of ["dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen"]) {
+    for (const schluessel of [
+      "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen", "team", "ich",
+    ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }
   };

@@ -48,6 +48,16 @@ def als_stunden(sekunden):
     )
 
 
+def als_stunden_text(sekunden):
+    """
+    Dezimalstunden als deutscher Text: 26,25 — mit Komma.
+
+    Der Punkt aus `str(Decimal)` ist in einem deutschen Dokument schlicht
+    falsch und wird beim Übertragen in eine Tabelle zur Fehlerquelle.
+    """
+    return f"{als_stunden(sekunden)}".replace(".", ",")
+
+
 def als_dauer(sekunden):
     """Sekunden als 3:25 (Stunden:Minuten)."""
     minuten = max(0, int(sekunden)) // 60

@@ -85,3 +85,14 @@ class TestMonatsgrenzen:
         assert zeit.monatsgrenzen(date(2026, 2, 15)) == (date(2026, 2, 1), date(2026, 2, 28))
         assert zeit.monatsgrenzen(date(2024, 2, 15)) == (date(2024, 2, 1), date(2024, 2, 29))
         assert zeit.monatsgrenzen(date(2026, 12, 3)) == (date(2026, 12, 1), date(2026, 12, 31))
+
+
+class TestDeutscheSchreibweise:
+    def test_stunden_mit_komma(self):
+        """
+        Der Punkt aus str(Decimal) ist in einem deutschen Dokument falsch und
+        wird beim Übertragen in eine Tabelle zur Fehlerquelle.
+        """
+        assert zeit.als_stunden_text(12_300) == "3,42"
+        assert zeit.als_stunden_text(3600) == "1,00"
+        assert zeit.als_stunden_text(0) == "0,00"
