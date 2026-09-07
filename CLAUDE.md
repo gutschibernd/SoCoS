@@ -27,6 +27,12 @@ Mechanismus statt zwei. Keine Konfigurierbarkeit ohne einen zweiten konkreten Fa
 Ausgenommen sind die Punkte, die unten mit Begründung stehen — Änderungsprotokoll,
 Sicherung, axes-Konfiguration. Die sind klein, aber nicht nachrüstbar.
 
+## Starten und stoppen
+
+`skripte/start.command` und `skripte/stopp.command` (Doppelklick im Finder),
+`skripte/tests.command` für alle vier Läufe. Sie fassen ausschließlich 8003 und
+5176 an und beenden PostgreSQL nie. Siehe [skripte/LIESMICH.md](skripte/LIESMICH.md).
+
 ## Ports — die wichtigste lokale Falle
 
 **Django 8003, Vite 5176.** 8000/5173 und 8001/5174 gehören zwei anderen Projekten

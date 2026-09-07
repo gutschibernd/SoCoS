@@ -36,7 +36,12 @@ cd frontend && npm install && cd ..
 
 ## Lokal starten
 
-Zwei Terminals.
+Im Finder auf **`skripte/start.command`** doppelklicken. Das räumt alte Server
+ab, bringt Abhängigkeiten und Schema auf Stand, startet beide Server und öffnet
+den Browser. Beenden mit Strg-C oder **`skripte/stopp.command`**.
+Einzelheiten: [skripte/LIESMICH.md](skripte/LIESMICH.md).
+
+Von Hand geht es auch — zwei Terminals:
 
 ```bash
 source .venv/bin/activate && python manage.py runserver 8003
@@ -48,6 +53,10 @@ cd frontend && npm run dev
 
 Die Anwendung liegt dann auf **http://localhost:5176**. Vite reicht `/api/` an
 Django auf **8003** weiter.
+
+> **Nicht `--noreload` verwenden.** Django hält Vorlagen im Zwischenspeicher
+> fest und wirft ihn nur beim Neustart weg. Nach einer Änderung an
+> `vorlagen/anmelden.html` bekäme man weiter die alte Seite ausgeliefert.
 
 > **Ports:** 8000/5173 und 8001/5174 gehören zwei anderen Projekten auf derselben
 > Maschine. Ein Vite auf fremdem Port, dessen Proxy noch auf den Hauptport zeigt,
@@ -70,6 +79,9 @@ des Servers.
 Rollen: `admin` · `bearbeiter` · `leser` (siehe MEMORY.md).
 
 ## Tests
+
+Doppelklick auf **`skripte/tests.command`** — das läuft pytest, vitest, die
+Typprüfung und `check --deploy` hintereinander. Oder einzeln:
 
 ```bash
 source .venv/bin/activate && pytest

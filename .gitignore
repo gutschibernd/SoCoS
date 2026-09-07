@@ -34,3 +34,6 @@ frontend/.vite/
 
 # TypeScript-Zwischenstand
 frontend/tsconfig.tsbuildinfo
+
+# Laufprotokolle der Skripte
+protokolle/
