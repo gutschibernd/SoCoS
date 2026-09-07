@@ -1,0 +1,385 @@
+/*
+ * Bausteine der Oberfläche.
+ *
+ * Kein CSS-Rahmenwerk: Bei einem Dutzend Ansichten brächte eines hunderte
+ * Dinge mit, von denen dreißig gebraucht werden, und diktierte nebenbei seinen
+ * Strich. Alle Farbwerte kommen aus farben.css, keiner steht hier.
+ */
+
+/* --- Gerüst ------------------------------------------------------------- */
+
+.seite { max-width: 1400px; margin: 0 auto; padding: 18px 22px 44px; }
+
+.kopf { background: var(--kopf-grund); border-bottom: 1px solid var(--marke-tiefer); }
+.kopf-innen {
+  max-width: 1400px; margin: 0 auto; padding: 10px 22px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.marke {
+  display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+  border: 1px solid var(--kopf-rand); border-radius: var(--kante);
+  cursor: pointer; background: none;
+}
+.marke:hover { background: var(--marke); }
+.marke b { font-size: 16px; font-weight: 600; color: #fff; letter-spacing: -0.01em; }
+.marke span {
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--kopf-text-leise); padding-top: 2px;
+}
+
+.navigation { display: flex; gap: 2px; min-width: 0; flex-wrap: wrap; }
+.navigation a {
+  padding: 9px 18px; border-radius: var(--kante); font-size: 14px; font-weight: 600;
+  white-space: nowrap; color: var(--kopf-text-leise);
+  min-height: var(--griff); display: flex; align-items: center;
+}
+.navigation a:hover { background: var(--marke); color: var(--kopf-text); }
+.navigation a[aria-current="page"] { background: var(--kopf-aktiv); color: var(--marke-dunkel); }
+
+.kopf-rechts { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+
+/* --- Titelzeile --------------------------------------------------------- */
+
+.titelzeile {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.titelzeile h1 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em; }
+.titelzeile .unter { font-size: 14px; color: var(--text-leise); }
+
+/* --- Karten und Raster --------------------------------------------------- */
+
+.karte {
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: var(--kante); padding: 15px 17px;
+}
+.karte > h2 {
+  margin: 0 0 12px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-sehr-leise); font-weight: 600;
+}
+
+.raster { display: grid; gap: 12px; }
+.raster-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.raster-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.raster-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.spalte { display: flex; flex-direction: column; gap: 12px; }
+
+.kennzahl { border-top: 3px solid var(--marke); }
+.kennzahl .beschriftung {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-sehr-leise); font-weight: 600;
+}
+.kennzahl .wert {
+  font-family: var(--schrift-zahl); font-size: 26px; margin-top: 7px; letter-spacing: -0.02em;
+}
+.kennzahl .hinweis { font-size: 13px; color: var(--text-leise); margin-top: 4px; }
+
+/* --- Knöpfe -------------------------------------------------------------- */
+
+.knopf, .knopf-still {
+  min-height: var(--griff); padding: 10px 16px;
+  border-radius: var(--kante); font-size: 14px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.knopf { background: var(--marke); color: var(--auf-marke); border: 1px solid var(--marke); }
+.knopf:hover { filter: brightness(0.93); }
+.knopf-still {
+  background: var(--flaeche); color: var(--marke); border: 1px solid var(--rand-stark);
+}
+.knopf-still:hover { border-color: var(--marke-rand); }
+.knopf:disabled, .knopf-still:disabled { opacity: 0.5; cursor: default; }
+
+/* --- Statusfarben -------------------------------------------------------- */
+
+.status {
+  display: inline-block; padding: 3px 9px; border-radius: var(--kante);
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.status-offen        { background: var(--ruhend-hell);  color: var(--text-leise); }
+.status-laeuft       { background: var(--marke-hell);   color: var(--marke); }
+.status-eingereicht  { background: var(--wartend-hell); color: var(--wartend); }
+.status-zugesagt     { background: var(--gut-hell);     color: var(--gut); }
+.status-fertig       { background: var(--gut-hell);     color: var(--gut); }
+.status-verworfen    { background: var(--ruhend-hell);  color: var(--ruhend); }
+.status-offene_frage { background: var(--warnung-hell); color: var(--warnung); }
+
+/* --- Stufenleiste -------------------------------------------------------- */
+
+.stufen { display: flex; gap: 3px; align-items: stretch; }
+.stufe {
+  flex: var(--anteil, 1); min-height: var(--griff); padding: 7px 9px;
+  border: 1px solid var(--rand); border-radius: var(--kante);
+  background: var(--flaeche-leise); color: var(--text-leise);
+  font-size: 12px; font-weight: 600; cursor: pointer; text-align: left;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+}
+.stufe:hover { border-color: var(--marke-rand); }
+.stufe[data-erledigt="ja"] {
+  background: var(--marke-hell); border-color: var(--marke-rand); color: var(--marke);
+}
+.stufe .monate { font-weight: 400; font-size: 11px; opacity: 0.75; }
+
+/* --- Balken -------------------------------------------------------------- */
+
+.balken { height: 8px; background: var(--flaeche-leise); border-radius: var(--kante); overflow: hidden; }
+.balken > i { display: block; height: 100%; background: var(--marke); }
+
+/* --- Tabelle, die am Handy zur Karte wird -------------------------------- */
+/*
+ * Ein Markup, zwei Darstellungen. Keine zweite Ansicht: die zweite wird beim
+ * nächsten neuen Feld vergessen.
+ */
+
+.tabelle { width: 100%; border-collapse: collapse; }
+.tabelle th {
+  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-sehr-leise); font-weight: 600; padding: 8px 10px;
+  border-bottom: 1px solid var(--rand);
+}
+.tabelle td { padding: 11px 10px; border-bottom: 1px solid var(--flaeche-leise); font-size: 14px; }
+.tabelle tr:last-child td { border-bottom: 0; }
+
+@media (max-width: 720px) {
+  .tabelle, .tabelle tbody, .tabelle tr, .tabelle td { display: block; width: 100%; }
+  .tabelle thead { display: none; }
+  .tabelle tr {
+    border: 1px solid var(--rand); border-radius: var(--kante);
+    margin-bottom: 10px; padding: 4px 0; background: var(--flaeche);
+  }
+  .tabelle td {
+    display: flex; justify-content: space-between; gap: 14px;
+    border-bottom: 1px solid var(--flaeche-leise); text-align: right;
+  }
+  .tabelle td::before {
+    content: attr(data-spalte);
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-sehr-leise); font-weight: 600; text-align: left; flex: 0 0 auto;
+  }
+  .raster-4, .raster-3, .raster-2 { grid-template-columns: 1fr; }
+  .seite { padding: 14px 14px 40px; }
+}
+
+/* --- Leerstelle ---------------------------------------------------------- */
+/*
+ * Eine leere Liste ist kein Fehler, sondern eine Leerstelle mit einem Satz
+ * dazu, was fehlt und was der nächste Griff wäre.
+ */
+
+.leerstelle { padding: 26px 18px; text-align: center; color: var(--text-leise); }
+.leerstelle b { display: block; color: var(--text); font-size: 15px; margin-bottom: 5px; }
+.leerstelle p { margin: 0 0 14px; font-size: 14px; line-height: 1.5; }
+
+/* --- Zustand (lädt / keine Verbindung / gescheitert) --------------------- */
+
+.zustand { padding: 60px 20px; text-align: center; color: var(--text-leise); }
+.zustand-titel { font-size: 16px; font-weight: 600; color: var(--text); }
+.zustand-satz { margin: 8px 0 16px; font-size: 14px; }
+
+/* --- Hilfe-Zeichen ------------------------------------------------------- */
+/*
+ * Keine erklärenden Absätze in der Seite: Ein Absatz mitten in der Seite wird
+ * ab dem dritten Öffnen nicht mehr gelesen, muss aber jedesmal überblättert
+ * werden und kostet am Handy den halben Bildschirm.
+ */
+
+.hilfe { position: relative; display: inline-block; }
+.hilfe > button {
+  width: 18px; height: 18px; padding: 0; line-height: 1;
+  border: 1px solid var(--rand-stark); border-radius: 50%;
+  background: var(--flaeche); color: var(--text-sehr-leise);
+  font-size: 11px; font-weight: 700; cursor: pointer;
+}
+.hilfe > button:hover { border-color: var(--marke-rand); color: var(--marke); }
+.hilfe-text {
+  position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; width: 260px;
+  background: var(--flaeche); border: 1px solid var(--rand-stark);
+  border-radius: var(--kante); padding: 11px 13px;
+  font-size: 13px; line-height: 1.5; color: var(--text); font-weight: 400;
+  text-transform: none; letter-spacing: normal;
+}
+
+/* --- Dialog -------------------------------------------------------------- */
+
+.dialog-grund {
+  position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.45);
+  display: grid; place-items: center; padding: 20px;
+}
+.dialog {
+  width: 100%; max-width: 440px; background: var(--flaeche);
+  border: 1px solid var(--rand-stark); border-radius: var(--kante); padding: 22px;
+}
+.dialog h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; }
+.dialog p { margin: 0 0 16px; font-size: 14px; line-height: 1.55; color: var(--text-leise); }
+.dialog-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* --- Felder -------------------------------------------------------------- */
+
+.feld {
+  width: 100%; min-height: var(--griff); padding: 9px 12px;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text);
+}
+.feld-reihe { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.feld-reihe > * { flex: 1 1 160px; }
+.feld-reihe > .knopf, .feld-reihe > .knopf-still { flex: 0 0 auto; }
+
+/* --- Uhr im Kopf --------------------------------------------------------- */
+
+.uhr-chip {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 8px 6px 14px;
+  border: 1px solid var(--kopf-rand); border-radius: var(--kante);
+  min-width: 0;
+}
+.uhr-chip[data-laeuft="ja"] { background: var(--marke); }
+.uhr-chip .punkt {
+  width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px;
+  background: var(--kopf-text-leise);
+}
+.uhr-chip[data-laeuft="ja"] .punkt { background: var(--kopf-aktiv); }
+.uhr-chip .zahl { font-size: 15px; color: #fff; white-space: nowrap; }
+.uhr-chip .wo {
+  font-size: 13px; color: var(--kopf-text-leise);
+  max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.uhr-knopf {
+  min-height: var(--griff); padding: 7px 14px;
+  border: 1px solid var(--kopf-rand); border-radius: var(--kante);
+  background: transparent; color: var(--kopf-text);
+  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.uhr-knopf:hover { background: var(--marke-dunkel); }
+
+.profil {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 12px 6px 6px; min-height: var(--griff);
+  border: 1px solid var(--kopf-rand); border-radius: var(--kante);
+  background: transparent; cursor: pointer;
+}
+.profil:hover { background: var(--marke); }
+.profil i {
+  width: 27px; height: 27px; border-radius: var(--kante);
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-dunkel);
+}
+.profil span { font-size: 14px; color: var(--kopf-text); white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .uhr-chip .wo { display: none; }
+  .profil span { display: none; }
+}
+
+/* --- Dashboard ----------------------------------------------------------- */
+
+.personen { list-style: none; margin: 0; padding: 0; }
+.personen li {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 0; border-bottom: 1px solid var(--flaeche-leise);
+}
+.personen li:last-child { border-bottom: 0; }
+.personen i {
+  width: 28px; height: 28px; flex: 0 0 28px; border-radius: var(--kante);
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-dunkel);
+}
+.personen .name { font-weight: 500; }
+.personen .tun {
+  flex: 1; min-width: 0; font-size: 13px; color: var(--text-leise);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.saeulen { display: flex; gap: 14px; align-items: flex-end; height: 150px; }
+.saeule { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; }
+.saeule .stab {
+  flex: 1; width: 100%; display: flex; align-items: flex-end;
+  background: var(--flaeche-leise); border-radius: var(--kante);
+}
+.saeule .stab i { display: block; width: 100%; border-radius: var(--kante); min-height: 2px; }
+.saeule .zahl { font-size: 12px; }
+.saeule .fuss { font-size: 11px; color: var(--text-sehr-leise); font-weight: 600; }
+
+.verteilung {
+  display: flex; height: 14px; border-radius: var(--kante); overflow: hidden;
+  background: var(--flaeche-leise);
+}
+.verteilung i { display: block; height: 100%; }
+.legende { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.legende li { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.legende li i { width: 10px; height: 10px; border-radius: 2px; }
+.legende .zahl { color: var(--text-leise); }
+
+/* --- Projektansicht ------------------------------------------------------ */
+
+.projekt-kopf {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--rand);
+}
+.projekt-kopf h3 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+.projekt-kopf .unter { font-size: 13px; color: var(--text-leise); margin-top: 2px; }
+.projekt-kopf .gebucht { margin-left: auto; font-size: 13px; color: var(--text-leise); }
+
+.bereich { margin-bottom: 18px; }
+.bereich h4 {
+  margin: 0 0 9px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-sehr-leise); font-weight: 600;
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+}
+.bereich h4 .art {
+  padding: 2px 8px; border-radius: var(--kante);
+  background: var(--flaeche-leise); color: var(--text-leise); letter-spacing: 0.04em;
+}
+
+.paket {
+  border: 1px solid var(--rand); border-radius: var(--kante);
+  padding: 10px 12px; margin-bottom: 8px; background: var(--flaeche);
+}
+.paket-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 9px; }
+.paket-titel {
+  flex: 1; min-width: 160px; text-align: left;
+  background: none; border: 0; padding: 6px 0; cursor: pointer;
+  font-size: 15px; font-weight: 500; color: var(--text);
+  display: flex; align-items: center; gap: 8px; min-height: var(--griff);
+}
+.paket-titel:hover { color: var(--marke); }
+.paket-kopf .fortschritt { font-size: 13px; color: var(--text-leise); }
+select.status { border: 1px solid transparent; min-height: var(--griff); padding: 6px 10px; }
+
+.paket-tiefe { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--rand); }
+.paket-tiefe .notiz { margin: 12px 0 0; font-size: 14px; color: var(--text-leise); line-height: 1.5; }
+
+.unteraufgaben { list-style: none; margin: 12px 0 0; padding: 0; }
+.unteraufgaben li { display: flex; align-items: center; gap: 9px; padding: 6px 0; font-size: 14px; }
+.unteraufgaben span[data-erledigt="ja"] { text-decoration: line-through; color: var(--text-sehr-leise); }
+
+/* --- Kontakte ------------------------------------------------------------ */
+
+.org { border: 1px solid var(--rand); border-radius: var(--kante); padding: 11px 12px; margin-bottom: 9px; }
+.org-kopf { display: flex; align-items: center; gap: 9px; }
+.org-kopf i {
+  font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  padding: 3px 6px; border-radius: var(--kante);
+  background: var(--marke-hell); color: var(--marke);
+}
+.org-kopf b { font-size: 15px; font-weight: 600; }
+.org-typ { font-size: 12px; color: var(--text-sehr-leise); margin-top: 3px; }
+.org-nutzen { margin: 7px 0 0; font-size: 13px; color: var(--text-leise); line-height: 1.5; }
+
+.org-personen { list-style: none; margin: 9px 0 0; padding: 0; }
+.org-personen li { border-top: 1px solid var(--flaeche-leise); }
+.org-personen button {
+  width: 100%; min-height: var(--griff); padding: 8px 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: none; border: 0; cursor: pointer; text-align: left;
+  font-size: 14px; color: var(--text);
+}
+.org-personen button:hover { color: var(--marke); }
+.ball { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--kante); }
+.ball-uns { background: var(--warnung-hell); color: var(--warnung); }
+.ball-ihnen { background: var(--flaeche-leise); color: var(--text-leise); }
+
+.verlauf { list-style: none; margin: 0; padding: 0; }
+.verlauf li { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--flaeche-leise); }
+.verlauf li:last-child { border-bottom: 0; }
+.verlauf .datum { flex: 0 0 92px; font-size: 12px; color: var(--text-sehr-leise); padding-top: 2px; }
+.verlauf b { font-size: 14px; font-weight: 600; }
+.verlauf p { margin: 3px 0 0; font-size: 13px; color: var(--text-leise); line-height: 1.5; }

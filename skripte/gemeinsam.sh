@@ -38,7 +38,7 @@ fehler() { printf "  %s✗%s %s\n" "$F_FEHLER" "$F_AUS" "$*" >&2; }
 # Fehler wäre die Meldung damit weg, bevor sie jemand gelesen hat.
 abbrechen() {
   fehler "$1"
-  [ -n "$2" ] && printf "\n    %s\n" "$2" >&2
+  [ -n "${2:-}" ] && printf "\n    %s\n" "${2:-}" >&2
   printf "\n%sZum Schließen Return drücken.%s\n" "$F_LEISE" "$F_AUS"
   read -r _ 2>/dev/null || true
   exit 1
@@ -91,6 +91,23 @@ port_freimachen() {
     for pid in $(lauscher "$port"); do kill -9 "$pid" 2>/dev/null; done
     sleep 0.5
   fi
+}
+
+# Wartet, bis der Healthcheck grün ist. Gibt 1 zurück, wenn nicht.
+#
+# Ein offener Port heißt nur, dass jemand lauscht — nicht, dass Django schon
+# antwortet. Eine einzelne Abfrage direkt nach dem Öffnen bekommt eine leere
+# Antwort und meldete den Dienst fälschlich als krank.
+warte_auf_gesundheit() {
+  local port="$1" sekunden="${2:-20}" i=0 antwort
+  while [ "$i" -lt $((sekunden * 2)) ]; do
+    antwort="$(curl -s --max-time 2 "http://127.0.0.1:$port/healthz/" 2>&1)"
+    case "$antwort" in *gesund*) GESUNDHEIT="$antwort"; return 0 ;; esac
+    sleep 0.5
+    i=$((i + 1))
+  done
+  GESUNDHEIT="${antwort:-keine Antwort}"
+  return 1
 }
 
 # Wartet, bis auf dem Port jemand antwortet. Gibt 1 zurück, wenn nicht.

@@ -110,13 +110,13 @@ if ! warte_auf_port "$DJANGO_PORT" 25; then
   abbrechen "Start abgebrochen."
 fi
 
-GESUNDHEIT="$(curl -s "http://127.0.0.1:$DJANGO_PORT/healthz/" 2>&1)"
-case "$GESUNDHEIT" in
-  *gesund*) gut "Django läuft auf $DJANGO_PORT" ;;
-  *) fehler "Django antwortet, ist aber nicht gesund: $GESUNDHEIT"
-     tail -n 20 "$DJANGO_LOG" >&2
-     abbrechen "Start abgebrochen." ;;
-esac
+if warte_auf_gesundheit "$DJANGO_PORT"; then
+  gut "Django läuft auf $DJANGO_PORT"
+else
+  fehler "Django antwortet nicht gesund: $GESUNDHEIT"
+  tail -n 20 "$DJANGO_LOG" >&2
+  abbrechen "Start abgebrochen."
+fi
 
 (cd frontend && npm run dev) > "$VITE_LOG" 2>&1 &
 VITE_PID=$!

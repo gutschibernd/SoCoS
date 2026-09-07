@@ -148,6 +148,35 @@ Die Zeitdokumentation **muss auditierbar sein**.
 
 ---
 
+## 2026-09-07 — Die Oberfläche steht
+
+Dashboard, Projekt, Zeit, Kontakte und Profil, dazu die Kopfleiste mit der
+laufenden Uhr. Kein CSS-Rahmenwerk, keine Icon-Bibliothek; alle Farben kommen
+aus `farben.css`, und ein Test verbietet Hex-Werte in Komponenten.
+
+Entscheidungen, die man dem Code sonst nicht ansieht:
+
+- **Kein react-router.** Fünf Seiten ohne verschachtelte Wege. Ein Rahmenwerk
+  brächte mehr Begriffe mit, als die Anwendung Seiten hat.
+- **Die Uhr zählt aus dem Startzeitpunkt hoch**, nicht aus einem eigenen
+  Zähler. Ein Zähler, der bei 0 beginnt, zeigt nach einem Neuladen eine falsche
+  Dauer — und genau dann schaut jemand hin.
+- **Nach jeder Änderung werden alle betroffenen Abrufe verworfen**, statt
+  einzelne Einträge im Zwischenspeicher nachzuziehen. Das Nachziehen wäre eine
+  zweite Stelle, an der steht, was eine Buchung mit einer Projektsumme macht.
+- **Ein zweiter Klick auf dieselbe Stufe nimmt sie zurück.** Sonst käme man von
+  einem Fehlgriff nur über den Umweg der Nachbarstufe wieder weg.
+- **Die Bereichsart wird nur angezeigt, wenn sie etwas hinzufügt.**
+  „Entwicklung Entwicklung" ist Rauschen, das man beim Lesen aussortiert.
+- **Das Überspringen der Clock-out-Notiz fragt einmal nach.** Eine erzwungene
+  Notiz führt dazu, dass „x" eingetragen wird — und dann steht überall „x".
+
+Geprüft an 1280×800 und 375×812, hell und dunkel, mit Daten und ohne. Die
+Probedaten für die Sichtprüfung wurden danach hart entfernt, samt ihrer
+Protokolleinträge: Die Anwendung startet leer, Daten kommen aus `daten/`.
+
+---
+
 ## 2026-09-07 — Weiches Löschen ging an `PROTECT` vorbei
 
 Beim Bauen der Schnittstelle aufgefallen: Ein Projekt ließ sich löschen, obwohl
