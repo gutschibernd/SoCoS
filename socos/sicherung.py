@@ -16,12 +16,35 @@ fallen, nicht erst den Wiederherstellungsversuch.
 MODELLE_IM_ARCHIV = [
     "socos.Nutzer",
     "socos.Protokolleintrag",
+    "socos.Projekt",
+    "socos.Bereich",
+    "socos.Arbeitspaket",
+    "socos.Unteraufgabe",
+    "socos.Zeitbuchung",
+    "socos.Organisation",
+    "socos.Kontakt",
+    "socos.Verlaufseintrag",
+    "socos.Kontostand",
+    "socos.Fixkosten",
+    "socos.Monatskosten",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
 
 # Beim Einspielen wird in dieser Reihenfolge geleert: das Abhängige zuerst.
 LOESCHREIHENFOLGE = [
+    # Das Abhängige zuerst, sonst hält on_delete=PROTECT dagegen.
+    "socos.Verlaufseintrag",
+    "socos.Zeitbuchung",
+    "socos.Unteraufgabe",
+    "socos.Arbeitspaket",
+    "socos.Bereich",
+    "socos.Projekt",
+    "socos.Kontakt",
+    "socos.Organisation",
+    "socos.Kontostand",
+    "socos.Fixkosten",
+    "socos.Monatskosten",
     "socos.Protokolleintrag",
     "socos.Nutzer",
     "auth.Group",

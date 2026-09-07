@@ -221,3 +221,403 @@ class Protokolleintrag(models.Model):
             aktion=aktion,
             aenderungen=aenderungen or {},
         )
+
+
+# --- Projektstruktur --------------------------------------------------------
+#
+# Projekt → Bereich → Arbeitspaket → Unteraufgabe. Vier Ebenen, mehr nicht.
+
+
+class Projekt(Basismodell):
+    titel = models.CharField("Titel", max_length=160)
+    untertitel = models.CharField("Untertitel", max_length=200, blank=True)
+    farbe = models.CharField("Farbe", max_length=7, default="#14595F")
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Projekt"
+        verbose_name_plural = "Projekte"
+        ordering = ["reihenfolge", "titel"]
+
+    def __str__(self):
+        return self.titel
+
+
+class Bereichsart(models.TextChoices):
+    DEV = "dev", "Entwicklung"
+    FIN = "fin", "Finanzierung"
+    ZIEL = "ziel", "Ziele"
+
+
+# Vorlagen für die Stufenleiste, je Bereichsart. Beim Anlegen eines Bereichs
+# **kopiert**, nicht verwiesen.
+#
+# Warum kopieren: „je Projekt anpassbar" wäre auch über eine Vererbungskette
+# mit Überschreibungen zu haben. Die müsste man aber bei jeder Anzeige
+# auflösen, und man sähe einem Bereich nicht an, welche Stufen für ihn gelten.
+# Eine kopierte Liste ist ein Wert, kein Verweis — sie ist beim Lesen fertig.
+STUFENVORLAGEN = {
+    Bereichsart.DEV: [
+        {"name": "Konzept", "monate": 1},
+        {"name": "Umsetzung", "monate": 3},
+        {"name": "Test", "monate": 2},
+        {"name": "Abschluss", "monate": 1},
+    ],
+    Bereichsart.FIN: [
+        {"name": "Vorbereitung", "monate": 1},
+        {"name": "Einreichung", "monate": 1},
+        {"name": "Entscheidung", "monate": 2},
+        {"name": "Abrechnung", "monate": 1},
+    ],
+    Bereichsart.ZIEL: [
+        {"name": "Definition", "monate": 1},
+        {"name": "Abstimmung", "monate": 1},
+        {"name": "Verankert", "monate": 1},
+    ],
+}
+
+
+class Bereich(Basismodell):
+    projekt = models.ForeignKey(
+        Projekt, verbose_name="Projekt", on_delete=models.PROTECT, related_name="bereiche"
+    )
+    titel = models.CharField("Titel", max_length=160)
+    art = models.CharField("Art", max_length=8, choices=Bereichsart.choices)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    # Liste aus {"name": …, "monate": …}. Beim Anlegen aus der Vorlage der Art
+    # kopiert und danach frei änderbar.
+    stufen = models.JSONField("Stufen", default=list, blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Bereich"
+        verbose_name_plural = "Bereiche"
+        ordering = ["projekt", "reihenfolge", "titel"]
+
+    def __str__(self):
+        return f"{self.projekt.titel} · {self.titel}"
+
+    def save(self, *args, **kwargs):
+        if not self.stufen:
+            self.stufen = [dict(s) for s in STUFENVORLAGEN.get(self.art, [])]
+        super().save(*args, **kwargs)
+
+
+class Paketstatus(models.TextChoices):
+    """
+    Sieben Werte, nicht fünf. „eingereicht" und „zugesagt" sind bei einem
+    Förderantrag die entscheidenden Zwischenzustände — genau die, die man
+    wissen will.
+    """
+
+    OFFEN = "offen", "offen"
+    LAEUFT = "laeuft", "läuft"
+    EINGEREICHT = "eingereicht", "eingereicht"
+    ZUGESAGT = "zugesagt", "zugesagt"
+    FERTIG = "fertig", "fertig"
+    VERWORFEN = "verworfen", "verworfen"
+    OFFENE_FRAGE = "offene_frage", "offene Frage"
+
+
+class Arbeitspaket(Basismodell):
+    bereich = models.ForeignKey(
+        Bereich, verbose_name="Bereich", on_delete=models.PROTECT, related_name="pakete"
+    )
+    titel = models.CharField("Titel", max_length=250)
+    notiz = models.TextField("Notiz", blank=True)
+    status = models.CharField(
+        "Status", max_length=14, choices=Paketstatus.choices, default=Paketstatus.OFFEN
+    )
+    # Wie viele Stufen des Bereichs erledigt sind: 0 … len(bereich.stufen).
+    stufenstand = models.IntegerField("Stufenstand", default=0)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Arbeitspaket"
+        verbose_name_plural = "Arbeitspakete"
+        ordering = ["bereich", "reihenfolge", "titel"]
+
+    def __str__(self):
+        return self.titel
+
+
+class Unteraufgabe(Basismodell):
+    """
+    Eine Ebene unter dem Paket. **Ohne eigene Zeitbuchungen** — gebucht wird
+    aufs Paket, sonst zerfällt jede Auswertung in zwei Töpfe.
+    """
+
+    paket = models.ForeignKey(
+        Arbeitspaket,
+        verbose_name="Arbeitspaket",
+        on_delete=models.PROTECT,
+        related_name="unteraufgaben",
+    )
+    titel = models.CharField("Titel", max_length=250)
+    erledigt = models.BooleanField("erledigt", default=False)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Unteraufgabe"
+        verbose_name_plural = "Unteraufgaben"
+        ordering = ["paket", "reihenfolge", "titel"]
+
+    def __str__(self):
+        return self.titel
+
+
+# --- Zeit -------------------------------------------------------------------
+
+
+class Zeitbuchung(Basismodell):
+    """
+    Eine gebuchte Zeitspanne auf einem Arbeitspaket.
+
+    Start und Ende werden **sekundengenau** gespeichert. Gerundet wird erst in
+    der Auswertung (`socos/services/zeit.py`) — wer beim Erfassen rundet, kann
+    die Rundung nicht mehr zurücknehmen, wenn die Regel sich ändert.
+
+    `ende is None` heißt: läuft gerade. Je Person kann höchstens eine laufen;
+    dafür sorgt die Bedingung unten in der Datenbank, nicht nur der Code.
+    """
+
+    person = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Person",
+        on_delete=models.PROTECT,
+        related_name="zeitbuchungen",
+    )
+    paket = models.ForeignKey(
+        Arbeitspaket,
+        verbose_name="Arbeitspaket",
+        on_delete=models.PROTECT,
+        related_name="zeitbuchungen",
+    )
+    start = models.DateTimeField("Start")
+    ende = models.DateTimeField("Ende", null=True, blank=True)
+    notiz = models.TextField("Notiz", blank=True)
+
+    # Gesetzt, wenn die Buchung nicht sauber beendet wurde, sondern am
+    # Tagesende abgeschnitten werden musste. Sie zählt dann in **keiner**
+    # Auswertung mit, bis jemand sie bestätigt hat.
+    #
+    # Warum sichtbar unfertig statt still korrigiert: Eine 14-Stunden-Buchung,
+    # die echt aussieht, fällt niemandem auf.
+    ist_entwurf = models.BooleanField("Entwurf", default=False)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Zeitbuchung"
+        verbose_name_plural = "Zeitbuchungen"
+        ordering = ["-start"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["person"],
+                condition=models.Q(ende__isnull=True, geloescht_am__isnull=True),
+                name="hoechstens_eine_laufende_buchung_je_person",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(ende__isnull=True) | models.Q(ende__gt=models.F("start")),
+                name="ende_liegt_nach_start",
+            ),
+        ]
+        indexes = [models.Index(fields=["person", "-start"])]
+
+    def __str__(self):
+        return f"{self.person} · {self.paket} · {self.start:%d.%m.%Y %H:%M}"
+
+    @property
+    def laeuft(self):
+        return self.ende is None
+
+    @property
+    def sekunden(self):
+        """Dauer in Sekunden. Eine laufende Buchung zählt bis jetzt."""
+        bis = self.ende or timezone.now()
+        return max(0, int((bis - self.start).total_seconds()))
+
+
+# --- Kontakte ---------------------------------------------------------------
+
+
+class Organisationsstufe(models.TextChoices):
+    ERSTKONTAKT = "erstkontakt", "Erstkontakt"
+    ANTRAG = "antrag", "Antrag läuft"
+    PARTNER = "partner", "Partner"
+
+
+class Organisation(Basismodell):
+    name = models.CharField("Name", max_length=200)
+    kurz = models.CharField("Kürzel", max_length=8, blank=True)
+    typ = models.CharField("Typ", max_length=80, blank=True)
+    stufe = models.CharField(
+        "Stufe",
+        max_length=14,
+        choices=Organisationsstufe.choices,
+        default=Organisationsstufe.ERSTKONTAKT,
+    )
+    nutzen = models.TextField("Nutzen und Interesse", blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Organisation"
+        verbose_name_plural = "Organisationen"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.kurz and self.name:
+            self.kurz = self.name.split()[0][:3].upper()
+        super().save(*args, **kwargs)
+
+
+class Ball(models.TextChoices):
+    """Wer am Zug ist. `uns` heißt: wir schulden etwas."""
+
+    UNS = "uns", "bei uns"
+    IHNEN = "ihnen", "bei ihnen"
+
+
+class Kontakt(Basismodell):
+    """Eine Person außerhalb des Teams. Ohne Organisation ist sie ein loser Kontakt."""
+
+    organisation = models.ForeignKey(
+        Organisation,
+        verbose_name="Organisation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="kontakte",
+    )
+    name = models.CharField("Name", max_length=160)
+    funktion = models.CharField("Rolle", max_length=160, blank=True)
+    ball = models.CharField("Am Zug", max_length=6, choices=Ball.choices, default=Ball.UNS)
+    offener_punkt = models.CharField("Offener Punkt", max_length=250, blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Kontakt"
+        verbose_name_plural = "Kontakte"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Verlaufsart(models.TextChoices):
+    MEETING = "meeting", "Meeting"
+    MAIL = "mail", "Mail"
+    CALL = "call", "Call"
+    EVENT = "event", "Event"
+
+
+class Verlaufseintrag(Basismodell):
+    """
+    Ein Eintrag im Verlauf — an einem Kontakt **oder** an einer Organisation.
+
+    Beides zugleich wäre möglich, ist aber nie gemeint: Ein Gespräch führt man
+    mit einer Person; eine Notiz zur Organisation gehört an die Organisation.
+    """
+
+    kontakt = models.ForeignKey(
+        Kontakt,
+        verbose_name="Kontakt",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="verlauf",
+    )
+    organisation = models.ForeignKey(
+        Organisation,
+        verbose_name="Organisation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="verlauf",
+    )
+    datum = models.DateField("Datum", default=timezone.localdate)
+    art = models.CharField("Art", max_length=10, choices=Verlaufsart.choices)
+    titel = models.CharField("Titel", max_length=200)
+    text = models.TextField("Text", blank=True)
+    wer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Wer",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="verlaufseintraege",
+    )
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Verlaufseintrag"
+        verbose_name_plural = "Verlauf"
+        ordering = ["-datum", "-id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(kontakt__isnull=False, organisation__isnull=True)
+                    | models.Q(kontakt__isnull=True, organisation__isnull=False)
+                ),
+                name="verlauf_haengt_an_genau_einem",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.datum:%d.%m.%Y} · {self.titel}"
+
+
+# --- Finanzen ---------------------------------------------------------------
+#
+# Geld ist Decimal, immer. JSON kennt nur Gleitkomma, und dort ist 0.1 + 0.2
+# nicht 0.3. In der API gehen diese Werte als Zeichenkette hinaus.
+
+
+class Kontostand(Basismodell):
+    """Ein Stichtagswert. Beliebig viele; jeder gehört über sein Datum zu einem Monat."""
+
+    datum = models.DateField("Stichtag", unique=True)
+    betrag = models.DecimalField("Kontostand", max_digits=12, decimal_places=2)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Kontostand"
+        verbose_name_plural = "Kontostände"
+        ordering = ["-datum"]
+
+    def __str__(self):
+        return f"{self.datum:%d.%m.%Y}: {self.betrag} €"
+
+
+class Fixkosten(Basismodell):
+    """Der wiederkehrende Monatsbetrag. Gilt ab einem Datum bis zum nächsten Eintrag."""
+
+    gueltig_ab = models.DateField("gültig ab", unique=True)
+    betrag = models.DecimalField("Betrag je Monat", max_digits=12, decimal_places=2)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Fixkosten"
+        verbose_name_plural = "Fixkosten"
+        ordering = ["-gueltig_ab"]
+
+    def __str__(self):
+        return f"ab {self.gueltig_ab:%d.%m.%Y}: {self.betrag} €/Monat"
+
+
+class Monatskosten(Basismodell):
+    """Was in einem Monat tatsächlich angefallen ist — inklusive Einmaligem."""
+
+    monat = models.DateField("Monat", unique=True, help_text="Der Erste des Monats.")
+    betrag = models.DecimalField("Betrag", max_digits=12, decimal_places=2)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Monatskosten"
+        verbose_name_plural = "Monatskosten"
+        ordering = ["-monat"]
+
+    def __str__(self):
+        return f"{self.monat:%m/%Y}: {self.betrag} €"
+
+    def save(self, *args, **kwargs):
+        # Immer auf den Ersten normieren. Sonst gäbe es denselben Monat
+        # mehrfach, und `unique` fiele nicht darüber.
+        if self.monat:
+            self.monat = self.monat.replace(day=1)
+        super().save(*args, **kwargs)

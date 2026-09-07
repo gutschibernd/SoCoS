@@ -184,6 +184,9 @@ nicht überall gibt. Es gibt keinen Grund, das Risiko für nichts einzugehen.
       wäre verschlüsselt die Antwort; dann braucht der Schlüssel einen Ort, der
       nicht im selben Archiv liegt.
 - [ ] **Restore-Test mit Datum** in SERVER.md. Ein Restore ohne Test ist kein Backup.
-- [ ] Prognoseformel für den Runway bestätigen (siehe oben, Abschnitt Geld).
+- [ ] **Zeitbuchung auf Unteraufgaben** — vorerst bewusst nicht (gebucht wird
+      aufs Paket). Bernd hält sich offen, das später zu ändern. Der Umbau wäre
+      ein nullbares Feld `unteraufgabe` an `Zeitbuchung` plus eine Entscheidung,
+      wie eine Auswertung dann beide Ebenen zusammenfasst.
 - [ ] Termine/Tasks: Modell festlegen, sobald Bernd die Liste gekürzt hat.
 - [ ] Datenimport bauen, sobald `daten/sopharmis-daten.json` bereinigt ist.
