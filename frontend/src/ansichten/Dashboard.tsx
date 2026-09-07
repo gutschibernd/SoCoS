@@ -7,11 +7,24 @@ import { Zustand } from "../basis/Zustand";
 import { Finanzeingabe } from "../bausteine/Finanzeingabe";
 
 const EURO = new Intl.NumberFormat("de-AT", { style: "currency", currency: "EUR" });
+const ZAHL1 = new Intl.NumberFormat("de-AT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const DATUM = new Intl.DateTimeFormat("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-/** Beträge kommen als Zeichenkette. Erst hier wird daraus eine Zahl — zum Anzeigen. */
+/**
+ * Beträge kommen als Zeichenkette. Erst hier wird daraus eine Zahl — und nur
+ * zum Anzeigen. Gerechnet wird serverseitig mit Decimal.
+ */
 function euro(betrag: string | null) {
   return betrag === null ? "—" : EURO.format(Number(betrag));
+}
+
+/**
+ * Eine Dezimalzahl deutsch. Der Punkt aus dem Decimal des Servers wäre hier
+ * schlicht falsch: „10.8 Monate" liest sich wie zehnkommaacht und sieht aus
+ * wie ein Tausenderpunkt.
+ */
+function zahl(wert: string | null) {
+  return wert === null ? "—" : ZAHL1.format(Number(wert));
 }
 
 export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) => void }) {
@@ -65,7 +78,7 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
         <div className="karte kennzahl" style={{ borderTopColor: "var(--gut)" }}>
           <div className="beschriftung">Runway</div>
           <div className="wert">
-            {d.finanzen.runway_monate ? `${d.finanzen.runway_monate} Mon.` : "—"}
+            {d.finanzen.runway_monate ? `${zahl(d.finanzen.runway_monate)} Mon.` : "—"}
           </div>
           <div className="hinweis">
             {d.finanzen.runway_monate

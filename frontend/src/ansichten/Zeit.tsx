@@ -118,7 +118,7 @@ export function Zeit({ ich }: { ich: Ich }) {
               <span className="nebenwert">({alsStunden(gesamt)} h gerundet)</span>
             </div>
           </div>
-          <div className="feld-reihe" style={{ flex: "0 0 auto" }}>
+          <div className="feld-reihe nachweis-knoepfe">
             {ich.darf.bearbeiten && (
               <button type="button" className="knopf-still" onClick={() => setNachtragen((n) => !n)}>
                 {nachtragen ? "Schließen" : "Zeit nachtragen"}

@@ -20,10 +20,17 @@
   --rand: #dfdbd1;
   --rand-stark: #c9c4b7;
 
-  /* Text */
+  /* Text
+   *
+   * `--text-leise` und `--text-sehr-leise` sind dunkler als im Entwurf
+   * (dort #7C8A8C und #8B979A). Gemessen erreichten die Originalwerte auf
+   * Weiß nur 3,58:1 und 3,00:1 — WCAG AA verlangt für Text unter 18 px
+   * mindestens 4,5:1, und genau in diesen Tönen stehen die 11-px-Beschriftungen
+   * über jeder Karte. Die neuen Werte halten 4,5:1 auf allen drei Untergründen
+   * (Weiß, Seitengrund, leise Fläche) und behalten den Farbton bei. */
   --text: #16272b;
-  --text-leise: #7c8a8c;
-  --text-sehr-leise: #8b979a;
+  --text-leise: #5a6668;
+  --text-sehr-leise: #5e6a6c;
 
   /* Marke */
   --marke: #14595f;
@@ -86,7 +93,7 @@
 
     --kopf-grund: #0d3a3d;
     --kopf-text: #cfe0df;
-    --kopf-text-leise: #7fa2a3;
+    --kopf-text-leise: #9dbdbe;
     --kopf-rand: #1f5559;
     --kopf-aktiv: #e8d9be;
 
@@ -125,7 +132,7 @@
 
   --kopf-grund: #0d3a3d;
   --kopf-text: #cfe0df;
-  --kopf-text-leise: #7fa2a3;
+  --kopf-text-leise: #9dbdbe;
   --kopf-rand: #1f5559;
   --kopf-aktiv: #e8d9be;
 

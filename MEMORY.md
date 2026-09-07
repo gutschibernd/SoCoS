@@ -148,6 +148,44 @@ Die Zeitdokumentation **muss auditierbar sein**.
 
 ---
 
+## 2026-09-07 — UI/UX-Durchgang: fünf gemessene Befunde
+
+Vollständiger Durchgang an 1280×800 und 375×812, hell und dunkel, mit
+Probedaten. **Gemessen statt geschaut** — per Skript im Browser, weil Augenmaß
+genau die Fehler übersieht, die knapp danebenliegen.
+
+1. **Die Grautöne aus dem Entwurf fallen durch WCAG AA.** `#7C8A8C` erreicht
+   auf Weiß 3,58:1, `#8B979A` sogar nur 3,00:1 — verlangt sind 4,5:1 für Text
+   unter 18 px. Und genau in diesen Tönen stehen die 11-px-Beschriftungen über
+   jeder Karte, also der kleinste Text der Anwendung. Ersetzt durch `#5A6668`
+   und `#5E6A6C`; die halten 4,5:1 auf Weiß, Seitengrund und leiser Fläche und
+   behalten den Farbton. **Das ist eine bewusste Abweichung vom verbindlichen
+   Entwurf** — Bernd weiß davon.
+   `socos/tests/test_kontrast.py` rechnet die ganze Palette nach, ohne Browser.
+
+2. **Handy-Regeln standen mitten in der Datei.** `.feld-klein { min-height: 34px }`
+   stand *nach* dem Media-Query und hat die 44 px darin stillschweigend
+   gewonnen — der Knopf war zu klein, und im Stylesheet sah beides richtig aus.
+   Alle Handy-Regeln stehen jetzt in **einem** Block am Ende von
+   `bausteine.css`, mit dem Grund als Kommentar darüber.
+
+3. **Die Stufenleiste lief am Handy über den Rand.** Vier Stufen nebeneinander
+   passen nicht in 375 px. Sie wird dort zur Liste — waagrecht scrollen wäre
+   schlechter, weil die letzte Stufe genau die ist, die man antippt, um ein
+   Paket auf „fertig" zu setzen.
+
+4. **Runway zeigte „10.8 Mon."** — Punkt statt Komma. Dasselbe hatte der
+   Zeitnachweis mit „26.25 Stunden".
+
+5. Logo-Knopf 35 px, Inline-Änderfelder 24–32 px, die drei PDF-Knöpfe schoben
+   die Karte über den Rand. Alles auf 44 px bzw. umbrechend.
+
+Die Prüfung selbst: kein waagrechtes Scrollen der Seite, jedes Fingerziel
+≥ 44 px, Eingabefelder ≥ 16 px (darunter zoomt iOS), nichts läuft aus seinem
+Kasten, und jedes Text-auf-Grund-Paar erreicht sein AA-Verhältnis.
+
+---
+
 ## 2026-09-07 — Die Oberfläche steht
 
 Dashboard, Projekt, Zeit, Kontakte und Profil, dazu die Kopfleiste mit der

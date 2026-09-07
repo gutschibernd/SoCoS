@@ -17,6 +17,7 @@
 }
 .marke {
   display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+  min-height: var(--griff);   /* auch das Logo ist ein Knopf zum Dashboard */
   border: 1px solid var(--kopf-rand); border-radius: var(--kante);
   cursor: pointer; background: none;
 }
@@ -139,26 +140,6 @@
 .tabelle td { padding: 11px 10px; border-bottom: 1px solid var(--flaeche-leise); font-size: 14px; }
 .tabelle tr:last-child td { border-bottom: 0; }
 
-@media (max-width: 720px) {
-  .tabelle, .tabelle tbody, .tabelle tr, .tabelle td { display: block; width: 100%; }
-  .tabelle thead { display: none; }
-  .tabelle tr {
-    border: 1px solid var(--rand); border-radius: var(--kante);
-    margin-bottom: 10px; padding: 4px 0; background: var(--flaeche);
-  }
-  .tabelle td {
-    display: flex; justify-content: space-between; gap: 14px;
-    border-bottom: 1px solid var(--flaeche-leise); text-align: right;
-  }
-  .tabelle td::before {
-    content: attr(data-spalte);
-    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--text-sehr-leise); font-weight: 600; text-align: left; flex: 0 0 auto;
-  }
-  .raster-4, .raster-3, .raster-2 { grid-template-columns: 1fr; }
-  .seite { padding: 14px 14px 40px; }
-}
-
 /* --- Leerstelle ---------------------------------------------------------- */
 /*
  * Eine leere Liste ist kein Fehler, sondern eine Leerstelle mit einem Satz
@@ -264,11 +245,6 @@
 }
 .profil span { font-size: 14px; color: var(--kopf-text); white-space: nowrap; }
 
-@media (max-width: 720px) {
-  .uhr-chip .wo { display: none; }
-  .profil span { display: none; }
-}
-
 /* --- Dashboard ----------------------------------------------------------- */
 
 .personen { list-style: none; margin: 0; padding: 0; }
@@ -289,7 +265,13 @@
 }
 
 .saeulen { display: flex; gap: 14px; align-items: flex-end; height: 150px; }
-.saeule { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; }
+/* Die Breite ist gedeckelt: Bei einer einzigen Person wäre die Säule sonst
+   ein Block über die halbe Karte und sähe aus wie ein Fehler. */
+.saeule {
+  flex: 0 1 64px; display: flex; flex-direction: column; align-items: center;
+  gap: 5px; height: 100%;
+}
+.saeulen { justify-content: flex-start; }
 .saeule .stab {
   flex: 1; width: 100%; display: flex; align-items: flex-end;
   background: var(--flaeche-leise); border-radius: var(--kante);
@@ -396,6 +378,10 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 }
 .summenzeile .wert { font-size: 24px; margin-top: 4px; }
 .summenzeile .nebenwert { font-size: 14px; color: var(--text-leise); font-family: var(--schrift); }
+/* Darf umbrechen. Mit flex:0 0 auto stünden die drei Knöpfe am Handy in einer
+   Zeile und schöben die Karte über den Rand. */
+.nachweis-knoepfe { flex: 1 1 auto; justify-content: flex-end; }
+
 .nachweis-hinweis { margin: 10px 0 0; font-size: 12px; color: var(--text-leise); line-height: 1.5; }
 .nachtrag { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rand); }
 
@@ -412,11 +398,6 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   background: var(--flaeche); color: var(--marke); cursor: pointer;
 }
 .mini:hover { border-color: var(--marke-rand); }
-@media (max-width: 720px) {
-  .tabelle td.zeilen-aktionen { justify-content: flex-end; }
-  .tabelle td.zeilen-aktionen::before { content: "Aktionen"; }
-  .mini { min-height: var(--griff); }
-}
 
 .rueckmeldung { margin: 10px 0 0; font-size: 14px; }
 .rueckmeldung.gut { color: var(--gut); }
@@ -452,3 +433,77 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 }
 .verlauf-fuss { display: block; margin-top: 4px; font-size: 11px; color: var(--text-sehr-leise); }
 .org-kopf .mini { margin-left: auto; }
+
+
+/* ==========================================================================
+   Am Handy
+   ==========================================================================
+
+   **Alle** Handy-Regeln stehen hier unten, am Ende der Datei — nicht verteilt.
+
+   Der Grund ist keine Ordnungsliebe: Eine Regel im Media-Query mitten in der
+   Datei wird von jeder späteren Regel mit gleicher Spezifität überschrieben.
+   Genau das ist passiert: `.feld-klein { min-height: 34px }` stand weiter
+   unten und hat die 44 px im Media-Query stillschweigend gewonnen. Der Knopf
+   war am Handy zu klein, und im Stylesheet sah beides richtig aus.
+   ========================================================================== */
+
+@media (max-width: 720px) {
+  /* Aus einer Tabelle wird eine Karte — aus demselben Markup, über das
+     data-spalte je Zelle. Keine zweite Ansicht: die zweite wird beim nächsten
+     neuen Feld vergessen. */
+  .tabelle, .tabelle tbody, .tabelle tr, .tabelle td { display: block; width: 100%; }
+  .tabelle thead { display: none; }
+  .tabelle tr {
+    border: 1px solid var(--rand); border-radius: var(--kante);
+    margin-bottom: 10px; padding: 4px 0; background: var(--flaeche);
+  }
+  .tabelle td {
+    display: flex; justify-content: space-between; gap: 14px;
+    border-bottom: 1px solid var(--flaeche-leise); text-align: right;
+  }
+  .tabelle td::before {
+    content: attr(data-spalte);
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-sehr-leise); font-weight: 600; text-align: left; flex: 0 0 auto;
+  }
+
+  .raster-4, .raster-3, .raster-2 { grid-template-columns: 1fr; }
+  .seite { padding: 14px 14px 40px; }
+
+  /* Jeder Text, den man antippen kann, ist ein Fingerziel — auch einer, der
+     wie Fließtext aussieht. Am Rechner bleibt er kompakt, dort trifft die
+     Maus auch 24 px. */
+  .inline-aendern { display: inline-flex; align-items: center; min-height: var(--griff); }
+
+  /* Auch die kleinen Auswahlfelder sind Fingerziele. */
+  .feld-klein { min-height: var(--griff); font-size: 15px; }
+  select.status { font-size: 15px; }
+
+  /* Die Stufenleiste wird zur Liste.
+     Nebeneinander passen vier Stufen nicht in 375 px — „Vorbereitung ·
+     Einreichung · Entscheidung · Abrechnung" läuft über den Rand. Waagrecht
+     scrollen wäre die schlechtere Lösung: Die letzte Stufe ist genau die, die
+     man antippt, um ein Paket auf „fertig" zu setzen, und die läge dann
+     außerhalb des Bildes. Die Monatsanteile stehen als Zahl daneben — die
+     Information geht also nicht verloren. */
+  .stufen { flex-direction: column; }
+  .stufe {
+    flex: none; width: 100%;
+    flex-direction: row; align-items: center; justify-content: space-between;
+    gap: 10px;
+  }
+  .stufe .monate { flex: 0 0 auto; }
+  .stufe[data-erledigt="ja"] { border-left: 3px solid var(--marke); }
+
+  .nachweis-knoepfe { justify-content: flex-start; }
+
+  /* In der Kopfleiste ist kein Platz für Beiwerk: Uhr und Knopf bleiben, das
+     Wo und der Name gehen. */
+  .uhr-chip .wo { display: none; }
+  .profil span { display: none; }
+
+  .mini { min-height: var(--griff); }
+  .tabelle td.zeilen-aktionen { justify-content: flex-end; }
+  .tabelle td.zeilen-aktionen::before { content: "Aktionen"; }
+}

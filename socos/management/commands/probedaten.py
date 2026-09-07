@@ -53,6 +53,10 @@ class Command(BaseCommand):
             "--entfernen", action="store_true",
             help="Entfernt alle Fachdaten und die dabei entstandenen Protokolleinträge.",
         )
+        parser.add_argument(
+            "--mit-probenutzern", action="store_true",
+            help="Legt zwei zusätzliche Konten an, damit die Teamansichten etwas zeigen.",
+        )
 
     def handle(self, *args, **optionen):
         if not settings.DEBUG:
@@ -75,9 +79,35 @@ class Command(BaseCommand):
             )
 
         with transaction.atomic():
+            if optionen["mit_probenutzern"]:
+                self._probenutzer()
             self._anlegen()
         self.stdout.write(self.style.SUCCESS("Probedaten angelegt."))
         self.stdout.write("Zurücknehmen mit:  python manage.py probedaten --entfernen")
+
+    # --- Probenutzer -------------------------------------------------------
+
+    def _probenutzer(self):
+        """
+        Zwei zusätzliche Konten, damit Teamansichten und Zeitnachweis etwas zu
+        zeigen haben.
+
+        Die Adressen enden auf `.invalid` — diese Endung ist per RFC 2606
+        reserviert und kann nie eine echte Adresse sein. Die Konten bekommen
+        **kein** Passwort und sind damit nicht anmeldbar; sie sind Anzeigedaten,
+        keine Zugänge.
+        """
+        from django.contrib.auth.models import Group
+
+        for email, name, farbe in [
+            ("probe-a@beispiel.invalid", "Alex Probe", "#E0D3A8"),
+            ("probe-b@beispiel.invalid", "Bea Muster", "#CBD2E0"),
+        ]:
+            if Nutzer.objects.filter(email=email).exists():
+                continue
+            nutzer = Nutzer.objects.create_user(email=email, name=name, farbe=farbe)
+            nutzer.groups.add(Group.objects.get(name="bearbeiter"))
+            self.stdout.write(f"  Probenutzer angelegt: {name} (nicht anmeldbar)")
 
     # --- Entfernen ---------------------------------------------------------
 
@@ -91,8 +121,19 @@ class Command(BaseCommand):
                 if anzahl:
                     self.stdout.write(f"  {bezeichner}: {anzahl} entfernt")
 
+            probe = Nutzer.objects.filter(email__endswith="@beispiel.invalid")
+            if probe.exists():
+                namen = ", ".join(probe.values_list("name", flat=True))
+                probe.delete()
+                self.stdout.write(f"  Probenutzer entfernt: {namen}")
+
             weg = Protokolleintrag.objects.exclude(
-                modell__in=["socos.Nutzer", "auth.Group"]
+                modell__in=["auth.Group"]
+            ).exclude(
+                modell="socos.Nutzer",
+                objekt_text__in=list(
+                    Nutzer.objects.values_list("name", flat=True)
+                ),
             ).delete()[0]
             self.stdout.write(f"  Protokolleinträge: {weg} entfernt")
         self.stdout.write(self.style.SUCCESS("Probedaten entfernt."))
