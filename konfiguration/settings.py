@@ -151,7 +151,16 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "socos.fehler.fehler_behandeln",
     # Geld und Zeit sind Decimal und gehen als Zeichenkette hinaus. JSON kennt
     # nur Gleitkomma, und dort ist 0.1 + 0.2 nicht 0.3.
+    #
+    # Beides wird gebraucht: COERCE_DECIMAL_TO_STRING deckt Felder ab, die
+    # durch einen Serializer laufen; der eigene Renderer deckt Decimals in
+    # gewöhnlichen dicts ab — sonst macht DRF daraus stillschweigend einen
+    # float, und 10000.0 sieht aus wie "10000.00".
     "COERCE_DECIMAL_TO_STRING": True,
+    "DEFAULT_RENDERER_CLASSES": [
+        "socos.renderer.SocosJSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ],
 }
 
 

@@ -1,9 +1,349 @@
-"""Die Schnittstelle unter /api/."""
+"""
+Die Schnittstelle unter /api/.
 
-from rest_framework.decorators import api_view
+Zeiträume sind **ausdrückliche Parameter** (`?von=&bis=`). Ohne Angabe kommt
+alles — es gibt keinen stillen Filter auf „aktueller Monat".
+"""
+
+from datetime import date, timedelta
+
+from django.db import transaction
+from django.utils import timezone
+from rest_framework import viewsets
+from rest_framework.decorators import action, api_view
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
-from socos import berechtigung
+from socos import berechtigung, serializer as ser
+from socos.models import (
+    Arbeitspaket,
+    Bereich,
+    Fixkosten,
+    Kontakt,
+    Kontostand,
+    Monatskosten,
+    Nutzer,
+    Organisation,
+    Projekt,
+    Protokolleintrag,
+    Unteraufgabe,
+    Verlaufseintrag,
+    Zeitbuchung,
+)
+from socos.services import auswertung, finanzen
+from socos.services import zeit as zeitdienst
+
+
+def _datum(request, name):
+    """Ein Datumsparameter. Ein unlesbarer Wert wird gemeldet, nicht verworfen."""
+    roh = request.query_params.get(name)
+    if not roh:
+        return None
+    try:
+        return date.fromisoformat(roh)
+    except ValueError:
+        raise ValidationError({name: f"„{roh}“ ist kein Datum im Format JJJJ-MM-TT."})
+
+
+class SocosViewSet(viewsets.ModelViewSet):
+    """
+    Gemeinsame Grundlage. Die Berechtigung kommt aus `socos/berechtigung.py`;
+    `DELETE` löscht weich, weil `Basismodell.delete()` das tut.
+    """
+
+    permission_classes = [berechtigung.SocosBerechtigung]
+
+
+# --- Projektstruktur --------------------------------------------------------
+
+
+class ProjektViewSet(SocosViewSet):
+    serializer_class = ser.ProjektSerializer
+    queryset = Projekt.objects.all()
+
+    def get_serializer_context(self):
+        kontext = super().get_serializer_context()
+        # Einmal für alle Projekte rechnen statt einmal je Projekt.
+        kontext["sekunden_je_projekt"] = auswertung.sekunden_je_projekt()
+        return kontext
+
+
+class BereichViewSet(SocosViewSet):
+    serializer_class = ser.BereichSerializer
+    queryset = Bereich.objects.select_related("projekt")
+
+
+class ArbeitspaketViewSet(SocosViewSet):
+    serializer_class = ser.ArbeitspaketSerializer
+    queryset = Arbeitspaket.objects.select_related("bereich", "bereich__projekt")
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        if projekt := self.request.query_params.get("projekt"):
+            menge = menge.filter(bereich__projekt_id=projekt)
+        if status := self.request.query_params.get("status"):
+            menge = menge.filter(status=status)
+        return menge
+
+    @action(detail=True, methods=["post"])
+    def stufe(self, request, pk=None):
+        """
+        Setzt den Stufenstand und leitet den Status daraus ab — so wie im
+        Entwurf: ein Klick auf die Leiste bewegt beides.
+        """
+        paket = self.get_object()
+        try:
+            stand = int(request.data.get("stufenstand"))
+        except (TypeError, ValueError):
+            raise ValidationError({"stufenstand": "Eine ganze Zahl wird gebraucht."})
+
+        gesamt = len(paket.bereich.stufen or [])
+        if not 0 <= stand <= gesamt:
+            raise ValidationError({"stufenstand": f"Muss zwischen 0 und {gesamt} liegen."})
+
+        paket.stufenstand = stand
+        # Nur die drei neutralen Zustände werden abgeleitet. „eingereicht",
+        # „zugesagt", „verworfen" und „offene Frage" setzt jemand bewusst —
+        # sie automatisch zu überschreiben, machte die Leiste gefährlich.
+        if paket.status in ("offen", "laeuft", "fertig"):
+            paket.status = "fertig" if stand >= gesamt else ("laeuft" if stand else "offen")
+        paket.save()
+        return Response(self.get_serializer(paket).data)
+
+
+class UnteraufgabeViewSet(SocosViewSet):
+    serializer_class = ser.UnteraufgabeSerializer
+    queryset = Unteraufgabe.objects.select_related("paket")
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        if paket := self.request.query_params.get("paket"):
+            menge = menge.filter(paket_id=paket)
+        return menge
+
+
+# --- Zeit -------------------------------------------------------------------
+
+
+class ZeitbuchungViewSet(SocosViewSet):
+    serializer_class = ser.ZeitbuchungSerializer
+    queryset = Zeitbuchung.objects.select_related(
+        "person", "paket", "paket__bereich", "paket__bereich__projekt"
+    )
+
+    def _schneide_vergessene(self):
+        """
+        Vergessene Clock-outs werden hier abgeschnitten, nicht von einem
+        nächtlichen Dienst. Ein Dienst wäre eine zweite Stelle, an der
+        Buchungen verändert werden, und die sieht man beim Lesen des Codes
+        nicht.
+
+        Gerufen von jedem Einstieg, der Buchungen zeigt — auch von `laufend`
+        und `entwuerfe`, die nicht über `get_queryset` gehen.
+        """
+        auswertung.entwuerfe_aus_vergessenen_clockouts()
+
+    def get_queryset(self):
+        self._schneide_vergessene()
+        menge = super().get_queryset()
+        von, bis = _datum(self.request, "von"), _datum(self.request, "bis")
+        if von:
+            menge = menge.filter(start__date__gte=von)
+        if bis:
+            menge = menge.filter(start__date__lte=bis)
+        if person := self.request.query_params.get("person"):
+            menge = menge.filter(person_id=person)
+        if paket := self.request.query_params.get("paket"):
+            menge = menge.filter(paket_id=paket)
+        if projekt := self.request.query_params.get("projekt"):
+            menge = menge.filter(paket__bereich__projekt_id=projekt)
+        return menge
+
+    def perform_create(self, serializer):
+        person = serializer.validated_data.get("person") or self.request.user
+        self._pruefe_fremde(person)
+        serializer.save(person=person)
+
+    def perform_update(self, serializer):
+        self._pruefe_fremde(serializer.instance.person)
+        serializer.save()
+
+    def _pruefe_fremde(self, person):
+        if person != self.request.user and not berechtigung.darf_fremde_zeiten_aendern(
+            self.request.user
+        ):
+            raise PermissionDenied("Fremde Zeiten darfst du nicht ändern.")
+
+    @action(detail=False, methods=["get"])
+    def laufend(self, request):
+        """
+        Die eigene laufende Buchung.
+
+        Immer ein Objekt mit dem Schlüssel `laufend`, nie ein blankes `null`:
+        Ein Body, der nur aus `null` besteht, wird von DRF als **leerer** Body
+        gerendert, und der Aufrufer bekommt einen Parserfehler statt einer
+        Antwort.
+        """
+        self._schneide_vergessene()
+        buchung = auswertung.laufende_buchung(request.user)
+        return Response({"laufend": self.get_serializer(buchung).data if buchung else None})
+
+    @action(detail=False, methods=["post"])
+    def clock_in(self, request):
+        """
+        Startet die Uhr auf einem Paket.
+
+        Läuft schon eine, wird sie beendet — mit der mitgeschickten Notiz. Das
+        Nachfragen erledigt die Oberfläche, nicht der Server: Der Server darf
+        nicht davon abhängen, dass jemand einen Dialog beantwortet.
+        """
+        paket_id = request.data.get("paket")
+        if not paket_id:
+            raise ValidationError({"paket": "Auf welches Arbeitspaket?"})
+        paket = Arbeitspaket.objects.filter(pk=paket_id).first()
+        if paket is None:
+            raise ValidationError({"paket": "Dieses Arbeitspaket gibt es nicht."})
+
+        with transaction.atomic():
+            laufend = auswertung.laufende_buchung(request.user)
+            if laufend:
+                laufend.ende = timezone.now()
+                laufend.notiz = request.data.get("notiz", laufend.notiz)
+                laufend.save()
+            neu = Zeitbuchung.objects.create(
+                person=request.user, paket=paket, start=timezone.now()
+            )
+        return Response(self.get_serializer(neu).data, status=201)
+
+    @action(detail=False, methods=["post"])
+    def clock_out(self, request):
+        laufend = auswertung.laufende_buchung(request.user)
+        if laufend is None:
+            raise ValidationError({"detail": "Es läuft gerade keine Buchung."})
+        laufend.ende = timezone.now()
+        laufend.notiz = request.data.get("notiz", "")
+        laufend.save()
+        return Response(self.get_serializer(laufend).data)
+
+    @action(detail=True, methods=["post"])
+    def entwurf_bestaetigen(self, request, pk=None):
+        """
+        Bestätigt eine am Tagesende abgeschnittene Buchung — mit dem Ende, das
+        die Person angibt. Erst danach zählt sie in Auswertungen mit.
+        """
+        buchung = self.get_object()
+        self._pruefe_fremde(buchung.person)
+        if not buchung.ist_entwurf:
+            raise ValidationError({"detail": "Diese Buchung ist kein Entwurf."})
+
+        if rohes_ende := request.data.get("ende"):
+            feld = ser.ZeitbuchungSerializer().fields["ende"]
+            buchung.ende = feld.to_internal_value(rohes_ende)
+        if buchung.ende <= buchung.start:
+            raise ValidationError({"ende": "Das Ende muss nach dem Start liegen."})
+
+        buchung.notiz = request.data.get("notiz", buchung.notiz)
+        buchung.ist_entwurf = False
+        buchung.save()
+        return Response(self.get_serializer(buchung).data)
+
+    @action(detail=False, methods=["get"])
+    def entwuerfe(self, request):
+        self._schneide_vergessene()
+        menge = auswertung.offene_entwuerfe(request.user)
+        return Response(self.get_serializer(menge, many=True).data)
+
+
+# --- Kontakte ---------------------------------------------------------------
+
+
+class OrganisationViewSet(SocosViewSet):
+    serializer_class = ser.OrganisationSerializer
+    queryset = Organisation.objects.all()
+
+
+class KontaktViewSet(SocosViewSet):
+    serializer_class = ser.KontaktSerializer
+    queryset = Kontakt.objects.select_related("organisation")
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        if ball := self.request.query_params.get("ball"):
+            menge = menge.filter(ball=ball)
+        if suche := self.request.query_params.get("suche"):
+            menge = menge.filter(name__icontains=suche)
+        return menge
+
+
+class VerlaufViewSet(SocosViewSet):
+    serializer_class = ser.VerlaufseintragSerializer
+    queryset = Verlaufseintrag.objects.select_related("kontakt", "organisation", "wer")
+
+    def perform_create(self, serializer):
+        # Wer den Eintrag geschrieben hat, bestimmt der Server. Ein Feld, das
+        # der Aufrufer setzen darf, ist keine Auskunft mehr.
+        serializer.save(wer=self.request.user)
+
+
+# --- Finanzen ---------------------------------------------------------------
+#
+# Sehen dürfen alle. Eintragen nur der Admin — deshalb `schreiben_nur_admin`.
+
+
+class KontostandViewSet(SocosViewSet):
+    serializer_class = ser.KontostandSerializer
+    queryset = Kontostand.objects.all()
+    schreiben_nur_admin = True
+
+
+class FixkostenViewSet(SocosViewSet):
+    serializer_class = ser.FixkostenSerializer
+    queryset = Fixkosten.objects.all()
+    schreiben_nur_admin = True
+
+
+class MonatskostenViewSet(SocosViewSet):
+    serializer_class = ser.MonatskostenSerializer
+    queryset = Monatskosten.objects.all()
+    schreiben_nur_admin = True
+
+
+# --- Nutzer und Protokoll ---------------------------------------------------
+
+
+class NutzerViewSet(SocosViewSet):
+    serializer_class = ser.NutzerSerializer
+    queryset = Nutzer.objects.filter(is_active=True)
+
+    def perform_update(self, serializer):
+        # Sein Profil bearbeitet jeder selbst; fremde nur der Admin.
+        if serializer.instance != self.request.user and not berechtigung.ist_admin(
+            self.request.user
+        ):
+            raise PermissionDenied("Nur das eigene Profil.")
+        serializer.save()
+
+
+class ProtokollViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Nur lesen. Ein Änderungsprotokoll, das man ändern kann, beantwortet die
+    Frage nicht mehr, für die es da ist.
+    """
+
+    serializer_class = ser.ProtokollSerializer
+    queryset = Protokolleintrag.objects.select_related("nutzer")
+    permission_classes = [berechtigung.SocosBerechtigung]
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        if modell := self.request.query_params.get("modell"):
+            menge = menge.filter(modell=modell)
+        if objekt := self.request.query_params.get("objekt"):
+            menge = menge.filter(objekt_id=objekt)
+        return menge
+
+
+# --- Einzelne Auskünfte -----------------------------------------------------
 
 
 @api_view(["GET"])
@@ -11,9 +351,9 @@ def ich(request):
     """
     Wer bin ich und was darf ich.
 
-    Das Frontend darf hieraus **nichts** ableiten, was es nicht auch ohne dürfte:
-    Die Antwort sagt, was anzuzeigen ist — entschieden wird jede einzelne Anfrage
-    trotzdem serverseitig neu.
+    Das Frontend darf hieraus **nichts** ableiten, was es nicht auch ohne
+    dürfte: Die Antwort sagt, was anzuzeigen ist — entschieden wird jede
+    einzelne Anfrage trotzdem serverseitig neu.
     """
     nutzer = request.user
     return Response(
@@ -31,5 +371,73 @@ def ich(request):
                 "finanzen_eintragen": berechtigung.darf_finanzen_eintragen(nutzer),
                 "nutzer_verwalten": berechtigung.darf_nutzer_verwalten(nutzer),
             },
+        }
+    )
+
+
+@api_view(["GET"])
+def dashboard(request):
+    """
+    Alles, was das Dashboard braucht — in einem Abruf.
+
+    Ein Dashboard, das acht Ressourcen einzeln zieht, zeigt acht verschiedene
+    Ladezustände nebeneinander und ist am Handy langsam.
+
+    Der Zeitraum ist ausdrücklich: `?von=&bis=`. Ohne Angabe die laufende Woche
+    — und das steht als `zeitraum` in der Antwort, damit niemand raten muss,
+    worauf sich die Zahlen beziehen.
+    """
+    auswertung.entwuerfe_aus_vergessenen_clockouts()
+
+    von, bis = _datum(request, "von"), _datum(request, "bis")
+    if not von and not bis:
+        von, bis = zeitdienst.woche_um()
+
+    je_person = auswertung.sekunden_je_person(von, bis)
+    je_projekt = auswertung.sekunden_je_projekt(von, bis)
+
+    team = list(Nutzer.objects.filter(is_active=True))
+    laufende = {
+        b.person_id: b
+        for b in Zeitbuchung.objects.select_related(
+            "paket", "paket__bereich", "paket__bereich__projekt"
+        ).filter(ende__isnull=True)
+    }
+
+    return Response(
+        {
+            "zeitraum": {"von": von, "bis": bis},
+            "finanzen": finanzen.uebersicht(),
+            "kontostand_verlauf": ser.KontostandSerializer(
+                Kontostand.objects.order_by("datum"), many=True
+            ).data,
+            "team": [
+                {
+                    "id": n.pk,
+                    "name": n.name,
+                    "initialen": n.initialen,
+                    "farbe": n.farbe,
+                    "sekunden": je_person.get(n.pk, 0),
+                    "laeuft_auf": (
+                        laufende[n.pk].paket.titel if n.pk in laufende else None
+                    ),
+                    "laeuft_seit": laufende[n.pk].start if n.pk in laufende else None,
+                }
+                for n in team
+            ],
+            "team_sekunden": sum(je_person.values()),
+            "projekte": [
+                {
+                    "id": p.pk,
+                    "titel": p.titel,
+                    "untertitel": p.untertitel,
+                    "farbe": p.farbe,
+                    "sekunden": je_projekt.get(p.pk, 0),
+                }
+                for p in Projekt.objects.all()
+            ],
+            "offene_entwuerfe": ser.ZeitbuchungSerializer(
+                auswertung.offene_entwuerfe(request.user), many=True
+            ).data,
         }
     )

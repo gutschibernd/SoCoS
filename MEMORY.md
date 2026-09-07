@@ -148,6 +148,35 @@ Die Zeitdokumentation **muss auditierbar sein**.
 
 ---
 
+## 2026-09-07 — Weiches Löschen ging an `PROTECT` vorbei
+
+Beim Bauen der Schnittstelle aufgefallen: Ein Projekt ließ sich löschen, obwohl
+Zeitbuchungen daran hingen. `on_delete=PROTECT` greift nämlich nur beim echten
+Löschen — weiches Löschen ist für die Datenbank ein `UPDATE`, und der Schutz
+läuft dabei ins Leere. Die Buchungen wären Waisen geworden: in keiner Liste mehr
+sichtbar, aber weiter in der Datenbank und in jedem Nachweis.
+
+`Basismodell.geschuetzte_verweise()` prüft das jetzt von Hand und wirft
+`ProtectedError`; die zentrale Fehlerübersetzung macht daraus die 409, die es
+schon gab. Weich Gelöschtes hält dabei **nicht** dagegen — sonst ließe sich nach
+dem ersten Löschen nie wieder etwas entfernen.
+
+`queryset.delete()` läuft dafür Zeile für Zeile statt als ein `UPDATE`. Das ist
+langsamer und bei drei Nutzern völlig gleichgültig; ein Sammel-Update risse
+genau die Beziehungen auf, die der Schutz verhindern soll.
+
+## 2026-09-07 — Decimal wurde in der API stillschweigend zu float
+
+`COERCE_DECIMAL_TO_STRING` deckt nur Felder ab, die durch einen Serializer
+laufen. Ein `Decimal` in einem gewöhnlichen dict — etwa im Dashboard — machte
+DRF kommentarlos zu einem `float`. Der Fehler wäre unsichtbar geblieben:
+`10000.0` sieht aus wie `"10000.00"`.
+
+Dafür gibt es jetzt `socos/renderer.py`. **Beides wird gebraucht**, die
+Einstellung und der Renderer.
+
+---
+
 ## 2026-09-07 — Ohne Sitzung führte die Oberfläche in eine Sackgasse
 
 Wer `/` ohne Anmeldung öffnete, bekam von `/api/ich/` eine 403 mit

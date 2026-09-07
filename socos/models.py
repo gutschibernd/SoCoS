@@ -105,8 +105,17 @@ class AktiveAbfrage(models.QuerySet):
         Auch ein `queryset.delete()` löscht weich. Sonst gäbe es einen zweiten,
         stillen Weg an der Regel vorbei — und genau der wird benutzt, wenn es
         schnell gehen muss.
+
+        Bewusst Zeile für Zeile statt als ein `update()`: Nur so greift die
+        Prüfung auf geschützte Verweise. Ein Sammel-Update wäre schneller und
+        risse dabei Beziehungen auf, die `on_delete=PROTECT` gerade verhindern
+        soll. Bei drei Nutzern ist die Geschwindigkeit den Preis nicht wert.
         """
-        return self.update(geloescht_am=timezone.now())
+        anzahl = 0
+        for objekt in self:
+            objekt.delete()
+            anzahl += 1
+        return anzahl, {self.model._meta.label: anzahl}
 
     def hart_loeschen(self):
         """Nur für Tests und den Wiedereinspieler einer Sicherung."""
@@ -147,8 +156,41 @@ class Basismodell(models.Model):
     def ist_geloescht(self):
         return self.geloescht_am is not None
 
+    def geschuetzte_verweise(self):
+        """
+        Was noch auf dieses Objekt zeigt und mit `on_delete=PROTECT` hängt.
+
+        **Warum das von Hand geprüft wird:** `PROTECT` greift nur beim echten
+        Löschen. Weiches Löschen ist für die Datenbank ein `UPDATE` — der
+        Schutz läuft dabei ins Leere, und ein Projekt ließe sich entfernen,
+        obwohl Zeitbuchungen daran hängen. Die wären danach Waisen: in keiner
+        Liste mehr sichtbar, aber weiter in der Datenbank und im Nachweis.
+        """
+        treffer = []
+        for beziehung in self._meta.related_objects:
+            if beziehung.on_delete is not models.PROTECT:
+                continue
+            menge = beziehung.related_model._base_manager.filter(
+                **{beziehung.field.name: self}
+            )
+            if hasattr(beziehung.related_model, "geloescht_am"):
+                menge = menge.filter(geloescht_am__isnull=True)
+            treffer.extend(menge[:5])
+        return treffer
+
     def delete(self, *args, **kwargs):
-        """Weiches Löschen. Ein hartes gibt es in dieser Anwendung nicht."""
+        """
+        Weiches Löschen. Ein hartes gibt es in dieser Anwendung nicht.
+
+        Wirft `ProtectedError`, wenn noch etwas daran hängt — die zentrale
+        Fehlerübersetzung macht daraus eine 409 samt Aufzählung dessen, was
+        im Weg steht.
+        """
+        haengt_dran = self.geschuetzte_verweise()
+        if haengt_dran:
+            raise models.ProtectedError(
+                f"„{self}“ wird noch verwendet.", haengt_dran
+            )
         self.geloescht_am = timezone.now()
         self.save(update_fields=["geloescht_am", "geaendert_am"])
 
