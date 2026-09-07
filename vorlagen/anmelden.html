@@ -26,6 +26,7 @@
   --marke: #14595F;
   --marke-dunkel: #0F4448;
   --marke-rand: #A8C6C4;
+  --auf-marke: #FFFFFF;
   --warnung: #9C4229;
   --warnung-hell: #F7E6DF;
   --kante: 2px;
@@ -43,6 +44,7 @@
     --marke: #5EA8A8;
     --marke-dunkel: #0F4448;
     --marke-rand: #3A6B6C;
+    --auf-marke: #0B2224;
     --warnung: #D98A6D;
     --warnung-hell: #33211C;
   }
@@ -93,11 +95,11 @@ button {
   width: 100%;
   min-height: var(--griff);
   font: inherit; font-size: 16px; font-weight: 600;
-  color: #FFFFFF; background: var(--marke);
+  color: var(--auf-marke); background: var(--marke);
   border: 0; border-radius: var(--kante);
   cursor: pointer;
 }
-button:hover { background: var(--marke-dunkel); }
+button:hover { filter: brightness(0.92); }
 .fehler {
   background: var(--warnung-hell);
   color: var(--warnung);

@@ -33,6 +33,9 @@
   --marke-rand: #a8c6c4;
   --akzent: #8a5638;
   --akzent-hell: #f4ebe1;
+  /* Text auf einer Markenfläche. Hell ist die Marke dunkel genug für Weiß;
+     dunkel ist sie aufgehellt, und Weiß darauf käme auf 2,3:1. */
+  --auf-marke: #ffffff;
 
   /* Kopfleiste */
   --kopf-grund: #0f4448;
@@ -79,6 +82,7 @@
     --marke-rand: #3a6b6c;
     --akzent: #c88a63;
     --akzent-hell: #2e2420;
+    --auf-marke: #0b2224;
 
     --kopf-grund: #0d3a3d;
     --kopf-text: #cfe0df;
@@ -117,6 +121,7 @@
   --marke-rand: #3a6b6c;
   --akzent: #c88a63;
   --akzent-hell: #2e2420;
+  --auf-marke: #0b2224;
 
   --kopf-grund: #0d3a3d;
   --kopf-text: #cfe0df;

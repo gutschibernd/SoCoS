@@ -36,6 +36,14 @@ auf derselben Maschine.
 eigene Ports nehmen kann. **Ein Vite auf fremdem Port, dessen Proxy noch auf den
 Hauptport zeigt, mischt zwei Zweige in einer Ansicht — und das sieht man nicht.**
 
+## `runserver --noreload` hält Vorlagen fest
+
+Django legt Vorlagen in einen Zwischenspeicher und wirft ihn nur beim Neustart
+weg. Der Autoreloader tut das bei jeder Dateiänderung — `--noreload` nicht.
+Wer damit startet und dann `vorlagen/anmelden.html` ändert, bekommt weiter die
+alte Seite ausgeliefert und sucht den Fehler in der Datei, die längst richtig
+ist. **Nach einer Vorlagenänderung neu starten, oder ohne `--noreload` arbeiten.**
+
 ## Datenbank
 
 Schemaänderungen **nur über Migrationen**, nie per SQL. Gelaufene Migrationen werden

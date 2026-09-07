@@ -148,6 +148,28 @@ Die Zeitdokumentation **muss auditierbar sein**.
 
 ---
 
+## 2026-09-07 — Ohne Sitzung führte die Oberfläche in eine Sackgasse
+
+Wer `/` ohne Anmeldung öffnete, bekam von `/api/ich/` eine 403 mit
+`not_authenticated`. Das Frontend zeichnete daraus „Das hat nicht geklappt" —
+eine Fehlerseite ohne Weg zur Anmeldung. Das Gerüst war damit fertig, aber
+nicht benutzbar.
+
+`frontend/src/basis/anmeldung.ts` schickt jetzt bei **`not_authenticated`** zur
+Anmeldung und hängt den Weg als `?next=` an. Bei `permission_denied`
+ausdrücklich **nicht**: Dort steht die Sitzung, und wer zur Anmeldung geschickt
+wird, verliert sie für nichts und landet danach wieder auf derselben verwehrten
+Seite. Genau dafür gibt es das `code`-Feld an der 403.
+
+Nebenbei: Im Dunkelmodus stand weiße Schrift auf dem aufgehellten Türkis des
+Knopfes — 2,3:1. Dafür gibt es jetzt `--auf-marke` in beiden Paletten.
+
+**Falle, die dabei eine Stunde gekostet hätte:** `runserver --noreload` hält
+Vorlagen im Zwischenspeicher fest. Eine geänderte `anmelden.html` wurde weiter
+in der alten Fassung ausgeliefert. Steht in CLAUDE.md.
+
+---
+
 ## 2026-09-06 — Python 3.12 statt 3.14
 
 Lokal liegen 3.12 und 3.14. Genommen wird **3.12**: Django 5.2 nennt 3.10–3.13 als
