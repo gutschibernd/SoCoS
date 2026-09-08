@@ -7,6 +7,53 @@ betrifft.
 
 ---
 
+## 2026-09-08 — Kontakte: erst die Organisation, dann die Person
+
+Die Kontakteseite war ein Board über drei Spuren (Erstkontakt · Antrag · Partner)
+mit den Personen als Einträgen darin. Gesucht wird aber nach der **Organisation**
+(„was läuft mit der Förderstelle?"), und die Antwort darauf stand vorher an zwei
+Orten: das Telefonat mit der Programmleitung hing an der Person, die Mail an das
+Haus an der Organisation — und niemand sah den Faden.
+
+Jetzt: eine Liste aller Organisationen, ein Klick öffnet die Organisation als
+eigene Seite mit Personenkacheln, einem Verlauf und der Nachbuchzeile darüber.
+
+Entscheidungen, die man dem Code sonst nicht ansieht:
+
+- **Der Verlauf wird beim Anzeigen zusammengeführt, nicht beim Speichern**
+  (`basis/kontakte.ts`). Ein zweites Feld „gehört auch zur Organisation" wäre
+  eine zweite Wahrheit, die beim Umhängen einer Person auseinanderläuft. Das
+  Modell bleibt, wie es war: ein Eintrag hängt an genau einem von beiden.
+- **Die gewählte Organisation steht im Weg (`/kontakte/12`), nicht im Zustand
+  der Ansicht.** Dafür hat der kleine Router eine zweite Ebene bekommen. Grund
+  ist das Handy: „zurück zur Liste" ist dort die häufigste Bewegung, und man
+  nimmt dafür die Zurück-Geste des Geräts. Läge die Auswahl im Zustand, würfe
+  diese Geste jemanden aus der Seite statt eine Ebene hoch.
+- **Ein Weg ins Leere zeigt die Liste**, statt beim Zeichnen umzuleiten. Eine
+  gelöschte Organisation oder ein altes Lesezeichen ist kein Fehlerfall, und
+  der nächste Klick rückt auch den Weg wieder gerade.
+- **Der Ball hängt an Personen, nicht an Organisationen.** Eine Organisation
+  passt zum Filter, wenn eine ihrer Personen passt; eine ohne Personen fällt
+  bei gesetztem Filter heraus — sie schuldet niemandem etwas.
+- **In der Spalte „Offener Punkt" steht vorne, was wir schulden**, dann der
+  Rest. Nur die eigenen Schulden zu zeigen ließe Zeilen leer aussehen, in denen
+  etwas läuft; alle zu zeigen sprengt die Zeile. Die übrigen stehen als Zahl.
+- **„Gehört zu" liegt in der Organisation hinter einem Knopf**, bei den losen
+  Kontakten steht es offen da. In einer Organisation stünde in jeder Kachel
+  dieselbe Antwort — dreimal dasselbe Feld ist Rauschen, und umgehängt wird
+  selten.
+- **Die losen Kontakte sind kein Sonderfall, sondern dieselbe Seite** ohne Kopf
+  und ohne das Ziel „an die Organisation". Ein zweiter Weg für dieselbe Sache
+  wäre der teurere.
+
+Die Falle beim Bauen: `.feld` bringt `width: 100%` mit. In einem umbrechenden
+Flex-Elternteil rechnet der seine eigene Breite damit zu klein, und ein Knopf
+fällt grundlos in die zweite Zeile — sichtbar nur im Bild, nicht im Stylesheet.
+
+Geprüft an 1280×800 und 375×812, hell und dunkel, mit Daten und ohne.
+
+---
+
 ## 2026-09-08 — Echte Daten drin, Probedaten raus
 
 Die Probedaten sind entfernt (`probedaten --entfernen`), die echten Projektdaten

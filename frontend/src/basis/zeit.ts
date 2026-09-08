@@ -43,3 +43,15 @@ export function summeGerundet(einzelne: number[]): number {
 export function alsStunden(sekunden: number): string {
   return (aufFuenfMinuten(sekunden) / 3600).toFixed(2).replace(".", ",");
 }
+
+/**
+ * Heute als `2026-09-08` für ein `<input type="date">`.
+ *
+ * Nicht `toISOString().slice(0, 10)`: Das rechnet nach UTC, und westlich von
+ * Greenwich — oder hier abends nach 22 Uhr Sommerzeit — steht dann der
+ * falsche Tag im Feld. Gebraucht wird der Tag der Uhr an der Wand.
+ */
+export function heuteAlsDatum(jetzt = new Date()): string {
+  const zwei = (n: number) => String(n).padStart(2, "0");
+  return `${jetzt.getFullYear()}-${zwei(jetzt.getMonth() + 1)}-${zwei(jetzt.getDate())}`;
+}

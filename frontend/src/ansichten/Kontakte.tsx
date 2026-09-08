@@ -1,3 +1,18 @@
+/**
+ * Kontakte: erst die Liste aller Organisationen, dann eine Organisation ganz.
+ *
+ * Warum nicht mehr das Board über drei Spuren: In der Spurenansicht stand die
+ * Person im Mittelpunkt und die Organisation war nur ihre Überschrift. Gesucht
+ * wird aber nach der Organisation („was läuft mit der Förderstelle?"), und die
+ * Antwort darauf ist ein Verlauf, der Gespräche mit allen Personen dort und
+ * die Post an das Haus selbst in **einem** Faden zeigt. Das Zusammenführen
+ * steht in basis/kontakte.ts.
+ *
+ * Die gewählte Organisation steht im Weg (`/kontakte/12`), nicht im Zustand
+ * dieser Ansicht — sonst wirft die Zurück-Geste am Handy jemanden aus der
+ * Seite statt eine Ebene hoch. Siehe basis/router.ts.
+ */
+
 import { useState } from "react";
 
 import { hole } from "../basis/api";
@@ -9,14 +24,27 @@ import {
   type Kontakt,
   type Organisation,
 } from "../basis/daten";
+import {
+  letzterKontakt,
+  offenerPunkt,
+  passtKontakt,
+  passtOrganisation,
+  verlaufDerOrganisation,
+  verlaufDerPersonen,
+  wartenAufUns,
+  type Ballfilter,
+  type Verlaufszeile,
+} from "../basis/kontakte";
+import type { Seite } from "../basis/router";
+import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
-import { Zeichen } from "../bausteine/Zeichen";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
+import { Zeichen } from "../bausteine/Zeichen";
 
-const SPUREN: { wert: Organisation["stufe"]; titel: string }[] = [
+const STUFEN: { wert: Organisation["stufe"]; titel: string }[] = [
   { wert: "erstkontakt", titel: "Erstkontakt" },
   { wert: "antrag", titel: "Antrag läuft" },
   { wert: "partner", titel: "Partner" },
@@ -29,64 +57,55 @@ const ARTEN = [
   { wert: "event", text: "Event" },
 ];
 
+/** Der Weg zu den Personen ohne Organisation. Kein Name kann so heißen. */
+const LOSE = "lose";
+
 const DATUM = new Intl.DateTimeFormat("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+const alsDatum = (iso: string | null) => (iso ? DATUM.format(new Date(`${iso}T00:00:00`)) : "—");
+const stufentitel = (stufe: Organisation["stufe"]) =>
+  STUFEN.find((s) => s.wert === stufe)?.titel ?? stufe;
+const artText = (art: string) => ARTEN.find((a) => a.wert === art)?.text ?? art;
 
 async function aendern(pfad: string, daten: Record<string, unknown>): Promise<void> {
   await hole(pfad, { method: "PATCH", body: JSON.stringify(daten) });
 }
 
-export function Kontakte({ ich }: { ich: Ich }) {
+type Loeschauftrag = { pfad: string; name: string; was: string; danach?: () => void };
+
+export function Kontakte({
+  ich,
+  unter,
+  wechseln,
+}: {
+  ich: Ich;
+  unter: string;
+  wechseln: (seite: Seite, unter?: string) => void;
+}) {
   const organisationen = useOrganisationen();
   const kontakte = useKontakte();
   const neuLaden = useNeuLaden();
 
-  const [suche, setSuche] = useState("");
-  const [ballFilter, setBallFilter] = useState<"alle" | "uns" | "ihnen">("alle");
-  const [neueOrg, setNeueOrg] = useState({ name: "", typ: "" });
-  const [neuerKontakt, setNeuerKontakt] = useState({ name: "", funktion: "", organisation: "" });
-  const [gewaehlt, setGewaehlt] = useState<number | null>(null);
-  const [loeschen, setLoeschen] = useState<{ pfad: string; name: string; was: string } | null>(null);
+  const [loeschen, setLoeschen] = useState<Loeschauftrag | null>(null);
   const [fehler, setFehler] = useState("");
 
   if (!organisationen.data)
     return <Zustand abfrage={organisationen} erneut={() => organisationen.refetch()} />;
   if (!kontakte.data) return <Zustand abfrage={kontakte} erneut={() => kontakte.refetch()} />;
 
-  async function orgAnlegen() {
-    if (!neueOrg.name.trim()) return;
-    await hole("/organisationen/", {
-      method: "POST",
-      body: JSON.stringify({ name: neueOrg.name.trim(), typ: neueOrg.typ.trim() }),
-    });
-    setNeueOrg({ name: "", typ: "" });
-    neuLaden();
-  }
-
-  async function kontaktAnlegen() {
-    if (!neuerKontakt.name.trim()) return;
-    await hole("/kontakte/", {
-      method: "POST",
-      body: JSON.stringify({
-        name: neuerKontakt.name.trim(),
-        funktion: neuerKontakt.funktion.trim(),
-        organisation: neuerKontakt.organisation ? Number(neuerKontakt.organisation) : null,
-      }),
-    });
-    setNeuerKontakt({ name: "", funktion: "", organisation: "" });
-    neuLaden();
-  }
-
   async function entfernen() {
     if (!loeschen) return;
     setFehler("");
     try {
       await hole(loeschen.pfad, { method: "DELETE" });
+      loeschen.danach?.();
       setLoeschen(null);
-      setGewaehlt(null);
       neuLaden();
     } catch (e) {
       setFehler(
-        e instanceof Error && "istInVerwendung" in e && (e as { istInVerwendung: boolean }).istInVerwendung
+        e instanceof Error &&
+          "istInVerwendung" in e &&
+          (e as { istInVerwendung: boolean }).istInVerwendung
           ? "Daran hängen noch Personen oder Verlaufseinträge. Die zuerst entfernen oder umhängen."
           : "Das hat nicht geklappt.",
       );
@@ -94,49 +113,17 @@ export function Kontakte({ ich }: { ich: Ich }) {
     }
   }
 
-  const passt = (k: Kontakt) =>
-    (ballFilter === "alle" || k.ball === ballFilter) &&
-    (!suche ||
-      `${k.name} ${k.organisation_name} ${k.funktion} ${k.offener_punkt}`
-        .toLowerCase()
-        .includes(suche.toLowerCase()));
+  const oeffnen = (ziel: string) => wechseln("kontakte", ziel);
+  const zurueck = () => wechseln("kontakte");
+  const lose = kontakte.data.filter((k) => k.organisation === null);
 
-  const lose = kontakte.data.filter((k) => k.organisation === null && passt(k));
-  const gewaehlterKontakt = kontakte.data.find((k) => k.id === gewaehlt) ?? null;
-  const leer = organisationen.data.length === 0 && kontakte.data.length === 0;
+  // Ein Weg ins Leere — eine Organisation, die inzwischen weg ist, oder ein
+  // altes Lesezeichen — zeigt die Liste. Der nächste Klick rückt auch den Weg
+  // wieder gerade; ein Umleiten beim Zeichnen wäre der teurere Weg dorthin.
+  const gewaehlt = organisationen.data.find((o) => String(o.id) === unter) ?? null;
 
   return (
     <div className="spalte">
-      {ich.darf.bearbeiten && (
-        <div className="karte">
-          <h2>Neu anlegen</h2>
-          <div className="feld-reihe">
-            <input className="feld" placeholder="Organisation" value={neueOrg.name} onChange={(e) => setNeueOrg({ ...neueOrg, name: e.target.value })} />
-            <input className="feld" placeholder="Typ (Förderstelle, Partner …)" value={neueOrg.typ} onChange={(e) => setNeueOrg({ ...neueOrg, typ: e.target.value })} />
-            <button type="button" className="knopf-still" onClick={orgAnlegen}>
-              <Zeichen name="plus" />
-              Organisation
-            </button>
-          </div>
-          <div className="feld-reihe" style={{ marginTop: 8 }}>
-            <input className="feld" placeholder="Name der Person" value={neuerKontakt.name} onChange={(e) => setNeuerKontakt({ ...neuerKontakt, name: e.target.value })} />
-            <input className="feld" placeholder="Rolle" value={neuerKontakt.funktion} onChange={(e) => setNeuerKontakt({ ...neuerKontakt, funktion: e.target.value })} />
-            <select className="feld" value={neuerKontakt.organisation} onChange={(e) => setNeuerKontakt({ ...neuerKontakt, organisation: e.target.value })} aria-label="Organisation">
-              <option value="">Loser Kontakt</option>
-              {organisationen.data.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
-            <button type="button" className="knopf" onClick={kontaktAnlegen}>
-              <Zeichen name="plus" />
-              Kontakt
-            </button>
-          </div>
-        </div>
-      )}
-
       {fehler && (
         <div className="karte">
           <p className="rueckmeldung schlecht" style={{ margin: 0 }}>
@@ -145,172 +132,32 @@ export function Kontakte({ ich }: { ich: Ich }) {
         </div>
       )}
 
-      {leer ? (
-        <div className="karte">
-          <Leerstelle
-            was="Noch keine Kontakte"
-            satz={
-              ich.darf.bearbeiten
-                ? "Organisationen sind Förderstellen, Partner und Forschungseinrichtungen. Personen hängen daran — oder stehen als loser Kontakt für sich."
-                : "Kontakte legt ein Bearbeiter oder Admin an."
-            }
-          />
-        </div>
+      {gewaehlt ? (
+        <Organisationsseite
+          org={gewaehlt}
+          organisationen={organisationen.data}
+          ich={ich}
+          neuLaden={neuLaden}
+          zurueck={zurueck}
+          zumLoeschen={setLoeschen}
+        />
+      ) : unter === LOSE ? (
+        <LoseSeite
+          kontakte={lose}
+          organisationen={organisationen.data}
+          ich={ich}
+          neuLaden={neuLaden}
+          zurueck={zurueck}
+          zumLoeschen={setLoeschen}
+        />
       ) : (
-        <>
-          <div className="karte">
-            <div className="feld-reihe">
-              <input className="feld" placeholder="Suchen …" value={suche} onChange={(e) => setSuche(e.target.value)} aria-label="Suchen" />
-              <select className="feld" value={ballFilter} onChange={(e) => setBallFilter(e.target.value as typeof ballFilter)} aria-label="Wer ist am Zug">
-                <option value="alle">Alle</option>
-                <option value="uns">Warten auf uns</option>
-                <option value="ihnen">Wir warten</option>
-              </select>
-              <Hilfe text={`„Warten auf uns“ heißt: wir schulden etwas. „Wir warten“ heißt: der Ball liegt bei den anderen.`} />
-            </div>
-          </div>
-
-          <div className="raster raster-3">
-            {SPUREN.map((spur) => {
-              const orgs = organisationen.data!.filter((o) => o.stufe === spur.wert);
-              return (
-                <div className="karte" key={spur.wert}>
-                  <h2>{spur.titel}</h2>
-                  {orgs.length === 0 ? (
-                    <Leerstelle was="Keine Organisation in dieser Stufe" satz="" />
-                  ) : (
-                    orgs.map((o) => (
-                      <div className="org" key={o.id}>
-                        <div className="org-kopf">
-                          <i>{o.kurz}</i>
-                          <b>
-                            <Feldtext
-                              wert={o.name}
-                              aendern={ich.darf.bearbeiten}
-                              speichern={async (name) => {
-                                await aendern(`/organisationen/${o.id}/`, { name });
-                                neuLaden();
-                              }}
-                            />
-                          </b>
-                          {ich.darf.loeschen && (
-                            <button
-                              type="button"
-                              className="mini"
-                              title={`„${o.name}“ entfernen`}
-                              onClick={() =>
-                                setLoeschen({
-                                  pfad: `/organisationen/${o.id}/`,
-                                  name: o.name,
-                                  was: "Die Organisation",
-                                })
-                              }
-                            >
-                              <Zeichen name="kreuz" />
-                            </button>
-                          )}
-                        </div>
-
-                        {ich.darf.bearbeiten && (
-                          <select
-                            className="feld feld-klein"
-                            value={o.stufe}
-                            onChange={async (e) => {
-                              await aendern(`/organisationen/${o.id}/`, { stufe: e.target.value });
-                              neuLaden();
-                            }}
-                            aria-label={`Stufe von ${o.name}`}
-                          >
-                            {SPUREN.map((sp) => (
-                              <option key={sp.wert} value={sp.wert}>
-                                {sp.titel}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-
-                        <div className="org-typ">
-                          <Feldtext
-                            wert={o.typ}
-                            platzhalter="Typ …"
-                            aendern={ich.darf.bearbeiten}
-                            speichern={async (typ) => {
-                              await aendern(`/organisationen/${o.id}/`, { typ });
-                              neuLaden();
-                            }}
-                          />
-                        </div>
-
-                        <div className="org-nutzen">
-                          <Feldtext
-                            wert={o.nutzen}
-                            mehrzeilig
-                            platzhalter="Was bringt uns dieser Kontakt?"
-                            aendern={ich.darf.bearbeiten}
-                            speichern={async (nutzen) => {
-                              await aendern(`/organisationen/${o.id}/`, { nutzen });
-                              neuLaden();
-                            }}
-                          />
-                        </div>
-
-                        <ul className="org-personen">
-                          {o.kontakte.filter(passt).map((k) => (
-                            <li key={k.id}>
-                              <button type="button" onClick={() => setGewaehlt(k.id)}>
-                                {k.name}
-                                <span className={`ball ball-${k.ball}`}>
-                                  {k.ball === "uns" ? "bei uns" : "bei ihnen"}
-                                </span>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="karte">
-            <h2>Lose Kontakte</h2>
-            {lose.length === 0 ? (
-              <Leerstelle was="Keine losen Kontakte" satz="Personen ohne Organisation stehen hier." />
-            ) : (
-              <ul className="org-personen">
-                {lose.map((k) => (
-                  <li key={k.id}>
-                    <button type="button" onClick={() => setGewaehlt(k.id)}>
-                      {k.name}
-                      <span className={`ball ball-${k.ball}`}>
-                        {k.ball === "uns" ? "bei uns" : "bei ihnen"}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {gewaehlterKontakt && (
-            <KontaktTiefe
-              kontakt={gewaehlterKontakt}
-              organisationen={organisationen.data}
-              ich={ich}
-              neuLaden={neuLaden}
-              schliessen={() => setGewaehlt(null)}
-              zumLoeschen={() =>
-                setLoeschen({
-                  pfad: `/kontakte/${gewaehlterKontakt.id}/`,
-                  name: gewaehlterKontakt.name,
-                  was: "Die Person mit ihrem Verlauf",
-                })
-              }
-            />
-          )}
-        </>
+        <Uebersicht
+          organisationen={organisationen.data}
+          lose={lose}
+          ich={ich}
+          neuLaden={neuLaden}
+          oeffnen={oeffnen}
+        />
       )}
 
       {loeschen && (
@@ -325,138 +172,720 @@ export function Kontakte({ ich }: { ich: Ich }) {
   );
 }
 
-function KontaktTiefe({
-  kontakt,
+/* --- Die Liste ------------------------------------------------------------ */
+
+function Uebersicht({
   organisationen,
+  lose,
   ich,
   neuLaden,
-  schliessen,
-  zumLoeschen,
+  oeffnen,
 }: {
-  kontakt: Kontakt;
   organisationen: Organisation[];
+  lose: Kontakt[];
   ich: Ich;
   neuLaden: () => void;
-  schliessen: () => void;
-  zumLoeschen: () => void;
+  oeffnen: (ziel: string) => void;
 }) {
-  const [eintrag, setEintrag] = useState({ art: "call", titel: "", text: "" });
+  const [suche, setSuche] = useState("");
+  const [ball, setBall] = useState<Ballfilter>("alle");
+  const [neue, setNeue] = useState({ name: "", typ: "" });
 
-  async function verlaufAnlegen() {
-    if (!eintrag.titel.trim()) return;
-    await hole("/verlauf/", {
+  async function anlegen() {
+    if (!neue.name.trim()) return;
+    const angelegt = await hole<Organisation>("/organisationen/", {
       method: "POST",
-      body: JSON.stringify({
-        kontakt: kontakt.id,
-        art: eintrag.art,
-        titel: eintrag.titel.trim(),
-        text: eintrag.text.trim(),
-      }),
+      body: JSON.stringify({ name: neue.name.trim(), typ: neue.typ.trim() }),
     });
-    setEintrag({ art: "call", titel: "", text: "" });
+    setNeue({ name: "", typ: "" });
     neuLaden();
+    // Gleich hinein: Wer eine Organisation anlegt, will als Nächstes die
+    // Personen und den ersten Verlaufseintrag eintragen.
+    oeffnen(String(angelegt.id));
   }
 
-  return (
-    <div className="karte" style={{ borderTop: "3px solid var(--marke)" }}>
-      <div className="projekt-kopf">
-        <div style={{ minWidth: 200 }}>
-          <h3>
-            <Feldtext
-              wert={kontakt.name}
-              aendern={ich.darf.bearbeiten}
-              speichern={async (name) => {
-                await aendern(`/kontakte/${kontakt.id}/`, { name });
-                neuLaden();
-              }}
-            />
-          </h3>
-          <div className="unter">
-            <Feldtext
-              wert={kontakt.funktion}
-              platzhalter="Rolle …"
-              aendern={ich.darf.bearbeiten}
-              speichern={async (funktion) => {
-                await aendern(`/kontakte/${kontakt.id}/`, { funktion });
-                neuLaden();
-              }}
-            />
-          </div>
-        </div>
-        <button type="button" className="knopf-still" onClick={schliessen}>
-          Schließen
-        </button>
-        {ich.darf.loeschen && (
-          <button type="button" className="knopf-still" onClick={zumLoeschen}>
-            <Zeichen name="korb" />
-            Entfernen
-          </button>
-        )}
-      </div>
+  const gefiltert = organisationen.filter((o) => passtOrganisation(o, suche, ball));
+  const gefilterteLose = lose.filter((k) => passtKontakt(k, suche, ball));
+  const nichts = organisationen.length === 0 && lose.length === 0;
 
+  if (nichts)
+    return (
+      <div className="karte">
+        <Leerstelle
+          was="Noch keine Kontakte"
+          satz={
+            ich.darf.bearbeiten
+              ? "Organisationen sind Förderstellen, Partner und Forschungseinrichtungen. Personen hängen daran — oder stehen als loser Kontakt für sich."
+              : "Kontakte legt ein Bearbeiter oder Admin an."
+          }
+        />
+      </div>
+    );
+
+  return (
+    <>
       {ich.darf.bearbeiten && (
-        <div className="feld-reihe" style={{ marginBottom: 14 }}>
-          <select
-            className="feld"
-            value={kontakt.organisation ?? ""}
-            onChange={async (e) => {
-              await aendern(`/kontakte/${kontakt.id}/`, {
-                organisation: e.target.value ? Number(e.target.value) : null,
-              });
-              neuLaden();
-            }}
-            aria-label="Organisation"
-          >
-            <option value="">Loser Kontakt</option>
-            {organisationen.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="feld"
-            value={kontakt.ball}
-            onChange={async (e) => {
-              await aendern(`/kontakte/${kontakt.id}/`, { ball: e.target.value });
-              neuLaden();
-            }}
-            aria-label="Wer ist am Zug"
-          >
-            <option value="uns">Am Zug: wir</option>
-            <option value="ihnen">Am Zug: die anderen</option>
-          </select>
+        <div className="karte">
+          <h2>Neue Organisation</h2>
+          <div className="feld-reihe">
+            <input
+              className="feld"
+              placeholder="Name"
+              value={neue.name}
+              onChange={(e) => setNeue({ ...neue, name: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && anlegen()}
+            />
+            <input
+              className="feld"
+              placeholder="Typ (Förderstelle, Partner …)"
+              value={neue.typ}
+              onChange={(e) => setNeue({ ...neue, typ: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && anlegen()}
+            />
+            <button type="button" className="knopf" onClick={anlegen}>
+              <Zeichen name="plus" />
+              Anlegen
+            </button>
+          </div>
         </div>
       )}
 
-      <div style={{ marginBottom: 16 }}>
-        <span className="beschriftung-klein">Offener Punkt</span>
-        <div style={{ fontSize: 15 }}>
+      <div className="karte">
+        <div className="feld-reihe">
+          <input
+            className="feld"
+            placeholder="Suchen — Organisation, Person, offener Punkt …"
+            value={suche}
+            onChange={(e) => setSuche(e.target.value)}
+            aria-label="Suchen"
+          />
+          <select
+            className="feld"
+            style={{ flex: "0 1 210px" }}
+            value={ball}
+            onChange={(e) => setBall(e.target.value as Ballfilter)}
+            aria-label="Wer ist am Zug"
+          >
+            <option value="alle">Alle</option>
+            <option value="uns">Warten auf uns</option>
+            <option value="ihnen">Wir warten</option>
+          </select>
+          <Hilfe text="„Warten auf uns“ heißt: wir schulden etwas. „Wir warten“ heißt: der Ball liegt bei den anderen. Der Ball hängt an den Personen — eine Organisation passt, wenn eine ihrer Personen passt." />
+        </div>
+      </div>
+
+      <div className="karte">
+        <h2>Organisationen</h2>
+        {gefiltert.length === 0 && gefilterteLose.length === 0 ? (
+          <Leerstelle
+            was="Nichts gefunden"
+            satz="Kein Eintrag passt zu Suche und Filter."
+            aktion={{
+              text: "Filter zurücksetzen",
+              tun: () => {
+                setSuche("");
+                setBall("alle");
+              },
+            }}
+          />
+        ) : (
+          <table className="tabelle">
+            <thead>
+              <tr>
+                <th>Organisation</th>
+                <th>Typ</th>
+                <th>Stufe</th>
+                <th>Personen</th>
+                <th>Am Zug</th>
+                <th>Zuletzt</th>
+                <th>Offener Punkt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {gefiltert.map((o) => {
+                const offen = offenerPunkt(o.kontakte);
+                return (
+                  <tr key={o.id}>
+                    <td data-spalte="Organisation">
+                      <button
+                        type="button"
+                        className="zeilen-titel"
+                        onClick={() => oeffnen(String(o.id))}
+                      >
+                        <i className="kuerzel">{o.kurz}</i>
+                        {o.name}
+                      </button>
+                    </td>
+                    <td data-spalte="Typ">{o.typ || "—"}</td>
+                    <td data-spalte="Stufe">
+                      <span className={`status stufe-${o.stufe}`}>{stufentitel(o.stufe)}</span>
+                    </td>
+                    <td data-spalte="Personen" className="zahl">
+                      {o.kontakte.length}
+                    </td>
+                    <td data-spalte="Am Zug">
+                      <AmZug kontakte={o.kontakte} />
+                    </td>
+                    <td data-spalte="Zuletzt" className="zahl">
+                      {alsDatum(letzterKontakt(o))}
+                    </td>
+                    <td data-spalte="Offener Punkt">
+                      {offen.text || "—"}
+                      {offen.weitere > 0 && <span className="weitere">+{offen.weitere}</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {gefilterteLose.length > 0 && (
+                <tr>
+                  <td data-spalte="Organisation">
+                    <button type="button" className="zeilen-titel" onClick={() => oeffnen(LOSE)}>
+                      <i className="kuerzel kuerzel-leer">—</i>
+                      Lose Kontakte
+                    </button>
+                  </td>
+                  <td data-spalte="Typ">Personen ohne Organisation</td>
+                  <td data-spalte="Stufe">—</td>
+                  <td data-spalte="Personen" className="zahl">
+                    {gefilterteLose.length}
+                  </td>
+                  <td data-spalte="Am Zug">
+                    <AmZug kontakte={gefilterteLose} />
+                  </td>
+                  <td data-spalte="Zuletzt" className="zahl">
+                    {alsDatum(verlaufDerPersonen(gefilterteLose)[0]?.datum ?? null)}
+                  </td>
+                  <td data-spalte="Offener Punkt">{offenerPunkt(gefilterteLose).text || "—"}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AmZug({ kontakte }: { kontakte: Kontakt[] }) {
+  if (kontakte.length === 0) return <>—</>;
+  const uns = wartenAufUns(kontakte);
+  if (uns === 0) return <span className="ball ball-ihnen">bei ihnen</span>;
+  return <span className="ball ball-uns">{uns === kontakte.length ? "bei uns" : `${uns} bei uns`}</span>;
+}
+
+/* --- Eine Organisation ---------------------------------------------------- */
+
+function Organisationsseite({
+  org,
+  organisationen,
+  ich,
+  neuLaden,
+  zurueck,
+  zumLoeschen,
+}: {
+  org: Organisation;
+  organisationen: Organisation[];
+  ich: Ich;
+  neuLaden: () => void;
+  zurueck: () => void;
+  zumLoeschen: (auftrag: Loeschauftrag) => void;
+}) {
+  return (
+    <>
+      <Zurueck name={org.name} zurueck={zurueck} />
+
+      <div className="karte">
+        <div className="projekt-kopf">
+          <i className="kuerzel">{org.kurz}</i>
+          <div style={{ minWidth: 200 }}>
+            <h3>
+              <Feldtext
+                wert={org.name}
+                aendern={ich.darf.bearbeiten}
+                speichern={async (name) => {
+                  await aendern(`/organisationen/${org.id}/`, { name });
+                  neuLaden();
+                }}
+              />
+            </h3>
+            <div className="unter">
+              <Feldtext
+                wert={org.typ}
+                platzhalter="Typ …"
+                aendern={ich.darf.bearbeiten}
+                speichern={async (typ) => {
+                  await aendern(`/organisationen/${org.id}/`, { typ });
+                  neuLaden();
+                }}
+              />
+              {` · ${org.kontakte.length} ${org.kontakte.length === 1 ? "Person" : "Personen"}`}
+              {` · zuletzt ${alsDatum(letzterKontakt(org))}`}
+            </div>
+          </div>
+
+          <div className="kopf-aktionen">
+            {ich.darf.bearbeiten && (
+              <select
+                className="feld"
+                value={org.stufe}
+                onChange={async (e) => {
+                  await aendern(`/organisationen/${org.id}/`, { stufe: e.target.value });
+                  neuLaden();
+                }}
+                aria-label={`Stufe von ${org.name}`}
+              >
+                {STUFEN.map((s) => (
+                  <option key={s.wert} value={s.wert}>
+                    {s.titel}
+                  </option>
+                ))}
+              </select>
+            )}
+            {ich.darf.loeschen && (
+              <button
+                type="button"
+                className="knopf-still"
+                onClick={() =>
+                  zumLoeschen({
+                    pfad: `/organisationen/${org.id}/`,
+                    name: org.name,
+                    was: "Die Organisation",
+                    danach: zurueck,
+                  })
+                }
+              >
+                <Zeichen name="korb" />
+                Entfernen
+              </button>
+            )}
+          </div>
+        </div>
+
+        <span className="beschriftung-klein">Was bringt uns dieser Kontakt?</span>
+        <div className="org-nutzen">
           <Feldtext
-            wert={kontakt.offener_punkt}
-            platzhalter="Was steht als Nächstes an?"
+            wert={org.nutzen}
+            mehrzeilig
+            platzhalter="Was bringt uns dieser Kontakt?"
             aendern={ich.darf.bearbeiten}
-            speichern={async (offener_punkt) => {
-              await aendern(`/kontakte/${kontakt.id}/`, { offener_punkt });
+            speichern={async (nutzen) => {
+              await aendern(`/organisationen/${org.id}/`, { nutzen });
               neuLaden();
             }}
           />
         </div>
       </div>
 
+      <Personenkarte
+        kontakte={org.kontakte}
+        organisationen={organisationen}
+        gehoertZu={org.id}
+        ich={ich}
+        neuLaden={neuLaden}
+        zumLoeschen={zumLoeschen}
+      />
+
+      <Verlaufskarte
+        zeilen={verlaufDerOrganisation(org)}
+        kontakte={org.kontakte}
+        andasHaus={org.id}
+        ich={ich}
+        neuLaden={neuLaden}
+      />
+    </>
+  );
+}
+
+/* --- Personen ohne Organisation ------------------------------------------- */
+
+function LoseSeite({
+  kontakte,
+  organisationen,
+  ich,
+  neuLaden,
+  zurueck,
+  zumLoeschen,
+}: {
+  kontakte: Kontakt[];
+  organisationen: Organisation[];
+  ich: Ich;
+  neuLaden: () => void;
+  zurueck: () => void;
+  zumLoeschen: (auftrag: Loeschauftrag) => void;
+}) {
+  return (
+    <>
+      <Zurueck name="Lose Kontakte" zurueck={zurueck} />
+
+      <div className="karte">
+        <div className="projekt-kopf">
+          <i className="kuerzel kuerzel-leer">—</i>
+          <div>
+            <h3>Lose Kontakte</h3>
+            <div className="unter">
+              Personen ohne Organisation. Über „Gehört zu“ ordnet man eine einer Organisation zu.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Personenkarte
+        kontakte={kontakte}
+        organisationen={organisationen}
+        gehoertZu={null}
+        ich={ich}
+        neuLaden={neuLaden}
+        zumLoeschen={zumLoeschen}
+      />
+
+      <Verlaufskarte
+        zeilen={verlaufDerPersonen(kontakte)}
+        kontakte={kontakte}
+        andasHaus={null}
+        ich={ich}
+        neuLaden={neuLaden}
+      />
+    </>
+  );
+}
+
+function Zurueck({ name, zurueck }: { name: string; zurueck: () => void }) {
+  return (
+    <div className="zurueckzeile">
+      <button type="button" className="knopf-still" onClick={zurueck}>
+        <Zeichen name="zeiger" klasse="zeiger-zurueck" />
+        Alle Organisationen
+      </button>
+      <span className="brotkrume">Kontakte · {name}</span>
+    </div>
+  );
+}
+
+/* --- Die Personenkacheln --------------------------------------------------- */
+
+function Personenkarte({
+  kontakte,
+  organisationen,
+  gehoertZu,
+  ich,
+  neuLaden,
+  zumLoeschen,
+}: {
+  kontakte: Kontakt[];
+  organisationen: Organisation[];
+  /** Die Organisation, in der wir gerade stehen — `null` bei den losen. */
+  gehoertZu: number | null;
+  ich: Ich;
+  neuLaden: () => void;
+  zumLoeschen: (auftrag: Loeschauftrag) => void;
+}) {
+  const [neue, setNeue] = useState({ name: "", funktion: "" });
+
+  async function anlegen() {
+    if (!neue.name.trim()) return;
+    await hole("/kontakte/", {
+      method: "POST",
+      body: JSON.stringify({
+        name: neue.name.trim(),
+        funktion: neue.funktion.trim(),
+        organisation: gehoertZu,
+      }),
+    });
+    setNeue({ name: "", funktion: "" });
+    neuLaden();
+  }
+
+  return (
+    <div className="karte">
+      <h2>Personen</h2>
+
+      {kontakte.length === 0 ? (
+        <Leerstelle
+          was="Noch keine Person"
+          satz={
+            ich.darf.bearbeiten
+              ? "Wer sitzt dort, mit wem redet man? Ohne Namen ist der Verlauf später nicht zuzuordnen."
+              : "Personen legt ein Bearbeiter oder Admin an."
+          }
+        />
+      ) : (
+        <div className="raster raster-3">
+          {kontakte.map((k) => (
+            <Personenkachel
+              key={k.id}
+              kontakt={k}
+              organisationen={organisationen}
+              imHaus={gehoertZu !== null}
+              ich={ich}
+              neuLaden={neuLaden}
+              zumLoeschen={zumLoeschen}
+            />
+          ))}
+        </div>
+      )}
+
       {ich.darf.bearbeiten && (
-        <div className="nachtrag" style={{ marginBottom: 14 }}>
+        <div className="nachtrag">
           <div className="feld-reihe">
-            <select className="feld" style={{ flex: "0 1 130px" }} value={eintrag.art} onChange={(e) => setEintrag({ ...eintrag, art: e.target.value })} aria-label="Art">
+            <input
+              className="feld"
+              placeholder="Name der Person"
+              value={neue.name}
+              onChange={(e) => setNeue({ ...neue, name: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && anlegen()}
+            />
+            <input
+              className="feld"
+              placeholder="Rolle"
+              value={neue.funktion}
+              onChange={(e) => setNeue({ ...neue, funktion: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && anlegen()}
+            />
+            <button type="button" className="knopf-still" onClick={anlegen}>
+              <Zeichen name="plus" />
+              Person
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Personenkachel({
+  kontakt,
+  organisationen,
+  imHaus,
+  ich,
+  neuLaden,
+  zumLoeschen,
+}: {
+  kontakt: Kontakt;
+  organisationen: Organisation[];
+  /** Ob wir gerade in einer Organisation stehen — bei den losen nicht. */
+  imHaus: boolean;
+  ich: Ich;
+  neuLaden: () => void;
+  zumLoeschen: (auftrag: Loeschauftrag) => void;
+}) {
+  // Bei den losen Personen ist „wohin gehört die?" die Hauptsache und steht
+  // offen da. In einer Organisation stünde in jeder Kachel dieselbe Antwort —
+  // dreimal dasselbe Feld ist Rauschen, und umgehängt wird selten. Dort liegt
+  // es hinter einem Knopf.
+  const [haus, setHaus] = useState(!imHaus);
+
+  const speichern = async (daten: Record<string, unknown>) => {
+    await aendern(`/kontakte/${kontakt.id}/`, daten);
+    neuLaden();
+  };
+
+  return (
+    <div className="person">
+      <div className="person-kopf">
+        <div style={{ minWidth: 0 }}>
+          <div className="person-name">
+            <Feldtext
+              wert={kontakt.name}
+              aendern={ich.darf.bearbeiten}
+              speichern={(name) => speichern({ name })}
+            />
+          </div>
+          <div className="person-rolle">
+            <Feldtext
+              wert={kontakt.funktion}
+              platzhalter="Rolle …"
+              aendern={ich.darf.bearbeiten}
+              speichern={(funktion) => speichern({ funktion })}
+            />
+          </div>
+        </div>
+
+        {ich.darf.bearbeiten ? (
+          <select
+            className="ball-wahl"
+            data-ball={kontakt.ball}
+            value={kontakt.ball}
+            onChange={(e) => speichern({ ball: e.target.value })}
+            aria-label={`Am Zug bei ${kontakt.name}`}
+          >
+            <option value="uns">bei uns</option>
+            <option value="ihnen">bei ihnen</option>
+          </select>
+        ) : (
+          <span className={`ball ball-${kontakt.ball}`}>
+            {kontakt.ball === "uns" ? "bei uns" : "bei ihnen"}
+          </span>
+        )}
+      </div>
+
+      <div className="person-punkt">
+        <span className="beschriftung-klein">Offener Punkt</span>
+        <Feldtext
+          wert={kontakt.offener_punkt}
+          platzhalter="Was steht als Nächstes an?"
+          aendern={ich.darf.bearbeiten}
+          speichern={(offener_punkt) => speichern({ offener_punkt })}
+        />
+      </div>
+
+      {ich.darf.bearbeiten && haus && (
+        <label className="person-haus">
+          <span className="beschriftung-klein">Gehört zu</span>
+          <select
+            className="feld feld-klein"
+            value={kontakt.organisation ?? ""}
+            onChange={(e) =>
+              speichern({ organisation: e.target.value ? Number(e.target.value) : null })
+            }
+          >
+            <option value="">Keine Organisation</option>
+            {organisationen.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      <div className="person-fuss">
+        <span>
+          Zuletzt <span className="zahl">{alsDatum(kontakt.letzter_kontakt)}</span>
+        </span>
+        {ich.darf.bearbeiten && imHaus && !haus && (
+          <button type="button" className="mini" onClick={() => setHaus(true)}>
+            Umhängen
+          </button>
+        )}
+        {ich.darf.loeschen && (
+          <button
+            type="button"
+            className="mini"
+            aria-label={`„${kontakt.name}“ entfernen`}
+            onClick={() =>
+              zumLoeschen({
+                pfad: `/kontakte/${kontakt.id}/`,
+                name: kontakt.name,
+                was: "Die Person mit ihrem Verlauf",
+              })
+            }
+          >
+            <Zeichen name="korb" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* --- Der Verlauf ---------------------------------------------------------- */
+
+function Verlaufskarte({
+  zeilen,
+  kontakte,
+  andasHaus,
+  ich,
+  neuLaden,
+}: {
+  zeilen: Verlaufszeile[];
+  kontakte: Kontakt[];
+  /** Die Organisation, an die ein Eintrag ohne Person geht — `null` bei den losen. */
+  andasHaus: number | null;
+  ich: Ich;
+  neuLaden: () => void;
+}) {
+  const [eintrag, setEintrag] = useState(() => ({
+    art: "call",
+    ziel: andasHaus === null ? String(kontakte[0]?.id ?? "") : "haus",
+    datum: heuteAlsDatum(),
+    titel: "",
+    text: "",
+  }));
+
+  // Ohne Ziel kann nichts eingetragen werden: An das Haus geht es nur, wenn es
+  // eines gibt; an eine Person nur, wenn eine da ist.
+  const kannEintragen = eintrag.ziel === "haus" ? andasHaus !== null : Boolean(eintrag.ziel);
+
+  async function anlegen() {
+    if (!eintrag.titel.trim() || !kannEintragen) return;
+    await hole("/verlauf/", {
+      method: "POST",
+      body: JSON.stringify({
+        // Genau eines von beiden — das prüft auch der Serializer.
+        organisation: eintrag.ziel === "haus" ? andasHaus : null,
+        kontakt: eintrag.ziel === "haus" ? null : Number(eintrag.ziel),
+        art: eintrag.art,
+        datum: eintrag.datum,
+        titel: eintrag.titel.trim(),
+        text: eintrag.text.trim(),
+      }),
+    });
+    setEintrag({ ...eintrag, titel: "", text: "", datum: heuteAlsDatum() });
+    neuLaden();
+  }
+
+  return (
+    <div className="karte">
+      <h2>
+        Verlauf
+        <Hilfe text="Gespräche mit den Personen und Post an das Haus stehen in einem Faden — sonst sieht man den Verlauf nur halb. Wer angesprochen war, steht unter jedem Eintrag." />
+      </h2>
+
+      {ich.darf.bearbeiten && (
+        <div className="nachbuchen">
+          <div className="feld-reihe">
+            <select
+              className="feld"
+              style={{ flex: "0 1 130px" }}
+              value={eintrag.art}
+              onChange={(e) => setEintrag({ ...eintrag, art: e.target.value })}
+              aria-label="Art"
+            >
               {ARTEN.map((a) => (
                 <option key={a.wert} value={a.wert}>
                   {a.text}
                 </option>
               ))}
             </select>
-            <input className="feld" placeholder="Worum ging es?" value={eintrag.titel} onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })} />
-            <input className="feld" placeholder="Ergebnis, nächster Schritt …" value={eintrag.text} onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })} onKeyDown={(e) => e.key === "Enter" && verlaufAnlegen()} />
-            <button type="button" className="knopf" onClick={verlaufAnlegen}>
+            <select
+              className="feld"
+              style={{ flex: "0 1 230px" }}
+              value={eintrag.ziel}
+              onChange={(e) => setEintrag({ ...eintrag, ziel: e.target.value })}
+              aria-label="Mit wem"
+            >
+              {andasHaus !== null && <option value="haus">An die Organisation</option>}
+              {kontakte.map((k) => (
+                <option key={k.id} value={String(k.id)}>
+                  {k.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="date"
+              className="feld"
+              style={{ flex: "0 1 170px" }}
+              value={eintrag.datum}
+              onChange={(e) => setEintrag({ ...eintrag, datum: e.target.value })}
+              aria-label="Datum"
+            />
+            <input
+              className="feld"
+              style={{ flex: "1 1 220px" }}
+              placeholder="Worum ging es?"
+              value={eintrag.titel}
+              onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })}
+            />
+            <input
+              className="feld"
+              style={{ flex: "1 1 260px" }}
+              placeholder="Ergebnis, nächster Schritt …"
+              value={eintrag.text}
+              onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && anlegen()}
+            />
+            <button type="button" className="knopf" onClick={anlegen} disabled={!kannEintragen}>
               <Zeichen name="plus" />
               Eintragen
             </button>
@@ -464,31 +893,31 @@ function KontaktTiefe({
         </div>
       )}
 
-      {kontakt.verlauf.length === 0 ? (
+      {zeilen.length === 0 ? (
         <Leerstelle
           was="Noch kein Verlauf"
           satz="Halte hier fest, was besprochen wurde — in einem halben Jahr weiß es sonst niemand mehr."
         />
       ) : (
         <ul className="verlauf">
-          {kontakt.verlauf.map((v) => (
-            <li key={v.id}>
-              <span className="zahl datum">{DATUM.format(new Date(v.datum))}</span>
+          {zeilen.map((z) => (
+            <li key={z.id}>
+              <span className="zahl datum">{alsDatum(z.datum)}</span>
               <div style={{ flex: 1 }}>
-                <b>{v.titel}</b>
-                {v.text && <p>{v.text}</p>}
+                <b>{z.titel}</b>
+                {z.text && <p>{z.text}</p>}
                 <span className="verlauf-fuss">
-                  {ARTEN.find((a) => a.wert === v.art)?.text ?? v.art}
-                  {v.wer_name && ` · ${v.wer_name}`}
+                  {artText(z.art)} · {z.wem || "an die Organisation"}
+                  {z.wer_name && ` · notiert von ${z.wer_name}`}
                 </span>
               </div>
               {ich.darf.loeschen && (
                 <button
                   type="button"
                   className="mini"
-                  title="Eintrag entfernen"
+                  aria-label="Eintrag entfernen"
                   onClick={async () => {
-                    await hole(`/verlauf/${v.id}/`, { method: "DELETE" });
+                    await hole(`/verlauf/${z.id}/`, { method: "DELETE" });
                     neuLaden();
                   }}
                 >

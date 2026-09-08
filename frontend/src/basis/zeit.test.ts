@@ -5,6 +5,7 @@ import {
   alsStunden,
   alsUhr,
   aufFuenfMinuten,
+  heuteAlsDatum,
   summeGerundet,
 } from "./zeit";
 
@@ -49,5 +50,17 @@ describe("Rundung auf 5 Minuten", () => {
   it("gibt Dezimalstunden mit Komma aus", () => {
     expect(alsStunden(12_300)).toBe("3,42");
     expect(alsStunden(3600)).toBe("1,00");
+  });
+});
+
+describe("heuteAlsDatum", () => {
+  it("nimmt den Tag der Uhr an der Wand, nicht den nach UTC", () => {
+    // 8. September, 23:30 Ortszeit. Über UTC gerechnet stünde in Mitteleuropa
+    // der 9. im Feld — und der Eintrag läge am falschen Tag.
+    expect(heuteAlsDatum(new Date(2026, 8, 8, 23, 30))).toBe("2026-09-08");
+  });
+
+  it("füllt Monat und Tag zweistellig auf", () => {
+    expect(heuteAlsDatum(new Date(2026, 0, 5))).toBe("2026-01-05");
   });
 });

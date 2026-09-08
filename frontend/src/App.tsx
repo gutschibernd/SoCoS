@@ -20,7 +20,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
 
 export function App() {
   const ich = useIch();
-  const [seite, wechseln] = useSeite();
+  const [ort, wechseln] = useSeite();
 
   // Wer nicht angemeldet ist, gehört zur Anmeldung — nicht auf eine
   // Fehlerseite, von der aus es keinen Weg weitergibt.
@@ -35,19 +35,21 @@ export function App() {
 
   return (
     <>
-      <Kopf ich={ich.data} seite={seite} wechseln={wechseln} />
+      <Kopf ich={ich.data} seite={ort.seite} wechseln={wechseln} />
       <Meldungen />
       <main className="seite">
         <div className="titelzeile">
-          <h1>{TITEL[seite].titel}</h1>
-          <div className="unter">{TITEL[seite].unter}</div>
+          <h1>{TITEL[ort.seite].titel}</h1>
+          <div className="unter">{TITEL[ort.seite].unter}</div>
         </div>
 
-        {seite === "dashboard" && <Dashboard ich={ich.data} wechseln={wechseln} />}
-        {seite === "projekt" && <Projekt ich={ich.data} />}
-        {seite === "zeit" && <Zeit ich={ich.data} />}
-        {seite === "kontakte" && <Kontakte ich={ich.data} />}
-        {seite === "profil" && <Profil ich={ich.data} />}
+        {ort.seite === "dashboard" && <Dashboard ich={ich.data} wechseln={wechseln} />}
+        {ort.seite === "projekt" && <Projekt ich={ich.data} />}
+        {ort.seite === "zeit" && <Zeit ich={ich.data} />}
+        {ort.seite === "kontakte" && (
+          <Kontakte ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+        )}
+        {ort.seite === "profil" && <Profil ich={ich.data} />}
       </main>
     </>
   );

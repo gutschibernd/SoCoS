@@ -357,27 +357,84 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 
 /* --- Kontakte ------------------------------------------------------------ */
 
-.org { border: 1px solid var(--rand); border-radius: var(--kante); padding: 11px 12px; margin-bottom: 9px; }
-.org-kopf { display: flex; align-items: center; gap: 9px; }
-.org-kopf i {
+/* Das Kürzel der Organisation — in der Liste, im Kopf, überall dasselbe. */
+.kuerzel {
   font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
-  padding: 3px 6px; border-radius: var(--kante);
+  flex: 0 0 auto; padding: 3px 6px; border-radius: var(--kante);
   background: var(--marke-hell); color: var(--marke);
 }
-.org-kopf b { font-size: 15px; font-weight: 600; }
-.org-typ { font-size: 12px; color: var(--text-sehr-leise); margin-top: 3px; }
-.org-nutzen { margin: 7px 0 0; font-size: 13px; color: var(--text-leise); line-height: 1.5; }
+.kuerzel-leer { background: var(--flaeche-leise); color: var(--text-leise); }
 
-.org-personen { list-style: none; margin: 9px 0 0; padding: 0; }
-.org-personen li { border-top: 1px solid var(--flaeche-leise); }
-.org-personen button {
-  width: 100%; min-height: var(--griff); padding: 8px 0;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+/* Die Zeile der Übersicht führt in die Organisation. Ein Knopf, kein Klick auf
+   das ganze <tr>: eine Zeile mit onClick erreicht niemand mit der Tastatur. */
+.zeilen-titel {
+  min-height: var(--griff); padding: 4px 0;
+  display: flex; align-items: center; gap: 9px;
   background: none; border: 0; cursor: pointer; text-align: left;
-  font-size: 14px; color: var(--text);
+  font-size: 14px; font-weight: 600; color: var(--text);
 }
-.org-personen button:hover { color: var(--marke); }
-.ball { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--kante); }
+.zeilen-titel:hover { color: var(--marke); }
+.weitere {
+  margin-left: 8px; padding: 1px 6px; border-radius: var(--kante);
+  background: var(--flaeche-leise); color: var(--text-leise);
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+
+/* Die Stufe der Organisation. Eigene Namen, obwohl die Farben denen der
+   Paketstatus gleichen: „status-zugesagt" für einen Partner zu schreiben wäre
+   beim nächsten Lesen eine falsche Fährte. */
+.stufe-erstkontakt { background: var(--ruhend-hell); color: var(--text-leise); }
+.stufe-antrag      { background: var(--marke-hell);  color: var(--marke); }
+.stufe-partner     { background: var(--gut-hell);    color: var(--gut); }
+
+.zurueckzeile { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brotkrume { font-size: 13px; color: var(--text-leise); }
+/* Ein Zeichen, gespiegelt — nicht ein zweites, das beim Nachbessern abweicht. */
+.zeiger-zurueck { transform: scaleX(-1); }
+.kopf-aktionen { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Feste Breite, keine flex-basis: `.feld` bringt `width: 100%` mit, und damit
+   rechnet der umbrechende Elternteil seine eigene Breite zu klein — der Knopf
+   fiel dann grundlos in die zweite Zeile. */
+.kopf-aktionen > .feld { flex: 0 0 auto; width: 180px; }
+
+.org-nutzen { margin: 0; font-size: 13px; color: var(--text-leise); line-height: 1.5; }
+
+/* Eine Person als Kachel. */
+.person {
+  border: 1px solid var(--rand); border-radius: var(--kante); padding: 11px 12px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.person-kopf { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; }
+.person-name { font-size: 15px; font-weight: 600; }
+.person-rolle { font-size: 12px; color: var(--text-sehr-leise); margin-top: 2px; }
+.person-punkt { padding-top: 9px; border-top: 1px solid var(--flaeche-leise); font-size: 14px; }
+.person-haus { display: block; }
+.person-haus .beschriftung-klein { margin-bottom: 3px; }
+.person-fuss {
+  margin-top: auto; display: flex; align-items: center; justify-content: space-between;
+  gap: 9px; font-size: 11px; color: var(--text-sehr-leise);
+}
+/* Der Ball ist ein Auswahlfeld, sieht aber aus wie die Marke daneben. Ohne
+   eigene Schriftgröße: darunter zoomt iOS beim Hineintippen. */
+.ball-wahl {
+  min-height: var(--griff); padding: 6px 8px; max-width: 118px;
+  border: 1px solid transparent; border-radius: var(--kante);
+  font-weight: 600; cursor: pointer;
+}
+.ball-wahl[data-ball="uns"]   { background: var(--warnung-hell); color: var(--warnung); }
+.ball-wahl[data-ball="ihnen"] { background: var(--flaeche-leise); color: var(--text-leise); }
+
+/* Nachbuchen steht über dem Verlauf, nicht darunter: Wer etwas einträgt, hat
+   es gerade erlebt und soll nicht erst an zwanzig Einträgen vorbeiscrollen. */
+.nachbuchen { padding-bottom: 14px; margin-bottom: 12px; border-bottom: 1px solid var(--rand); }
+.karte > h2 .hilfe { margin-left: 8px; }
+
+/* Nicht umbrechen: „bei ihnen" über zwei Zeilen sieht in der Tabellenspalte
+   aus wie ein Fehler und schiebt die Zeile auseinander. */
+.ball {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: var(--kante); white-space: nowrap;
+}
 .ball-uns { background: var(--warnung-hell); color: var(--warnung); }
 .ball-ihnen { background: var(--flaeche-leise); color: var(--text-leise); }
 
@@ -461,7 +518,6 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   color: var(--text-sehr-leise); font-weight: 600; margin-bottom: 5px;
 }
 .verlauf-fuss { display: block; margin-top: 4px; font-size: 11px; color: var(--text-sehr-leise); }
-.org-kopf .mini { margin-left: auto; }
 
 
 /* ==========================================================================
@@ -540,6 +596,11 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   .mini { min-height: var(--griff); }
   .tabelle td.zeilen-aktionen { justify-content: flex-end; }
   .tabelle td.zeilen-aktionen::before { content: "Aktionen"; }
+
+  /* Auf der Kontakteseite: Stufe und „Entfernen" bekommen die ganze Breite,
+     statt sich zu zweit 375 px zu teilen. */
+  .kopf-aktionen { margin-left: 0; width: 100%; }
+  .kopf-aktionen > .feld { width: 100%; flex: 1 1 100%; }
 }
 
 /* --- Meldungen ----------------------------------------------------------- */
