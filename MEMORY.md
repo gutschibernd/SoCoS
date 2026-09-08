@@ -7,6 +7,57 @@ betrifft.
 
 ---
 
+## 2026-09-08 — Der Deploy-Stack: Abbild, zwei Stacks, deploy.sh
+
+Alles unter `betrieb/`. **Gebaut, aber noch nie gelaufen** — es gibt keine
+Maschine, und auf dieser hier ist kein Docker. Das Abbild ist nie gebaut
+worden; geprüft ist nur, was sich ohne Docker prüfen lässt (`collectstatic`
+mit Produktionswerten, die Skript-Syntax, `socos/tests/test_betrieb.py`).
+
+### Entscheidungen, die man den Dateien nicht ansieht
+
+**Der Projektname steht als `name: socos` in der Compose-Datei**, nicht als
+`COMPOSE_PROJECT_NAME` in der Umgebung. Beides leistet dasselbe, aber das eine
+kann man vergessen und das andere nicht. Ein gleicher Name bedeutete gemeinsame
+Volumes — im schlimmsten Fall zwei Anwendungen auf einer Datenbank.
+
+**`POSTGRES_HOST` und `DJANGO_DEBUG` stehen als `environment:`** und gewinnen
+damit gegen `env_file`. Die `.env` ist eine Vorlage aus der lokalen Welt: Sie
+zeigt auf `127.0.0.1` — im Container wäre das der Container selbst — und sie
+trägt eine `DJANGO_DEBUG=1`. Als Notbremse kostet das zwei Zeilen; als
+vergessene Zeile am Server kostet es den `SECRET_KEY`.
+
+**`collectstatic` läuft im Bau, mit Attrappenwerten in derselben `RUN`-Zeile**
+statt in einem `ENV`. `settings.py` liest die Werte beim Import, verbindet sich
+aber mit nichts. In einem `ENV` wären sie im laufenden Container gesetzt und
+gewönnen gegen die echte Umgebung.
+
+**`proxy-netz` legt kein Stack an, sondern einmal die Hand.** Ein Stack, der es
+anlegte, nähme es beim `down` wieder mit — und risse das nächste Projekt an
+diesem Proxy vom Netz.
+
+**Der Healthcheck holt die Domain aus `DJANGO_ALLOWED_HOSTS`**, statt sie ein
+zweites Mal zu tragen. Er braucht sie, weil er von innen an `127.0.0.1` fragt
+und Django ohne passenden `Host` mit 400 antwortet.
+
+**`medien/` und `sicherungen/` sind Volumes und gehören im Abbild schon dem
+Nutzer**, der sie beschreibt. Docker legt ein fehlendes Ziel sonst als root an,
+und der unprivilegierte Prozess darf nicht hinein.
+
+### Die Falle des Tages: ein Kommentar, der sein eigenes Verbot zitiert
+
+`test_axes.py` sucht im Caddyfile nach der Zeichenfolge, die dort nicht stehen
+darf. Der Kommentar, der *erklärt*, warum sie fehlt, enthielt sie — und warf den
+Test um. Dasselbe dreimal: das `ports:` in `anwendung.yml`, das `/dev/null` in
+`gesundheit.sh`, das `git pull` im Kopf von `deploy.sh`.
+
+**Wer eine Regel über den Quelltext prüft, prüft die Kommentare mit.** Die
+Kommentare nennen den Grund jetzt, ohne die verbotene Form zu zitieren. Der
+umgekehrte Weg — den Test klüger machen, damit er Kommentare überspringt —
+wäre ein Parser für vier Dateiformate gewesen.
+
+---
+
 ## 2026-09-06 — Fachliche Festlegungen aus der Abstimmung mit Bernd
 
 Erste Runde Fragen und Antworten. Grundlage für das Datenmodell.

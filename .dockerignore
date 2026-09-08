@@ -1,0 +1,37 @@
+# Was nicht ins Abbild gehört. Jede Zeile hier ist eine Zeile weniger, die
+# versehentlich im Abbild landet — und zwei davon sind keine Größenfrage:
+#
+#   daten/  sind Kunden- und Personendaten. Ein Abbild wird kopiert und
+#           weitergereicht; was einmal drin ist, ist überall.
+#   .env    enthält SECRET_KEY und Datenbankpasswort. Sie kommt zur Laufzeit
+#           über `env_file`, nie über eine COPY-Zeile: was im Abbild steht,
+#           steht in jeder Schicht und lässt sich nachträglich auslesen.
+daten/
+.env
+.env.local
+
+.git/
+.venv/
+**/node_modules/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Wird im Abbild selbst gebaut bzw. gesammelt. Ein mitkopierter lokaler Stand
+# überschriebe den frisch gebauten.
+frontend/dist/
+frontend/.vite/
+frontend/tsconfig.tsbuildinfo
+statisch_gesammelt/
+
+# Zur Laufzeit Volumes.
+medien/
+sicherungen/
+protokolle/
+
+.DS_Store
+.idea/
+.vscode/
+entwurf/

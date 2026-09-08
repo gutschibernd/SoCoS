@@ -1,0 +1,32 @@
+# Der Front-Proxy. Hält allein 80 und 443, terminiert TLS, verteilt über
+# `proxy-netz` weiter.
+#
+# Er gehört **keiner** Anwendung. So können später weitere Projekte dazukommen,
+# ohne dass ein Deploy von SoCoS ihre Erreichbarkeit antastet — und umgekehrt.
+name: proxy
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # In `caddy-daten` liegen die Zertifikate und das Konto bei Let's Encrypt.
+      # Wer dieses Volume wegwirft, holt sich alle Zertifikate neu — und läuft
+      # dabei in die Ausstellungsgrenze (5 Fehlschläge je Stunde und Name).
+      - caddy-daten:/data
+      - caddy-konfig:/config
+    networks: [proxy-netz]
+
+networks:
+  proxy-netz:
+    external: true
+    name: proxy-netz
+
+volumes:
+  caddy-daten:
+  caddy-konfig:

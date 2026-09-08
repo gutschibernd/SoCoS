@@ -32,19 +32,37 @@ befüllt, sobald die Maschine steht.
 - SSH nur mit Schlüssel. Passwort-Login aus, Root-Login aus. `fail2ban`,
   `unattended-upgrades`.
 
-## Aufbau (geplant)
+## Aufbau
+
+**Gebaut, aber noch nie gelaufen** — es gibt keine Maschine. Alles unter
+`betrieb/`, Anleitung in [betrieb/LIESMICH.md](betrieb/LIESMICH.md).
 
 Zwei getrennte Compose-Stacks:
 
-1. **Anwendung** — gunicorn + PostgreSQL. `COMPOSE_PROJECT_NAME=socos`.
-2. **Front-Proxy** — Caddy 2, hält allein 80/443, terminiert TLS, verteilt über ein
-   externes Docker-Netz auf den Alias der Anwendung.
+1. **Anwendung** — `betrieb/anwendung.yml`: gunicorn + PostgreSQL.
+2. **Front-Proxy** — `betrieb/proxy.yml`: Caddy 2, hält allein 80/443, terminiert
+   TLS, verteilt über das externe Netz `proxy-netz` auf den Alias `socos`.
 
 Der Proxy gehört **keiner** Anwendung. So können später weitere Projekte dazukommen,
 ohne dass ein Deploy von SoCoS ihre Erreichbarkeit antastet.
 
-> **`COMPOSE_PROJECT_NAME=socos` ist nicht optional.** Ein gleicher Name bedeutete
-> gemeinsame Volumes und im schlimmsten Fall zwei Anwendungen auf einer Datenbank.
+`proxy-netz` wird **einmal von Hand** angelegt (`docker network create proxy-netz`)
+und gehört keinem Stack. Ein Stack, der es anlegte, nähme es beim `down` mit — und
+risse damit das andere Projekt vom Netz.
+
+> **Der Projektname ist nicht optional.** Ein gleicher Name bedeutete gemeinsame
+> Volumes und im schlimmsten Fall zwei Anwendungen auf einer Datenbank. Er steht
+> deshalb als `name: socos` **in der Compose-Datei** und nicht als
+> `COMPOSE_PROJECT_NAME` in einer Umgebung: In der Datei kann er nicht vergessen
+> werden, in einer Sitzung schon.
+
+### Was die Compose-Datei gegen die `.env` erzwingt
+
+`POSTGRES_HOST: datenbank` und `DJANGO_DEBUG: "0"` stehen als `environment:` und
+gewinnen damit gegen `env_file`. Beides sind Notbremsen: Die `.env`-Vorlage stammt
+aus der lokalen Welt und zeigt auf `127.0.0.1` — im Container wäre das der Container
+selbst; und eine vergessene `DJANGO_DEBUG=1` nähme jede Produktionshärtung zurück
+und schriebe Einstellungen samt Datenbankpasswort in jede Fehlerseite.
 
 ### Caddyfile
 
@@ -65,12 +83,15 @@ gleichzeitig aus.
 
 ## Healthcheck
 
-Ein Skript, das **zwei Aufrufer teilen** — der Container-Healthcheck und `deploy.sh`.
-Nicht zwei Kopien derselben Zeile in zwei Dateien.
+`betrieb/gesundheit.sh` — ein Skript, das **zwei Aufrufer teilen**: der
+Container-Healthcheck und `deploy.sh`. Nicht zwei Kopien derselben Zeile in zwei
+Dateien.
 
 - Fragt von innen: `127.0.0.1:8000/healthz/`, bewusst am Proxy vorbei.
 - Setzt dabei den `Host` auf die öffentliche Domain. **Sonst antwortet Django mit
-  400**, weil `127.0.0.1` nicht in `ALLOWED_HOSTS` steht.
+  400**, weil `127.0.0.1` nicht in `ALLOWED_HOSTS` steht. Genommen wird der erste
+  Eintrag aus `DJANGO_ALLOWED_HOSTS` — damit die Domain nicht ein zweites Mal
+  irgendwo steht.
 - Der Endpunkt ist vom HTTPS-Redirect **ausgenommen**. Sonst bekäme der Healthcheck
   eine 301 und der Dienst gälte dauerhaft als krank.
 - Der Grund eines Fehlschlags geht nach **stderr und wird angezeigt**, nie nach

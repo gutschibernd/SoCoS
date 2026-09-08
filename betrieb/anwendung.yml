@@ -1,0 +1,78 @@
+# Der Anwendungs-Stack: gunicorn und PostgreSQL. Sonst nichts.
+#
+# Der Projektname steht **hier** und nicht als COMPOSE_PROJECT_NAME in einer
+# Umgebung: Compose leitet ihn sonst vom Ordnernamen ab. Zwei Projekte mit
+# gleichem Namen teilten sich die Volumes — und damit im schlimmsten Fall zwei
+# Anwendungen eine Datenbank. In der Datei kann er nicht vergessen werden.
+name: socos
+
+services:
+  anwendung:
+    build:
+      context: ..
+      dockerfile: betrieb/Dockerfile
+    restart: unless-stopped
+
+    # Hier wird **kein Port veröffentlicht** — und das ist keine
+    # Nachlässigkeit, sondern die Sicherung dieses Stacks.
+    #
+    # Docker schreibt eigene iptables-Regeln und geht an ufw vorbei: ein
+    # veröffentlichter Port hinge im offenen Internet, auch wenn ufw ihn sperrt.
+    # Erreichbar ist der Dienst allein über `proxy-netz`, an dem Caddy hängt.
+    # Festgehalten in socos/tests/test_betrieb.py.
+
+    env_file: ../.env
+    environment:
+      # Was hier steht, gewinnt gegen die .env. Beide Zeilen sind Notbremsen:
+      #
+      # Die .env-Vorlage zeigt auf 127.0.0.1 — im Container wäre das der
+      # Container selbst, und die Anwendung suchte Postgres in sich.
+      POSTGRES_HOST: datenbank
+      POSTGRES_PORT: "5432"
+      # Eine vergessene 1 in der .env schaltete Stacktraces samt Einstellungen
+      # ins offene Netz und nähme nebenbei jede Produktionshärtung zurück.
+      DJANGO_DEBUG: "0"
+
+    volumes:
+      # Beides liegt im Projektordner und wäre beim nächsten Deploy sonst weg.
+      - medien:/anwendung/medien
+      - sicherungen:/anwendung/sicherungen
+
+    depends_on:
+      datenbank:
+        condition: service_healthy
+
+    networks:
+      intern:
+      proxy-netz:
+        # Unter diesem Namen findet Caddy die Anwendung. Steht so im Caddyfile.
+        aliases: [socos]
+
+  datenbank:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: ../.env
+    volumes:
+      - datenbank:/var/lib/postgresql/data
+    networks: [intern]
+    healthcheck:
+      # `depends_on: service_healthy` wartet darauf. Ohne das startet die
+      # Anwendung schneller als Postgres und stirbt an der ersten Migration.
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  intern:
+    # Die Datenbank hat nichts im Internet verloren — weder hinein noch heraus.
+    internal: true
+  proxy-netz:
+    external: true
+    name: proxy-netz
+
+volumes:
+  datenbank:
+  medien:
+  sicherungen:

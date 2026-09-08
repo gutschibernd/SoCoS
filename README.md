@@ -147,11 +147,22 @@ der Verlust fällt erst beim Wiederherstellen auf.
 
 ## Deploy
 
-Kommt, sobald die VPS steht. Siehe [SERVER.md](SERVER.md).
+Alles unter `betrieb/`, Schritt für Schritt in
+[betrieb/LIESMICH.md](betrieb/LIESMICH.md). Die Maschine selbst — Firewall, SSH,
+DNS, TLS — steht in [SERVER.md](SERVER.md).
 
-Vorgesehen: zwei getrennte Compose-Stacks — die Anwendung (gunicorn + db) und ein
-Front-Proxy (Caddy 2), der allein 80/443 hält. Die Anwendung veröffentlicht keinen
-einzigen Port.
+**Gebaut, aber noch nie gelaufen:** Es gibt noch keine VPS.
+
+Zwei getrennte Compose-Stacks — die Anwendung (gunicorn + db) und ein Front-Proxy
+(Caddy 2), der allein 80/443 hält. Die Anwendung veröffentlicht keinen einzigen
+Port; erreichbar ist sie nur über das Docker-Netz, an dem der Proxy hängt.
+
+```bash
+cd /opt/socos && betrieb/deploy.sh
+```
+
+Das sichert zuerst den laufenden Stand, zieht dann, baut, startet und sieht nach,
+ob der Dienst antwortet und `check --deploy` schweigt.
 
 > **Eine Änderung an `deploy.sh` wirkt erst beim übernächsten Deploy.** Das Skript
 > zieht sich selbst mit; deshalb steht sein ganzer Rumpf in einer Gruppe `{ … }`,

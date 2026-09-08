@@ -1,0 +1,27 @@
+# Der einzige Auftritt. TLS holt Caddy selbst bei Let's Encrypt — Voraussetzung
+# ist, dass der A-Record schon auf diese Maschine zeigt und 80 offen ist.
+
+socos.sopharmis.com {
+	encode zstd gzip
+
+	# `socos` ist der Alias der Anwendung im proxy-netz (siehe anwendung.yml).
+	#
+	# Hier wird die Client-Adresse bewusst **nicht** selbst gesetzt.
+	#
+	# Caddy steht als erster Sprung direkt am Internet und hat kein
+	# `trusted_proxies`; in dem Fall verwirft es eine vom Anrufer
+	# mitgeschickte Adresse und trägt nur dessen echte ein. Genau das braucht
+	# django-axes — Caddy warnt beim Reload sogar, wenn man nachhilft.
+	#
+	# Es wäre zudem eine Falle für später: So ein Eingriff wird nach dieser
+	# Logik angewandt und gewinnt gegen sie. Käme je ein CDN davor,
+	# überschriebe er jede echte Client-Adresse mit der des CDN — und dann
+	# sperrte ein einziger Angreifer alle Nutzer gleichzeitig aus.
+	#
+	# Ausführlich in SERVER.md, festgehalten in socos/tests/test_axes.py.
+	reverse_proxy socos:8000
+
+	log {
+		output stdout
+	}
+}

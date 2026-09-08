@@ -5,6 +5,7 @@
 | Frage | Dokument |
 |---|---|
 | Wie starte ich das lokal, wie deploye ich? | [README.md](README.md) |
+| Wie läuft das am Server — Abbild, Stacks, Deploy? | [betrieb/LIESMICH.md](betrieb/LIESMICH.md) |
 | Welche Maschine, welches Netz, welche Zugänge? | [SERVER.md](SERVER.md) |
 | Warum ist etwas so entschieden? Was ist offen? | [MEMORY.md](MEMORY.md) |
 | Wie arbeite ich hier — Regeln, Fallen, Ports | dieses Dokument |
