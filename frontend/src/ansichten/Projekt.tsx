@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { hole } from "../basis/api";
 import {
@@ -8,6 +8,7 @@ import {
   type Ich,
   type Paket,
   type Projekt as ProjektTyp,
+  type Stufe,
 } from "../basis/daten";
 import { alsPfad, type Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
@@ -47,34 +48,34 @@ async function aendern(pfad: string, daten: Record<string, unknown>): Promise<vo
   await hole(pfad, { method: "PATCH", body: JSON.stringify(daten) });
 }
 
-/** Die zwei Modi als Reiter. Wer nicht bearbeiten darf, sieht sie nicht. */
-function Unternavigation({
+/**
+ * Der Weg in den Bearbeitungsmodus und zurück — ein Knopf am rechten Rand.
+ *
+ * Kein Reiterpaar: Zwei Reiter behaupten zwei gleichrangige Ansichten. Es gibt
+ * aber nur eine Ansicht und einen Sonderzustand, in den man selten geht.
+ * Wer nicht bearbeiten darf, sieht den Knopf nicht.
+ */
+function Bearbeitungsschalter({
   bearbeiten,
   wechseln,
 }: {
   bearbeiten: boolean;
   wechseln: (seite: Seite, unter?: string | null) => void;
 }) {
-  const reiter: { unter: string | null; text: string }[] = [
-    { unter: null, text: "Übersicht" },
-    { unter: "bearbeiten", text: "Bearbeiten" },
-  ];
   return (
-    <nav className="unternavigation" aria-label="Projektansicht">
-      {reiter.map((r) => (
-        <a
-          key={r.text}
-          href={alsPfad("projekt", r.unter)}
-          aria-current={(r.unter === "bearbeiten") === bearbeiten ? "page" : undefined}
-          onClick={(e) => {
-            e.preventDefault();
-            wechseln("projekt", r.unter);
-          }}
-        >
-          {r.text}
-        </a>
-      ))}
-    </nav>
+    <div className="ansicht-schalter">
+      <a
+        className={bearbeiten ? "knopf" : "knopf-still"}
+        href={alsPfad("projekt", bearbeiten ? null : "bearbeiten")}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("projekt", bearbeiten ? null : "bearbeiten");
+        }}
+      >
+        <Zeichen name={bearbeiten ? "haken" : "stift"} />
+        {bearbeiten ? "Fertig" : "Bearbeiten"}
+      </a>
+    </div>
   );
 }
 
@@ -116,7 +117,7 @@ export function Projekt({
   if (projekte.length === 0) {
     return (
       <div className="spalte">
-        {ich.darf.bearbeiten && <Unternavigation bearbeiten={bearbeiten} wechseln={wechseln} />}
+        {ich.darf.bearbeiten && <Bearbeitungsschalter bearbeiten={bearbeiten} wechseln={wechseln} />}
         <div className="karte">
           <Leerstelle
             was="Noch kein Projekt angelegt"
@@ -155,7 +156,7 @@ export function Projekt({
 
   return (
     <div className="spalte">
-      {ich.darf.bearbeiten && <Unternavigation bearbeiten={bearbeiten} wechseln={wechseln} />}
+      {ich.darf.bearbeiten && <Bearbeitungsschalter bearbeiten={bearbeiten} wechseln={wechseln} />}
 
       <div className="karte">
         <div className="feld-reihe">
@@ -203,17 +204,22 @@ export function Projekt({
         </div>
       </div>
 
-      {sichtbar.map((projekt) => (
-        <ProjektKarte
-          key={projekt.id}
-          projekt={projekt}
-          ich={ich}
-          bearbeiten={bearbeiten}
-          statusFilter={statusFilter}
-          neuLaden={neuLaden}
-          zumLoeschen={() => setLoeschen({ id: projekt.id, name: projekt.titel })}
-        />
-      ))}
+      {/* Nebeneinander, sobald der Platz für zwei Spalten reicht — am Laptop
+          stehen die beiden Projekte sonst untereinander und man scrollt an
+          einer halbleeren Seite vorbei. */}
+      <div className="projekt-raster">
+        {sichtbar.map((projekt) => (
+          <ProjektKarte
+            key={projekt.id}
+            projekt={projekt}
+            ich={ich}
+            bearbeiten={bearbeiten}
+            statusFilter={statusFilter}
+            neuLaden={neuLaden}
+            zumLoeschen={() => setLoeschen({ id: projekt.id, name: projekt.titel })}
+          />
+        ))}
+      </div>
 
       {loeschen && bearbeiten && (
         <Loeschdialog
@@ -265,7 +271,7 @@ function ProjektKarte({
           <h3>
             <Feldtext
               wert={projekt.titel}
-              aendern={ich.darf.bearbeiten}
+              aendern={ich.darf.bearbeiten && bearbeiten}
               speichern={(titel) => aendern(`/projekte/${projekt.id}/`, { titel })}
             />
           </h3>
@@ -273,7 +279,7 @@ function ProjektKarte({
             <Feldtext
               wert={projekt.untertitel}
               platzhalter="Untertitel …"
-              aendern={ich.darf.bearbeiten}
+              aendern={ich.darf.bearbeiten && bearbeiten}
               speichern={(untertitel) => aendern(`/projekte/${projekt.id}/`, { untertitel })}
             />
           </div>
@@ -393,7 +399,7 @@ function BereichBlock({
       <h4>
         <Feldtext
           wert={bereich.titel}
-          aendern={ich.darf.bearbeiten}
+          aendern={ich.darf.bearbeiten && bearbeiten}
           speichern={async (titel) => {
             await aendern(`/bereiche/${bereich.id}/`, { titel });
             neuLaden();
@@ -404,11 +410,6 @@ function BereichBlock({
         {ART[bereich.art].toLowerCase() !== bereich.titel.trim().toLowerCase() && (
           <span className="art">{ART[bereich.art]}</span>
         )}
-        <Hilfe
-          text={`Stufen dieses Bereichs: ${bereich.stufen
-            .map((s) => `${s.name} (${s.monate} Mon.)`)
-            .join(" · ")}. Der Fortschritt rechnet über die Monate, nicht über die Anzahl.`}
-        />
         {ich.darf.bearbeiten && bearbeiten && (
           <span className="ordnen">
             <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben" aria-label="Nach oben">
@@ -476,6 +477,114 @@ function BereichBlock({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Die Stufenleiste eines Pakets ändern: Vorlage übernehmen, Namen und Dauern
+ * eintragen, Stufen hinzunehmen oder streichen.
+ *
+ * Gespeichert wird immer die **ganze Liste**, nie eine einzelne Stufe. Eine
+ * Stufe hat keine eigene Kennung — sie ist eine Stelle in einer Liste. Einzeln
+ * zu speichern hieße, sich diese Stelle zu merken, und beim Streichen liefe
+ * das auseinander.
+ *
+ * Die Vorlagen kommen nicht von hier: Der Aufruf schickt nur ihren Namen, den
+ * Inhalt kennt allein der Server. Sonst stünden die Stufen an zwei Stellen.
+ */
+function Stufenbearbeitung({ paket, neuLaden }: { paket: Paket; neuLaden: () => void }) {
+  const [entwurf, setEntwurf] = useState<Stufe[]>(paket.stufen);
+
+  // Was der Server schickt, gilt — nach einer Vorlage oder einer Änderung von
+  // einem zweiten Gerät. Verglichen wird der Inhalt, nicht die Kennung des
+  // Feldes: Jeder Abruf liefert ein neues Feld mit denselben Werten.
+  const vomServer = JSON.stringify(paket.stufen);
+  useEffect(() => setEntwurf(JSON.parse(vomServer) as Stufe[]), [vomServer]);
+
+  async function speichern(stufen: Stufe[]) {
+    setEntwurf(stufen);
+    await aendern(`/pakete/${paket.id}/`, { stufen });
+    neuLaden();
+  }
+
+  async function vorlageUebernehmen(vorlage: string) {
+    await hole(`/pakete/${paket.id}/vorlage/`, {
+      method: "POST",
+      body: JSON.stringify({ vorlage }),
+    });
+    neuLaden();
+  }
+
+  const geaendert = (i: number, teil: Partial<Stufe>) =>
+    setEntwurf(entwurf.map((s, j) => (j === i ? { ...s, ...teil } : s)));
+
+  return (
+    <div className="stufen-bearbeiten">
+      <div className="stufen-vorlage">
+        <select
+          className="feld feld-klein"
+          value=""
+          aria-label="Vorlage für die Stufen übernehmen"
+          onChange={(e) => {
+            const gewaehlt = e.target.value;
+            e.target.value = "";
+            if (gewaehlt) vorlageUebernehmen(gewaehlt);
+          }}
+        >
+          <option value="">Vorlage übernehmen …</option>
+          {Object.entries(ART).map(([wert, text]) => (
+            <option key={wert} value={wert}>
+              {text}
+            </option>
+          ))}
+        </select>
+        <Hilfe text="Eine Vorlage ersetzt die ganze Leiste und setzt den Stand auf null — „Stufe 3“ heißt in einer anderen Leiste etwas anderes." />
+      </div>
+
+      <ul className="stufen-liste">
+        {entwurf.map((stufe, i) => (
+          // Der Index als Schlüssel: Eine Stufe hat keine Kennung, und die
+          // Liste wird nur am Ende länger oder um eine Stelle kürzer.
+          <li key={i}>
+            <input
+              className="feld"
+              value={stufe.name}
+              aria-label={`Name der ${i + 1}. Stufe`}
+              onChange={(e) => geaendert(i, { name: e.target.value })}
+              onBlur={() => speichern(entwurf)}
+            />
+            <input
+              className="feld feld-monate"
+              type="number"
+              min={0}
+              max={120}
+              value={stufe.monate}
+              aria-label={`Dauer der ${i + 1}. Stufe in Monaten`}
+              onChange={(e) => geaendert(i, { monate: Number(e.target.value) })}
+              onBlur={() => speichern(entwurf)}
+            />
+            <span className="einheit">Mon.</span>
+            <button
+              type="button"
+              className="mini"
+              aria-label={`Stufe „${stufe.name}“ entfernen`}
+              onClick={() => speichern(entwurf.filter((_, j) => j !== i))}
+            >
+              <Zeichen name="kreuz" />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        className="knopf-still"
+        onClick={() => speichern([...entwurf, { name: "Neue Stufe", monate: 1 }])}
+      >
+        <Zeichen name="plus" />
+        Stufe hinzufügen
+      </button>
+    </div>
   );
 }
 
@@ -566,7 +675,7 @@ function PaketZeile({
         <span className="paket-titel">
           <Feldtext
             wert={paket.titel}
-            aendern={ich.darf.bearbeiten}
+            aendern={ich.darf.bearbeiten && bearbeiten}
             speichern={async (titel) => {
               await aendern(`/pakete/${paket.id}/`, { titel });
               neuLaden();
@@ -636,6 +745,10 @@ function PaketZeile({
 
       {offen && (
         <div className="paket-tiefe">
+          <div className="stufen-kopf">
+            <span>Stufen</span>
+            <Hilfe text="Der Fortschritt rechnet über die Monate, nicht über die Anzahl: „Umsetzung“ mit drei Monaten neben „Konzept“ mit einem ist die Hälfte des Weges, nicht ein Viertel. Ein Klick setzt den Stand, ein zweiter auf dieselbe Stufe nimmt ihn zurück." />
+          </div>
           <div className="stufen">
             {paket.stufen.map((stufe, i) => (
               <button
@@ -653,12 +766,16 @@ function PaketZeile({
             ))}
           </div>
 
+          {ich.darf.bearbeiten && bearbeiten && (
+            <Stufenbearbeitung paket={paket} neuLaden={neuLaden} />
+          )}
+
           <div className="notiz">
             <Feldtext
               wert={paket.notiz}
               mehrzeilig
               platzhalter="Notiz zum Paket …"
-              aendern={ich.darf.bearbeiten}
+              aendern={ich.darf.bearbeiten && bearbeiten}
               speichern={async (notiz) => {
                 await aendern(`/pakete/${paket.id}/`, { notiz });
                 neuLaden();
@@ -682,7 +799,7 @@ function PaketZeile({
                 <span data-erledigt={u.erledigt ? "ja" : "nein"}>
                   <Feldtext
                     wert={u.titel}
-                    aendern={ich.darf.bearbeiten}
+                    aendern={ich.darf.bearbeiten && bearbeiten}
                     speichern={async (titel) => {
                       await aendern(`/unteraufgaben/${u.id}/`, { titel });
                       neuLaden();

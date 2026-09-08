@@ -312,24 +312,19 @@
 .legende li i { width: 10px; height: 10px; border-radius: 2px; }
 .legende .zahl { color: var(--text-leise); }
 
-/* --- Unternavigation ----------------------------------------------------- */
+/* --- Umschalter in den Bearbeitungsmodus --------------------------------- */
 
-/* Reiter, keine zweite Kopfleiste: Die Unterseite gehört sichtbar unter ihre
-   Seite. Die aktive Marke ist ein Strich unten, kein gefüllter Kasten — sonst
-   streitet sie mit dem aktiven Eintrag in der Kopfleiste um dieselbe Geste. */
-.unternavigation {
-  display: flex; gap: 2px; flex-wrap: wrap;
-  border-bottom: 1px solid var(--rand);
-}
-.unternavigation a {
-  padding: 0 14px; font-size: 14px; font-weight: 600; white-space: nowrap;
-  color: var(--text-leise); border-bottom: 2px solid transparent; margin-bottom: -1px;
-  min-height: var(--griff); display: flex; align-items: center;
-}
-.unternavigation a:hover { color: var(--marke); background: var(--flaeche-leise); }
-.unternavigation a[aria-current="page"] { color: var(--marke); border-bottom-color: var(--marke); }
+/* Ein Knopf am rechten Rand, kein Reiterpaar: Es gibt eine Ansicht und einen
+   Sonderzustand, nicht zwei gleichrangige Ansichten. */
+.ansicht-schalter { display: flex; justify-content: flex-end; }
 
 /* --- Projektansicht ------------------------------------------------------ */
+
+.projekt-raster {
+  display: grid; gap: 12px; align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+}
+
 
 .projekt-kopf {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -443,6 +438,32 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .rueckmeldung { margin: 10px 0 0; font-size: 14px; }
 .rueckmeldung.gut { color: var(--gut); }
 .rueckmeldung.schlecht { color: var(--warnung); }
+
+/* --- Stufenleiste ändern -------------------------------------------------- */
+
+.stufen-kopf {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-sehr-leise); font-weight: 600;
+}
+
+.stufen-bearbeiten {
+  margin-top: 10px; padding: 10px 12px;
+  border: 1px dashed var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche-leise);
+}
+.stufen-vorlage { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+/* `.feld-klein` bringt oben 7 px mit, weil es sonst unter einer Beschriftung
+   sitzt. Hier steht es in einer Zeile — der Abstand kippt es aus der Achse. */
+.stufen-vorlage .feld-klein { margin-top: 0; }
+
+.stufen-liste { list-style: none; margin: 0 0 8px; padding: 0; }
+.stufen-liste li { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.stufen-liste .feld { min-width: 0; }
+/* Die Dauer ist eine kleine Zahl und bekommt nur den Platz, den sie braucht —
+   sonst schiebt sie den Namen aus der Zeile. */
+.stufen-liste .feld-monate { flex: 0 0 76px; font-family: var(--schrift-zahl); }
+.stufen-liste .einheit { font-size: 12px; color: var(--text-leise); flex: 0 0 auto; }
 
 /* --- Ändern an Ort und Stelle -------------------------------------------- */
 

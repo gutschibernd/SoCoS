@@ -93,7 +93,7 @@ def fortschritt(paket):
     Warum: Eine Stufe „Umsetzung" mit drei Monaten neben „Konzept" mit einem
     ist nicht ein Viertel des Weges, sondern die Hälfte.
     """
-    stufen = paket.bereich.stufen or []
+    stufen = paket.stufen or []
     gesamt = sum(int(s.get("monate", 1)) for s in stufen)
     if not gesamt:
         return 0

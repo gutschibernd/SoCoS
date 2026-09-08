@@ -15,7 +15,14 @@ from django.conf import settings
 from django.core.management import call_command
 
 from socos import sicherung
-from socos.models import Nutzer, Protokolleintrag
+from socos.models import (
+    Arbeitspaket,
+    Bereich,
+    Bereichsart,
+    Nutzer,
+    Projekt,
+    Protokolleintrag,
+)
 
 
 # --- Vollständigkeit --------------------------------------------------------
@@ -85,6 +92,39 @@ def test_rundlauf_datenbank_und_medien(tmp_path, medien, admin_nutzer):
     assert {g.name for g in wieder_da.groups.all()} == {"admin"}
     assert Protokolleintrag.objects.count() == anzahl_protokoll
     assert beleg.read_text() == "hochgeladen"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_die_stufenleiste_eines_pakets_wandert_mit(tmp_path, medien, admin_nutzer):
+    """
+    Die Leiste ist ein JSON-Feld mit angepassten Dauern. Ein Export, der sie
+    auf die Vorlage zurückfallen ließe, sähe vollständig aus — und der Verlust
+    fiele erst beim Wiederherstellen auf.
+    """
+    projekt = Projekt.objects.create(titel="Rundlauf")
+    bereich = Bereich.objects.create(projekt=projekt, titel="Entwicklung", art=Bereichsart.DEV)
+    paket = Arbeitspaket.objects.create(
+        bereich=bereich,
+        titel="Eigene Leiste",
+        stufen=[{"name": "Sondierung", "monate": 7}, {"name": "Bau", "monate": 2}],
+        stufenstand=1,
+    )
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+
+    paket.stufen = [{"name": "Egal", "monate": 1}]
+    paket.stufenstand = 0
+    paket.save()
+
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    wieder_da = Arbeitspaket.objects.get(titel="Eigene Leiste")
+    assert wieder_da.stufen == [
+        {"name": "Sondierung", "monate": 7},
+        {"name": "Bau", "monate": 2},
+    ]
+    assert wieder_da.stufenstand == 1
 
 
 @pytest.mark.django_db(transaction=True)

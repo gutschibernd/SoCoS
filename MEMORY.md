@@ -134,26 +134,51 @@ im Entwurf schon angelegt (`item.subs`) und sind ausdrücklich gewünscht.
 angelegt wird. Sonst gäbe es zwei Wege, Zeit zu verbuchen, und jede Auswertung müsste
 beide kennen.
 
-Bereichsart bleibt die feste Aufzählung `dev` · `fin` · `ziel`. Sie ist nur die
-Vorlage für die Stufenliste, sonst nichts.
+Bereichsart bleibt die feste Aufzählung `dev` · `fin` · `ziel`. Sie wählt die
+Vorlage für die Stufenliste eines neuen Pakets, sonst nichts.
 
 ### Stufen
 
-Ein **Bereich** trägt seine eigene Stufenliste (Name + Dauer in Monaten). Beim Anlegen
-wird sie aus der Vorlage seiner Art kopiert und ist danach frei änderbar.
+Ein **Arbeitspaket** trägt seine eigene Stufenliste (Name + Dauer in Monaten). Beim
+Anlegen wird sie aus der Vorlage der Bereichsart kopiert und ist danach frei
+änderbar — Namen wie Dauern.
 
-**Warum kopieren statt vererben:** „je Projekt anpassbar" wäre auch über eine
+**Warum am Paket und nicht am Bereich** (seit Migration `0004`, davor lag sie am
+Bereich): Ein Bereich enthält Pakete verschiedenen Zuschnitts. Ein Antrag, ein
+Prototyp und eine Doku laufen weder über dieselben Stufen noch über dieselben
+Dauern. Eine Leiste für alle Pakete eines Bereichs zeigt für die meisten einen
+Fortschritt, der so nie gemessen wurde.
+
+**Warum kopieren statt vererben:** „je Paket anpassbar" wäre auch über eine
 Vererbungskette mit Überschreibungen zu haben. Die müsste man aber bei jeder Anzeige
-auflösen, und man sieht einem Bereich dann nicht an, welche Stufen für ihn gelten.
+auflösen, und man sieht einem Paket dann nicht an, welche Stufen für es gelten.
 Eine kopierte Liste ist ein Wert, kein Verweis — sie ist beim Lesen fertig.
 
-Vorlagen (Namen sind bestätigt, Dauern sind der Stand aus dem Entwurf):
+Die drei Vorlagen (Namen sind bestätigt, Dauern sind der Stand aus dem Entwurf):
 
-| Art | Stufen (Monate) |
+| Schlüssel | Stufen (Monate) |
 |---|---|
 | `dev` | Konzept 1 · Umsetzung 3 · Test 2 · Abschluss 1 |
 | `fin` | Vorbereitung 1 · Einreichung 1 · Entscheidung 2 · Abrechnung 1 |
 | `ziel` | Definition 1 · Abstimmung 1 · Verankert 1 |
+
+Drei Entscheidungen dazu, die man dem Code sonst nicht ansieht:
+
+- **Der Aufruf schickt nur den Namen der Vorlage**, nie ihren Inhalt
+  (`POST /pakete/<id>/vorlage/`). Sonst stünden die Stufen ein zweites Mal im
+  Frontend, und beim nächsten Nachbessern gäbe es zwei Fassungen davon.
+- **Eine Vorlage setzt den Stand auf null.** „Stufe 3" heißt in einer anderen
+  Leiste etwas anderes — ihn zu übernehmen wäre eine Behauptung.
+- **Wer die Leiste kürzt, meint nicht den Stand:** Der wird gekappt, nicht mit
+  einer Fehlermeldung abgewiesen. Sonst stünde ein Paket auf Stufe 4 von 2 und
+  zeigte 100 %. Ein **ausdrücklich** mitgeschickter Stand außerhalb der Leiste
+  wird weiter abgewiesen.
+- **Eine geleerte Leiste wird nicht wieder befüllt.** Sie ist eine Entscheidung
+  („dieses Paket hat keine Stufen"), keine Lücke — `save` füllt nur beim Anlegen.
+- **Die Dauern werden beim Schreiben geprüft** (Name da, `monate` ganze Zahl
+  0–120), nicht erst beim Rechnen. `fortschritt` machte aus einem Text in
+  `monate` still eine 1 und lieferte eine falsche Prozentzahl — die sieht man ihr
+  nicht an.
 
 ### Paketstatus
 
@@ -397,15 +422,24 @@ Entscheidungen, die man dem Code sonst nicht ansieht:
   welcher Seite gibt, steht in `router.ts` in `UNTERSEITEN`; was dort nicht steht,
   wird beim Lesen des Pfades verworfen. Sonst hinge an einer erfundenen zweiten
   Stufe eine Ansicht in einem Zustand, den niemand vorgesehen hat.
-- **Die Gliederung ändert man unter `/projekt/bearbeiten`, nicht in der
-  Übersicht.** Anlegen, Umordnen und Entfernen standen als Knöpfe in jeder Zeile
-  und haben die Ansicht zugestellt — beim Lesen sind sie Rauschen, und der
-  Papierkorb neben einem Paket ist einer zu viel. Die Übersicht ist zum Arbeiten
-  (Status, Stufen, Notiz, Haken, Clock-in), die Unterseite zum Gliedern.
+- **Alles Ändern steht unter `/projekt/bearbeiten`, nichts in der Übersicht.**
+  Anlegen, Umordnen und Entfernen standen als Knöpfe in jeder Zeile und haben die
+  Ansicht zugestellt — beim Lesen sind sie Rauschen, und der Papierkorb neben einem
+  Paket ist einer zu viel. Dasselbe galt für die Texte: Ein Klick auf eine
+  Überschrift machte ein Eingabefeld auf, auch wenn man nur lesen wollte. Die
+  Übersicht kann darum nur noch **arbeiten** — Status, Stufenstand, Haken,
+  Clock-in —, alles Schreiben von Text und Struktur sitzt im Bearbeiten.
   **Beide Modi sind dieselben Komponenten mit einem Schalter (`bearbeiten`), keine
   zweite Ansicht** — die zweite wird beim nächsten neuen Feld vergessen, und dann
-  steht in der Übersicht etwas, das im Bearbeiten fehlt. Die Reiter sieht nur, wer
-  bearbeiten darf; die Schwelle selbst bleibt serverseitig.
+  steht in der Übersicht etwas, das im Bearbeiten fehlt.
+- **Ein Knopf am rechten Rand, kein Reiterpaar.** Zwei Reiter behaupten zwei
+  gleichrangige Ansichten; es gibt aber eine Ansicht und einen Sonderzustand, in
+  den man selten geht. Den Knopf sieht nur, wer bearbeiten darf — die Schwelle
+  selbst bleibt serverseitig.
+- **Projektkarten stehen nebeneinander, sobald der Platz für zwei Spalten reicht**
+  (`minmax(min(420px, 100%), 1fr)`). Das `min(…, 100%)` ist nicht Zierat: Mit
+  nacktem `420px` wäre die Spur am Handy breiter als das Fenster und die Seite
+  scrollte waagrecht.
 - **Die Uhr zählt aus dem Startzeitpunkt hoch**, nicht aus einem eigenen
   Zähler. Ein Zähler, der bei 0 beginnt, zeigt nach einem Neuladen eine falsche
   Dauer — und genau dann schaut jemand hin.

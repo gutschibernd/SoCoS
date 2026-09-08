@@ -42,7 +42,6 @@ export type Bereich = {
   projekt: number;
   titel: string;
   art: "dev" | "fin" | "ziel";
-  stufen: Stufe[];
   pakete: Paket[];
 };
 export type Projekt = {
