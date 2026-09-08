@@ -312,6 +312,23 @@
 .legende li i { width: 10px; height: 10px; border-radius: 2px; }
 .legende .zahl { color: var(--text-leise); }
 
+/* --- Unternavigation ----------------------------------------------------- */
+
+/* Reiter, keine zweite Kopfleiste: Die Unterseite gehört sichtbar unter ihre
+   Seite. Die aktive Marke ist ein Strich unten, kein gefüllter Kasten — sonst
+   streitet sie mit dem aktiven Eintrag in der Kopfleiste um dieselbe Geste. */
+.unternavigation {
+  display: flex; gap: 2px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--rand);
+}
+.unternavigation a {
+  padding: 0 14px; font-size: 14px; font-weight: 600; white-space: nowrap;
+  color: var(--text-leise); border-bottom: 2px solid transparent; margin-bottom: -1px;
+  min-height: var(--griff); display: flex; align-items: center;
+}
+.unternavigation a:hover { color: var(--marke); background: var(--flaeche-leise); }
+.unternavigation a[aria-current="page"] { color: var(--marke); border-bottom-color: var(--marke); }
+
 /* --- Projektansicht ------------------------------------------------------ */
 
 .projekt-kopf {

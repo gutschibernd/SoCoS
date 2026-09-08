@@ -392,8 +392,20 @@ aus `farben.css`, und ein Test verbietet Hex-Werte in Komponenten.
 
 Entscheidungen, die man dem Code sonst nicht ansieht:
 
-- **Kein react-router.** Fünf Seiten ohne verschachtelte Wege. Ein Rahmenwerk
-  brächte mehr Begriffe mit, als die Anwendung Seiten hat.
+- **Kein react-router.** Fünf Seiten und eine einzige Unterseite. Ein Rahmenwerk
+  brächte mehr Begriffe mit, als die Anwendung Wege hat. Welche Unterseite es zu
+  welcher Seite gibt, steht in `router.ts` in `UNTERSEITEN`; was dort nicht steht,
+  wird beim Lesen des Pfades verworfen. Sonst hinge an einer erfundenen zweiten
+  Stufe eine Ansicht in einem Zustand, den niemand vorgesehen hat.
+- **Die Gliederung ändert man unter `/projekt/bearbeiten`, nicht in der
+  Übersicht.** Anlegen, Umordnen und Entfernen standen als Knöpfe in jeder Zeile
+  und haben die Ansicht zugestellt — beim Lesen sind sie Rauschen, und der
+  Papierkorb neben einem Paket ist einer zu viel. Die Übersicht ist zum Arbeiten
+  (Status, Stufen, Notiz, Haken, Clock-in), die Unterseite zum Gliedern.
+  **Beide Modi sind dieselben Komponenten mit einem Schalter (`bearbeiten`), keine
+  zweite Ansicht** — die zweite wird beim nächsten neuen Feld vergessen, und dann
+  steht in der Übersicht etwas, das im Bearbeiten fehlt. Die Reiter sieht nur, wer
+  bearbeiten darf; die Schwelle selbst bleibt serverseitig.
 - **Die Uhr zählt aus dem Startzeitpunkt hoch**, nicht aus einem eigenen
   Zähler. Ein Zähler, der bei 0 beginnt, zeigt nach einem Neuladen eine falsche
   Dauer — und genau dann schaut jemand hin.

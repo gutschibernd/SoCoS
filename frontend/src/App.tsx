@@ -18,9 +18,13 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   profil: { titel: "Profil", unter: "Deine Stammdaten" },
 };
 
+/* Die einzige Unterseite bekommt ihre eigene Zeile, statt sie aus dem Namen
+   zusammenzusetzen — bei einer Ausnahme ist die Ausnahme kürzer als die Regel. */
+const PROJEKT_BEARBEITEN = { titel: "Projekt bearbeiten", unter: "Gliedern, umordnen, entfernen" };
+
 export function App() {
   const ich = useIch();
-  const [seite, wechseln] = useSeite();
+  const [ort, wechseln] = useSeite();
 
   // Wer nicht angemeldet ist, gehört zur Anmeldung — nicht auf eine
   // Fehlerseite, von der aus es keinen Weg weitergibt.
@@ -33,21 +37,26 @@ export function App() {
   // isError. Siehe basis/Zustand.tsx.
   if (!ich.data) return <Zustand abfrage={ich} erneut={() => ich.refetch()} />;
 
+  const bearbeiten = ort.seite === "projekt" && ort.unter === "bearbeiten";
+  const kopfzeile = bearbeiten ? PROJEKT_BEARBEITEN : TITEL[ort.seite];
+
   return (
     <>
-      <Kopf ich={ich.data} seite={seite} wechseln={wechseln} />
+      <Kopf ich={ich.data} seite={ort.seite} wechseln={wechseln} />
       <Meldungen />
       <main className="seite">
         <div className="titelzeile">
-          <h1>{TITEL[seite].titel}</h1>
-          <div className="unter">{TITEL[seite].unter}</div>
+          <h1>{kopfzeile.titel}</h1>
+          <div className="unter">{kopfzeile.unter}</div>
         </div>
 
-        {seite === "dashboard" && <Dashboard ich={ich.data} wechseln={wechseln} />}
-        {seite === "projekt" && <Projekt ich={ich.data} />}
-        {seite === "zeit" && <Zeit ich={ich.data} />}
-        {seite === "kontakte" && <Kontakte ich={ich.data} />}
-        {seite === "profil" && <Profil ich={ich.data} />}
+        {ort.seite === "dashboard" && <Dashboard ich={ich.data} wechseln={wechseln} />}
+        {ort.seite === "projekt" && (
+          <Projekt ich={ich.data} bearbeiten={bearbeiten} wechseln={wechseln} />
+        )}
+        {ort.seite === "zeit" && <Zeit ich={ich.data} />}
+        {ort.seite === "kontakte" && <Kontakte ich={ich.data} />}
+        {ort.seite === "profil" && <Profil ich={ich.data} />}
       </main>
     </>
   );
