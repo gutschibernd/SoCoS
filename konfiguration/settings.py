@@ -179,7 +179,16 @@ STATIC_ROOT = WURZEL / "statisch_gesammelt"
 # Ohne das Verzeichnis warnt WhiteNoise bei jeder Anfrage. Eine Warnung, die
 # immer dasteht, erzieht dazu, Warnungen nicht mehr zu lesen.
 STATIC_ROOT.mkdir(exist_ok=True)
-STATICFILES_DIRS = [d for d in [WURZEL / "frontend" / "dist"] if d.exists()]
+# `statisch/` liegt vor dem Bauverzeichnis: Dort stehen die Symboldateien der
+# Marke, und die müssen auch dann ausgeliefert werden, wenn `frontend/dist`
+# noch gar nicht gebaut ist — die Anmeldeseite läuft ohne das React-Bundle.
+#
+# Warum unter /static/ und nicht an der Wurzel: Die letzte Route in
+# konfiguration/urls.py fängt alles ab, was nicht api/, admin/, static/ oder
+# medien/ ist. Ein /favicon.svg bekäme also die React-Seite ausgeliefert.
+STATICFILES_DIRS = [
+    d for d in [WURZEL / "statisch", WURZEL / "frontend" / "dist"] if d.exists()
+]
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},

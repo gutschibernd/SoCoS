@@ -40,6 +40,12 @@
   --marke-rand: #a8c6c4;
   --akzent: #8a5638;
   --akzent-hell: #f4ebe1;
+  /* Die Wortmarke. Gebraucht wird sie derzeit nur auf der Anmeldeseite — dort
+     steht sie groß und zweifarbig (die beiden kleinen o im Kupfer). Sie steht
+     trotzdem hier, weil die Palette der eine Ort ist; sonst hätte
+     anmelden.html zwei Farben, die es hier nicht gibt. */
+  --wortmarke: #0f4448;
+  --wortmarke-o: #8a5638;
   /* Text auf einer Markenfläche. Hell ist die Marke dunkel genug für Weiß;
      dunkel ist sie aufgehellt, und Weiß darauf käme auf 2,3:1. */
   --auf-marke: #ffffff;
@@ -89,6 +95,10 @@
     --marke-rand: #3a6b6c;
     --akzent: #c88a63;
     --akzent-hell: #2e2420;
+    /* Dunkel trägt das Grün der Wortmarke nicht: auf #1a2325 kommt #0f4448
+       auf 1,2:1 und ist schlicht nicht da — sie steht dann in Textfarbe. */
+    --wortmarke: #e6e9e6;
+    --wortmarke-o: #c88a63;
     --auf-marke: #0b2224;
 
     --kopf-grund: #0d3a3d;
@@ -128,6 +138,10 @@
   --marke-rand: #3a6b6c;
   --akzent: #c88a63;
   --akzent-hell: #2e2420;
+  /* Dunkel trägt das Grün der Wortmarke nicht: auf #1a2325 kommt #0f4448
+     auf 1,2:1 und ist schlicht nicht da — sie steht dann in Textfarbe. */
+  --wortmarke: #e6e9e6;
+  --wortmarke-o: #c88a63;
   --auf-marke: #0b2224;
 
   --kopf-grund: #0d3a3d;

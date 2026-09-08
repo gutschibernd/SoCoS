@@ -1,12 +1,22 @@
-{% load static %}<!doctype html>
+<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Anmelden · SoCoS</title>
+<!--
+  Feste Pfade statt des static-Tags: Die Ablage für statische Dateien arbeitet
+  mit einem Manifest, und das kennt eine Datei erst nach `collectstatic`.
+  Genau diese Seite muss aber stehen, bevor irgendetwas gebaut ist — sonst
+  antwortet die Anmeldung mit einem Fehler statt mit einem Formular.
+  Dieselben Pfade stehen in frontend/index.html.
+-->
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+<link rel="alternate icon" href="/static/favicon.ico" sizes="48x48 32x32 16x16" />
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
 <style>
 /*
  * Zweite Kopie der Palette aus frontend/src/stil/farben.css.
@@ -27,6 +37,10 @@
   --marke-dunkel: #0F4448;
   --marke-rand: #A8C6C4;
   --auf-marke: #FFFFFF;
+  /* Die Wortmarke. Hier steht sie groß und zweifarbig; die Kopfleiste der
+     Anwendung setzt dieselbe Marke klein und einfarbig. */
+  --wortmarke: #0F4448;
+  --wortmarke-o: #8A5638;
   --warnung: #9C4229;
   --warnung-hell: #F7E6DF;
   --kante: 2px;
@@ -45,6 +59,10 @@
     --marke-dunkel: #0F4448;
     --marke-rand: #3A6B6C;
     --auf-marke: #0B2224;
+    /* Dunkel trägt das Grün der Wortmarke nicht — auf #1A2325 kommt #0F4448
+       auf 1,2:1 und ist schlicht nicht da. Die Marke steht dann in Textfarbe. */
+    --wortmarke: #E6E9E6;
+    --wortmarke-o: #C88A63;
     --warnung: #D98A6D;
     --warnung-hell: #33211C;
   }
@@ -71,10 +89,29 @@ body {
   border-top: 3px solid var(--marke);
   padding: 28px 26px 26px;
 }
-.marke { display: flex; align-items: baseline; gap: 8px; margin-bottom: 22px; }
-.marke b { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
-.marke span {
-  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+/*
+ * Die Wortmarke, groß und zweifarbig: die beiden kleinen o im Kupfer der
+ * Palette. Damit entziffert sich das Kürzel selbst — **So**pharmis
+ * **Co**ntrolling **S**oftware.
+ *
+ * Das Signet ist als Bild eingebunden, nicht nachgezeichnet: Die Geometrie
+ * steht einmal in skripte/symbole.py, und dieselbe Datei ist das Favicon.
+ * Ein zweites Mal gezeichnet wäre sie beim ersten Nachbessern falsch.
+ */
+.marke { display: flex; align-items: center; gap: 13px; margin-bottom: 26px; }
+.marke img { display: block; border-radius: var(--kante); }
+/* 57 px ist keine runde Zahl, sondern eine gemessene: Bei dieser Größe ist die
+   Wortmarke genau so breit wie die Mono-Zeile darunter (je ~169 px). Das ist
+   die Bauregel des Sopharmis-Logos — beide Zeilen auf eine Breite gezogen. */
+.marke .wort {
+  font-size: 57px; font-weight: 700; letter-spacing: -0.025em; line-height: 1;
+  color: var(--wortmarke);
+}
+.marke .wort i { font-style: normal; color: var(--wortmarke-o); }
+.marke .unter {
+  margin-top: 7px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 7.5px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase;
   color: var(--text-leise);
 }
 label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
@@ -113,7 +150,13 @@ button:hover { filter: brightness(0.92); }
 </head>
 <body>
 <main class="karte">
-  <div class="marke"><b>Sopharmis</b><span>SoCoS</span></div>
+  <div class="marke">
+    <img src="/static/favicon.svg" alt="" width="46" height="46" />
+    <div>
+      <div class="wort">S<i>o</i>C<i>o</i>S</div>
+      <div class="unter">Sopharmis Controlling Software</div>
+    </div>
+  </div>
 
   {% if form.errors %}
     <div class="fehler" role="alert">

@@ -13,6 +13,7 @@ import { Zustand } from "../basis/Zustand";
 import { alsDauer } from "../basis/zeit";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
+import { Zeichen } from "../bausteine/Zeichen";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 
@@ -80,6 +81,7 @@ export function Projekt({ ich }: { ich: Ich }) {
               onKeyDown={(e) => e.key === "Enter" && anlegen()}
             />
             <button type="button" className="knopf" onClick={anlegen}>
+              <Zeichen name="plus" />
               Projekt anlegen
             </button>
           </div>
@@ -128,6 +130,7 @@ export function Projekt({ ich }: { ich: Ich }) {
                 onKeyDown={(e) => e.key === "Enter" && anlegen()}
               />
               <button type="button" className="knopf" onClick={anlegen}>
+                <Zeichen name="plus" />
                 Anlegen
               </button>
             </>
@@ -210,6 +213,7 @@ function ProjektKarte({
         <span className="zahl gebucht">{alsDauer(projekt.gebuchte_sekunden)} gebucht</span>
         {ich.darf.loeschen && (
           <button type="button" className="knopf-still" onClick={zumLoeschen}>
+            <Zeichen name="korb" />
             Entfernen
           </button>
         )}
@@ -256,6 +260,7 @@ function ProjektKarte({
             ))}
           </select>
           <button type="button" className="knopf-still" onClick={bereichAnlegen}>
+            <Zeichen name="plus" />
             Bereich anlegen
           </button>
         </div>
@@ -332,14 +337,15 @@ function BereichBlock({
         />
         {ich.darf.bearbeiten && (
           <span className="ordnen">
-            <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben">
-              ↑
+            <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben" aria-label="Nach oben">
+              <Zeichen name="hoch" />
             </button>
-            <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Nach unten">
-              ↓
+            <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Nach unten" aria-label="Nach unten">
+              <Zeichen name="runter" />
             </button>
             {ich.darf.loeschen && (
               <button type="button" className="mini" onClick={() => setLoeschen(true)}>
+                <Zeichen name="korb" />
                 Entfernen
               </button>
             )}
@@ -388,6 +394,7 @@ function BereichBlock({
             onKeyDown={(e) => e.key === "Enter" && paketAnlegen()}
           />
           <button type="button" className="knopf-still" onClick={paketAnlegen}>
+            <Zeichen name="plus" />
             Paket anlegen
           </button>
         </div>
@@ -476,7 +483,7 @@ function PaketZeile({
     <article className="paket">
       <div className="paket-kopf">
         <button type="button" className="paket-aufklappen" onClick={() => setOffen((o) => !o)} aria-expanded={offen}>
-          <span aria-hidden>{offen ? "▾" : "▸"}</span>
+          <Zeichen name="zeiger" />
         </button>
         <span className="paket-titel">
           <Feldtext
@@ -516,18 +523,24 @@ function PaketZeile({
         {ich.darf.bearbeiten && (
           <>
             <button type="button" className="knopf-still" onClick={uhrStarten}>
+              <Zeichen name="start" />
               Clock-in
             </button>
             <span className="ordnen">
-              <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben">
-                ↑
+              <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben" aria-label="Nach oben">
+                <Zeichen name="hoch" />
               </button>
-              <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Nach unten">
-                ↓
+              <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Nach unten" aria-label="Nach unten">
+                <Zeichen name="runter" />
               </button>
               {ich.darf.loeschen && (
-                <button type="button" className="mini" onClick={() => setLoeschen(true)}>
-                  ✕
+                <button
+                    type="button"
+                    className="mini"
+                    aria-label={`„${paket.titel}“ entfernen`}
+                    onClick={() => setLoeschen(true)}
+                  >
+                  <Zeichen name="kreuz" />
                 </button>
               )}
             </span>
@@ -606,7 +619,7 @@ function PaketZeile({
                       neuLaden();
                     }}
                   >
-                    ✕
+                    <Zeichen name="kreuz" />
                   </button>
                 )}
               </li>
@@ -623,6 +636,7 @@ function PaketZeile({
                 onKeyDown={(e) => e.key === "Enter" && aufgabeAnlegen()}
               />
               <button type="button" className="knopf-still" onClick={aufgabeAnlegen}>
+                <Zeichen name="plus" />
                 Hinzufügen
               </button>
             </div>

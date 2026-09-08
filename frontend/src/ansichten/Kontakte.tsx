@@ -13,6 +13,7 @@ import { Zustand } from "../basis/Zustand";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
+import { Zeichen } from "../bausteine/Zeichen";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 
 const SPUREN: { wert: Organisation["stufe"]; titel: string }[] = [
@@ -113,6 +114,7 @@ export function Kontakte({ ich }: { ich: Ich }) {
             <input className="feld" placeholder="Organisation" value={neueOrg.name} onChange={(e) => setNeueOrg({ ...neueOrg, name: e.target.value })} />
             <input className="feld" placeholder="Typ (Förderstelle, Partner …)" value={neueOrg.typ} onChange={(e) => setNeueOrg({ ...neueOrg, typ: e.target.value })} />
             <button type="button" className="knopf-still" onClick={orgAnlegen}>
+              <Zeichen name="plus" />
               Organisation
             </button>
           </div>
@@ -128,6 +130,7 @@ export function Kontakte({ ich }: { ich: Ich }) {
               ))}
             </select>
             <button type="button" className="knopf" onClick={kontaktAnlegen}>
+              <Zeichen name="plus" />
               Kontakt
             </button>
           </div>
@@ -203,7 +206,7 @@ export function Kontakte({ ich }: { ich: Ich }) {
                                 })
                               }
                             >
-                              ✕
+                              <Zeichen name="kreuz" />
                             </button>
                           )}
                         </div>
@@ -385,6 +388,7 @@ function KontaktTiefe({
         </button>
         {ich.darf.loeschen && (
           <button type="button" className="knopf-still" onClick={zumLoeschen}>
+            <Zeichen name="korb" />
             Entfernen
           </button>
         )}
@@ -453,6 +457,7 @@ function KontaktTiefe({
             <input className="feld" placeholder="Worum ging es?" value={eintrag.titel} onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })} />
             <input className="feld" placeholder="Ergebnis, nächster Schritt …" value={eintrag.text} onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })} onKeyDown={(e) => e.key === "Enter" && verlaufAnlegen()} />
             <button type="button" className="knopf" onClick={verlaufAnlegen}>
+              <Zeichen name="plus" />
               Eintragen
             </button>
           </div>
@@ -487,7 +492,7 @@ function KontaktTiefe({
                     neuLaden();
                   }}
                 >
-                  ✕
+                  <Zeichen name="kreuz" />
                 </button>
               )}
             </li>

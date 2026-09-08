@@ -129,7 +129,13 @@ im Ernstfall, unter Zeitdruck, wenn das Original schon weg ist.
   ohne das React-Bundle und brauchen dieselbe Palette ein zweites Mal in der
   Django-Vorlage — mit denselben Namen, damit man die zweite findet.
 - **Kein CSS-Rahmenwerk, keine Icon-Bibliothek.** Zeichen werden selbst gezeichnet:
-  ein Raster, eine Strichstärke, Farbe von `currentColor`.
+  ein Raster, eine Strichstärke, Farbe von `currentColor`. Sie stehen alle in
+  `frontend/src/bausteine/Zeichen.tsx`, ihre Regeln in `bausteine.css` — nicht je
+  Zeichen. Ein neues Zeichen kommt dort dazu, sonst nirgends.
+- **Die Marke hat eine Geometrie, und die steht in `socos/marke.py`.** Favicon,
+  ICO, Apple-Touch-Icon und der PDF-Kopf kommen von dort; Kopfleiste und
+  Anmeldeseite binden `statisch/favicon.svg` als Bild ein. Wer das Zeichen
+  nachzeichnet, hat es beim ersten Nachbessern an vier Stellen verschieden.
 - **Aus einer Tabelle wird am Handy eine Karte — aus demselben Markup**, über ein
   Datenattribut je Zelle. Keine zweite Ansicht: die zweite wird beim nächsten neuen
   Feld vergessen.

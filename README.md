@@ -121,6 +121,19 @@ python manage.py probedaten --entfernen
 etwas zeigen. Ihre Adressen enden auf `.invalid` (per RFC 2606 reserviert) und
 sie haben kein Passwort — anmelden kann sich damit niemand.
 
+## Symbole der Marke
+
+Favicon, ICO und Apple-Touch-Icon liegen fertig in `statisch/` und gehören ins
+Repository — ein Server soll sie nicht bauen müssen. Neu erzeugt werden sie nur,
+wenn sich am Signet etwas ändert:
+
+```bash
+python manage.py symbole
+```
+
+Geändert wird dafür `socos/marke.py`. Dort steht die Geometrie **einmal**; von
+dort holt sie auch der Zeitnachweis für den Kopf des PDF.
+
 ## Sicherung
 
 ```bash

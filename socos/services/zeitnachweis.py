@@ -32,6 +32,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from socos import marke
 from socos.models import Nutzer, Zeitbuchung
 from socos.services import auswertung
 from socos.services import zeit as zeitdienst
@@ -75,16 +76,37 @@ def monatstitel(monat):
     return f"{MONATE[monat.month - 1]} {monat.year}"
 
 
+def _signet(leinwand, x, y, kante):
+    """Das Signet der Marke, gerechnet aus socos/marke.py.
+
+    `y` ist die Unterkante. Die Balken sind dort von oben beschrieben, wie im
+    SVG; reportlab zählt von unten — daher die Spiegelung."""
+    f = kante / marke.RASTER
+    leinwand.setFillColor(colors.HexColor(marke.GRUND))
+    leinwand.rect(x, y, kante, kante, stroke=0, fill=1)
+    for bx, by, bbreite, bhoehe, farbe in marke.BALKEN:
+        leinwand.setFillColor(colors.HexColor(farbe))
+        leinwand.rect(
+            x + bx * f,
+            y + (marke.RASTER - by - bhoehe) * f,
+            bbreite * f,
+            bhoehe * f,
+            stroke=0,
+            fill=1,
+        )
+
+
 def _kopf_und_fuss(leinwand, dokument, untertitel):
     leinwand.saveState()
     breite, hoehe = A4
 
+    _signet(leinwand, 18 * mm, hoehe - 13.4 * mm, 5.4 * mm)
     leinwand.setFillColor(MARKE)
     leinwand.setFont("Helvetica-Bold", 10)
-    leinwand.drawString(18 * mm, hoehe - 12 * mm, "Sopharmis")
+    leinwand.drawString(25.5 * mm, hoehe - 12 * mm, "Sopharmis")
     leinwand.setFillColor(LEISE)
     leinwand.setFont("Helvetica", 8)
-    leinwand.drawString(38 * mm, hoehe - 12 * mm, untertitel)
+    leinwand.drawString(45.5 * mm, hoehe - 12 * mm, untertitel)
 
     leinwand.setStrokeColor(RAND)
     leinwand.setLineWidth(0.5)

@@ -3,6 +3,7 @@ import type { Seite } from "../basis/router";
 import { alsDauer } from "../basis/zeit";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
+import { Zeichen } from "../bausteine/Zeichen";
 import { Zustand } from "../basis/Zustand";
 import { Finanzeingabe } from "../bausteine/Finanzeingabe";
 
@@ -49,6 +50,7 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
             {d.offene_entwuerfe.length === 1 ? "sie bestätigt" : "sie bestätigt"} hast.
           </p>
           <button type="button" className="knopf" onClick={() => wechseln("zeit")}>
+            <Zeichen name="zeit" />
             In der Zeitliste ansehen
           </button>
         </div>

@@ -4,6 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>SoCoS</title>
+    <!--
+      Die Symbole liegen unter /static/, nicht an der Wurzel: Die letzte Route
+      in konfiguration/urls.py fängt alles Übrige ab und lieferte auf
+      /favicon.svg diese Seite hier aus. Im Entwicklungsbetrieb reicht Vite
+      /static/ an Django weiter (siehe vite.config.ts).
+    -->
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/static/favicon.ico" sizes="48x48 32x32 16x16" />
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

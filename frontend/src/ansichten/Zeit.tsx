@@ -14,6 +14,7 @@ import { Zustand } from "../basis/Zustand";
 import { alsDauer, alsStunden } from "../basis/zeit";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
+import { Zeichen } from "../bausteine/Zeichen";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 
 const TAG = new Intl.DateTimeFormat("de-AT", { weekday: "short", day: "2-digit", month: "2-digit" });
@@ -121,13 +122,16 @@ export function Zeit({ ich }: { ich: Ich }) {
           <div className="feld-reihe nachweis-knoepfe">
             {ich.darf.bearbeiten && (
               <button type="button" className="knopf-still" onClick={() => setNachtragen((n) => !n)}>
+                <Zeichen name={nachtragen ? "kreuz" : "plus"} />
                 {nachtragen ? "Schließen" : "Zeit nachtragen"}
               </button>
             )}
             <a className="knopf-still" href={nachweisPfad(true)}>
+              <Zeichen name="pdf" />
               PDF · nur ich
             </a>
             <a className="knopf" href={nachweisPfad(false)}>
+              <Zeichen name="pdf" />
               PDF · ganzes Team
             </a>
           </div>
@@ -188,11 +192,13 @@ export function Zeit({ ich }: { ich: Ich }) {
                   <td data-spalte="" className="zeilen-aktionen">
                     {ich.darf.bearbeiten && (
                       <button type="button" className="mini" onClick={() => setBearbeiten(b)}>
+                        <Zeichen name="stift" />
                         Ändern
                       </button>
                     )}
                     {ich.darf.loeschen && (
                       <button type="button" className="mini" onClick={() => setLoeschen(b)}>
+                        <Zeichen name="korb" />
                         Entfernen
                       </button>
                     )}

@@ -22,17 +22,22 @@
   cursor: pointer; background: none;
 }
 .marke:hover { background: var(--marke); }
-.marke b { font-size: 16px; font-weight: 600; color: #fff; letter-spacing: -0.01em; }
+.marke img { display: block; border-radius: var(--kante); }
+/* Die Wortmarke klein: Figtree fett über einer Mono-Zeile. Das ist die
+   Bauweise des Sopharmis-Logos — fett oben, Schreibmaschine unten —, nur mit
+   den Schriften, die ohnehin geladen sind. */
+.marke b { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.025em; }
 .marke span {
+  font-family: var(--schrift-zahl);
   font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--kopf-text-leise); padding-top: 2px;
 }
 
 .navigation { display: flex; gap: 2px; min-width: 0; flex-wrap: wrap; }
 .navigation a {
-  padding: 9px 18px; border-radius: var(--kante); font-size: 14px; font-weight: 600;
+  padding: 9px 16px; border-radius: var(--kante); font-size: 14px; font-weight: 600;
   white-space: nowrap; color: var(--kopf-text-leise);
-  min-height: var(--griff); display: flex; align-items: center;
+  min-height: var(--griff); display: flex; align-items: center; gap: 8px;
 }
 .navigation a:hover { background: var(--marke); color: var(--kopf-text); }
 .navigation a[aria-current="page"] { background: var(--kopf-aktiv); color: var(--marke-dunkel); }
@@ -89,6 +94,22 @@
 }
 .knopf-still:hover { border-color: var(--marke-rand); }
 .knopf:disabled, .knopf-still:disabled { opacity: 0.5; cursor: default; }
+
+/* --- Zeichen ------------------------------------------------------------- */
+/*
+ * Keine Icon-Bibliothek: **ein** Raster (24), **eine** Strichstärke, Farbe von
+ * `currentColor`. Die Regeln stehen hier und nicht je Zeichen — sonst hat das
+ * fünfzehnte einen anderen Strich als das erste, und niemand sieht warum.
+ *
+ * Die Größe kommt aus der Schriftgröße daneben (`em`), damit ein Zeichen im
+ * kleinen Knopf nicht größer ist als seine Beschriftung.
+ */
+
+.zeichen {
+  width: 1.15em; height: 1.15em; flex: 0 0 auto; display: block;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: square; stroke-linejoin: miter;
+}
 
 /* --- Statusfarben -------------------------------------------------------- */
 
@@ -225,6 +246,7 @@
 }
 .uhr-knopf {
   min-height: var(--griff); padding: 7px 14px;
+  display: inline-flex; align-items: center; gap: 8px;
   border: 1px solid var(--kopf-rand); border-radius: var(--kante);
   background: transparent; color: var(--kopf-text);
   font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
@@ -396,7 +418,9 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   min-height: 32px; padding: 5px 10px; font-size: 12px; font-weight: 600;
   border: 1px solid var(--rand-stark); border-radius: var(--kante);
   background: var(--flaeche); color: var(--marke); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
 }
+.mini:disabled { opacity: 0.4; cursor: default; }
 .mini:hover { border-color: var(--marke-rand); }
 
 .rueckmeldung { margin: 10px 0 0; font-size: 14px; }
@@ -421,6 +445,11 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   min-height: var(--griff); min-width: 28px;
 }
 .paket-aufklappen:hover { color: var(--marke); }
+/* Ein Zeichen, gedreht — nicht zwei. Zwei Zeichen (auf/zu) laufen beim
+   nächsten Nachbessern auseinander. */
+.paket-aufklappen { display: inline-flex; align-items: center; justify-content: center; }
+.paket-aufklappen .zeichen { width: 14px; height: 14px; }
+.paket-aufklappen[aria-expanded="true"] .zeichen { transform: rotate(90deg); }
 .paket-titel { flex: 1; min-width: 150px; font-size: 15px; font-weight: 500; }
 .unteraufgaben li { justify-content: flex-start; }
 .unteraufgaben li > span { flex: 1; }
@@ -470,6 +499,11 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 
   .raster-4, .raster-3, .raster-2 { grid-template-columns: 1fr; }
   .seite { padding: 14px 14px 40px; }
+
+  /* Die vier Einträge tragen seit den Zeichen je 26 px mehr. Ohne das engere
+     Polster bräuchte die Navigation am Handy eine dritte Zeile — die 44 px
+     Höhe bleiben, es geht nur seitlich enger zu. */
+  .navigation a { padding: 9px 11px; }
 
   /* Jeder Text, den man antippen kann, ist ein Fingerziel — auch einer, der
      wie Fließtext aussieht. Am Rechner bleibt er kompakt, dort trifft die
@@ -530,10 +564,13 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 }
 .meldung-fehler { background: var(--warnung-hell); border-color: var(--warnung); color: var(--warnung); }
 .meldung-gut { background: var(--gut-hell); border-color: var(--gut); color: var(--gut); }
+.meldung > .zeichen { width: 18px; height: 18px; }
+.meldung > span { flex: 1; }
 .meldung button {
   flex: 0 0 auto; min-width: 32px; min-height: 32px;
   background: none; border: 0; cursor: pointer;
   color: inherit; font-size: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 
 .team-punkt {

@@ -148,6 +148,71 @@ Die Zeitdokumentation **muss auditierbar sein**.
 
 ---
 
+## 2026-09-08 — Die Marke: Wortmarke, Signet, Zeichen der Oberfläche
+
+### Was gewählt wurde
+
+**Klein einfarbig, groß zweifarbig.** In der Kopfleiste steht „SoCoS" in
+Figtree 700 über einer Mono-Zeile — die *Bauweise* des Sopharmis-Logos (fett
+oben, Schreibmaschine unten, beide auf eine Breite gezogen), nicht dessen
+Schrift. Auf der Anmeldeseite steht dieselbe Marke groß, und dort sind die
+beiden kleinen **o** kupfern: das Kürzel entziffert sich selbst als
+**So**pharmis **Co**ntrolling **S**oftware.
+
+**Warum nicht die Schrift des Mutterlogos** (DejaVu Sans Bold bzw. Verdana
+Bold, beide auf dem Bitstream-Vera-Skelett): Sie kommt in der Anwendung sonst
+nirgends vor und stünde zwischen lauter Figtree wie eingeklebt. Dazu kommt die
+Lizenz — Verdana-Konturen dürfen nicht weitergegeben werden; frei wären nur
+DejaVu (Vera-Lizenz) oder Figtree (OFL).
+
+**Signet: vier abgestufte Balken** — Projekt · Bereich · Arbeitspaket ·
+Unteraufgabe; der kupferne ist das Arbeitspaket, die Ebene, an der die Uhr
+hängt. Ein „S" im Quadrat wäre bei 16 px lesbarer gewesen, hätte neben
+„SoCoS · Sopharmis" in der Kopfleiste aber dieselbe Auskunft ein drittes Mal
+gegeben.
+
+### Vier Fallen, die dabei aufgefallen sind
+
+**Die Maße des Signets sind alle durch 4 teilbar.** Bei 16 px ist eine
+Rastereinheit (von 64) genau ein Viertelpixel. Die erste Fassung — Balkenhöhe
+7, Abstand 5, Rand 10 — lag auf 1,75 Pixeln je Balken; im Reiter wurde daraus
+ein grauer Verlauf statt vier Balken. Mit Höhe 8, Abstand 8, Rand 4 fällt jede
+Kante auf eine ganze Pixelgrenze.
+
+**`/favicon.svg` an der Wurzel käme nie an.** Die letzte Route in
+`konfiguration/urls.py` fängt alles ab, was nicht `api/`, `admin/`, `static/`
+oder `medien/` ist — ein Favicon an der Wurzel bekäme die React-Seite
+ausgeliefert. Die Symboldateien liegen deshalb in `statisch/` und werden über
+`/static/` geholt. Der Ordner steht **vor** `frontend/dist` in
+`STATICFILES_DIRS`.
+
+**Feste Pfade statt `static`-Tag auf der Anmeldeseite.** Die Ablage arbeitet
+mit einem Manifest (`CompressedManifestStaticFilesStorage`), und das kennt
+eine Datei erst nach `collectstatic`. Der Tag hat den Test der Anmeldeseite
+sofort umgeworfen. Genau diese Seite muss aber stehen, bevor irgendetwas
+gebaut ist. `collectstatic` legt neben der Datei mit Prüfsumme auch die unter
+ihrem echten Namen ab — `/static/favicon.svg` findet also beides.
+
+**Die Geometrie des Signets steht an einer Stelle:** `socos/marke.py`. Von
+dort erzeugt `python manage.py symbole` das SVG, das ICO und das
+Apple-Touch-Icon, und derselbe Modul liefert dem Zeitnachweis die Balken für
+den PDF-Kopf. Kopfleiste und Anmeldeseite zeichnen nichts nach, sondern binden
+`favicon.svg` als Bild ein. Nachgezeichnet wäre das Zeichen beim ersten
+Nachbessern an einer der vier Stellen falsch — und man sähe es im Reiter oder
+auf einem Blatt, das schon verschickt ist.
+
+### Zeichen der Oberfläche
+
+Sechzehn Zeichen in `frontend/src/bausteine/Zeichen.tsx`, selbst gezeichnet:
+ein Raster (24), eine Strichstärke, Farbe von `currentColor`; die Regeln
+stehen in `bausteine.css`, nicht je Zeichen. Sie ersetzen unter anderem die
+getippten Pfeile `↑ ↓ ✕ ▾ ▸` — Schriftzeichen, die auf jedem Gerät anders
+aussehen und in keiner Größe zum Rest passen.
+
+Das Zeichen für „Projekt" ist mit Absicht die Abstufung aus dem Signet. Der
+Knopf „Paket wählen" hat seines wieder verloren: Damit stand dasselbe
+Balkenbild dreimal in einer Leiste.
+
 ## 2026-09-07 — Betriebsfunktionen: sichtbare Fehler, Team, Protokoll
 
 Drei Dinge, ohne die sich die Anwendung nicht sauber betreiben lässt:

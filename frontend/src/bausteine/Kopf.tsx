@@ -6,12 +6,13 @@ import type { Seite } from "../basis/router";
 import { alsDauer } from "../basis/zeit";
 import { Notizdialog } from "./Notizdialog";
 import { Uhr } from "./Uhr";
+import { Zeichen, type ZeichenName } from "./Zeichen";
 
-const MENUE: { seite: Seite; titel: string }[] = [
-  { seite: "dashboard", titel: "Dashboard" },
-  { seite: "projekt", titel: "Projekt" },
-  { seite: "zeit", titel: "Zeit" },
-  { seite: "kontakte", titel: "Kontakte" },
+const MENUE: { seite: Seite; titel: string; zeichen: ZeichenName }[] = [
+  { seite: "dashboard", titel: "Dashboard", zeichen: "dashboard" },
+  { seite: "projekt", titel: "Projekt", zeichen: "projekt" },
+  { seite: "zeit", titel: "Zeit", zeichen: "zeit" },
+  { seite: "kontakte", titel: "Kontakte", zeichen: "kontakte" },
 ];
 
 export function Kopf({
@@ -37,9 +38,19 @@ export function Kopf({
   return (
     <header className="kopf">
       <div className="kopf-innen">
+        {/*
+          Die Wortmarke klein: einfarbig, Figtree über einer Mono-Zeile — die
+          Bauweise des Sopharmis-Logos, nicht dessen Schrift. Zweifarbig (die
+          o im Kupfer) steht sie nur groß auf der Anmeldeseite; bei 16 px
+          sähe man den Unterschied ohnehin nicht.
+
+          Das Signet ist dieselbe Datei wie das Favicon. Nachgezeichnet wäre
+          es beim ersten Nachbessern falsch.
+        */}
         <button type="button" className="marke" onClick={() => wechseln("dashboard")}>
-          <b>Sopharmis</b>
-          <span>SoCoS</span>
+          <img src="/static/favicon.svg" alt="" width="22" height="22" />
+          <b>SoCoS</b>
+          <span>Sopharmis</span>
         </button>
 
         <nav className="navigation">
@@ -53,6 +64,7 @@ export function Kopf({
                 wechseln(eintrag.seite);
               }}
             >
+              <Zeichen name={eintrag.zeichen} />
               {eintrag.titel}
             </a>
           ))}
@@ -66,6 +78,7 @@ export function Kopf({
                 <Uhr seit={buchung.start} />
                 <span className="wo">{buchung.paket_titel}</span>
                 <button type="button" className="uhr-knopf" onClick={() => setFragtNotiz(true)}>
+                  <Zeichen name="stopp" />
                   Clock-out
                 </button>
               </>
