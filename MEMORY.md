@@ -7,6 +7,57 @@ betrifft.
 
 ---
 
+## 2026-09-08 — Echte Daten drin, Probedaten raus
+
+Die Probedaten sind entfernt (`probedaten --entfernen`), die echten Projektdaten
+stehen in der Datenbank. Eingespielt hat sie der neue Befehl
+`manage.py daten_einspielen`, der `daten/sopharmis-daten.json` liest.
+
+**Warum ein Befehl und keine Fixture und keine Datenmigration:** Kunden- und
+Personendaten dürfen nicht ins Repository. `daten/` steht in `.gitignore`; eine
+Fixture oder eine Datenmigration stünde für immer in der Versionsgeschichte, und
+kein `git rm` holt sie wieder heraus.
+
+**Der Befehl prüft erst, dann schreibt er.** Ein unbekannter Status mitten im
+Einspielen bräche zwar die Transaktion ab — aber erst, nachdem die Hälfte
+durchgelaufen ist, und die Meldung nennt dann einen einzigen Titel statt aller
+Stellen, die noch anstehen. Geprüft werden Bereichsart, Paketstatus, E-Mail und
+Rolle; die Meldung listet alle Verstöße auf einmal.
+
+**Was die Datei repariert werden musste**, um zum Modell zu passen:
+
+| in der Datei | eingespielt als | warum |
+|---|---|---|
+| `in arbeit` | `laeuft` | kein Wert des Modells |
+| `pausiert` (2×) | `verworfen` | kein Wert des Modells; die Notiz sagte beide Male „verworfen" |
+| `initials: C1/C2/C3` | `initialen: FD/BG/AW` | Platzhalter aus dem Entwurf |
+
+Die Notizen „National · verworfen" und „Land · verworfen" sind auf „National"
+und „Land" gekürzt — der Status sagt es jetzt, und ein Wert an zwei Stellen
+läuft irgendwann auseinander.
+
+**Zwei Felder der Datei werden bewusst nicht eingespielt**, festgehalten als
+`NICHT_EINGESPIELT` im Befehl:
+
+- **`gebucht`** (`"34:20"` je Projekt) — gebuchte Zeit wird aus den
+  Zeitbuchungen gerechnet, nicht gespeichert. Eine Zahl aus dem Entwurf, die
+  niemand nachrechnen kann, wäre genau die Art Wert, die plausibel aussieht und
+  falsch ist.
+- **`sonstiges`** (Standort, Side-Quests) — dafür gibt es kein Modell. In ein
+  fremdes gepresst wäre es schlechter aufgehoben als gar nicht.
+
+**Stand der Konten:** Bernd hat sein Passwort behalten. Florian
+(`dorighi@sopharmis.com`, admin) und Anna (`weissenbacher@sopharmis.com`,
+bearbeiter) sind angelegt, **ohne Passwort und damit nicht anmeldbar** — zu
+setzen mit `manage.py nutzer_passwort <adresse>`. Der Befehl fasst ein
+bestehendes Konto nie an; ein zweiter Lauf ändert an Bernds Konto nichts.
+
+**Was jetzt leer ist:** keine Zeitbuchungen, keine Kontakte, keine
+Organisationen, keine Finanzzahlen. Die Oberfläche zeigt dort Leerstellen, keine
+Fehler — genau dafür sind sie gebaut.
+
+---
+
 ## 2026-09-08 — Der Deploy-Stack: Abbild, zwei Stacks, deploy.sh
 
 Alles unter `betrieb/`. **Gebaut, aber noch nie gelaufen** — es gibt keine
