@@ -17,6 +17,7 @@ import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Feldtext } from "../bausteine/Feldtext";
+import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 
 const STATUS: { wert: string; text: string }[] = [
@@ -93,13 +94,15 @@ export function Projekt({
   const [projektFilter, setProjektFilter] = useState("alle");
   const [statusFilter, setStatusFilter] = useState("alle");
   const [neuesProjekt, setNeuesProjekt] = useState("");
+  const [projektFehler, setProjektFehler] = useState("");
   const [loeschen, setLoeschen] = useState<{ id: number; name: string } | null>(null);
 
   if (!abfrage.data) return <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />;
   const projekte = abfrage.data;
 
   async function anlegen() {
-    if (!neuesProjekt.trim()) return;
+    if (!neuesProjekt.trim()) return setProjektFehler("Ohne Titel gibt es nichts anzulegen.");
+    setProjektFehler("");
     await hole("/projekte/", { method: "POST", body: JSON.stringify({ titel: neuesProjekt.trim() }) });
     setNeuesProjekt("");
     neuLaden();
@@ -147,6 +150,7 @@ export function Projekt({
                 <Zeichen name="plus" />
                 Projekt anlegen
               </button>
+              <Fehlerzeile text={projektFehler} />
             </div>
           )}
         </div>
@@ -202,6 +206,7 @@ export function Projekt({
             </>
           )}
         </div>
+        <Fehlerzeile text={projektFehler} />
       </div>
 
       {/* Nebeneinander, sobald der Platz für zwei Spalten reicht — am Laptop
@@ -249,9 +254,11 @@ function ProjektKarte({
   zumLoeschen: () => void;
 }) {
   const [neuerBereich, setNeuerBereich] = useState({ titel: "", art: "dev" });
+  const [bereichFehler, setBereichFehler] = useState("");
 
   async function bereichAnlegen() {
-    if (!neuerBereich.titel.trim()) return;
+    if (!neuerBereich.titel.trim()) return setBereichFehler("Ohne Titel gibt es nichts anzulegen.");
+    setBereichFehler("");
     await hole("/bereiche/", {
       method: "POST",
       body: JSON.stringify({
@@ -269,10 +276,17 @@ function ProjektKarte({
       <div className="projekt-kopf">
         <div style={{ minWidth: 200 }}>
           <h3>
+            {/* `neuLaden` gehört zu jedem `aendern` dazu. Ohne das ging der
+                PATCH zwar durch, die Liste wurde aber nie neu geholt — auf dem
+                Bildschirm stand weiter der alte Titel, und es sah aus, als
+                hätte das Feld die Änderung verworfen. */}
             <Feldtext
               wert={projekt.titel}
               aendern={ich.darf.bearbeiten && bearbeiten}
-              speichern={(titel) => aendern(`/projekte/${projekt.id}/`, { titel })}
+              speichern={async (titel) => {
+                await aendern(`/projekte/${projekt.id}/`, { titel });
+                neuLaden();
+              }}
             />
           </h3>
           <div className="unter">
@@ -280,7 +294,10 @@ function ProjektKarte({
               wert={projekt.untertitel}
               platzhalter="Untertitel …"
               aendern={ich.darf.bearbeiten && bearbeiten}
-              speichern={(untertitel) => aendern(`/projekte/${projekt.id}/`, { untertitel })}
+              speichern={async (untertitel) => {
+                await aendern(`/projekte/${projekt.id}/`, { untertitel });
+                neuLaden();
+              }}
             />
           </div>
         </div>
@@ -341,6 +358,7 @@ function ProjektKarte({
             <Zeichen name="plus" />
             Bereich anlegen
           </button>
+          <Fehlerzeile text={bereichFehler} />
         </div>
       )}
     </div>
@@ -365,6 +383,7 @@ function BereichBlock({
   neuLaden: () => void;
 }) {
   const [neuesPaket, setNeuesPaket] = useState("");
+  const [paketFehler, setPaketFehler] = useState("");
   const [loeschen, setLoeschen] = useState(false);
   const pakete = bereich.pakete.filter((p) => statusFilter === "alle" || p.status === statusFilter);
 
@@ -385,7 +404,8 @@ function BereichBlock({
   }
 
   async function paketAnlegen() {
-    if (!neuesPaket.trim()) return;
+    if (!neuesPaket.trim()) return setPaketFehler("Ohne Titel gibt es nichts anzulegen.");
+    setPaketFehler("");
     await hole("/pakete/", {
       method: "POST",
       body: JSON.stringify({ bereich: bereich.id, titel: neuesPaket.trim() }),
@@ -474,6 +494,7 @@ function BereichBlock({
             <Zeichen name="plus" />
             Paket anlegen
           </button>
+          <Fehlerzeile text={paketFehler} />
         </div>
       )}
     </section>
@@ -605,6 +626,7 @@ function PaketZeile({
 }) {
   const [offen, setOffen] = useState(false);
   const [neueAufgabe, setNeueAufgabe] = useState("");
+  const [aufgabeFehler, setAufgabeFehler] = useState("");
   const [loeschen, setLoeschen] = useState(false);
   const [fehler, setFehler] = useState("");
   const gesamtMonate = paket.stufen.reduce((s, x) => s + x.monate, 0) || 1;
@@ -653,7 +675,8 @@ function PaketZeile({
   }
 
   async function aufgabeAnlegen() {
-    if (!neueAufgabe.trim()) return;
+    if (!neueAufgabe.trim()) return setAufgabeFehler("Ohne Titel gibt es nichts hinzuzufügen.");
+    setAufgabeFehler("");
     await hole("/unteraufgaben/", {
       method: "POST",
       body: JSON.stringify({
@@ -741,7 +764,7 @@ function PaketZeile({
         <i style={{ width: `${paket.fortschritt}%` }} />
       </div>
 
-      {fehler && <p className="rueckmeldung schlecht">{fehler}</p>}
+      <Fehlerzeile text={fehler} />
 
       {offen && (
         <div className="paket-tiefe">
@@ -838,6 +861,7 @@ function PaketZeile({
               </button>
             </div>
           )}
+          <Fehlerzeile text={aufgabeFehler} />
         </div>
       )}
 

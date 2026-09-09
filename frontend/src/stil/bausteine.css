@@ -628,6 +628,11 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .mini:hover { border-color: var(--marke-rand); }
 
 .rueckmeldung { margin: 10px 0 0; font-size: 14px; }
+/* Eine Fehlerzeile steht oft mitten in einer `.feld-reihe` — dort wäre sie
+   sonst ein Flex-Kind neben dem Knopf und stünde als schmale Spalte daneben.
+   Volle Breite heißt bei `flex-wrap: wrap`: eigene Zeile darunter. Die Regel
+   steht hier und nicht an den Aufrufstellen, sonst fehlt sie bei der nächsten. */
+.feld-reihe > .rueckmeldung { flex: 1 0 100%; margin-top: 6px; }
 .rueckmeldung.gut { color: var(--gut); }
 .rueckmeldung.schlecht { color: var(--warnung); }
 

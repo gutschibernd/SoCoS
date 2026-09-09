@@ -26,7 +26,7 @@ export function Sicherungsdialog({ schliessen }: { schliessen: () => void }) {
   const [stand, setStand] = useState<Stand>("ruhig");
 
   async function einspielen() {
-    if (!datei) return;
+    if (!datei) return melden("fehler", "Wähl zuerst das Archiv, das eingespielt werden soll.");
     setStand("laeuft");
 
     const inhalt = new FormData();
@@ -126,8 +126,12 @@ export function Sicherungsdialog({ schliessen }: { schliessen: () => void }) {
                 <button
                   type="button"
                   className="knopf"
-                  onClick={() => setStand("fragt")}
-                  disabled={!datei || stand === "laeuft"}
+                  onClick={() =>
+                    datei
+                      ? setStand("fragt")
+                      : melden("fehler", "Wähl zuerst das Archiv, das eingespielt werden soll.")
+                  }
+                  disabled={stand === "laeuft"}
                 >
                   {stand === "laeuft" ? "Wird eingespielt …" : "Bestand ersetzen"}
                 </button>

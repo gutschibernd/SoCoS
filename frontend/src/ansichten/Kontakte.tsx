@@ -42,6 +42,7 @@ import type { Seite } from "../basis/router";
 import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Feldtext } from "../bausteine/Feldtext";
+import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
@@ -185,9 +186,11 @@ function Uebersicht({
   const [suche, setSuche] = useState("");
   const [ball, setBall] = useState<Ballfilter>("alle");
   const [neue, setNeue] = useState({ name: "", typ: "" });
+  const [fehler, setFehler] = useState("");
 
   async function anlegen() {
-    if (!neue.name.trim()) return;
+    if (!neue.name.trim()) return setFehler("Ohne Namen gibt es nichts anzulegen.");
+    setFehler("");
     const angelegt = await hole<Organisation>("/organisationen/", {
       method: "POST",
       body: JSON.stringify({ name: neue.name.trim(), typ: neue.typ.trim() }),
@@ -210,7 +213,7 @@ function Uebersicht({
     return (
       <>
         {ich.darf.bearbeiten && (
-          <NeueOrganisation neue={neue} setNeue={setNeue} anlegen={anlegen} />
+          <NeueOrganisation neue={neue} setNeue={setNeue} anlegen={anlegen} fehler={fehler} />
         )}
         <div className="karte">
           <Leerstelle
@@ -232,7 +235,7 @@ function Uebersicht({
 
   return (
     <>
-      {ich.darf.bearbeiten && <NeueOrganisation neue={neue} setNeue={setNeue} anlegen={anlegen} />}
+      {ich.darf.bearbeiten && <NeueOrganisation neue={neue} setNeue={setNeue} anlegen={anlegen} fehler={fehler} />}
 
       <div className="karte">
         <div className="feld-reihe">
@@ -355,10 +358,12 @@ function NeueOrganisation({
   neue,
   setNeue,
   anlegen,
+  fehler,
 }: {
   neue: { name: string; typ: string };
   setNeue: (n: { name: string; typ: string }) => void;
   anlegen: () => void;
+  fehler: string;
 }) {
   return (
     <div className="karte">
@@ -383,6 +388,7 @@ function NeueOrganisation({
           Anlegen
         </button>
       </div>
+      <Fehlerzeile text={fehler} />
     </div>
   );
 }
@@ -601,9 +607,11 @@ function Personenkarte({
   zumLoeschen: (auftrag: Loeschauftrag) => void;
 }) {
   const [neue, setNeue] = useState({ name: "", funktion: "" });
+  const [fehler, setFehler] = useState("");
 
   async function anlegen() {
-    if (!neue.name.trim()) return;
+    if (!neue.name.trim()) return setFehler("Ohne Namen lässt sich die Person später nicht zuordnen.");
+    setFehler("");
     await hole("/kontakte/", {
       method: "POST",
       body: JSON.stringify({
@@ -667,6 +675,7 @@ function Personenkarte({
               Person
             </button>
           </div>
+          <Fehlerzeile text={fehler} />
         </div>
       )}
     </div>
@@ -826,9 +835,14 @@ function Verlaufskarte({
   // Ohne Ziel kann nichts eingetragen werden: An das Haus geht es nur, wenn es
   // eines gibt; an eine Person nur, wenn eine da ist.
   const kannEintragen = eintrag.ziel === "haus" ? andasHaus !== null : Boolean(eintrag.ziel);
+  const [fehler, setFehler] = useState("");
 
   async function anlegen() {
-    if (!eintrag.titel.trim() || !kannEintragen) return;
+    if (!kannEintragen)
+      return setFehler("Es gibt niemanden, an den der Eintrag gehen könnte — leg zuerst eine Person an.");
+    if (!eintrag.titel.trim())
+      return setFehler("Trag ein, worum es ging. Ein Eintrag ohne Anlass hilft in einem halben Jahr niemandem.");
+    setFehler("");
     await hole("/verlauf/", {
       method: "POST",
       body: JSON.stringify({
@@ -905,11 +919,14 @@ function Verlaufskarte({
               onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })}
               onKeyDown={(e) => e.key === "Enter" && anlegen()}
             />
-            <button type="button" className="knopf" onClick={anlegen} disabled={!kannEintragen}>
+            {/* Nicht stillgelegt: Ein grauer Knopf sagt nicht, was fehlt. Er
+                nimmt den Klick an und antwortet in der Zeile darunter. */}
+            <button type="button" className="knopf" onClick={anlegen}>
               <Zeichen name="plus" />
               Eintragen
             </button>
           </div>
+          <Fehlerzeile text={fehler} />
         </div>
       )}
 

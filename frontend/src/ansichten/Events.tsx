@@ -55,6 +55,7 @@ import { Feldtext } from "../bausteine/Feldtext";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
+import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Zeichen } from "../bausteine/Zeichen";
 
 const STAENDE: { wert: Eventziel["stand"]; text: string }[] = [
@@ -192,9 +193,12 @@ function Uebersicht({
 }) {
   const [suche, setSuche] = useState("");
   const [neues, setNeues] = useState({ titel: "", ort: "", von: heuteAlsDatum() });
+  const [fehler, setFehler] = useState("");
 
   async function anlegen() {
-    if (!neues.titel.trim() || !neues.von) return;
+    if (!neues.titel.trim()) return setFehler("Ohne Titel gibt es nichts anzulegen.");
+    if (!neues.von) return setFehler("Wann ist das? Ohne ersten Tag steht das Event nirgends in der Zeit.");
+    setFehler("");
     const angelegt = await hole<Event>("/events/", {
       method: "POST",
       body: JSON.stringify({
@@ -215,7 +219,7 @@ function Uebersicht({
   if (events.length === 0)
     return (
       <>
-        {ich.darf.bearbeiten && <NeuesEvent neues={neues} setNeues={setNeues} anlegen={anlegen} />}
+        {ich.darf.bearbeiten && <NeuesEvent neues={neues} setNeues={setNeues} anlegen={anlegen} fehler={fehler} />}
         <div className="karte">
           <Leerstelle
             was="Noch kein Event"
@@ -231,7 +235,7 @@ function Uebersicht({
 
   return (
     <>
-      {ich.darf.bearbeiten && <NeuesEvent neues={neues} setNeues={setNeues} anlegen={anlegen} />}
+      {ich.darf.bearbeiten && <NeuesEvent neues={neues} setNeues={setNeues} anlegen={anlegen} fehler={fehler} />}
 
       <div className="karte">
         <div className="feld-reihe">
@@ -282,10 +286,12 @@ function NeuesEvent({
   neues,
   setNeues,
   anlegen,
+  fehler,
 }: {
   neues: { titel: string; ort: string; von: string };
   setNeues: (n: { titel: string; ort: string; von: string }) => void;
   anlegen: () => void;
+  fehler: string;
 }) {
   return (
     <div className="karte">
@@ -318,6 +324,7 @@ function NeuesEvent({
           Anlegen
         </button>
       </div>
+      <Fehlerzeile text={fehler} />
     </div>
   );
 }
@@ -593,13 +600,21 @@ function Hitlistkarte({
 }) {
   const [zeile, setZeile] = useState({ ziel: "", anliegen: "" });
   const [neuePerson, setNeuePerson] = useState({ name: "", funktion: "", organisation: "" });
+  const [fehler, setFehler] = useState("");
+  const [personFehler, setPersonFehler] = useState("");
 
   const offen = nochOffen(organisationen, kontakte, event.ziele);
   const nichtsMehrDa = offen.organisationen.length === 0 && offen.personen.length === 0;
 
   async function aufDieListe() {
     const wohin = alsAnfrage(zeile.ziel);
-    if (!wohin) return;
+    if (!wohin)
+      return setFehler(
+        nichtsMehrDa
+          ? "Alle bekannten Organisationen und Personen stehen schon auf der Liste."
+          : "Wähl aus, wen wir ansprechen wollen.",
+      );
+    setFehler("");
     await hole("/eventziele/", {
       method: "POST",
       body: JSON.stringify({ event: event.id, ...wohin, anliegen: zeile.anliegen.trim() }),
@@ -614,7 +629,9 @@ function Hitlistkarte({
    * Kontakten anlegen und dann hier suchen müsste, tut es nicht.
    */
   async function kennengelernt() {
-    if (!neuePerson.name.trim()) return;
+    if (!neuePerson.name.trim())
+      return setPersonFehler("Ohne Namen lässt sich die Person später nicht zuordnen.");
+    setPersonFehler("");
     const angelegt = await hole<Kontakt>("/kontakte/", {
       method: "POST",
       body: JSON.stringify({
@@ -684,11 +701,14 @@ function Hitlistkarte({
               onChange={(e) => setZeile({ ...zeile, anliegen: e.target.value })}
               onKeyDown={(e) => e.key === "Enter" && aufDieListe()}
             />
-            <button type="button" className="knopf" onClick={aufDieListe} disabled={!zeile.ziel}>
+            {/* Nicht stillgelegt: Ein grauer Knopf sagt nicht, was fehlt. Er
+                nimmt den Klick an und antwortet in der Zeile darunter. */}
+            <button type="button" className="knopf" onClick={aufDieListe}>
               <Zeichen name="plus" />
               Auf die Liste
             </button>
           </div>
+          <Fehlerzeile text={fehler} />
         </div>
       )}
 
@@ -759,6 +779,7 @@ function Hitlistkarte({
               Person
             </button>
           </div>
+          <Fehlerzeile text={personFehler} />
           <p className="tabellen-hinweis">
             Legt die Person in den Kontakten an und setzt sie hier gleich auf „getroffen“.
           </p>
@@ -858,10 +879,19 @@ function Verlaufskarte({
     titel: "",
     text: "",
   }));
+  const [fehler, setFehler] = useState("");
 
   async function anlegen() {
     const wohin = alsAnfrage(eintrag.ziel);
-    if (!wohin || !eintrag.titel.trim()) return;
+    if (!wohin)
+      return setFehler(
+        event.ziele.length === 0
+          ? "Setz zuerst jemanden auf die Hitlist — der Verlauf hängt immer an einem Namen von dort."
+          : "Wähl aus, mit wem geredet wurde.",
+      );
+    if (!eintrag.titel.trim())
+      return setFehler("Trag ein, worum es ging. Ein Eintrag ohne Anlass hilft später niemandem.");
+    setFehler("");
     await hole("/verlauf/", {
       method: "POST",
       body: JSON.stringify({
@@ -934,11 +964,14 @@ function Verlaufskarte({
               onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })}
               onKeyDown={(e) => e.key === "Enter" && anlegen()}
             />
-            <button type="button" className="knopf" onClick={anlegen} disabled={!eintrag.ziel}>
+            {/* Nicht stillgelegt: Ein grauer Knopf sagt nicht, was fehlt. Er
+                nimmt den Klick an und antwortet in der Zeile darunter. */}
+            <button type="button" className="knopf" onClick={anlegen}>
               <Zeichen name="plus" />
               Eintragen
             </button>
           </div>
+          <Fehlerzeile text={fehler} />
         </div>
       )}
 

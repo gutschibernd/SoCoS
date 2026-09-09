@@ -158,10 +158,24 @@ button:hover { filter: brightness(0.92); }
     </div>
   </div>
 
+  {% comment %}
+    Ein leeres Feld ist kein Fehlversuch. Wer beides leer abschickt und
+    „E-Mail oder Passwort stimmen nicht" liest, sucht den Fehler bei seinem
+    Passwort — dabei stand nur nichts im Feld.
+
+    Unterschieden wird an der Stelle, an der Django den Fehler ablegt: Ein
+    fehlendes Pflichtfeld hängt am Feld, falsche Zugangsdaten hängen am
+    Formular. Ein `{# … #}` täte es hier übrigens nicht — das gilt nur bis
+    zum Zeilenende, der Rest stünde als Text auf der Seite.
+  {% endcomment %}
   {% if form.errors %}
     <div class="fehler" role="alert">
-      E-Mail oder Passwort stimmen nicht.
-      <br />Nach fünf Fehlversuchen ist das Konto für eine Stunde gesperrt.
+      {% if form.username.errors or form.password.errors %}
+        Bitte E-Mail <b>und</b> Passwort eintragen.
+      {% else %}
+        E-Mail oder Passwort stimmen nicht.
+        <br />Nach fünf Fehlversuchen ist das Konto für eine Stunde gesperrt.
+      {% endif %}
     </div>
   {% endif %}
 

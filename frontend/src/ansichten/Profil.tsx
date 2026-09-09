@@ -3,6 +3,7 @@ import { useState } from "react";
 import { hole } from "../basis/api";
 import { useNeuLaden, type Ich } from "../basis/daten";
 import { melden } from "../basis/meldungen";
+import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Protokoll } from "../bausteine/Protokoll";
 import { Team } from "../bausteine/Team";
 
@@ -22,8 +23,11 @@ export function Profil({ ich }: { ich: Ich }) {
     Object.fromEntries(FELDER.map((f) => [f.schluessel, (ich as never as Record<string, string>)[f.schluessel] ?? ""])),
   );
   const [gespeichert, setGespeichert] = useState(false);
+  const [fehler, setFehler] = useState("");
 
   async function speichern() {
+    if (!werte.name?.trim()) return setFehler("Ohne Namen steht im Team und im Zeitnachweis eine leere Zeile.");
+    setFehler("");
     await hole(`/nutzer/${ich.id}/`, { method: "PATCH", body: JSON.stringify(werte) });
     setGespeichert(true);
     melden("gut", "Profil gespeichert.");
@@ -51,6 +55,7 @@ export function Profil({ ich }: { ich: Ich }) {
             onChange={(e) => {
               setWerte({ ...werte, [feld.schluessel]: e.target.value });
               setGespeichert(false);
+              setFehler("");
             }}
           />
         </label>
@@ -60,7 +65,8 @@ export function Profil({ ich }: { ich: Ich }) {
         <button type="button" className="knopf" onClick={speichern}>
           Speichern
         </button>
-        {gespeichert && <span style={{ color: "var(--gut)", fontSize: 14 }}>Gespeichert.</span>}
+        {gespeichert && <span className="rueckmeldung gut">Gespeichert.</span>}
+        <Fehlerzeile text={fehler} />
       </div>
     </div>
 

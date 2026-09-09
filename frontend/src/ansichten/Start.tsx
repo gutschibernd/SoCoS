@@ -20,6 +20,7 @@ import {
 } from "../basis/daten";
 import type { Seite } from "../basis/router";
 import { BUCHBAR, letztePakete } from "../basis/start";
+import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen, type ZeichenName } from "../bausteine/Zeichen";
@@ -141,6 +142,7 @@ function Buchen({
   const buchung = laufend.data?.laufend ?? null;
 
   async function starten(id: number) {
+    if (!id) return setFehler("Wähl zuerst das Arbeitspaket, auf das die Uhr laufen soll.");
     setFehler("");
     try {
       await hole("/zeiten/clock_in/", { method: "POST", body: JSON.stringify({ paket: id }) });
@@ -204,18 +206,15 @@ function Buchen({
             </optgroup>
           ))}
         </select>
-        <button
-          type="button"
-          className="knopf"
-          disabled={!paket}
-          onClick={() => starten(Number(paket))}
-        >
+        {/* Nicht stillgelegt: Ein grauer Knopf sagt nicht, was fehlt. Er nimmt
+            den Klick an und antwortet in der Zeile darunter. */}
+        <button type="button" className="knopf" onClick={() => starten(Number(paket))}>
           <Zeichen name="start" />
           Uhr starten
         </button>
       </div>
 
-      {fehler && <p className="rueckmeldung schlecht">{fehler}</p>}
+      <Fehlerzeile text={fehler} />
 
       {projekte.data && alle.length === 0 && (
         <Leerstelle

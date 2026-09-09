@@ -13,6 +13,7 @@ import {
 import { Zustand } from "../basis/Zustand";
 import { alsDauer, alsStunden } from "../basis/zeit";
 import { Hilfe } from "../bausteine/Hilfe";
+import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
@@ -287,7 +288,7 @@ function BuchungAendern({
           placeholder="Notiz"
           onChange={(e) => setNotiz(e.target.value)}
         />
-        {fehler && <p style={{ color: "var(--warnung)", fontSize: 14, marginTop: 8 }}>{fehler}</p>}
+        <Fehlerzeile text={fehler} />
         <div className="dialog-knoepfe" style={{ marginTop: 14 }}>
           <button type="button" className="knopf-still" onClick={schliessen}>
             Abbrechen
@@ -303,8 +304,16 @@ function BuchungAendern({
 
 function EntwurfZeile({ buchung, neuLaden }: { buchung: Buchung; neuLaden: () => void }) {
   const [ende, setEnde] = useState(() => (buchung.ende ? fuerFeld(buchung.ende) : ""));
+  const [fehler, setFehler] = useState("");
 
   async function bestaetigen() {
+    // Ohne Prüfung warf `new Date("").toISOString()` einen RangeError: in der
+    // Konsole ein Fehler, auf der Seite nichts. Genau der Fall, den niemand
+    // meldet, weil es so aussieht, als hätte man danebengeklickt.
+    if (!ende) return setFehler("Trag ein, bis wann du gearbeitet hast.");
+    if (new Date(ende) <= new Date(buchung.start))
+      return setFehler("Das Ende muss nach dem Beginn liegen.");
+    setFehler("");
     await hole(`/zeiten/${buchung.id}/entwurf_bestaetigen/`, {
       method: "POST",
       body: JSON.stringify({ ende: new Date(ende).toISOString() }),
@@ -325,6 +334,7 @@ function EntwurfZeile({ buchung, neuLaden }: { buchung: Buchung; neuLaden: () =>
       <button type="button" className="knopf" onClick={bestaetigen}>
         Bestätigen
       </button>
+      <Fehlerzeile text={fehler} />
     </div>
   );
 }
@@ -387,7 +397,7 @@ function Nachtragen({ projekte, fertig }: { projekte: Projekt[]; fertig: () => v
           Nachtragen
         </button>
       </div>
-      {fehler && <p style={{ color: "var(--warnung)", fontSize: 14, marginTop: 8 }}>{fehler}</p>}
+      <Fehlerzeile text={fehler} />
     </div>
   );
 }
