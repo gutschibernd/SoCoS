@@ -7,6 +7,45 @@ betrifft.
 
 ---
 
+## 2026-09-09 — Abmelden: es gab einen Knopf, und er hat nie abgemeldet
+
+Der einzige Weg hinaus war ein `knopf-still` unten auf der Profilseite, und der
+war ein Anker auf `/abmelden/`. **Djangos `LogoutView` nimmt seit 5.0 nur noch
+POST** — ein GET darauf ist 405. Der Knopf sah richtig aus, war an der
+unauffälligsten Stelle der Anwendung versteckt und tat nichts.
+
+Das ist die unangenehme Sorte Fehler: Nichts stürzt ab, nichts wird rot, die
+Sitzung bleibt einfach stehen. Wer ihn drückte, blieb angemeldet.
+
+**Jetzt:** ein Formular mit `method="post"` und dem CSRF-Feld, in der
+Kopfleiste ganz außen neben dem Zahnrad. Ein Zeichenknopf mit `aria-label`,
+44 px, dieselbe Form wie das Zahnrad — beide tragen darum jetzt eine gemeinsame
+Klasse `.kopf-knopf` statt zweier gleicher Regelsätze, die beim ersten
+Nachbessern auseinanderlaufen.
+
+- **Formular statt `fetch`:** Nach dem POST soll der Browser der Weiterleitung
+  auf `/anmelden/` folgen und dabei den ganzen Zustand im Speicher wegwerfen —
+  React Query mitsamt Cache. Ein `fetch` hätte die abgemeldete Oberfläche
+  stehen lassen und den Aufräumweg selbst nachbauen müssen.
+- **Auf der Profilseite steht er nicht mehr.** Die Kopfleiste ist auf jeder
+  Seite da, die Profilseite eingeschlossen. Zwei Wege wären zwei Stellen, an
+  denen der 405 wieder einziehen kann.
+- Zwei Tests halten das fest (`test_oberflaeche.py`): dass GET auf `/abmelden/`
+  405 liefert und die Sitzung stehen bleibt, und dass in `frontend/src` kein
+  `href` auf `/abmelden/` mehr vorkommt.
+
+**Preis, bewusst bezahlt:** Der vierte Griff im rechten Block kostet bei genau
+1280 px rund 60 px, und die kürzt sich die Uhr am Beschriftungstext ab („keine
+B…"). Das ist genau das Nachgeben, das in `bausteine.css` für `.uhr-chip .wo`
+vorgesehen ist — der einzige Teil der Leiste, der schrumpfen darf. Die
+Alternative wäre die zweizeilige Kopfleiste gewesen, und die war eine Stunde
+vorher ausdrücklich abgeschafft worden.
+
+Geprüft an 1280×800 und 375×812, hell und dunkel; am Handy stehen die drei
+Zeichenknöpfe rechts unter der Uhr.
+
+---
+
 ## 2026-09-09 — Ein leerer Zustand darf den Weg hinein nicht verstellen
 
 Auf der Kontakteseite war das Anlegen unerreichbar, solange es nichts anzuzeigen

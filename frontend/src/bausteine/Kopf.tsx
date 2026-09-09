@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { hole } from "../basis/api";
+import { csrfWert, hole } from "../basis/api";
 import { useLaufend, useNeuLaden, type Ich } from "../basis/daten";
 import type { Seite } from "../basis/router";
 import { alsDauer } from "../basis/zeit";
@@ -118,6 +118,24 @@ export function Kopf({
               was im Tagesbetrieb gebraucht wird. Ob es tatsächlich geht,
               entscheidet der Server bei jedem der beiden Aufrufe neu. */}
           {ich.darf.sichern && <Zahnrad oeffnen={() => setZeigtSicherung(true)} />}
+
+          {/*
+            Ein Formular, kein Link: Djangos LogoutView nimmt seit 5.0 nur
+            noch POST. Ein Anker auf denselben Pfad sieht richtig aus und
+            liefert 405 — der Knopf, den es vorher auf der Profilseite gab,
+            hat aus genau diesem Grund nie abgemeldet.
+
+            Und keine fetch-Anfrage: Nach dem POST soll der Browser der
+            Weiterleitung auf die Anmeldeseite folgen und dabei den ganzen
+            Zustand im Speicher wegwerfen. Genau das tut ein Formular von
+            selbst.
+          */}
+          <form className="abmelden" method="post" action="/abmelden/">
+            <input type="hidden" name="csrfmiddlewaretoken" value={csrfWert()} />
+            <button type="submit" className="kopf-knopf" title="Abmelden" aria-label="Abmelden">
+              <Zeichen name="abmelden" />
+            </button>
+          </form>
         </div>
       </div>
 

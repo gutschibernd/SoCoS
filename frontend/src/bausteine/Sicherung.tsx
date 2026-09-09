@@ -145,7 +145,7 @@ export function Zahnrad({ oeffnen }: { oeffnen: () => void }) {
   return (
     <button
       type="button"
-      className="zahnrad-knopf"
+      className="kopf-knopf"
       onClick={oeffnen}
       aria-label="Sicherung"
       title="Sicherung: herunterladen und wiederherstellen"

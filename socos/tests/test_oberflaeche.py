@@ -75,3 +75,35 @@ def test_anwendung_schickt_ohne_sitzung_zur_anmeldung(client):
     antwort = client.get("/")
     assert antwort.status_code == 302
     assert antwort["Location"].startswith("/anmelden/")
+
+
+@pytest.mark.django_db
+def test_abmelden_geht_nur_per_post(client, leser):
+    """
+    Djangos LogoutView nimmt seit 5.0 nur POST. Ein `<a href="/abmelden/">`
+    sieht richtig aus, liefert 405 und meldet niemanden ab — genau das war der
+    Knopf auf der Profilseite. Der Test hält fest, warum es ein Formular ist.
+    """
+    client.force_login(leser)
+
+    assert client.get("/abmelden/").status_code == 405
+    assert client.get("/").status_code == 200, "die Sitzung steht noch"
+
+    antwort = client.post("/abmelden/")
+    assert antwort.status_code == 302
+    assert antwort["Location"] == "/anmelden/"
+    assert client.get("/")["Location"].startswith("/anmelden/")
+
+
+def test_kein_abmeldelink_in_der_oberflaeche():
+    """
+    Ein Link auf /abmelden/ wäre wieder der stille 405. Abgemeldet wird über
+    das Formular in der Kopfleiste, sonst nirgends.
+    """
+    quelle = WURZEL / "frontend" / "src"
+    treffer = []
+    for datei in quelle.rglob("*.tsx"):
+        for nummer, zeile in enumerate(datei.read_text().splitlines(), 1):
+            if "/abmelden/" in zeile and "href" in zeile:
+                treffer.append(f"{datei.relative_to(WURZEL)}:{nummer}")
+    assert not treffer, f"Abmelden gehört in ein POST-Formular, nicht in einen Link: {treffer}"

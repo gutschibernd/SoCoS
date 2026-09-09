@@ -300,16 +300,22 @@
 }
 .profil span { font-size: 14px; color: var(--kopf-text); white-space: nowrap; }
 
-/* Das Zahnrad ganz außen: quadratisch, still, aber mit den vollen 44 px
-   Grifffläche — auch am Handy, wo daneben nur noch Initialen stehen. */
-.zahnrad-knopf {
+/* Die beiden Zeichenknöpfe ganz außen — Zahnrad und Abmelden: quadratisch,
+   still, aber mit den vollen 44 px Grifffläche, auch am Handy, wo daneben nur
+   noch Initialen stehen. Eine Form für beide: zwei Klassen mit denselben
+   Werten wären beim ersten Nachbessern verschieden. */
+.kopf-knopf {
   flex: 0 0 auto;
   width: var(--griff); height: var(--griff);
   display: grid; place-items: center;
   border: 1px solid var(--kopf-rand); border-radius: var(--kante);
   background: transparent; color: var(--kopf-text-leise); cursor: pointer;
 }
-.zahnrad-knopf:hover { background: var(--marke); color: var(--kopf-text); }
+.kopf-knopf:hover { background: var(--marke); color: var(--kopf-text); }
+
+/* Das Formular ist nur die Hülle um den Knopf und darf im Flex-Fluss der
+   Kopfleiste nichts eigenes beitragen. */
+.abmelden { display: flex; flex: 0 0 auto; margin: 0; }
 
 /* --- Startseite ---------------------------------------------------------- */
 /*

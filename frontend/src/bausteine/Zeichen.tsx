@@ -33,7 +33,8 @@ export type ZeichenName =
   | "pdf"
   | "haken"
   | "achtung"
-  | "zahnrad";
+  | "zahnrad"
+  | "abmelden";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -68,6 +69,10 @@ const PFADE: Record<ZeichenName, string> = {
   // dieser Größe nur noch Grau ergeben.
   zahnrad:
     "M18.5 12a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0M14.5 12a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0M12 5.5V4M12 18.5V20M5.5 12H4M18.5 12H20M16.6 7.4l1.06-1.06M7.4 16.6l-1.06 1.06M7.4 7.4L6.34 6.34M16.6 16.6l1.06 1.06",
+  // Ein Rahmen, der nach rechts offen ist, und ein Pfeil, der dort hinaus
+  // geht. Kein Schlüssel und kein Schalter: Beide bedeuten ebenso gut
+  // „sperren" oder „ausschalten" — hier geht jemand hinaus, sonst nichts.
+  abmelden: "M12 4.5H4.5v15H12M10 12h9.5M16 8.5l3.5 3.5-3.5 3.5",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

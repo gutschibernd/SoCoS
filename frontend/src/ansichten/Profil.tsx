@@ -60,9 +60,6 @@ export function Profil({ ich }: { ich: Ich }) {
         <button type="button" className="knopf" onClick={speichern}>
           Speichern
         </button>
-        <a className="knopf-still" href="/abmelden/">
-          Abmelden
-        </a>
         {gespeichert && <span style={{ color: "var(--gut)", fontSize: 14 }}>Gespeichert.</span>}
       </div>
     </div>
