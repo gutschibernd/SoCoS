@@ -706,6 +706,14 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   .uhr-chip .wo { display: none; }
   .profil span { display: none; }
 
+  /* Seit das Zahnrad danebensteht, sind es vier Dinge in einer Zeile, und bei
+     375 px wurde das letzte rechts abgeschnitten. Statt alles zu verkleinern —
+     die Grifffläche bleibt bei 44 px — bekommt die Uhr die ganze Breite und
+     die beiden Knöpfe stellen sich darunter rechts. Ein einzelnes Zahnrad in
+     einer eigenen dritten Zeile sähe verloren aus. */
+  .kopf-rechts { gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+  .kopf-rechts .uhr-chip { flex: 1 1 100%; padding: 6px 6px 6px 12px; }
+
   .mini { min-height: var(--griff); }
   .tabelle td.zeilen-aktionen { justify-content: flex-end; }
   .tabelle td.zeilen-aktionen::before { content: "Aktionen"; }
