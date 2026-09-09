@@ -8,7 +8,7 @@ Alles hier läuft **am Server**, nichts davon lokal. Lokal wird mit
 | `Dockerfile` | Zwei Stufen: Oberfläche bauen, dann Anwendung. Node bleibt draußen. |
 | `anwendung.yml` | Stack 1 — gunicorn und PostgreSQL. **Veröffentlicht keinen Port.** |
 | `proxy.yml` | Stack 2 — Caddy. Hält allein 80 und 443. |
-| `Caddyfile` | Der einzige Auftritt: socos.sopharmis.com |
+| `Caddyfile` | Der einzige Auftritt: socos.test.sopharmis.com |
 | `eintritt.sh` | Was beim Start des Containers passiert: migrieren, dann gunicorn |
 | `gesundheit.sh` | Ein Lebenszeichen, **zwei Aufrufer**: Container-Healthcheck und `deploy.sh` |
 | `deploy.sh` | Sichern, ziehen, bauen, starten, nachsehen |
@@ -41,8 +41,8 @@ cp .env.example .env && chmod 600 .env
 
 In der `.env` müssen stehen: ein frischer `DJANGO_SECRET_KEY`
 (`python3 -c "import secrets; print(secrets.token_urlsafe(64))"`),
-`DJANGO_ALLOWED_HOSTS=socos.sopharmis.com`,
-`DJANGO_CSRF_TRUSTED_ORIGINS=https://socos.sopharmis.com` und ein
+`DJANGO_ALLOWED_HOSTS=socos.test.sopharmis.com`,
+`DJANGO_CSRF_TRUSTED_ORIGINS=https://socos.test.sopharmis.com` und ein
 `POSTGRES_PASSWORD`. `POSTGRES_HOST` und `DJANGO_DEBUG` sind egal — die
 setzt `anwendung.yml` selbst, damit eine Vorlage aus der lokalen Welt am
 Server nichts anrichten kann.

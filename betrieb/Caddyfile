@@ -1,7 +1,7 @@
 # Der einzige Auftritt. TLS holt Caddy selbst bei Let's Encrypt — Voraussetzung
 # ist, dass der A-Record schon auf diese Maschine zeigt und 80 offen ist.
 
-socos.sopharmis.com {
+socos.test.sopharmis.com {
 	encode zstd gzip
 
 	# `socos` ist der Alias der Anwendung im proxy-netz (siehe anwendung.yml).

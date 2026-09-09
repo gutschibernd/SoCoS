@@ -5,21 +5,31 @@
 
 ## Stand
 
-**Die VPS existiert noch nicht.** Es wird zuerst lokal gebaut. Dieses Dokument wird
-befüllt, sobald die Maschine steht.
-
-## Vorgesehen
+**Die Maschine läuft.** Sie trägt den Testauftritt; eine getrennte Maschine für den
+echten Betrieb gibt es noch nicht.
 
 | | |
 |---|---|
 | Anbieter | Hetzner |
-| Maschine | offen (Typ, Standort, IP) |
-| Betriebssystem | offen |
-| Domain | **socos.sopharmis.com** (Subdomain von sopharmis.com) |
-| DNS | offen — A-Record auf die VPS, sobald sie steht |
+| Maschine | `ubuntu-4gb-fsn1-1`, Falkenstein, 4 GB RAM, 38 GB |
+| IP | 128.140.115.157 |
+| Betriebssystem | Ubuntu 26.04 LTS |
+| Domain | **socos.test.sopharmis.com** (Subdomain von sopharmis.com) |
+| DNS | Cloudflare, A-Record auf 128.140.115.157, **grau (DNS only)** |
 | TLS | Caddy 2, automatisch über Let's Encrypt |
+| Zugang | `ssh socos` (Eintrag in `~/.ssh/config`), Schlüssel `id_ed25519` |
 
-## Netz und Zugang (geplant)
+### Warum der DNS-Eintrag grau sein muss
+
+Cloudflares Universal SSL deckt nur **eine** Subdomain-Ebene ab — `*.sopharmis.com`,
+nicht `socos.test.sopharmis.com`. Orange geschaltet scheitert am Rand schon der
+TLS-Handshake, und die HTTP-01-Prüfung von Let's Encrypt läuft in Cloudflares
+Umleitung statt zu Caddy. Orange ginge nur mit Advanced Certificate Manager
+(kostenpflichtig) — und brächte dann die CDN-Falle aus dem Caddyfile-Abschnitt mit:
+ohne `trusted_proxies` sähe django-axes nur noch Cloudflare-Adressen und sperrte bei
+einem Angriff alle Nutzer zugleich aus.
+
+## Netz und Zugang
 
 - Cloud-Firewall **vor** der Maschine: nur 22, 80, 443. Zusätzlich `ufw`.
 
@@ -34,8 +44,8 @@ befüllt, sobald die Maschine steht.
 
 ## Aufbau
 
-**Gebaut, aber noch nie gelaufen** — es gibt keine Maschine. Alles unter
-`betrieb/`, Anleitung in [betrieb/LIESMICH.md](betrieb/LIESMICH.md).
+Läuft seit 9. September 2026 am Server. Alles unter `betrieb/`, Anleitung in
+[betrieb/LIESMICH.md](betrieb/LIESMICH.md).
 
 Zwei getrennte Compose-Stacks:
 
