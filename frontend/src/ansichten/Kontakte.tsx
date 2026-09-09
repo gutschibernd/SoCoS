@@ -33,6 +33,7 @@ import {
   verlaufDerOrganisation,
   verlaufDerPersonen,
   wartenAufUns,
+  zeigtLoseZeile,
   VERLAUFSARTEN,
   type Ballfilter,
   type Verlaufszeile,
@@ -201,48 +202,37 @@ function Uebersicht({
   const gefiltert = organisationen.filter((o) => passtOrganisation(o, suche, ball));
   const gefilterteLose = lose.filter((k) => passtKontakt(k, suche, ball));
   const nichts = organisationen.length === 0 && lose.length === 0;
+  const loseZeigen = zeigtLoseZeile(lose, gefilterteLose, suche, ball);
 
+  // Das Anlegen steht über dem Leerfall, nicht dahinter: Eine Seite, die im
+  // leeren Zustand nur erklärt, wofür sie gut wäre, bleibt leer.
   if (nichts)
     return (
-      <div className="karte">
-        <Leerstelle
-          was="Noch keine Kontakte"
-          satz={
-            ich.darf.bearbeiten
-              ? "Organisationen sind Förderstellen, Partner und Forschungseinrichtungen. Personen hängen daran — oder stehen als loser Kontakt für sich."
-              : "Kontakte legt ein Bearbeiter oder Admin an."
-          }
-        />
-      </div>
+      <>
+        {ich.darf.bearbeiten && (
+          <NeueOrganisation neue={neue} setNeue={setNeue} anlegen={anlegen} />
+        )}
+        <div className="karte">
+          <Leerstelle
+            was="Noch keine Kontakte"
+            satz={
+              ich.darf.bearbeiten
+                ? "Organisationen sind Förderstellen, Partner und Forschungseinrichtungen. Personen hängen daran — oder stehen als loser Kontakt für sich."
+                : "Kontakte legt ein Bearbeiter oder Admin an."
+            }
+            aktion={
+              ich.darf.bearbeiten
+                ? { text: "Person ohne Organisation", tun: () => oeffnen(LOSE) }
+                : undefined
+            }
+          />
+        </div>
+      </>
     );
 
   return (
     <>
-      {ich.darf.bearbeiten && (
-        <div className="karte">
-          <h2>Neue Organisation</h2>
-          <div className="feld-reihe">
-            <input
-              className="feld"
-              placeholder="Name"
-              value={neue.name}
-              onChange={(e) => setNeue({ ...neue, name: e.target.value })}
-              onKeyDown={(e) => e.key === "Enter" && anlegen()}
-            />
-            <input
-              className="feld"
-              placeholder="Typ (Förderstelle, Partner …)"
-              value={neue.typ}
-              onChange={(e) => setNeue({ ...neue, typ: e.target.value })}
-              onKeyDown={(e) => e.key === "Enter" && anlegen()}
-            />
-            <button type="button" className="knopf" onClick={anlegen}>
-              <Zeichen name="plus" />
-              Anlegen
-            </button>
-          </div>
-        </div>
-      )}
+      {ich.darf.bearbeiten && <NeueOrganisation neue={neue} setNeue={setNeue} anlegen={anlegen} />}
 
       <div className="karte">
         <div className="feld-reihe">
@@ -270,7 +260,7 @@ function Uebersicht({
 
       <div className="karte">
         <h2>Organisationen</h2>
-        {gefiltert.length === 0 && gefilterteLose.length === 0 ? (
+        {gefiltert.length === 0 && !loseZeigen ? (
           <Leerstelle
             was="Nichts gefunden"
             satz="Kein Eintrag passt zu Suche und Filter."
@@ -331,7 +321,7 @@ function Uebersicht({
                 );
               })}
 
-              {gefilterteLose.length > 0 && (
+              {loseZeigen && (
                 <tr>
                   <td data-spalte="Organisation">
                     <button type="button" className="zeilen-titel" onClick={() => oeffnen(LOSE)}>
@@ -358,6 +348,42 @@ function Uebersicht({
         )}
       </div>
     </>
+  );
+}
+
+function NeueOrganisation({
+  neue,
+  setNeue,
+  anlegen,
+}: {
+  neue: { name: string; typ: string };
+  setNeue: (n: { name: string; typ: string }) => void;
+  anlegen: () => void;
+}) {
+  return (
+    <div className="karte">
+      <h2>Neue Organisation</h2>
+      <div className="feld-reihe">
+        <input
+          className="feld"
+          placeholder="Name"
+          value={neue.name}
+          onChange={(e) => setNeue({ ...neue, name: e.target.value })}
+          onKeyDown={(e) => e.key === "Enter" && anlegen()}
+        />
+        <input
+          className="feld"
+          placeholder="Typ (Förderstelle, Partner …)"
+          value={neue.typ}
+          onChange={(e) => setNeue({ ...neue, typ: e.target.value })}
+          onKeyDown={(e) => e.key === "Enter" && anlegen()}
+        />
+        <button type="button" className="knopf" onClick={anlegen}>
+          <Zeichen name="plus" />
+          Anlegen
+        </button>
+      </div>
+    </div>
   );
 }
 

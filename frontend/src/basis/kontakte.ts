@@ -115,3 +115,23 @@ export function passtOrganisation(org: Organisation, suche: string, ball: Ballfi
   if (enthaelt(`${org.name} ${org.kurz} ${org.typ} ${org.nutzen}`, suche)) return true;
   return org.kontakte.some((k) => passtKontakt(k, suche, "alle"));
 }
+
+/**
+ * Ob die Zeile „Lose Kontakte" in der Übersicht steht.
+ *
+ * Sie ist der einzige Weg zu den Personen ohne Organisation. Stünde sie nur
+ * da, wenn es welche gibt, ließe sich die erste nie anlegen — die Seite
+ * dahinter wäre erst erreichbar, wenn man sie nicht mehr braucht. Ungefiltert
+ * steht sie darum immer da, auch mit null Personen. Sobald welche da sind,
+ * folgt sie dem Filter wie jede andere Zeile: eine leere Zeile neben
+ * „Nichts gefunden" wäre eine Antwort, die der Suche widerspricht.
+ */
+export function zeigtLoseZeile(
+  lose: Kontakt[],
+  gefilterteLose: Kontakt[],
+  suche: string,
+  ball: Ballfilter,
+): boolean {
+  if (lose.length > 0) return gefilterteLose.length > 0;
+  return !suche.trim() && ball === "alle";
+}

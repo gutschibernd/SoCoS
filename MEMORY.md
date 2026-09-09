@@ -7,6 +7,29 @@ betrifft.
 
 ---
 
+## 2026-09-09 — Ein leerer Zustand darf den Weg hinein nicht verstellen
+
+Auf der Kontakteseite war das Anlegen unerreichbar, solange es nichts anzuzeigen
+gab: Der frühe Rücksprung für „noch keine Kontakte" stand **vor** der Karte
+„Neue Organisation". Bei leerem Bestand sah man also nur den Satz, wofür die
+Seite gut wäre — und der Bestand blieb leer. Dasselbe eine Ebene tiefer: Die
+Zeile „Lose Kontakte" war der einzige Weg zu den Personen ohne Organisation und
+stand nur da, wenn es schon welche gab; die erste ließ sich nie anlegen.
+
+**Die Regel, die daraus folgt:** Was etwas anlegt, steht **über** der
+Leerstelle, nicht dahinter. Die Leerstelle erklärt, sie ersetzt den Weg nicht.
+`Events.tsx` hatte es von Anfang an so; die Kontakteseite war die Ausnahme.
+
+- `zeigtLoseZeile` in `basis/kontakte.ts` hält die zweite Hälfte davon fest:
+  ungefiltert steht die Zeile immer da, auch mit null Personen. Sobald welche da
+  sind, folgt sie dem Filter wie jede andere Zeile — eine leere Zeile neben
+  „Nichts gefunden" wäre eine Antwort, die der Suche widerspricht.
+- Die Regel steht in `basis/`, nicht in der Ansicht, weil sie prüfbar ist.
+
+Geprüft an 1280×800 und 375×812, hell und dunkel, mit Daten und ohne.
+
+---
+
 ## 2026-09-09 — Startseite, und warum die Kopfleiste einzeilig bleiben muss
 
 ### Die Kopfleiste war bei 1280 px zweizeilig

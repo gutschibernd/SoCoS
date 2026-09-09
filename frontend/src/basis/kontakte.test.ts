@@ -8,6 +8,7 @@ import {
   verlaufDerOrganisation,
   verlaufDerPersonen,
   wartenAufUns,
+  zeigtLoseZeile,
 } from "./kontakte";
 import type { Kontakt, Organisation, Verlaufseintrag } from "./daten";
 
@@ -213,5 +214,24 @@ describe("passtOrganisation", () => {
   it("prüft Suche und Ball unabhängig voneinander", () => {
     // Der Ball schließt aus, obwohl der Name passt.
     expect(passtOrganisation(org, "Biomechanik", "ihnen")).toBe(false);
+  });
+});
+
+describe("zeigtLoseZeile", () => {
+  const lose = [person(9, "Ohne Haus", { organisation: null, organisation_name: "" })];
+
+  it("steht ungefiltert auch dann da, wenn es noch keine lose Person gibt", () => {
+    // Sonst ist die Seite, auf der man die erste anlegt, nie erreichbar.
+    expect(zeigtLoseZeile([], [], "", "alle")).toBe(true);
+  });
+
+  it("verschwindet bei gesetzter Suche oder gesetztem Ball, wenn keine da ist", () => {
+    expect(zeigtLoseZeile([], [], "berger", "alle")).toBe(false);
+    expect(zeigtLoseZeile([], [], "", "uns")).toBe(false);
+  });
+
+  it("folgt dem Filter, sobald es lose Personen gibt", () => {
+    expect(zeigtLoseZeile(lose, lose, "ohne", "alle")).toBe(true);
+    expect(zeigtLoseZeile(lose, [], "berger", "alle")).toBe(false);
   });
 });
