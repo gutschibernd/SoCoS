@@ -31,7 +31,8 @@ export type ZeichenName =
   | "stopp"
   | "pdf"
   | "haken"
-  | "achtung";
+  | "achtung"
+  | "zahnrad";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -58,6 +59,11 @@ const PFADE: Record<ZeichenName, string> = {
   pdf: "M14 3H6.5v18h11V6.5L14 3zM14 3v3.5h3.5M12 11.5v5M9.5 14l2.5 2.5 2.5-2.5",
   haken: "M4 12.5l5.5 5.5L20 7",
   achtung: "M12 3.5L22 20.5H2zM12 10v4.5M12 17.6v1.2",
+  // Ring, Nabe und acht Zähne — alle Zähne gleich lang, damit das Zeichen bei
+  // 16 px nicht ausfranst. Ein nachgezeichnetes Zahnrad mit Kontur hätte bei
+  // dieser Größe nur noch Grau ergeben.
+  zahnrad:
+    "M18.5 12a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0M14.5 12a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0M12 5.5V4M12 18.5V20M5.5 12H4M18.5 12H20M16.6 7.4l1.06-1.06M7.4 16.6l-1.06 1.06M7.4 7.4L6.34 6.34M16.6 16.6l1.06 1.06",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

@@ -178,3 +178,123 @@ def test_fremdes_archiv_wird_abgewiesen(tmp_path, medien):
         call_command(
             "sicherung_einspielen", str(falsch), ja_bestand_ersetzen=True, verbosity=0
         )
+
+
+# --- Über die Oberfläche ----------------------------------------------------
+#
+# Dieselben zwei Vorgänge, nur über die Schnittstelle. Geprüft wird, was hier
+# fachlich entschieden ist: wer darf, was ohne Bestätigung passiert (nichts),
+# und dass die Sitzung danach nicht weiterläuft.
+
+
+@pytest.mark.django_db(transaction=True)
+def test_ausgeben_liefert_ein_einspielbares_archiv(client, tmp_path, medien, admin_nutzer):
+    client.force_login(admin_nutzer)
+    antwort = client.get("/api/sicherung/")
+
+    assert antwort.status_code == 200
+    assert antwort["Content-Type"] == "application/gzip"
+    assert "attachment" in antwort["Content-Disposition"]
+    assert ".tar.gz" in antwort["Content-Disposition"]
+
+    # Und der Rundlauf: Was der Download liefert, muss auch wieder hineingehen.
+    archiv = tmp_path / "aus-der-oberflaeche.tar.gz"
+    archiv.write_bytes(antwort.content)
+    Nutzer.objects.all().delete()
+
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+    assert Nutzer.objects.filter(email="admin@example.invalid").exists()
+
+
+@pytest.mark.django_db
+def test_ausgeben_nur_fuer_den_admin(client, bearbeiter, leser):
+    for nutzer in (bearbeiter, leser):
+        client.force_login(nutzer)
+        assert client.get("/api/sicherung/").status_code == 403
+
+
+@pytest.mark.django_db
+def test_ausgeben_ohne_anmeldung_verwehrt(client):
+    assert client.get("/api/sicherung/").status_code == 403
+
+
+@pytest.mark.django_db(transaction=True)
+def test_einspielen_ueber_die_oberflaeche(client, tmp_path, medien, admin_nutzer):
+    beleg = medien / "beleg.txt"
+    beleg.write_text("hochgeladen")
+    projekt = Projekt.objects.create(titel="Vor der Sicherung")
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+
+    projekt.hart_loeschen() if hasattr(projekt, "hart_loeschen") else projekt.delete()
+    Projekt.alle_objekte.all().delete()
+    beleg.unlink()
+
+    client.force_login(admin_nutzer)
+    with archiv.open("rb") as datei:
+        antwort = client.post(
+            "/api/sicherung/einspielen/",
+            {"archiv": datei, "bestaetigung": "bestand-ersetzen"},
+        )
+
+    assert antwort.status_code == 200, antwort.content
+    assert Projekt.objects.filter(titel="Vor der Sicherung").exists()
+    assert beleg.read_text() == "hochgeladen"
+
+    # Die Sitzung ist beendet: Der Ausweis gehörte zu einem Bestand, den es
+    # nicht mehr gibt.
+    assert client.get("/api/projekte/").status_code == 403
+
+
+@pytest.mark.django_db(transaction=True)
+def test_einspielen_ohne_bestaetigung_ersetzt_nichts(client, tmp_path, medien, admin_nutzer):
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    Projekt.objects.create(titel="Steht danach immer noch da")
+
+    client.force_login(admin_nutzer)
+    with archiv.open("rb") as datei:
+        antwort = client.post("/api/sicherung/einspielen/", {"archiv": datei})
+
+    assert antwort.status_code == 400
+    assert Projekt.objects.filter(titel="Steht danach immer noch da").exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_einspielen_nur_fuer_den_admin(client, tmp_path, medien, admin_nutzer, bearbeiter):
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+
+    client.force_login(bearbeiter)
+    with archiv.open("rb") as datei:
+        antwort = client.post(
+            "/api/sicherung/einspielen/",
+            {"archiv": datei, "bestaetigung": "bestand-ersetzen"},
+        )
+
+    assert antwort.status_code == 403
+    assert Nutzer.objects.filter(email="admin@example.invalid").exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_fremde_datei_laesst_den_bestand_stehen(client, tmp_path, medien, admin_nutzer):
+    """
+    Der Bestand wird geleert, bevor eingelesen wird. Scheitert das Einlesen,
+    muss das Leeren mit zurückgenommen werden — sonst nähme eine falsch
+    gewählte Datei alles mit.
+    """
+    fremd = tmp_path / "fremd.tar.gz"
+    fremd.write_bytes(b"das ist gar kein Archiv")
+    Projekt.objects.create(titel="Bleibt")
+
+    client.force_login(admin_nutzer)
+    with fremd.open("rb") as datei:
+        antwort = client.post(
+            "/api/sicherung/einspielen/",
+            {"archiv": datei, "bestaetigung": "bestand-ersetzen"},
+        )
+
+    assert antwort.status_code == 400
+    assert Projekt.objects.filter(titel="Bleibt").exists()
+    assert Nutzer.objects.filter(email="admin@example.invalid").exists()

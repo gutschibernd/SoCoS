@@ -141,6 +141,10 @@ python manage.py sicherung_erstellen            # eine Datei: Datenbank + Medien
 python manage.py sicherung_einspielen <datei>   # spielt sie zurück
 ```
 
+Dasselbe geht ohne SSH: **das Zahnrad rechts oben in der Kopfleiste** — nur für
+Admins, herunterladen und wiederherstellen. Das Wiederherstellen ersetzt den
+gesamten Bestand samt Konten und meldet danach ab.
+
 **Wer etwas Neues baut, das gespeichert wird, sorgt im selben Commit dafür, dass es
 im Archiv landet.** Ein Export, der die Hälfte mitnimmt, ist schlimmer als keiner —
 der Verlust fällt erst beim Wiederherstellen auf.

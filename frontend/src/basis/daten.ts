@@ -20,6 +20,7 @@ export type Ich = {
     loeschen: boolean;
     finanzen_eintragen: boolean;
     nutzer_verwalten: boolean;
+    sichern: boolean;
   };
 };
 

@@ -24,5 +24,10 @@ urlpatterns = [
     path("ich/", api.ich, name="ich"),
     path("dashboard/", api.dashboard, name="dashboard"),
     path("zeitnachweis/", api.zeitnachweis, name="zeitnachweis"),
+    # Zwei Pfade und nicht ein GET/POST-Paar: Das Einspielen ersetzt den
+    # gesamten Bestand. Dass es einen eigenen, aussprechbaren Pfad hat, ist an
+    # dieser Stelle mehr wert als die kürzere Tabelle.
+    path("sicherung/", api.sicherung_ausgeben, name="sicherung"),
+    path("sicherung/einspielen/", api.sicherung_einspielen, name="sicherung-einspielen"),
     path("", include(router.urls)),
 ]

@@ -214,6 +214,28 @@
 .dialog p { margin: 0 0 16px; font-size: 14px; line-height: 1.55; color: var(--text-leise); }
 .dialog-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
+/* Zwei Abschnitte in einem Dialog — Herunterladen und Wiederherstellen. Die
+   Linie dazwischen trennt zwei Dinge, von denen das zweite den Bestand
+   ersetzt; sie sollen nicht wie ein Knopfpaar nebeneinander wirken. */
+.sicherung-teil { border-top: 1px solid var(--rand); padding-top: 14px; margin-top: 14px; }
+.sicherung-teil h3 {
+  margin: 0 0 10px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-sehr-leise); font-weight: 600;
+}
+.sicherung-teil > .knopf { display: inline-flex; }
+.sicherung-hinweis { margin: 10px 0 14px; font-size: 13px; color: var(--text-leise); }
+.sicherung-hinweis code { font-family: var(--schrift-zahl); font-size: 12px; }
+
+/* Der Knopf im Dateifeld wird sonst vom System gezeichnet — hell, mit fremdem
+   Radius, und im dunklen Modus als weißer Fleck mitten im Dialog. */
+.sicherung-teil input[type="file"]::file-selector-button {
+  margin-right: 12px; padding: 6px 12px;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche-leise); color: var(--text);
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.sicherung-teil input[type="file"]::file-selector-button:hover { background: var(--rand); }
+
 /* --- Felder -------------------------------------------------------------- */
 
 .feld {
@@ -266,6 +288,17 @@
   font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-dunkel);
 }
 .profil span { font-size: 14px; color: var(--kopf-text); white-space: nowrap; }
+
+/* Das Zahnrad ganz außen: quadratisch, still, aber mit den vollen 44 px
+   Grifffläche — auch am Handy, wo daneben nur noch Initialen stehen. */
+.zahnrad-knopf {
+  flex: 0 0 auto;
+  width: var(--griff); height: var(--griff);
+  display: grid; place-items: center;
+  border: 1px solid var(--kopf-rand); border-radius: var(--kante);
+  background: transparent; color: var(--kopf-text-leise); cursor: pointer;
+}
+.zahnrad-knopf:hover { background: var(--marke); color: var(--kopf-text); }
 
 /* --- Dashboard ----------------------------------------------------------- */
 

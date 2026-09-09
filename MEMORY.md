@@ -7,6 +7,52 @@ betrifft.
 
 ---
 
+## 2026-09-09 — Sicherung auch aus der Oberfläche (Zahnrad rechts oben)
+
+Bisher gab es den ganzen Bestand nur über die Kommandozeile am Server heraus und
+wieder hinein. Damit war „lokal befüllen und hochschieben" ein SSH-Vorgang und
+ein Wiederherstellen im Ernstfall an einen Rechner mit Schlüssel gebunden. Jetzt
+steht beides hinter einem kleinen Zahnrad rechts oben in der Kopfleiste:
+herunterladen und wiederherstellen.
+
+**Der Mechanismus steht in `socos/sicherung.py`, nicht in den Befehlen.**
+`archiv_schreiben` und `archiv_einspielen` haben zwei Aufrufer — die beiden
+Management-Befehle und die beiden Endpunkte unter `/api/sicherung/`. Zwei Kopien
+liefen auseinander, und die Sicherung ist genau die Stelle, an der man das erst
+im Ernstfall merkt.
+
+**Entscheidungen dabei:**
+
+- **`darf_sichern` ist ein eigenes Recht** in `socos/berechtigung.py`, obwohl es
+  heute dasselbe bedeutet wie `darf_nutzer_verwalten` (beides: Admin). Das
+  Archiv enthält *alles* — Passwort-Hashes und fremde Stammdaten —, und das
+  Einspielen ersetzt den Bestand samt Konten. Käme je eine Rolle dazu, die
+  Nutzer anlegen darf, soll sie nicht nebenbei die Datenbank tauschen können.
+- **Das Einspielen verlangt zwei Dinge**: die Datei *und* das Wort
+  `bestand-ersetzen` als `bestaetigung`. Das ist das Gegenstück zu
+  `--ja-bestand-ersetzen` auf der Kommandozeile: Ein Klick auf ein Zahnrad soll
+  keine Datenbank tauschen können. In der Oberfläche steht davor eine zweite
+  Seite, die den Dateinamen nennt, sagt was verschwindet, und den milderen Weg
+  daneben stellt (erst das Heutige sichern).
+- **Nach dem Einspielen wird abgemeldet** (`logout`). Der Ausweis in der Sitzung
+  gehörte zu einem Bestand, den es nicht mehr gibt; im ungünstigen Fall zeigt er
+  auf ein fremdes Konto mit derselben Nummer. Sitzungen sind bewusst nicht im
+  Archiv (siehe die Liste in `sicherung.py`), sie überleben also den Tausch.
+- **Der Vorgang steht im Server-Protokoll, nicht im Änderungsprotokoll.** Das
+  eigene Protokoll liegt in der Datenbank, die dieser Vorgang gerade ersetzt hat
+  — ein Eintrag darin wäre eine Sekunde später weg.
+- **Das Leeren und das Einlesen stehen in *einer* Transaktion.** Sonst nähme eine
+  falsch gewählte Datei den ganzen Bestand mit: erst gelöscht, dann am Archiv
+  gescheitert. Ein Test schickt bewusst eine Datei durch, die kein Archiv ist.
+- **Das Format bleibt `.tar.gz`, kein ZIP.** Es ist dasselbe Archiv, das
+  `deploy.sh` vor jedem Deploy schreibt; ein zweites Format bedeutete zwei Wege
+  ins selbe Ziel und eine Datei, die im falschen davon nicht zurückgeht.
+
+**Nicht gelöst und weiterhin offen:** Die Datei geht durch den Browser des
+Nutzers. Sie enthält Konten und Personendaten — wo sie danach liegt, entscheidet
+der Mensch davor. Der Dialog sagt das ausdrücklich; die Kopie außer Haus samt
+Verschlüsselung bleibt der offene Punkt unten.
+
 ## 2026-09-08 — Kontakte: erst die Organisation, dann die Person
 
 Die Kontakteseite war ein Board über drei Spuren (Erstkontakt · Antrag · Partner)

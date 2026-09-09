@@ -65,3 +65,128 @@ LOESCHREIHENFOLGE = [
 
 DATENBANK_IM_ARCHIV = "datenbank.json"
 MEDIEN_IM_ARCHIV = "medien"
+
+
+def archivname(zeitpunkt):
+    """
+    Der Dateiname eines Archivs. Steht hier, weil ihn zwei Stellen brauchen:
+    die Vorgabe von `sicherung_erstellen` und der Name, unter dem der Download
+    aus der Oberfläche im Ordner des Nutzers landet.
+    """
+    return f"socos-{zeitpunkt:%Y%m%d-%H%M%S}.tar.gz"
+
+
+# --- Der Mechanismus --------------------------------------------------------
+#
+# Die Logik steht hier und nicht in den Management-Befehlen, weil sie zwei
+# Aufrufer hat: `sicherung_erstellen`/`sicherung_einspielen` am Server und die
+# beiden Endpunkte unter `/api/sicherung/`, die dasselbe aus der Oberfläche
+# heraus tun. Zwei Kopien liefen auseinander — und die Sicherung ist genau die
+# Stelle, an der man das erst im Ernstfall merkt.
+
+import shutil
+import tarfile
+import tempfile
+from pathlib import Path
+
+from django.conf import settings
+from django.core.management import call_command
+
+
+class ArchivFehler(Exception):
+    """Das Archiv passt nicht. Der Grund steht in der Meldung."""
+
+
+def archiv_schreiben(ziel):
+    """Schreibt Datenbank und Medien nach `ziel` (eine .tar.gz) und gibt sie zurück."""
+    ziel = Path(ziel)
+    ziel.parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+
+        datenbank = tmp / DATENBANK_IM_ARCHIV
+        with datenbank.open("w", encoding="utf-8") as datei:
+            call_command(
+                "dumpdata",
+                *MODELLE_IM_ARCHIV,
+                # Auch weich Gelöschtes muss mit. Es ist Bestand: das
+                # Änderungsprotokoll verweist darauf, und der Admin kann es
+                # wiederherstellen.
+                all=True,
+                natural_foreign=True,
+                indent=2,
+                stdout=datei,
+            )
+
+        medien_quelle = Path(settings.MEDIA_ROOT)
+        medien_ziel = tmp / MEDIEN_IM_ARCHIV
+        if medien_quelle.exists():
+            shutil.copytree(medien_quelle, medien_ziel)
+        else:
+            medien_ziel.mkdir()
+
+        with tarfile.open(ziel, "w:gz") as archiv:
+            archiv.add(datenbank, arcname=DATENBANK_IM_ARCHIV)
+            archiv.add(medien_ziel, arcname=MEDIEN_IM_ARCHIV)
+
+    return ziel
+
+
+def archiv_einspielen(quelle):
+    """
+    Ersetzt den **gesamten** Bestand durch das Archiv — Datenbank und Medien.
+
+    Wer das aufruft, hat die Bestätigung schon eingeholt: hier wird nicht mehr
+    gefragt.
+    """
+    from django.apps import apps
+    from django.db import transaction
+
+    quelle = Path(quelle)
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        try:
+            with tarfile.open(quelle, "r:gz") as archiv:
+                # filter="data" wehrt Pfade ab, die aus dem Zielordner
+                # herausführen. Ein Archiv ist eine fremde Datei.
+                archiv.extractall(tmp, filter="data")
+        except tarfile.TarError as fehler:
+            raise ArchivFehler(f"Das ist kein lesbares .tar.gz-Archiv: {fehler}")
+
+        datenbank = tmp / DATENBANK_IM_ARCHIV
+        if not datenbank.exists():
+            raise ArchivFehler(
+                f"Das Archiv enthält kein {DATENBANK_IM_ARCHIV}. "
+                "Stammt es aus der Sicherung von SoCoS?"
+            )
+
+        geleert = []
+        with transaction.atomic():
+            for bezeichner in LOESCHREIHENFOLGE:
+                modell = apps.get_model(bezeichner)
+                menge = getattr(modell, "alle_objekte", modell.objects).all()
+                # Hart löschen: ein weiches ließe die alten Zeilen stehen und
+                # das Einspielen liefe auf doppelte Schlüssel.
+                anzahl = (
+                    menge.hart_loeschen()
+                    if hasattr(menge, "hart_loeschen")
+                    else menge.delete()
+                )
+                geleert.append((bezeichner, anzahl))
+
+            try:
+                call_command("loaddata", str(datenbank), verbosity=0)
+            except Exception as fehler:  # noqa: BLE001 — der Grund gehört zum Aufrufer
+                # Die Transaktion nimmt das Leeren mit zurück; der Bestand steht
+                # danach wieder so da wie vorher.
+                raise ArchivFehler(f"Das Archiv ließ sich nicht einlesen: {fehler}")
+
+        medien_quelle = tmp / MEDIEN_IM_ARCHIV
+        medien_ziel = Path(settings.MEDIA_ROOT)
+        if medien_quelle.exists():
+            if medien_ziel.exists():
+                shutil.rmtree(medien_ziel)
+            shutil.copytree(medien_quelle, medien_ziel)
+
+    return geleert

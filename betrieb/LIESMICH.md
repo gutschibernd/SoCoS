@@ -114,6 +114,13 @@ docker compose -f betrieb/anwendung.yml exec anwendung python manage.py sicherun
 docker compose -f betrieb/anwendung.yml cp anwendung:/anwendung/sicherungen ./sicherungen
 ```
 
+Und ohne SSH: **das Zahnrad rechts oben in der Oberfläche** (nur für Admins).
+Dort geht dieselbe Datei heraus und wieder herein — das ist auch der Weg, um
+einen lokal befüllten Bestand an den Server zu geben. Das Einspielen ersetzt
+alles, **auch die Konten**: Wer danach hineinwill, braucht ein Konto aus dem
+Archiv. Sind am Server frisch angelegte Konten dabei, die im Archiv fehlen, sind
+sie danach weg.
+
 > **Das Datenbank-Volume ist keine Sicherung.** Es liegt auf derselben Platte
 > derselben Maschine. Auch ein Hetzner-Snapshot ist es nur halb: derselbe
 > Anbieter, dasselbe Konto. **Kopie außer Haus und Verschlüsselung sind ein

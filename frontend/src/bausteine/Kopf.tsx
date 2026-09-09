@@ -5,6 +5,7 @@ import { useLaufend, useNeuLaden, type Ich } from "../basis/daten";
 import type { Seite } from "../basis/router";
 import { alsDauer } from "../basis/zeit";
 import { Notizdialog } from "./Notizdialog";
+import { Sicherungsdialog, Zahnrad } from "./Sicherung";
 import { Uhr } from "./Uhr";
 import { Zeichen, type ZeichenName } from "./Zeichen";
 
@@ -27,6 +28,7 @@ export function Kopf({
   const laufend = useLaufend();
   const neuLaden = useNeuLaden();
   const [fragtNotiz, setFragtNotiz] = useState(false);
+  const [zeigtSicherung, setZeigtSicherung] = useState(false);
   const buchung = laufend.data?.laufend ?? null;
 
   async function clockOut(notiz: string) {
@@ -102,8 +104,15 @@ export function Kopf({
             <i style={{ background: ich.farbe }}>{ich.initialen}</i>
             <span>{ich.name}</span>
           </button>
+
+          {/* Ganz außen und klein: Sichern und Wiederherstellen ist nichts,
+              was im Tagesbetrieb gebraucht wird. Ob es tatsächlich geht,
+              entscheidet der Server bei jedem der beiden Aufrufe neu. */}
+          {ich.darf.sichern && <Zahnrad oeffnen={() => setZeigtSicherung(true)} />}
         </div>
       </div>
+
+      {zeigtSicherung && <Sicherungsdialog schliessen={() => setZeigtSicherung(false)} />}
 
       {fragtNotiz && buchung && (
         <Notizdialog

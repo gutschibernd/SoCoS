@@ -43,5 +43,6 @@ def test_api_ich_liefert_rolle_und_rechte(client, bearbeiter):
         "loeschen": False,
         "finanzen_eintragen": False,
         "nutzer_verwalten": False,
+        "sichern": False,
     }
     assert daten["initialen"] == "BP"

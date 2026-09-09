@@ -5,16 +5,21 @@ Zeiträume sind **ausdrückliche Parameter** (`?von=&bis=`). Ohne Angabe kommt
 alles — es gibt keinen stillen Filter auf „aktueller Monat".
 """
 
+import logging
+import tempfile
 from datetime import date, timedelta
+from pathlib import Path
 
+from django.contrib.auth import logout
 from django.db import transaction
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
-from socos import berechtigung, serializer as ser
+from socos import berechtigung, serializer as ser, sicherung
 from socos.models import (
     Arbeitspaket,
     Bereich,
@@ -34,6 +39,8 @@ from socos.models import (
 )
 from socos.services import auswertung, finanzen
 from socos.services import zeit as zeitdienst
+
+logger = logging.getLogger(__name__)
 
 
 def _datum(request, name):
@@ -460,6 +467,7 @@ def ich(request):
                 "loeschen": berechtigung.darf_loeschen(nutzer),
                 "finanzen_eintragen": berechtigung.darf_finanzen_eintragen(nutzer),
                 "nutzer_verwalten": berechtigung.darf_nutzer_verwalten(nutzer),
+                "sichern": berechtigung.darf_sichern(nutzer),
             },
         }
     )
@@ -472,8 +480,6 @@ def zeitnachweis(request):
 
     `?monat=JJJJ-MM` und wahlweise `?person=<id>`. Ohne Monat der laufende.
     """
-    from django.http import HttpResponse
-
     from socos.services import zeitnachweis as nachweis
 
     roh = request.query_params.get("monat")
@@ -567,5 +573,92 @@ def dashboard(request):
             "offene_entwuerfe": ser.ZeitbuchungSerializer(
                 auswertung.offene_entwuerfe(request.user), many=True
             ).data,
+        }
+    )
+
+
+# --- Sicherung --------------------------------------------------------------
+#
+# Dieselben zwei Vorgänge wie `sicherung_erstellen` und `sicherung_einspielen`,
+# nur aus der Oberfläche heraus. Der Mechanismus steht in `socos/sicherung.py`;
+# hier stehen Berechtigung, Nachfrage und der Weg der Datei.
+
+
+@api_view(["GET"])
+def sicherung_ausgeben(request):
+    """
+    Der gesamte Bestand als eine Datei zum Herunterladen.
+
+    Das Archiv geht **im Speicher** hinaus, nicht über eine temporäre Datei:
+    Es enthält Passwort-Hashes und Stammdaten des ganzen Teams, und eine Datei
+    im Ablagepfad des Servers wäre eine Kopie davon, die niemand mehr aufräumt.
+    Bei drei Nutzern und einem Archiv in der Größenordnung eines Megabytes ist
+    das der kleinere Weg.
+    """
+    if not berechtigung.darf_sichern(request.user):
+        raise PermissionDenied("Sicherungen darf nur ein Admin ausgeben.")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        name = sicherung.archivname(timezone.localtime())
+        pfad = sicherung.archiv_schreiben(Path(tmp) / name)
+        inhalt = pfad.read_bytes()
+
+    antwort = HttpResponse(inhalt, content_type="application/gzip")
+    antwort["Content-Disposition"] = f'attachment; filename="{name}"'
+    antwort["Content-Length"] = str(len(inhalt))
+    return antwort
+
+
+@api_view(["POST"])
+def sicherung_einspielen(request):
+    """
+    Ein hochgeladenes Archiv **ersetzt** den Bestand — samt Konten und Rollen.
+
+    Zwei Dinge müssen mitkommen: die Datei als `archiv` und das Wort
+    `bestand-ersetzen` als `bestaetigung`. Das entspricht `--ja-bestand-ersetzen`
+    auf der Kommandozeile: Ein Klick auf ein Zahnrad soll nicht ausreichen, um
+    eine Datenbank zu tauschen.
+
+    Danach wird die Sitzung beendet. Wer weiterarbeitete, hätte einen Ausweis
+    aus einem Bestand, den es nicht mehr gibt — im günstigen Fall zeigt er auf
+    ein fremdes Konto mit derselben Nummer.
+    """
+    if not berechtigung.darf_sichern(request.user):
+        raise PermissionDenied("Einen Bestand einspielen darf nur ein Admin.")
+
+    datei = request.FILES.get("archiv")
+    if datei is None:
+        raise ValidationError({"archiv": "Es kam keine Datei an."})
+
+    if request.data.get("bestaetigung") != "bestand-ersetzen":
+        raise ValidationError(
+            {
+                "bestaetigung": "Ohne ausdrückliche Bestätigung wird nichts ersetzt.",
+            }
+        )
+
+    wer = request.user.email
+    with tempfile.TemporaryDirectory() as tmp:
+        pfad = Path(tmp) / "hochgeladen.tar.gz"
+        with pfad.open("wb") as ziel:
+            for stueck in datei.chunks():
+                ziel.write(stueck)
+
+        try:
+            geleert = sicherung.archiv_einspielen(pfad)
+        except sicherung.ArchivFehler as fehler:
+            raise ValidationError({"archiv": str(fehler)})
+
+    # Ins Server-Protokoll, nicht ins Änderungsprotokoll: Das eigene Protokoll
+    # liegt in der Datenbank, die dieser Vorgang gerade ersetzt hat — ein
+    # Eintrag darin wäre eine Sekunde später weg.
+    logger.warning("Bestand ersetzt: %s spielte %s ein.", wer, datei.name)
+
+    logout(request._request)
+    return Response(
+        {
+            "eingespielt": datei.name,
+            "geleert": {bezeichner: anzahl for bezeichner, anzahl in geleert},
+            "hinweis": "Der Bestand wurde ersetzt. Bitte neu anmelden.",
         }
     )

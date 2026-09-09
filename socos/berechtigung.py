@@ -62,6 +62,19 @@ def darf_nutzer_verwalten(nutzer):
     return ist_admin(nutzer)
 
 
+def darf_sichern(nutzer):
+    """
+    Den gesamten Bestand ausgeben und einspielen.
+
+    Eigenes Recht und nicht `darf_nutzer_verwalten` mitbenutzt, obwohl beide
+    heute „Admin" heißen: Das Archiv enthält *alles* — auch Passwort-Hashes und
+    fremde Stammdaten — und das Einspielen ersetzt den Bestand samt Konten.
+    Käme je eine Rolle dazu, die Nutzer anlegen darf, soll sie nicht nebenbei
+    die Datenbank tauschen können.
+    """
+    return ist_admin(nutzer)
+
+
 def darf_fremde_zeiten_aendern(nutzer):
     """
     Admin und Bearbeiter dürfen fremde Buchungen ändern. Löschen nur der Admin —

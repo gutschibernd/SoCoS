@@ -1,18 +1,14 @@
 """
 Spielt ein Archiv zurück. **Ersetzt den Bestand** — deshalb nur mit
 ausdrücklicher Bestätigung.
+
+Was dabei passiert, steht in `socos/sicherung.py`; hier steht nur die
+Nachfrage.
 """
 
-import shutil
-import tarfile
-import tempfile
 from pathlib import Path
 
-from django.apps import apps
-from django.conf import settings
-from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 
 from socos import sicherung
 
@@ -39,40 +35,11 @@ class Command(BaseCommand):
                 "das Archiv. Wenn das gewollt ist: --ja-bestand-ersetzen anhängen."
             )
 
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp = Path(tmp)
-            with tarfile.open(archivpfad, "r:gz") as archiv:
-                # filter="data" wehrt Pfade ab, die aus dem Zielordner
-                # herausführen. Ein Archiv ist eine fremde Datei.
-                archiv.extractall(tmp, filter="data")
+        try:
+            geleert = sicherung.archiv_einspielen(archivpfad)
+        except sicherung.ArchivFehler as fehler:
+            raise CommandError(str(fehler))
 
-            datenbank = tmp / sicherung.DATENBANK_IM_ARCHIV
-            if not datenbank.exists():
-                raise CommandError(
-                    f"{archivpfad} enthält kein {sicherung.DATENBANK_IM_ARCHIV}. "
-                    "Ist das ein Archiv aus sicherung_erstellen?"
-                )
-
-            with transaction.atomic():
-                for bezeichner in sicherung.LOESCHREIHENFOLGE:
-                    modell = apps.get_model(bezeichner)
-                    menge = getattr(modell, "alle_objekte", modell.objects).all()
-                    # Hart löschen: ein weiches ließe die alten Zeilen stehen und
-                    # das Einspielen liefe auf doppelte Schlüssel.
-                    anzahl = (
-                        menge.hart_loeschen()
-                        if hasattr(menge, "hart_loeschen")
-                        else menge.delete()
-                    )
-                    self.stdout.write(f"geleert: {bezeichner} ({anzahl})")
-
-                call_command("loaddata", str(datenbank), verbosity=0)
-
-            medien_quelle = tmp / sicherung.MEDIEN_IM_ARCHIV
-            medien_ziel = Path(settings.MEDIA_ROOT)
-            if medien_quelle.exists():
-                if medien_ziel.exists():
-                    shutil.rmtree(medien_ziel)
-                shutil.copytree(medien_quelle, medien_ziel)
-
+        for bezeichner, anzahl in geleert:
+            self.stdout.write(f"geleert: {bezeichner} ({anzahl})")
         self.stdout.write(self.style.SUCCESS(f"{archivpfad} eingespielt."))
