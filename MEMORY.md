@@ -320,8 +320,14 @@ Die Zeitdokumentation **muss auditierbar sein**.
 
 ### Betrieb
 
-- Domain: **socos.sopharmis.com** (Subdomain von sopharmis.com).
-- VPS bei **Hetzner**, kommt später. Lokal wird zuerst gebaut.
+- Domain: **socos.test.sopharmis.com** (Subdomain von sopharmis.com).
+- VPS bei **Hetzner**, läuft seit 9. September 2026 — Einzelheiten in SERVER.md.
+  Es ist der **Testauftritt**; eine getrennte Maschine für den echten Betrieb
+  gibt es noch nicht.
+- **Der DNS-Eintrag steht bei Cloudflare grau (DNS only), und das ist kein
+  Versehen:** Universal SSL deckt nur eine Subdomain-Ebene ab, `socos.test.…`
+  ist zwei. Orange scheitert schon am Handshake, und Let's Encrypt käme nicht
+  durch. Begründung in SERVER.md.
 - **Sicherung außer Haus und Restore-Test: offener Punkt**, siehe unten.
 
 ---

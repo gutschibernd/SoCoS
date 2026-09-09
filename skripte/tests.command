@@ -28,7 +28,7 @@ titel "3 · Typen (tsc)"
 # Prüft, was nur in Produktion gilt: HTTPS-Redirect, HSTS, sichere Cookies.
 # Die Ausgabe muss leer sein und leer bleiben.
 titel "4 · Produktionsprüfung (check --deploy)"
-DJANGO_DEBUG=0 DJANGO_ALLOWED_HOSTS=socos.sopharmis.com \
+DJANGO_DEBUG=0 DJANGO_ALLOWED_HOSTS=socos.test.sopharmis.com \
   .venv/bin/python manage.py check --deploy || PROBLEME=1
 
 printf "\n"
