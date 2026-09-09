@@ -107,3 +107,72 @@ def test_kein_abmeldelink_in_der_oberflaeche():
             if "/abmelden/" in zeile and "href" in zeile:
                 treffer.append(f"{datei.relative_to(WURZEL)}:{nummer}")
     assert not treffer, f"Abmelden gehört in ein POST-Formular, nicht in einen Link: {treffer}"
+
+
+def _bloecke(text, marke):
+    """
+    Jeder `marke={…}`-Block einer .tsx-Datei, mit passender Klammerzählung.
+
+    Ein `speichern={async (t) => { … }}` geht über acht Zeilen; eine Regex je
+    Zeile sieht davon nur die erste.
+    """
+    for anfang in re.finditer(re.escape(marke) + r"=\{", text):
+        stelle = anfang.end() - 1
+        tiefe = 0
+        for i in range(stelle, len(text)):
+            if text[i] == "{":
+                tiefe += 1
+            elif text[i] == "}":
+                tiefe -= 1
+                if tiefe == 0:
+                    yield text[:stelle].count("\n") + 1, text[stelle : i + 1]
+                    break
+
+
+def test_jede_feldtext_aenderung_laedt_neu():
+    """
+    Der Feldtext hat keinen Speichern-Knopf: Was danach dasteht, ist die
+    einzige Rückmeldung. Wer `neuLaden` vergisst, schickt den PATCH zwar ab,
+    holt die Liste aber nie neu — auf dem Bildschirm bleibt der alte Text
+    stehen, und es sieht aus, als hätte das Feld die Eingabe verworfen.
+
+    Genau das war bei „Titel" und „Untertitel" eines Projekts der Fall.
+    """
+    quelle = WURZEL / "frontend" / "src"
+    treffer = []
+    for datei in quelle.rglob("*.tsx"):
+        if datei.name == "Feldtext.tsx" or datei.name.endswith(".test.tsx"):
+            continue
+        text = datei.read_text()
+        if "<Feldtext" not in text:
+            continue
+        for zeile, block in _bloecke(text, "speichern"):
+            # Entweder direkt nachladen, oder an einen örtlichen `speichern`
+            # weitergeben, der es seinerseits tut.
+            if "neuLaden" not in block and "speichern(" not in block:
+                treffer.append(f"{datei.relative_to(WURZEL)}:{zeile}")
+    assert not treffer, (
+        "Ein Feldtext, der speichert, ohne neu zu laden, zeigt danach weiter "
+        f"den alten Wert: {treffer}"
+    )
+
+
+@pytest.mark.django_db
+def test_leeres_anmeldeformular_sagt_was_fehlt(client):
+    """
+    „E-Mail oder Passwort stimmen nicht" ist bei zwei leeren Feldern eine
+    falsche Fährte: Man sucht den Fehler beim Passwort, dabei stand nichts im
+    Feld.
+    """
+    antwort = client.post("/anmelden/", {"username": "", "password": ""})
+    seite = antwort.content.decode()
+    assert "Bitte E-Mail" in seite
+    assert "stimmen nicht" not in seite
+
+
+@pytest.mark.django_db
+def test_falsches_passwort_sagt_weiter_was_es_ist(client):
+    antwort = client.post("/anmelden/", {"username": "wer@example.com", "password": "falsch"})
+    seite = antwort.content.decode()
+    assert "stimmen nicht" in seite
+    assert "Bitte E-Mail" not in seite

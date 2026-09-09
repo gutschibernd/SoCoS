@@ -7,6 +7,88 @@ betrifft.
 
 ---
 
+## 2026-09-09 — Formulare, die auf einen Klick geschwiegen haben
+
+Bernd hat gemeldet: Formular leer, Knopf gedrückt, **nichts passiert**. Zwei
+verschiedene Ursachen mit demselben Bild.
+
+### Der stille Abbruch
+
+Zwölf Anlege-Handler begannen mit `if (!name.trim()) return;`. Der Klick kam an,
+der Handler war sofort wieder draußen, und die Seite sagte kein Wort. Der Grund
+war überall derselbe: Die Prüfung war als Schutz vor einer sinnlosen Anfrage
+gedacht, nicht als Auskunft an den, der davorsitzt.
+
+Jetzt antwortet jeder dieser Handler mit einem Satz, der sagt, **was fehlt**,
+über einen Baustein `Fehlerzeile` unter der Feldreihe.
+
+- **Nicht über `melden`** (die Meldungen oben rechts): Die sind für das, was der
+  Server sagt. Ein leeres Pflichtfeld gehört neben das Feld, sonst sucht man am
+  anderen Ende des Bildschirms nach dem Satz.
+- **`role="alert"` steht im Baustein**, nicht an den zwölf Aufrufstellen — an
+  zwölf Stellen wird es vergessen.
+- Weil die Zeile oft mitten in einer `.feld-reihe` landet, steht in
+  `bausteine.css` eine Regel `.feld-reihe > .rueckmeldung { flex: 1 0 100% }`.
+  Volle Breite heißt bei `flex-wrap: wrap`: eigene Zeile. Sonst stünde die
+  Meldung als schmale Spalte neben dem Knopf.
+
+### Kein Absendeknopf ist mehr stillgelegt
+
+`disabled={!zeile.ziel}` und Geschwister waren die zweite Hälfte desselben
+Problems: **Ein grauer Knopf kann nicht sagen, warum er grau ist.** Er nimmt den
+Klick jetzt an und antwortet. Stillgelegt bleibt nur, was gerade läuft (das
+Einspielen einer Sicherung) — dort steht der Grund im Knopf selbst.
+
+### Der Entwurf, der einen RangeError warf
+
+`EntwurfZeile.bestaetigen` rief bei leerem Feld `new Date("").toISOString()`.
+Das ist ein `RangeError`: in der Konsole ein Fehler, auf der Seite nichts. Die
+schlimmste Sorte, weil niemand sie meldet — es sieht aus, als hätte man
+danebengeklickt.
+
+### Die Anmeldeseite sagte die falsche Wahrheit
+
+Zwei leere Felder ergaben „E-Mail oder Passwort stimmen nicht". Man sucht dann
+den Fehler bei seinem Passwort, dabei stand nur nichts im Feld. Unterschieden
+wird an der Stelle, an der Django den Fehler ablegt: Ein fehlendes Pflichtfeld
+hängt am **Feld**, falsche Zugangsdaten hängen am **Formular**.
+
+**Falle nebenbei:** `{# … #}` gilt in einer Django-Vorlage nur bis zum
+Zeilenende. Ein dreizeiliger Kommentar damit stand zu zwei Dritteln als Text auf
+der Seite. Mehrzeilig geht nur `{% comment %}`.
+
+---
+
+## 2026-09-09 — Der Feldtext übernahm die Änderung nicht (Projekttitel)
+
+Wer den Titel eines Projekts änderte und herausklickte, sah wieder den alten
+Titel. Gespeichert war er trotzdem — man sah es erst nach dem Neuladen.
+
+**Zwei Ursachen übereinander:**
+
+1. `Projekt.tsx` rief an genau zwei von dreizehn Stellen `aendern(…)` **ohne**
+   `neuLaden()` danach: bei Titel und Untertitel eines Projekts. Der PATCH ging
+   durch, die Liste wurde nie neu geholt.
+2. Der `Feldtext` zeigte nach dem Schließen wieder den Prop `wert` — und der
+   trägt bis zum Nachladen den alten Stand. Selbst mit `neuLaden` blitzte der
+   alte Text auf.
+
+**Behoben:** Der Feldtext zeigt nach dem Schließen seinen eigenen Entwurf.
+Scheitert das Speichern, geht er auf `wert` zurück — sonst stünde ein Text auf
+dem Bildschirm, den der Server nicht hat.
+
+**Warum das wichtig ist:** Der Feldtext hat bewusst keinen Speichern-Knopf. Damit
+ist der neue Text selbst die einzige Bestätigung. Fällt die weg, sieht es aus,
+als sei die Eingabe verworfen worden.
+
+**Wächter dagegen:** `test_jede_feldtext_aenderung_laedt_neu` in
+`socos/tests/test_oberflaeche.py` liest jeden `speichern={…}`-Block mit
+Klammerzählung und verlangt darin `neuLaden` (oder die Weitergabe an einen
+örtlichen `speichern`, der es tut). Eine Regex je Zeile hätte den Block nicht
+gesehen — er geht über acht Zeilen.
+
+---
+
 ## 2026-09-09 — Abmelden: es gab einen Knopf, und er hat nie abgemeldet
 
 Der einzige Weg hinaus war ein `knopf-still` unten auf der Profilseite, und der

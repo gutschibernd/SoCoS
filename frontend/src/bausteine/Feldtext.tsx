@@ -6,6 +6,13 @@ import { useEffect, useRef, useState } from "react";
  * Kein eigener Bearbeitungsmodus mit Speichern-Knopf: Bei einer Liste aus
  * dreißig Paketen wäre das dreißigmal ein Dialog. Gespeichert wird beim
  * Verlassen des Feldes oder mit Return; Escape nimmt zurück.
+ *
+ * **Ohne Speichern-Knopf ist der neue Text selbst die Bestätigung.** Deshalb
+ * steht nach dem Schließen der eigene Entwurf da und nicht `wert`: Der Prop
+ * trägt noch den alten Stand, bis das Nachladen ankommt, und in der Lücke sah
+ * es aus, als hätte das Feld die Eingabe weggeworfen. Scheitert das Speichern,
+ * geht der Entwurf auf `wert` zurück — sonst stünde ein Text auf dem
+ * Bildschirm, den der Server nicht hat.
  */
 export function Feldtext({
   wert,
@@ -46,14 +53,23 @@ export function Feldtext({
         onClick={() => setOffen(true)}
         title="Zum Ändern klicken"
       >
-        {wert || <span className="leer">{platzhalter ?? "—"}</span>}
+        {entwurf || <span className="leer">{platzhalter ?? "—"}</span>}
       </button>
     );
   }
 
-  const fertig = () => {
+  const fertig = async () => {
     setOffen(false);
-    if (entwurf.trim() !== wert) speichern(entwurf.trim());
+    const neu = entwurf.trim();
+    setEntwurf(neu);
+    if (neu === wert) return;
+    try {
+      await speichern(neu);
+    } catch {
+      // `hole` hat den Grund schon gemeldet. Hier bleibt nur, den Entwurf
+      // wieder auf den Stand zu setzen, den der Server tatsächlich hat.
+      setEntwurf(wert);
+    }
   };
 
   const beiTaste = (e: React.KeyboardEvent) => {
