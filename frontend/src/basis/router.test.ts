@@ -8,9 +8,17 @@ describe("ausPfad", () => {
     expect(ausPfad("/kontakte/")).toEqual({ seite: "kontakte", unter: null });
   });
 
-  it("fällt auf das Dashboard zurück", () => {
-    expect(ausPfad("/gibtsnicht")).toEqual({ seite: "dashboard", unter: null });
-    expect(ausPfad("/")).toEqual({ seite: "dashboard", unter: null });
+  // Die Wurzel ist die Startseite, und ein Pfad, den es nicht gibt, landet
+  // dort ebenfalls — nicht auf dem Dashboard: Von der Startseite führt jeder
+  // weitere Weg mit einem Klick weiter.
+  it("fällt auf die Startseite zurück", () => {
+    expect(ausPfad("/gibtsnicht")).toEqual({ seite: "start", unter: null });
+    expect(ausPfad("/")).toEqual({ seite: "start", unter: null });
+    expect(ausPfad("/start")).toEqual({ seite: "start", unter: null });
+  });
+
+  it("verwirft eine Unterseite unter der Startseite", () => {
+    expect(ausPfad("/start/zeit")).toEqual({ seite: "start", unter: null });
   });
 
   it("liest die Unterseite", () => {

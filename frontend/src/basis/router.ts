@@ -1,8 +1,13 @@
 /**
  * Ein sehr kleiner Router.
  *
- * Kein react-router: Es gibt sechs Seiten und eine Ebene darunter. Ein
+ * Kein react-router: Es gibt sieben Seiten und eine Ebene darunter. Ein
  * Rahmenwerk brächte hier mehr Begriffe mit, als die Anwendung Wege hat.
+ *
+ * „start" ist die Wurzel und zugleich der Rückfall für einen Pfad, den es
+ * nicht gibt. Sie steht in keinem Menü — hin kommt man über das Logo. Eine
+ * Seite, die nur Abkürzungen auf die anderen fünf zeigt, wäre als sechster
+ * Menüeintrag neben ihren eigenen Zielen bloß Verdopplung.
  *
  * Warum die zweite Ebene überhaupt im Weg steht und nicht im Zustand der
  * Ansicht: Auf der Kontakteseite ist „zurück zur Liste" der häufigste Griff,
@@ -14,7 +19,15 @@
 
 import { useEffect, useState } from "react";
 
-export const SEITEN = ["dashboard", "projekt", "zeit", "kontakte", "events", "profil"] as const;
+export const SEITEN = [
+  "start",
+  "dashboard",
+  "projekt",
+  "zeit",
+  "kontakte",
+  "events",
+  "profil",
+] as const;
 export type Seite = (typeof SEITEN)[number];
 
 /**
@@ -37,7 +50,7 @@ export type Ort = { seite: Seite; unter: string | null };
 
 export function ausPfad(pfad: string): Ort {
   const teile = pfad.replace(/^\/+/, "").split("/").filter(Boolean);
-  const seite = (SEITEN as readonly string[]).includes(teile[0]) ? (teile[0] as Seite) : "dashboard";
+  const seite = (SEITEN as readonly string[]).includes(teile[0]) ? (teile[0] as Seite) : "start";
   const erlaubt = UNTERWEG[seite];
   const unter = teile[1] ?? "";
   return { seite, unter: erlaubt?.(unter) ? unter : null };

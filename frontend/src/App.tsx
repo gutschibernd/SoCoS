@@ -9,9 +9,14 @@ import { Events } from "./ansichten/Events";
 import { Kontakte } from "./ansichten/Kontakte";
 import { Profil } from "./ansichten/Profil";
 import { Projekt } from "./ansichten/Projekt";
+import { Start } from "./ansichten/Start";
 import { Zeit } from "./ansichten/Zeit";
 
 const TITEL: Record<Seite, { titel: string; unter: string }> = {
+  // Die Startseite trägt in der Zeile eine Anrede statt ihres Namens — siehe
+  // unten. Der Eintrag hier ist trotzdem nötig, damit der Record vollständig
+  // bleibt und eine neue Seite ohne Zeile nicht durchrutscht.
+  start: { titel: "Start", unter: "Womit geht's los?" },
   dashboard: { titel: "Dashboard", unter: "Woche, Geld, Fortschritt" },
   projekt: { titel: "Projekt", unter: "Bereiche, Arbeitspakete, Stufen" },
   zeit: { titel: "Zeit", unter: "Buchungen und Nachträge" },
@@ -40,7 +45,11 @@ export function App() {
   if (!ich.data) return <Zustand abfrage={ich} erneut={() => ich.refetch()} />;
 
   const bearbeiten = ort.seite === "projekt" && ort.unter === "bearbeiten";
-  const kopfzeile = bearbeiten ? PROJEKT_BEARBEITEN : TITEL[ort.seite];
+  const kopfzeile = bearbeiten
+    ? PROJEKT_BEARBEITEN
+    : ort.seite === "start"
+      ? { titel: `Hallo ${ich.data.name.split(" ")[0]}`, unter: TITEL.start.unter }
+      : TITEL[ort.seite];
 
   return (
     <>
@@ -52,6 +61,7 @@ export function App() {
           <div className="unter">{kopfzeile.unter}</div>
         </div>
 
+        {ort.seite === "start" && <Start ich={ich.data} wechseln={wechseln} />}
         {ort.seite === "dashboard" && <Dashboard ich={ich.data} wechseln={wechseln} />}
         {ort.seite === "projekt" && (
           <Projekt ich={ich.data} bearbeiten={bearbeiten} wechseln={wechseln} />

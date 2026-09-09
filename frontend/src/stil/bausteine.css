@@ -11,29 +11,36 @@
 .seite { max-width: 1400px; margin: 0 auto; padding: 18px 22px 44px; }
 
 .kopf { background: var(--kopf-grund); border-bottom: 1px solid var(--marke-tiefer); }
+
+/*
+ * Die Kopfleiste bleibt am Rechner **eine** Zeile — deshalb `nowrap`.
+ *
+ * Mit `wrap` bricht Flexbox um, bevor irgendetwas schrumpft: Bei 1280 px
+ * fehlten gut fünfzig Pixel, und statt sie irgendwo wegzunehmen sprang der
+ * ganze rechte Block (Uhr, Name, Zahnrad) in eine zweite Zeile. Ohne `wrap`
+ * gibt stattdessen das nach, was am wenigsten kostet: der Pakettitel in der
+ * Uhr wird kürzer und bekommt Auslassungspunkte. Alles andere ist
+ * ausdrücklich schrumpffest (`flex: 0 0 auto`).
+ *
+ * Unter 1280 px reicht auch das nicht mehr — dort stellt sich die Navigation
+ * in eine eigene Zeile (siehe unten). Das Handy bleibt davon unberührt.
+ */
 .kopf-innen {
   max-width: 1400px; margin: 0 auto; padding: 10px 22px;
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 16px; flex-wrap: nowrap;
 }
 .marke {
   display: flex; align-items: center; gap: 8px; padding: 7px 12px;
-  min-height: var(--griff);   /* auch das Logo ist ein Knopf zum Dashboard */
+  flex: 0 0 auto;
+  min-height: var(--griff);   /* auch das Logo ist ein Knopf — zur Startseite */
   border: 1px solid var(--kopf-rand); border-radius: var(--kante);
   cursor: pointer; background: none;
 }
 .marke:hover { background: var(--marke); }
 .marke img { display: block; border-radius: var(--kante); }
-/* Die Wortmarke klein: Figtree fett über einer Mono-Zeile. Das ist die
-   Bauweise des Sopharmis-Logos — fett oben, Schreibmaschine unten —, nur mit
-   den Schriften, die ohnehin geladen sind. */
 .marke b { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.025em; }
-.marke span {
-  font-family: var(--schrift-zahl);
-  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--kopf-text-leise); padding-top: 2px;
-}
 
-.navigation { display: flex; gap: 2px; min-width: 0; flex-wrap: wrap; }
+.navigation { display: flex; gap: 2px; flex: 0 0 auto; flex-wrap: nowrap; }
 .navigation a {
   padding: 9px 16px; border-radius: var(--kante); font-size: 14px; font-weight: 600;
   white-space: nowrap; color: var(--kopf-text-leise);
@@ -42,7 +49,7 @@
 .navigation a:hover { background: var(--marke); color: var(--kopf-text); }
 .navigation a[aria-current="page"] { background: var(--kopf-aktiv); color: var(--marke-dunkel); }
 
-.kopf-rechts { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.kopf-rechts { margin-left: auto; display: flex; align-items: center; gap: 14px; min-width: 0; }
 
 /* --- Titelzeile --------------------------------------------------------- */
 
@@ -261,13 +268,17 @@
   background: var(--kopf-text-leise);
 }
 .uhr-chip[data-laeuft="ja"] .punkt { background: var(--kopf-aktiv); }
-.uhr-chip .zahl { font-size: 15px; color: #fff; white-space: nowrap; }
+.uhr-chip .zahl { font-size: 15px; color: #fff; white-space: nowrap; flex: 0 0 auto; }
+/* Der einzige Teil der Kopfleiste, der nachgeben darf: `flex: 0 1 auto` mit
+   `min-width: 0`. Wird der Platz eng, wird der Pakettitel kürzer statt die
+   Leiste zweizeilig. */
 .uhr-chip .wo {
   font-size: 13px; color: var(--kopf-text-leise);
+  flex: 0 1 auto; min-width: 0;
   max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .uhr-knopf {
-  min-height: var(--griff); padding: 7px 14px;
+  min-height: var(--griff); padding: 7px 14px; flex: 0 0 auto;
   display: inline-flex; align-items: center; gap: 8px;
   border: 1px solid var(--kopf-rand); border-radius: var(--kante);
   background: transparent; color: var(--kopf-text);
@@ -276,14 +287,14 @@
 .uhr-knopf:hover { background: var(--marke-dunkel); }
 
 .profil {
-  display: flex; align-items: center; gap: 9px;
+  display: flex; align-items: center; gap: 9px; flex: 0 0 auto;
   padding: 6px 12px 6px 6px; min-height: var(--griff);
   border: 1px solid var(--kopf-rand); border-radius: var(--kante);
   background: transparent; cursor: pointer;
 }
 .profil:hover { background: var(--marke); }
 .profil i {
-  width: 27px; height: 27px; border-radius: var(--kante);
+  width: 27px; height: 27px; border-radius: var(--kante); flex: 0 0 auto;
   display: grid; place-items: center;
   font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-dunkel);
 }
@@ -299,6 +310,49 @@
   background: transparent; color: var(--kopf-text-leise); cursor: pointer;
 }
 .zahnrad-knopf:hover { background: var(--marke); color: var(--kopf-text); }
+
+/* --- Startseite ---------------------------------------------------------- */
+/*
+ * Die Kacheln sind Knöpfe, keine Karten mit einem Link darin: Wer eine Kachel
+ * anfasst, meint immer den ganzen Block. Ein Link nur auf der Überschrift
+ * hätte am Handy ein Ziel von 20 px in einem 130 px hohen Feld.
+ */
+
+.kacheln { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kachel {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  padding: 18px 18px 20px; min-height: 132px; text-align: left; cursor: pointer;
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: var(--kante); border-top: 3px solid var(--marke);
+}
+/* Nur der Grund wechselt: `border-color` würde auch die Kante oben
+   übermalen, und die ist das einzige Farbige an der Kachel. */
+.kachel:hover { background: var(--flaeche-leise); }
+.kachel > .zeichen { font-size: 22px; color: var(--marke); margin-bottom: 3px; }
+.kachel b { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.kachel span { font-size: 14px; color: var(--text-leise); line-height: 1.4; }
+
+/* Die Uhr-Kachel steht über der Breite: Sie ist der Griff, den man am
+   häufigsten sucht, und sie trägt Felder statt nur einer Beschriftung. */
+.start-buchen { border-top: 3px solid var(--akzent); }
+.start-laeuft { margin: 0 0 12px; font-size: 14px; color: var(--text-leise); }
+.start-beschriftung {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-sehr-leise); font-weight: 600; margin-bottom: 8px;
+}
+.start-zuletzt { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.start-zuletzt > button {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: var(--griff); padding: 8px 14px;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text);
+  font-size: 14px; font-weight: 600; cursor: pointer; text-align: left;
+}
+.start-zuletzt > button:hover { border-color: var(--marke-rand); color: var(--marke); }
+.start-zuletzt > button .zeichen { color: var(--marke); }
+.start-zuletzt > button em {
+  font-style: normal; font-weight: 400; color: var(--text-leise); font-size: 13px;
+}
 
 /* --- Dashboard ----------------------------------------------------------- */
 
@@ -634,6 +688,29 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 
 
 /* ==========================================================================
+   Dazwischen — schmaler Rechner, Tablet quer (721 bis 1279 px)
+   ==========================================================================
+
+   Unter 1280 px passen Logo, Menü und der rechte Block nicht mehr in eine
+   Zeile, ohne dass etwas Wichtiges abgeschnitten wird. Statt alles zu
+   verkleinern, stellt sich die Navigation über die volle Breite darunter:
+   Logo links, Uhr und Person rechts, das Menü in Zeile zwei.
+
+   Die Untergrenze ist Absicht. Am Handy (bis 720 px) gilt die andere,
+   bereits abgestimmte Aufteilung weiter unten — sie soll hier nicht
+   mitgeändert werden.
+   ========================================================================== */
+
+@media (min-width: 721px) and (max-width: 1279px) {
+  .kopf-innen { flex-wrap: wrap; }
+  .navigation { order: 3; flex: 1 1 100%; min-width: 0; flex-wrap: wrap; }
+  /* Sicherheitsnetz: Bleibt Zeile eins knapp, geht die Uhr über die Breite —
+     dieselbe Auflösung wie am Handy, statt eines abgeschnittenen Zahnrads. */
+  .kopf-rechts { flex-wrap: wrap; justify-content: flex-end; }
+  .uhr-chip .wo { max-width: 130px; }
+}
+
+/* ==========================================================================
    Am Handy
    ==========================================================================
 
@@ -666,7 +743,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
     color: var(--text-sehr-leise); font-weight: 600; text-align: left; flex: 0 0 auto;
   }
 
-  .raster-4, .raster-3, .raster-2 { grid-template-columns: 1fr; }
+  .raster-4, .raster-3, .raster-2, .kacheln { grid-template-columns: 1fr; }
   .seite { padding: 14px 14px 40px; }
 
   /* Die vier Einträge tragen seit den Zeichen je 26 px mehr. Ohne das engere
@@ -711,6 +788,13 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
      die Grifffläche bleibt bei 44 px — bekommt die Uhr die ganze Breite und
      die beiden Knöpfe stellen sich darunter rechts. Ein einzelnes Zahnrad in
      einer eigenen dritten Zeile sähe verloren aus. */
+  /* Die Grundregel ist `nowrap` (eine Zeile am Rechner) — am Handy wird
+     wieder umgebrochen: Logo, Menü, rechter Block untereinander. */
+  .kopf-innen { flex-wrap: wrap; }
+  /* `min-width: 0` gehört dazu: Ohne das bleibt die Leiste bei ihrer
+     Wunschbreite von gut 500 px stehen und ragt rechts aus dem Bild, statt
+     ihre fünf Einträge auf zwei Zeilen zu verteilen. */
+  .navigation { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; }
   .kopf-rechts { gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
   .kopf-rechts .uhr-chip { flex: 1 1 100%; padding: 6px 6px 6px 12px; }
 

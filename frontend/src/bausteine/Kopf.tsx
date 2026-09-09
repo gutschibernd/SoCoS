@@ -42,18 +42,26 @@ export function Kopf({
     <header className="kopf">
       <div className="kopf-innen">
         {/*
-          Die Wortmarke klein: einfarbig, Figtree über einer Mono-Zeile — die
-          Bauweise des Sopharmis-Logos, nicht dessen Schrift. Zweifarbig (die
-          o im Kupfer) steht sie nur groß auf der Anmeldeseite; bei 16 px
-          sähe man den Unterschied ohnehin nicht.
+          Signet und Name, sonst nichts. Der Zusatz darunter stand hier nur,
+          weil auf der Anmeldeseite Platz dafür ist — in der Kopfleiste hat er
+          rund achtzig Pixel gekostet und die Zeile bei 1280 px gesprengt.
+          Groß und zweifarbig steht die Wortmarke weiterhin beim Anmelden.
 
           Das Signet ist dieselbe Datei wie das Favicon. Nachgezeichnet wäre
           es beim ersten Nachbessern falsch.
+
+          Der Weg zur Startseite führt nur hierüber: Sie hat keinen eigenen
+          Eintrag im Menü, weil sie nichts zeigt, was die fünf Seiten nicht
+          auch zeigen — sie ist die kurze Abzweigung dorthin.
         */}
-        <button type="button" className="marke" onClick={() => wechseln("dashboard")}>
+        <button
+          type="button"
+          className="marke"
+          onClick={() => wechseln("start")}
+          title="Zur Startseite"
+        >
           <img src="/static/favicon.svg" alt="" width="22" height="22" />
           <b>SoCoS</b>
-          <span>Sopharmis</span>
         </button>
 
         <nav className="navigation">

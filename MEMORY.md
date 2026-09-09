@@ -7,6 +7,90 @@ betrifft.
 
 ---
 
+## 2026-09-09 — Startseite, und warum die Kopfleiste einzeilig bleiben muss
+
+### Die Kopfleiste war bei 1280 px zweizeilig
+
+Uhr, Name und Zahnrad sind in eine zweite Zeile gerutscht. Nachgemessen fehlten
+gut fünfzig Pixel: Logo 188 + Menü 530 + rechter Block 623 + Abstände gegen
+1236 px Innenbreite.
+
+**Zwei Ursachen, zwei Antworten.**
+
+- Der Zusatz „Sopharmis" neben „SoCoS" kostete allein rund achtzig Pixel. Er ist
+  aus der Kopfleiste heraus. Groß und zweifarbig steht die Wortmarke weiter auf
+  der Anmeldeseite — die Entscheidung vom 2026-09-08 gilt dort unverändert, in
+  der Leiste ist jetzt nur noch Signet + „SoCoS".
+- `flex-wrap: wrap` war die eigentliche Falle. **Flexbox bricht um, bevor
+  irgendetwas schrumpft.** Ein Pakettitel, der sich um vierzig Pixel kürzen
+  ließe, verhindert den Umbruch also nicht — er wird gar nicht erst gefragt.
+  Deshalb ist die Leiste jetzt `nowrap`, alle Teile sind `flex: 0 0 auto`, und
+  **genau eines** darf nachgeben: der Pakettitel in der Uhr (`flex: 0 1 auto;
+  min-width: 0`), mit Auslassungspunkten.
+
+**Drei Breiten, drei Formen** (`bausteine.css`, ganz unten):
+
+| ab | Form |
+|---|---|
+| 1280 px | eine Zeile, der Pakettitel gibt nach |
+| 721–1279 px | Logo und rechter Block oben, Menü über die volle Breite darunter |
+| bis 720 px | wie gehabt: Logo, Menü, Uhr über die Breite, Knöpfe darunter |
+
+Die Untergrenze 721 px im mittleren Bereich ist Absicht: Die Handy-Aufteilung
+von 2026-09-09 soll davon nicht mitgeändert werden.
+
+**`min-width: 0` auf der Navigation nicht vergessen.** Ohne das bleibt sie bei
+ihrer Wunschbreite von gut 500 px stehen und ragt rechts aus dem Bild, statt
+ihre fünf Einträge auf zwei Zeilen zu verteilen — ein Flex-Kind schrumpft
+standardmäßig nicht unter seinen Inhalt.
+
+### Die Startseite
+
+Neue Seite `start`, **die Wurzel** (`/`) und zugleich der Rückfall für einen
+Pfad, den es nicht gibt. Vorher fiel beides auf das Dashboard.
+
+**Sie steht in keinem Menü.** Hin kommt man über das Logo links oben. Ein
+sechster Eintrag neben Dashboard, Projekt, Zeit, Kontakte und Events wäre
+neben seinen eigenen Zielen bloß Verdopplung; das Logo als Weg nach Hause ist
+die Konvention, die niemand erklärt bekommen muss.
+
+**Was darauf steht:** oben das Buchen, darunter sechs Kacheln — Zeit
+nachtragen, Organisation erfassen, Person ohne Organisation, Event anlegen,
+Projekt & Pakete, Zahlen & Runway. Die vier Kacheln zum Anlegen sieht nur, wer
+`darf.bearbeiten` hat; die Schwelle steht wie alle anderen serverseitig in
+`socos/berechtigung.py`, die Kachel verbirgt nur einen Weg, den der Server
+ohnehin ablehnt.
+
+**Warum das Buchen echte Funktion trägt und die Kacheln nicht.** Die Uhr zu
+starten ist der häufigste Griff des Tages, und dafür führte der Weg bisher
+über die Projektseite und das Suchen des Pakets im Baum. Auf der Startseite
+stehen die **vier zuletzt bebuchten Pakete** als Knöpfe (ein Klick) und eine
+Auswahl über alle buchbaren Pakete daneben — ohne die Auswahl käme man an ein
+Paket, auf das noch nie gebucht wurde, überhaupt nicht heran. Alles andere
+sind Abkürzungen auf Seiten, die es schon gibt; dort noch einmal Formulare
+nachzubauen wäre die zweite Stelle, die beim nächsten neuen Feld vergessen
+wird.
+
+- `BUCHBAR` lässt **fertig** und **verworfen** aus. Der Server ließe eine
+  Buchung darauf zu; wer ein abgeschlossenes Paket in der Liste sieht, bucht
+  früher oder später darauf, und dann steht die Zeit im Nachweis an einem
+  Paket, das seit Monaten zu ist.
+- „Zuletzt" heißt **die letzten dreißig Tage**, und der Zeitraum geht als
+  ausdrücklicher `von`-Parameter an die Schnittstelle. Keine stille
+  Zeitscheibe: Gerechnet wird hier nichts, und in der Überschrift steht, was
+  gemeint ist.
+- Gefiltert wird gegen den Projektbaum, nicht gegen die Buchung: Ein Paket,
+  das inzwischen fertig oder weich gelöscht ist, verschwindet aus den
+  Knöpfen, statt einen Griff anzubieten, den der Server gleich ablehnt.
+- Die Rechnerei steht in `frontend/src/basis/start.ts` mit Tests daneben —
+  dasselbe Muster wie `kontakte.ts` und `events.ts`.
+
+**Kein Gegenstück im Entwurf.** `Sopharmis Internal v6 leer.dc.html` kennt
+keine Startseite; Kacheln, Beschriftungen und Reihenfolge sind hier zum ersten
+Mal gesetzt und nicht aus der Vorlage übernommen.
+
+---
+
 ## 2026-09-09 — Sicherung auch aus der Oberfläche (Zahnrad rechts oben)
 
 Bisher gab es den ganzen Bestand nur über die Kommandozeile am Server heraus und
@@ -449,7 +533,9 @@ Die Zeitdokumentation **muss auditierbar sein**.
 **Klein einfarbig, groß zweifarbig.** In der Kopfleiste steht „SoCoS" in
 Figtree 700 über einer Mono-Zeile — die *Bauweise* des Sopharmis-Logos (fett
 oben, Schreibmaschine unten, beide auf eine Breite gezogen), nicht dessen
-Schrift. Auf der Anmeldeseite steht dieselbe Marke groß, und dort sind die
+Schrift. *(Nachtrag 2026-09-09: Die Mono-Zeile ist aus der Kopfleiste heraus —
+sie kostete dort achtzig Pixel und machte die Leiste bei 1280 px zweizeilig.
+Auf der Anmeldeseite steht die Marke unverändert.)* Auf der Anmeldeseite steht dieselbe Marke groß, und dort sind die
 beiden kleinen **o** kupfern: das Kürzel entziffert sich selbst als
 **So**pharmis **Co**ntrolling **S**oftware.
 
