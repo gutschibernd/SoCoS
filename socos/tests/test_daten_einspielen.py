@@ -73,8 +73,9 @@ def test_spielt_team_und_projekte_ein(tmp_path):
     projekt = Projekt.objects.get(titel="Ein Projekt")
     assert projekt.untertitel == "Untertitel"
     bereich = Bereich.objects.get(projekt=projekt)
-    # Die Stufen kommen aus der Vorlage der Art, nicht aus der Datei.
-    assert bereich.stufen
+    # Die Stufen kommen aus der Vorlage der Bereichsart, nicht aus der Datei —
+    # und sie hängen am Paket, nicht am Bereich.
+    assert all(p.stufen for p in Arbeitspaket.objects.filter(bereich=bereich))
     assert list(
         Arbeitspaket.objects.filter(bereich=bereich).values_list("titel", "status")
     ) == [("Erstes Paket", "laeuft"), ("Zweites Paket", "offen")]

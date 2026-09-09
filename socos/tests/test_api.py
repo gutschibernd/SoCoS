@@ -262,6 +262,114 @@ class TestStufenleiste:
 
 
 @pytest.mark.django_db
+class TestStufenAmPaket:
+    """
+    Die Leiste hängt am Paket, nicht am Bereich — zwei Pakete nebeneinander
+    dürfen verschiedene Stufen und verschiedene Dauern haben.
+    """
+
+    def test_zwei_pakete_im_selben_bereich_gehen_auseinander(self, client, bearbeiter, paket):
+        zweites = Arbeitspaket.objects.create(bereich=paket.bereich, titel="Zweites")
+        client.force_login(bearbeiter)
+        antwort = client.patch(
+            f"/api/pakete/{paket.pk}/",
+            {"stufen": [{"name": "Konzept", "monate": 1}, {"name": "Umsetzung", "monate": 9}]},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 200
+        assert antwort.json()["stufen"] == [
+            {"name": "Konzept", "monate": 1},
+            {"name": "Umsetzung", "monate": 9},
+        ]
+        zweites.refresh_from_db()
+        assert [s["name"] for s in zweites.stufen] == [
+            "Konzept", "Umsetzung", "Test", "Abschluss",
+        ]
+
+    def test_eine_vorlage_setzt_die_leiste_und_nullt_den_stand(self, client, bearbeiter, paket):
+        paket.stufenstand = 3
+        paket.save()
+        client.force_login(bearbeiter)
+        daten = client.post(
+            f"/api/pakete/{paket.pk}/vorlage/", {"vorlage": "fin"}, content_type="application/json"
+        ).json()
+        assert [s["name"] for s in daten["stufen"]] == [
+            "Vorbereitung", "Einreichung", "Entscheidung", "Abrechnung",
+        ]
+        # Der Stand gehörte zur alten Leiste. „Stufe 3" heißt in der neuen
+        # etwas anderes — ihn zu übernehmen wäre eine Behauptung.
+        assert daten["stufenstand"] == 0
+        assert daten["fortschritt"] == 0
+
+    def test_eine_unbekannte_vorlage_wird_abgewiesen(self, client, bearbeiter, paket):
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            f"/api/pakete/{paket.pk}/vorlage/",
+            {"vorlage": "erfunden"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 400
+
+    def test_geaenderte_dauern_verschieben_den_fortschritt(self, client, bearbeiter, paket):
+        paket.stufenstand = 1
+        paket.save()
+        client.force_login(bearbeiter)
+        # Konzept 1 von 7 → 14 %. Mit Konzept 6 von 12 → 50 %.
+        daten = client.patch(
+            f"/api/pakete/{paket.pk}/",
+            {
+                "stufen": [
+                    {"name": "Konzept", "monate": 6},
+                    {"name": "Umsetzung", "monate": 3},
+                    {"name": "Test", "monate": 2},
+                    {"name": "Abschluss", "monate": 1},
+                ]
+            },
+            content_type="application/json",
+        ).json()
+        assert daten["fortschritt"] == 50
+
+    def test_das_kuerzen_der_leiste_kappt_den_stand(self, client, bearbeiter, paket):
+        """
+        Wer die Leiste kürzt, meint nicht den Stand. Eine Fehlermeldung wäre
+        die falsche Antwort — sonst stünde ein Paket auf Stufe 4 von 2.
+        """
+        paket.stufenstand = 4
+        paket.save()
+        client.force_login(bearbeiter)
+        daten = client.patch(
+            f"/api/pakete/{paket.pk}/",
+            {"stufen": [{"name": "Konzept", "monate": 1}, {"name": "Rest", "monate": 1}]},
+            content_type="application/json",
+        ).json()
+        assert daten["stufenstand"] == 2
+        assert daten["fortschritt"] == 100
+
+    @pytest.mark.parametrize(
+        "leiste",
+        [
+            [{"name": "", "monate": 1}],
+            [{"name": "Konzept", "monate": "drei"}],
+            [{"name": "Konzept", "monate": -1}],
+            [{"name": "Konzept", "monate": 999}],
+            [{"name": "Konzept"}],
+            "keine Liste",
+        ],
+    )
+    def test_unsinnige_leisten_werden_abgewiesen(self, client, bearbeiter, paket, leiste):
+        """
+        Geprüft wird beim Schreiben, nicht beim Rechnen: `fortschritt` machte
+        aus einem Text in `monate` eine 1 und lieferte stillschweigend eine
+        falsche Prozentzahl — die sieht man ihr nicht an.
+        """
+        client.force_login(bearbeiter)
+        antwort = client.patch(
+            f"/api/pakete/{paket.pk}/", {"stufen": leiste}, content_type="application/json"
+        )
+        assert antwort.status_code == 400
+
+
+@pytest.mark.django_db
 class TestLoeschen:
     def test_loeschen_ist_weich(self, client, admin_nutzer, paket):
         client.force_login(admin_nutzer)

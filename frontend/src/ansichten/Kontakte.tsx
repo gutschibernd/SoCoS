@@ -79,8 +79,8 @@ export function Kontakte({
   wechseln,
 }: {
   ich: Ich;
-  unter: string;
-  wechseln: (seite: Seite, unter?: string) => void;
+  unter: string | null;
+  wechseln: (seite: Seite, unter?: string | null) => void;
 }) {
   const organisationen = useOrganisationen();
   const kontakte = useKontakte();

@@ -291,13 +291,23 @@ class Bereichsart(models.TextChoices):
     ZIEL = "ziel", "Ziele"
 
 
-# Vorlagen für die Stufenleiste, je Bereichsart. Beim Anlegen eines Bereichs
+# Die drei Vorlagen für die Stufenleiste. Beim Anlegen eines **Arbeitspakets**
 # **kopiert**, nicht verwiesen.
 #
-# Warum kopieren: „je Projekt anpassbar" wäre auch über eine Vererbungskette
-# mit Überschreibungen zu haben. Die müsste man aber bei jeder Anzeige
-# auflösen, und man sähe einem Bereich nicht an, welche Stufen für ihn gelten.
-# Eine kopierte Liste ist ein Wert, kein Verweis — sie ist beim Lesen fertig.
+# Warum am Paket und nicht am Bereich: Ein Bereich enthält Pakete
+# verschiedenen Zuschnitts — ein Antrag, ein Prototyp und eine Doku laufen
+# nicht über dieselben Stufen und schon gar nicht über dieselben Dauern. Eine
+# Leiste für alle Pakete eines Bereichs zeigt für die meisten einen
+# Fortschritt, der so nie gemessen wurde.
+#
+# Warum kopieren: „je Paket anpassbar" wäre auch über eine Vererbungskette mit
+# Überschreibungen zu haben. Die müsste man aber bei jeder Anzeige auflösen,
+# und man sähe einem Paket nicht an, welche Stufen für es gelten. Eine
+# kopierte Liste ist ein Wert, kein Verweis — sie ist beim Lesen fertig.
+#
+# Die Schlüssel sind die Bereichsarten: Ein neues Paket bekommt die Vorlage
+# der Art seines Bereichs als Startpunkt und kann danach auf eine der beiden
+# anderen umgestellt werden.
 STUFENVORLAGEN = {
     Bereichsart.DEV: [
         {"name": "Konzept", "monate": 1},
@@ -319,6 +329,12 @@ STUFENVORLAGEN = {
 }
 
 
+def stufenvorlage(schluessel):
+    """Eine frische Kopie einer Vorlage. Nie die Liste aus STUFENVORLAGEN
+    selbst herausgeben — wer sie ändert, änderte sie für alle."""
+    return [dict(s) for s in STUFENVORLAGEN.get(schluessel, [])]
+
+
 class Bereich(Basismodell):
     projekt = models.ForeignKey(
         Projekt, verbose_name="Projekt", on_delete=models.PROTECT, related_name="bereiche"
@@ -327,10 +343,6 @@ class Bereich(Basismodell):
     art = models.CharField("Art", max_length=8, choices=Bereichsart.choices)
     reihenfolge = models.IntegerField("Reihenfolge", default=0)
 
-    # Liste aus {"name": …, "monate": …}. Beim Anlegen aus der Vorlage der Art
-    # kopiert und danach frei änderbar.
-    stufen = models.JSONField("Stufen", default=list, blank=True)
-
     class Meta(Basismodell.Meta):
         verbose_name = "Bereich"
         verbose_name_plural = "Bereiche"
@@ -338,11 +350,6 @@ class Bereich(Basismodell):
 
     def __str__(self):
         return f"{self.projekt.titel} · {self.titel}"
-
-    def save(self, *args, **kwargs):
-        if not self.stufen:
-            self.stufen = [dict(s) for s in STUFENVORLAGEN.get(self.art, [])]
-        super().save(*args, **kwargs)
 
 
 class Paketstatus(models.TextChoices):
@@ -370,7 +377,10 @@ class Arbeitspaket(Basismodell):
     status = models.CharField(
         "Status", max_length=14, choices=Paketstatus.choices, default=Paketstatus.OFFEN
     )
-    # Wie viele Stufen des Bereichs erledigt sind: 0 … len(bereich.stufen).
+    # Liste aus {"name": …, "monate": …}. Beim Anlegen aus der Vorlage der
+    # Bereichsart kopiert und danach frei änderbar — Namen wie Dauern.
+    stufen = models.JSONField("Stufen", default=list, blank=True)
+    # Wie viele der eigenen Stufen erledigt sind: 0 … len(stufen).
     stufenstand = models.IntegerField("Stufenstand", default=0)
     reihenfolge = models.IntegerField("Reihenfolge", default=0)
 
@@ -381,6 +391,14 @@ class Arbeitspaket(Basismodell):
 
     def __str__(self):
         return self.titel
+
+    def save(self, *args, **kwargs):
+        # Nur beim ersten Speichern füllen. Eine später geleerte Leiste ist
+        # eine Entscheidung („dieses Paket hat keine Stufen"), keine Lücke —
+        # sie hier stillschweigend wieder zu befüllen, nähme sie zurück.
+        if not self.pk and not self.stufen:
+            self.stufen = stufenvorlage(self.bereich.art)
+        super().save(*args, **kwargs)
 
 
 class Unteraufgabe(Basismodell):

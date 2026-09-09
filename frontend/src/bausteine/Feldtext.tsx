@@ -31,8 +31,11 @@ export function Feldtext({
     if (offen) feld.current?.focus();
   }, [offen]);
 
+  // Im Lesemodus darf ein leerer Wert nicht wie ein gefüllter aussehen: Ein
+  // schlicht gesetztes „Notiz zum Paket …" liest sich wie eine Notiz.
   if (!aendern) {
-    return <span className={klasse}>{wert || platzhalter || "—"}</span>;
+    if (wert) return <span className={klasse}>{wert}</span>;
+    return <span className={klasse}><span className="leer">{platzhalter ?? "—"}</span></span>;
   }
 
   if (!offen) {

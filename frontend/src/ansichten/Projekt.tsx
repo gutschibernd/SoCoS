@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { hole } from "../basis/api";
 import {
@@ -8,7 +8,9 @@ import {
   type Ich,
   type Paket,
   type Projekt as ProjektTyp,
+  type Stufe,
 } from "../basis/daten";
+import { alsPfad, type Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { alsDauer } from "../basis/zeit";
 import { Hilfe } from "../bausteine/Hilfe";
@@ -29,12 +31,63 @@ const STATUS: { wert: string; text: string }[] = [
 
 const ART: Record<string, string> = { dev: "Entwicklung", fin: "Finanzierung", ziel: "Ziele" };
 
+/*
+  Zwei Modi, eine Ansicht.
+
+  Die Übersicht ist zum Arbeiten: Status setzen, Stufen klicken, Notiz
+  schreiben, Haken setzen, Uhr starten. Die Gliederung — anlegen, umordnen,
+  entfernen — steht unter /projekt/bearbeiten und nur dort.
+
+  Bewusst dieselben Komponenten mit einem Schalter statt einer zweiten Ansicht:
+  Die zweite Ansicht wird beim nächsten neuen Feld vergessen, und dann steht in
+  der Übersicht etwas, das im Bearbeiten fehlt — oder umgekehrt.
+*/
+
 /** Ein PATCH auf eine Ressource. Das Neuladen entscheidet der Aufrufer. */
 async function aendern(pfad: string, daten: Record<string, unknown>): Promise<void> {
   await hole(pfad, { method: "PATCH", body: JSON.stringify(daten) });
 }
 
-export function Projekt({ ich }: { ich: Ich }) {
+/**
+ * Der Weg in den Bearbeitungsmodus und zurück — ein Knopf am rechten Rand.
+ *
+ * Kein Reiterpaar: Zwei Reiter behaupten zwei gleichrangige Ansichten. Es gibt
+ * aber nur eine Ansicht und einen Sonderzustand, in den man selten geht.
+ * Wer nicht bearbeiten darf, sieht den Knopf nicht.
+ */
+function Bearbeitungsschalter({
+  bearbeiten,
+  wechseln,
+}: {
+  bearbeiten: boolean;
+  wechseln: (seite: Seite, unter?: string | null) => void;
+}) {
+  return (
+    <div className="ansicht-schalter">
+      <a
+        className={bearbeiten ? "knopf" : "knopf-still"}
+        href={alsPfad("projekt", bearbeiten ? null : "bearbeiten")}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("projekt", bearbeiten ? null : "bearbeiten");
+        }}
+      >
+        <Zeichen name={bearbeiten ? "haken" : "stift"} />
+        {bearbeiten ? "Fertig" : "Bearbeiten"}
+      </a>
+    </div>
+  );
+}
+
+export function Projekt({
+  ich,
+  bearbeiten,
+  wechseln,
+}: {
+  ich: Ich;
+  bearbeiten: boolean;
+  wechseln: (seite: Seite, unter?: string | null) => void;
+}) {
   const abfrage = useProjekte();
   const neuLaden = useNeuLaden();
   const [projektFilter, setProjektFilter] = useState("alle");
@@ -58,40 +111,53 @@ export function Projekt({ ich }: { ich: Ich }) {
     neuLaden();
   }
 
+  const darfAnlegen = ich.darf.bearbeiten && bearbeiten;
   const sichtbar = projekte.filter((p) => projektFilter === "alle" || String(p.id) === projektFilter);
 
   if (projekte.length === 0) {
     return (
-      <div className="karte">
-        <Leerstelle
-          was="Noch kein Projekt angelegt"
-          satz={
-            ich.darf.bearbeiten
-              ? "Ein Projekt bekommt Bereiche (Entwicklung, Finanzierung, Ziele) und darin die Arbeitspakete, auf die Zeit gebucht wird."
-              : "Projekte legt ein Bearbeiter oder Admin an."
-          }
-        />
-        {ich.darf.bearbeiten && (
-          <div className="feld-reihe" style={{ maxWidth: 520, margin: "0 auto" }}>
-            <input
-              className="feld"
-              placeholder="Titel des Projekts"
-              value={neuesProjekt}
-              onChange={(e) => setNeuesProjekt(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && anlegen()}
-            />
-            <button type="button" className="knopf" onClick={anlegen}>
-              <Zeichen name="plus" />
-              Projekt anlegen
-            </button>
-          </div>
-        )}
+      <div className="spalte">
+        {ich.darf.bearbeiten && <Bearbeitungsschalter bearbeiten={bearbeiten} wechseln={wechseln} />}
+        <div className="karte">
+          <Leerstelle
+            was="Noch kein Projekt angelegt"
+            satz={
+              !ich.darf.bearbeiten
+                ? "Projekte legt ein Bearbeiter oder Admin an."
+                : bearbeiten
+                  ? "Ein Projekt bekommt Bereiche (Entwicklung, Finanzierung, Ziele) und darin die Arbeitspakete, auf die Zeit gebucht wird."
+                  : "Angelegt wird unter „Bearbeiten“ — dort steht die Gliederung."
+            }
+            aktion={
+              ich.darf.bearbeiten && !bearbeiten
+                ? { text: "Zum Bearbeiten", tun: () => wechseln("projekt", "bearbeiten") }
+                : undefined
+            }
+          />
+          {darfAnlegen && (
+            <div className="feld-reihe" style={{ maxWidth: 520, margin: "0 auto" }}>
+              <input
+                className="feld"
+                placeholder="Titel des Projekts"
+                value={neuesProjekt}
+                onChange={(e) => setNeuesProjekt(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && anlegen()}
+              />
+              <button type="button" className="knopf" onClick={anlegen}>
+                <Zeichen name="plus" />
+                Projekt anlegen
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="spalte">
+      {ich.darf.bearbeiten && <Bearbeitungsschalter bearbeiten={bearbeiten} wechseln={wechseln} />}
+
       <div className="karte">
         <div className="feld-reihe">
           <select
@@ -120,7 +186,7 @@ export function Projekt({ ich }: { ich: Ich }) {
               </option>
             ))}
           </select>
-          {ich.darf.bearbeiten && (
+          {darfAnlegen && (
             <>
               <input
                 className="feld"
@@ -138,18 +204,24 @@ export function Projekt({ ich }: { ich: Ich }) {
         </div>
       </div>
 
-      {sichtbar.map((projekt) => (
-        <ProjektKarte
-          key={projekt.id}
-          projekt={projekt}
-          ich={ich}
-          statusFilter={statusFilter}
-          neuLaden={neuLaden}
-          zumLoeschen={() => setLoeschen({ id: projekt.id, name: projekt.titel })}
-        />
-      ))}
+      {/* Nebeneinander, sobald der Platz für zwei Spalten reicht — am Laptop
+          stehen die beiden Projekte sonst untereinander und man scrollt an
+          einer halbleeren Seite vorbei. */}
+      <div className="projekt-raster">
+        {sichtbar.map((projekt) => (
+          <ProjektKarte
+            key={projekt.id}
+            projekt={projekt}
+            ich={ich}
+            bearbeiten={bearbeiten}
+            statusFilter={statusFilter}
+            neuLaden={neuLaden}
+            zumLoeschen={() => setLoeschen({ id: projekt.id, name: projekt.titel })}
+          />
+        ))}
+      </div>
 
-      {loeschen && (
+      {loeschen && bearbeiten && (
         <Loeschdialog
           name={loeschen.name}
           was="Das Projekt mit allen Bereichen und Paketen"
@@ -164,12 +236,14 @@ export function Projekt({ ich }: { ich: Ich }) {
 function ProjektKarte({
   projekt,
   ich,
+  bearbeiten,
   statusFilter,
   neuLaden,
   zumLoeschen,
 }: {
   projekt: ProjektTyp;
   ich: Ich;
+  bearbeiten: boolean;
   statusFilter: string;
   neuLaden: () => void;
   zumLoeschen: () => void;
@@ -197,7 +271,7 @@ function ProjektKarte({
           <h3>
             <Feldtext
               wert={projekt.titel}
-              aendern={ich.darf.bearbeiten}
+              aendern={ich.darf.bearbeiten && bearbeiten}
               speichern={(titel) => aendern(`/projekte/${projekt.id}/`, { titel })}
             />
           </h3>
@@ -205,13 +279,13 @@ function ProjektKarte({
             <Feldtext
               wert={projekt.untertitel}
               platzhalter="Untertitel …"
-              aendern={ich.darf.bearbeiten}
+              aendern={ich.darf.bearbeiten && bearbeiten}
               speichern={(untertitel) => aendern(`/projekte/${projekt.id}/`, { untertitel })}
             />
           </div>
         </div>
         <span className="zahl gebucht">{alsDauer(projekt.gebuchte_sekunden)} gebucht</span>
-        {ich.darf.loeschen && (
+        {ich.darf.loeschen && bearbeiten && (
           <button type="button" className="knopf-still" onClick={zumLoeschen}>
             <Zeichen name="korb" />
             Entfernen
@@ -222,7 +296,10 @@ function ProjektKarte({
       {projekt.bereiche.length === 0 ? (
         <Leerstelle
           was="Noch kein Bereich"
-          satz="Bereiche gliedern das Projekt — Entwicklung, Finanzierung, Ziele. Jeder bringt seine eigene Stufenleiste mit."
+          satz={
+            "Bereiche gliedern das Projekt — Entwicklung, Finanzierung, Ziele. Jeder bringt seine eigene Stufenleiste mit." +
+            (ich.darf.bearbeiten && !bearbeiten ? " Angelegt wird unter „Bearbeiten“." : "")
+          }
         />
       ) : (
         projekt.bereiche.map((bereich, i) => (
@@ -232,13 +309,14 @@ function ProjektKarte({
             geschwister={projekt.bereiche}
             stelle={i}
             ich={ich}
+            bearbeiten={bearbeiten}
             statusFilter={statusFilter}
             neuLaden={neuLaden}
           />
         ))
       )}
 
-      {ich.darf.bearbeiten && (
+      {ich.darf.bearbeiten && bearbeiten && (
         <div className="feld-reihe" style={{ marginTop: 14 }}>
           <input
             className="feld"
@@ -274,6 +352,7 @@ function BereichBlock({
   geschwister,
   stelle,
   ich,
+  bearbeiten,
   statusFilter,
   neuLaden,
 }: {
@@ -281,6 +360,7 @@ function BereichBlock({
   geschwister: Bereich[];
   stelle: number;
   ich: Ich;
+  bearbeiten: boolean;
   statusFilter: string;
   neuLaden: () => void;
 }) {
@@ -319,7 +399,7 @@ function BereichBlock({
       <h4>
         <Feldtext
           wert={bereich.titel}
-          aendern={ich.darf.bearbeiten}
+          aendern={ich.darf.bearbeiten && bearbeiten}
           speichern={async (titel) => {
             await aendern(`/bereiche/${bereich.id}/`, { titel });
             neuLaden();
@@ -330,12 +410,7 @@ function BereichBlock({
         {ART[bereich.art].toLowerCase() !== bereich.titel.trim().toLowerCase() && (
           <span className="art">{ART[bereich.art]}</span>
         )}
-        <Hilfe
-          text={`Stufen dieses Bereichs: ${bereich.stufen
-            .map((s) => `${s.name} (${s.monate} Mon.)`)
-            .join(" · ")}. Der Fortschritt rechnet über die Monate, nicht über die Anzahl.`}
-        />
-        {ich.darf.bearbeiten && (
+        {ich.darf.bearbeiten && bearbeiten && (
           <span className="ordnen">
             <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben" aria-label="Nach oben">
               <Zeichen name="hoch" />
@@ -353,7 +428,7 @@ function BereichBlock({
         )}
       </h4>
 
-      {loeschen && (
+      {loeschen && bearbeiten && (
         <Loeschdialog
           name={bereich.titel}
           was="Der Bereich mit allen Arbeitspaketen darin"
@@ -366,9 +441,10 @@ function BereichBlock({
         <Leerstelle
           was={statusFilter === "alle" ? "Noch kein Arbeitspaket" : "Kein Paket in diesem Filter"}
           satz={
-            statusFilter === "alle"
-              ? "Auf ein Arbeitspaket wird Zeit gebucht — es ist die kleinste Einheit, die in Auswertungen auftaucht."
-              : "Anderer Status oder Filter zurücksetzen."
+            statusFilter !== "alle"
+              ? "Anderer Status oder Filter zurücksetzen."
+              : "Auf ein Arbeitspaket wird Zeit gebucht — es ist die kleinste Einheit, die in Auswertungen auftaucht." +
+                (ich.darf.bearbeiten && !bearbeiten ? " Angelegt wird unter „Bearbeiten“." : "")
           }
         />
       ) : (
@@ -379,12 +455,13 @@ function BereichBlock({
             geschwister={pakete}
             stelle={i}
             ich={ich}
+            bearbeiten={bearbeiten}
             neuLaden={neuLaden}
           />
         ))
       )}
 
-      {ich.darf.bearbeiten && statusFilter === "alle" && (
+      {ich.darf.bearbeiten && bearbeiten && statusFilter === "alle" && (
         <div className="feld-reihe" style={{ marginTop: 10 }}>
           <input
             className="feld"
@@ -403,17 +480,127 @@ function BereichBlock({
   );
 }
 
+/**
+ * Die Stufenleiste eines Pakets ändern: Vorlage übernehmen, Namen und Dauern
+ * eintragen, Stufen hinzunehmen oder streichen.
+ *
+ * Gespeichert wird immer die **ganze Liste**, nie eine einzelne Stufe. Eine
+ * Stufe hat keine eigene Kennung — sie ist eine Stelle in einer Liste. Einzeln
+ * zu speichern hieße, sich diese Stelle zu merken, und beim Streichen liefe
+ * das auseinander.
+ *
+ * Die Vorlagen kommen nicht von hier: Der Aufruf schickt nur ihren Namen, den
+ * Inhalt kennt allein der Server. Sonst stünden die Stufen an zwei Stellen.
+ */
+function Stufenbearbeitung({ paket, neuLaden }: { paket: Paket; neuLaden: () => void }) {
+  const [entwurf, setEntwurf] = useState<Stufe[]>(paket.stufen);
+
+  // Was der Server schickt, gilt — nach einer Vorlage oder einer Änderung von
+  // einem zweiten Gerät. Verglichen wird der Inhalt, nicht die Kennung des
+  // Feldes: Jeder Abruf liefert ein neues Feld mit denselben Werten.
+  const vomServer = JSON.stringify(paket.stufen);
+  useEffect(() => setEntwurf(JSON.parse(vomServer) as Stufe[]), [vomServer]);
+
+  async function speichern(stufen: Stufe[]) {
+    setEntwurf(stufen);
+    await aendern(`/pakete/${paket.id}/`, { stufen });
+    neuLaden();
+  }
+
+  async function vorlageUebernehmen(vorlage: string) {
+    await hole(`/pakete/${paket.id}/vorlage/`, {
+      method: "POST",
+      body: JSON.stringify({ vorlage }),
+    });
+    neuLaden();
+  }
+
+  const geaendert = (i: number, teil: Partial<Stufe>) =>
+    setEntwurf(entwurf.map((s, j) => (j === i ? { ...s, ...teil } : s)));
+
+  return (
+    <div className="stufen-bearbeiten">
+      <div className="stufen-vorlage">
+        <select
+          className="feld feld-klein"
+          value=""
+          aria-label="Vorlage für die Stufen übernehmen"
+          onChange={(e) => {
+            const gewaehlt = e.target.value;
+            e.target.value = "";
+            if (gewaehlt) vorlageUebernehmen(gewaehlt);
+          }}
+        >
+          <option value="">Vorlage übernehmen …</option>
+          {Object.entries(ART).map(([wert, text]) => (
+            <option key={wert} value={wert}>
+              {text}
+            </option>
+          ))}
+        </select>
+        <Hilfe text="Eine Vorlage ersetzt die ganze Leiste und setzt den Stand auf null — „Stufe 3“ heißt in einer anderen Leiste etwas anderes." />
+      </div>
+
+      <ul className="stufen-liste">
+        {entwurf.map((stufe, i) => (
+          // Der Index als Schlüssel: Eine Stufe hat keine Kennung, und die
+          // Liste wird nur am Ende länger oder um eine Stelle kürzer.
+          <li key={i}>
+            <input
+              className="feld"
+              value={stufe.name}
+              aria-label={`Name der ${i + 1}. Stufe`}
+              onChange={(e) => geaendert(i, { name: e.target.value })}
+              onBlur={() => speichern(entwurf)}
+            />
+            <input
+              className="feld feld-monate"
+              type="number"
+              min={0}
+              max={120}
+              value={stufe.monate}
+              aria-label={`Dauer der ${i + 1}. Stufe in Monaten`}
+              onChange={(e) => geaendert(i, { monate: Number(e.target.value) })}
+              onBlur={() => speichern(entwurf)}
+            />
+            <span className="einheit">Mon.</span>
+            <button
+              type="button"
+              className="mini"
+              aria-label={`Stufe „${stufe.name}“ entfernen`}
+              onClick={() => speichern(entwurf.filter((_, j) => j !== i))}
+            >
+              <Zeichen name="kreuz" />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        className="knopf-still"
+        onClick={() => speichern([...entwurf, { name: "Neue Stufe", monate: 1 }])}
+      >
+        <Zeichen name="plus" />
+        Stufe hinzufügen
+      </button>
+    </div>
+  );
+}
+
 function PaketZeile({
   paket,
   geschwister,
   stelle,
   ich,
+  bearbeiten,
   neuLaden,
 }: {
   paket: Paket;
   geschwister: Paket[];
   stelle: number;
   ich: Ich;
+  bearbeiten: boolean;
   neuLaden: () => void;
 }) {
   const [offen, setOffen] = useState(false);
@@ -488,7 +675,7 @@ function PaketZeile({
         <span className="paket-titel">
           <Feldtext
             wert={paket.titel}
-            aendern={ich.darf.bearbeiten}
+            aendern={ich.darf.bearbeiten && bearbeiten}
             speichern={async (titel) => {
               await aendern(`/pakete/${paket.id}/`, { titel });
               neuLaden();
@@ -520,31 +707,33 @@ function PaketZeile({
 
         <span className="zahl fortschritt">{paket.fortschritt} %</span>
 
+        {/* Clock-in ist Arbeiten, kein Gliedern — der Knopf bleibt in beiden Modi. */}
         {ich.darf.bearbeiten && (
-          <>
-            <button type="button" className="knopf-still" onClick={uhrStarten}>
-              <Zeichen name="start" />
-              Clock-in
+          <button type="button" className="knopf-still" onClick={uhrStarten}>
+            <Zeichen name="start" />
+            Clock-in
+          </button>
+        )}
+
+        {ich.darf.bearbeiten && bearbeiten && (
+          <span className="ordnen">
+            <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben" aria-label="Nach oben">
+              <Zeichen name="hoch" />
             </button>
-            <span className="ordnen">
-              <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben" aria-label="Nach oben">
-                <Zeichen name="hoch" />
+            <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Nach unten" aria-label="Nach unten">
+              <Zeichen name="runter" />
+            </button>
+            {ich.darf.loeschen && (
+              <button
+                type="button"
+                className="mini"
+                aria-label={`„${paket.titel}“ entfernen`}
+                onClick={() => setLoeschen(true)}
+              >
+                <Zeichen name="kreuz" />
               </button>
-              <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Nach unten" aria-label="Nach unten">
-                <Zeichen name="runter" />
-              </button>
-              {ich.darf.loeschen && (
-                <button
-                    type="button"
-                    className="mini"
-                    aria-label={`„${paket.titel}“ entfernen`}
-                    onClick={() => setLoeschen(true)}
-                  >
-                  <Zeichen name="kreuz" />
-                </button>
-              )}
-            </span>
-          </>
+            )}
+          </span>
         )}
       </div>
 
@@ -556,6 +745,10 @@ function PaketZeile({
 
       {offen && (
         <div className="paket-tiefe">
+          <div className="stufen-kopf">
+            <span>Stufen</span>
+            <Hilfe text="Der Fortschritt rechnet über die Monate, nicht über die Anzahl: „Umsetzung“ mit drei Monaten neben „Konzept“ mit einem ist die Hälfte des Weges, nicht ein Viertel. Ein Klick setzt den Stand, ein zweiter auf dieselbe Stufe nimmt ihn zurück." />
+          </div>
           <div className="stufen">
             {paket.stufen.map((stufe, i) => (
               <button
@@ -573,12 +766,16 @@ function PaketZeile({
             ))}
           </div>
 
+          {ich.darf.bearbeiten && bearbeiten && (
+            <Stufenbearbeitung paket={paket} neuLaden={neuLaden} />
+          )}
+
           <div className="notiz">
             <Feldtext
               wert={paket.notiz}
               mehrzeilig
               platzhalter="Notiz zum Paket …"
-              aendern={ich.darf.bearbeiten}
+              aendern={ich.darf.bearbeiten && bearbeiten}
               speichern={async (notiz) => {
                 await aendern(`/pakete/${paket.id}/`, { notiz });
                 neuLaden();
@@ -602,14 +799,14 @@ function PaketZeile({
                 <span data-erledigt={u.erledigt ? "ja" : "nein"}>
                   <Feldtext
                     wert={u.titel}
-                    aendern={ich.darf.bearbeiten}
+                    aendern={ich.darf.bearbeiten && bearbeiten}
                     speichern={async (titel) => {
                       await aendern(`/unteraufgaben/${u.id}/`, { titel });
                       neuLaden();
                     }}
                   />
                 </span>
-                {ich.darf.loeschen && (
+                {ich.darf.loeschen && bearbeiten && (
                   <button
                     type="button"
                     className="mini"
@@ -626,7 +823,7 @@ function PaketZeile({
             ))}
           </ul>
 
-          {ich.darf.bearbeiten && (
+          {ich.darf.bearbeiten && bearbeiten && (
             <div className="feld-reihe" style={{ marginTop: 8 }}>
               <input
                 className="feld"
@@ -644,7 +841,7 @@ function PaketZeile({
         </div>
       )}
 
-      {loeschen && (
+      {loeschen && bearbeiten && (
         <Loeschdialog
           name={paket.titel}
           was="Das Arbeitspaket mit seinen Unteraufgaben"

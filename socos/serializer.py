@@ -22,6 +22,7 @@ from socos.models import (
     Unteraufgabe,
     Verlaufseintrag,
     Zeitbuchung,
+    stufenvorlage,
 )
 from socos.services import auswertung, zeit as zeitdienst
 
@@ -70,7 +71,6 @@ class UnteraufgabeSerializer(serializers.ModelSerializer):
 class ArbeitspaketSerializer(serializers.ModelSerializer):
     unteraufgaben = UnteraufgabeSerializer(many=True, read_only=True)
     fortschritt = serializers.SerializerMethodField()
-    stufen = serializers.SerializerMethodField()
     projekt = serializers.IntegerField(source="bereich.projekt_id", read_only=True)
 
     class Meta:
@@ -83,19 +83,74 @@ class ArbeitspaketSerializer(serializers.ModelSerializer):
     def get_fortschritt(self, paket):
         return auswertung.fortschritt(paket)
 
-    def get_stufen(self, paket):
-        """Die Stufen des Bereichs, mitgeliefert — sonst bräuchte die Leiste
-        einen zweiten Abruf je Paket."""
-        return paket.bereich.stufen
+    def validate_stufen(self, stufen):
+        """
+        Die Leiste kommt als Liste aus {"name", "monate"} herein.
+
+        Geprüft wird sie hier und nicht erst beim Rechnen: `fortschritt` würde
+        aus einem Text in `monate` eine 1 machen und stillschweigend eine
+        falsche Zahl liefern — und eine falsche Prozentzahl sieht man ihr
+        nicht an.
+        """
+        if not isinstance(stufen, list):
+            raise serializers.ValidationError("Eine Liste von Stufen wird gebraucht.")
+        sauber = []
+        for i, stufe in enumerate(stufen, 1):
+            if not isinstance(stufe, dict):
+                raise serializers.ValidationError(f"Stufe {i}: ein Objekt wird gebraucht.")
+            name = str(stufe.get("name", "")).strip()
+            if not name:
+                raise serializers.ValidationError(f"Stufe {i}: Der Name fehlt.")
+            if len(name) > 60:
+                raise serializers.ValidationError(f"Stufe {i}: Der Name ist zu lang.")
+            try:
+                monate = int(stufe["monate"])
+            except (KeyError, TypeError, ValueError):
+                raise serializers.ValidationError(f"Stufe {i}: Die Dauer ist keine ganze Zahl.")
+            # Obergrenze, damit ein Tippfehler (12 statt 1,2) nicht als
+            # jahrzehntelange Stufe durchgeht und den Fortschritt einfriert.
+            if not 0 <= monate <= 120:
+                raise serializers.ValidationError(
+                    f"Stufe {i}: Die Dauer muss zwischen 0 und 120 Monaten liegen."
+                )
+            sauber.append({"name": name, "monate": monate})
+        return sauber
 
     def validate(self, daten):
-        bereich = daten.get("bereich") or getattr(self.instance, "bereich", None)
-        stand = daten.get("stufenstand", getattr(self.instance, "stufenstand", 0))
-        if bereich and not 0 <= stand <= len(bereich.stufen or []):
+        # Nur ein **ausdrücklich mitgeschickter** Stand wird geprüft. Wer bloß
+        # die Leiste kürzt, meint nicht den Stand — der wird in `update`
+        # gekappt. Eine Fehlermeldung wäre hier die falsche Antwort auf eine
+        # richtige Absicht.
+        if "stufenstand" not in daten:
+            return daten
+
+        if "stufen" in daten:
+            stufen = daten["stufen"]
+        elif self.instance is not None:
+            stufen = self.instance.stufen or []
+        else:
+            # Beim Anlegen füllt das Modell die Leiste erst in `save`. Hier
+            # zählt darum schon die Vorlage, sonst wäre jeder Stand über 0
+            # beim Anlegen unzulässig.
+            bereich = daten.get("bereich")
+            stufen = stufenvorlage(bereich.art) if bereich else []
+
+        stand = daten["stufenstand"]
+        if not 0 <= stand <= len(stufen):
             raise serializers.ValidationError(
-                {"stufenstand": f"Muss zwischen 0 und {len(bereich.stufen or [])} liegen."}
+                {"stufenstand": f"Muss zwischen 0 und {len(stufen)} liegen."}
             )
         return daten
+
+    def update(self, paket, daten):
+        paket = super().update(paket, daten)
+        # Wird die Leiste gekürzt, ragt der Stand über ihr Ende hinaus. Hier
+        # ist die einzige Stelle, an der beide Werte zugleich vorliegen —
+        # sonst stünde ein Paket auf Stufe 4 von 3 und zeigte 100 %.
+        if paket.stufenstand > len(paket.stufen or []):
+            paket.stufenstand = len(paket.stufen or [])
+            paket.save(update_fields=["stufenstand"])
+        return paket
 
 
 class BereichSerializer(serializers.ModelSerializer):
@@ -103,7 +158,7 @@ class BereichSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Bereich
-        fields = ["id", "projekt", "titel", "art", "reihenfolge", "stufen", "pakete"]
+        fields = ["id", "projekt", "titel", "art", "reihenfolge", "pakete"]
 
     def get_pakete(self, bereich):
         # Nur die nicht gelöschten: über die Beziehung käme sonst auch weich

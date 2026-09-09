@@ -3,36 +3,46 @@ import { describe, expect, it } from "vitest";
 import { alsPfad, ausPfad } from "./router";
 
 describe("ausPfad", () => {
-  it("erkennt die bekannten Seiten", () => {
-    expect(ausPfad("/zeit")).toEqual({ seite: "zeit", unter: "" });
-    expect(ausPfad("/kontakte/")).toEqual({ seite: "kontakte", unter: "" });
+  it("liest die Seite", () => {
+    expect(ausPfad("/zeit")).toEqual({ seite: "zeit", unter: null });
+    expect(ausPfad("/kontakte/")).toEqual({ seite: "kontakte", unter: null });
   });
 
-  it("liest die Ebene darunter", () => {
+  it("fällt auf das Dashboard zurück", () => {
+    expect(ausPfad("/gibtsnicht")).toEqual({ seite: "dashboard", unter: null });
+    expect(ausPfad("/")).toEqual({ seite: "dashboard", unter: null });
+  });
+
+  it("liest die Unterseite", () => {
+    expect(ausPfad("/projekt/bearbeiten")).toEqual({ seite: "projekt", unter: "bearbeiten" });
+  });
+
+  it("liest die gewählte Organisation und die losen Kontakte", () => {
     expect(ausPfad("/kontakte/12")).toEqual({ seite: "kontakte", unter: "12" });
     expect(ausPfad("/kontakte/lose")).toEqual({ seite: "kontakte", unter: "lose" });
   });
 
-  it("führt einen unbekannten Weg aufs Dashboard, ohne Unterebene", () => {
-    expect(ausPfad("/quatsch/12")).toEqual({ seite: "dashboard", unter: "" });
-    expect(ausPfad("/")).toEqual({ seite: "dashboard", unter: "" });
+  // Eine erfundene zweite Stufe darf keine Ansicht in einen Zustand bringen,
+  // den niemand vorgesehen hat — sie wird verworfen, die Seite bleibt.
+  it("verwirft eine unbekannte Unterseite", () => {
+    expect(ausPfad("/projekt/loeschen")).toEqual({ seite: "projekt", unter: null });
+    expect(ausPfad("/zeit/bearbeiten")).toEqual({ seite: "zeit", unter: null });
+    expect(ausPfad("/kontakte/quatsch")).toEqual({ seite: "kontakte", unter: null });
   });
 
   it("übergeht doppelte Schrägstriche", () => {
     expect(ausPfad("//kontakte//12")).toEqual({ seite: "kontakte", unter: "12" });
   });
-
-  it("dreht das Kodieren wieder zurück", () => {
-    expect(ausPfad(alsPfad("kontakte", "lose"))).toEqual({ seite: "kontakte", unter: "lose" });
-  });
 });
 
 describe("alsPfad", () => {
-  it("lässt die Unterebene weg, wenn es keine gibt", () => {
-    expect(alsPfad("dashboard", "")).toBe("/dashboard");
-  });
-
-  it("hängt sie sonst an", () => {
-    expect(alsPfad("kontakte", "12")).toBe("/kontakte/12");
+  it("baut den Pfad zurück", () => {
+    expect(alsPfad("projekt", null)).toBe("/projekt");
+    expect(alsPfad("projekt", "bearbeiten")).toBe("/projekt/bearbeiten");
+    expect(ausPfad(alsPfad("projekt", "bearbeiten"))).toEqual({
+      seite: "projekt",
+      unter: "bearbeiten",
+    });
+    expect(ausPfad(alsPfad("kontakte", "12"))).toEqual({ seite: "kontakte", unter: "12" });
   });
 });

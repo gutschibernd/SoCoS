@@ -27,8 +27,10 @@ from socos.models import (
     Projekt,
     Protokolleintrag,
     Unteraufgabe,
+    STUFENVORLAGEN,
     Verlaufseintrag,
     Zeitbuchung,
+    stufenvorlage,
 )
 from socos.services import auswertung, finanzen
 from socos.services import zeit as zeitdienst
@@ -97,7 +99,7 @@ class ArbeitspaketViewSet(SocosViewSet):
         except (TypeError, ValueError):
             raise ValidationError({"stufenstand": "Eine ganze Zahl wird gebraucht."})
 
-        gesamt = len(paket.bereich.stufen or [])
+        gesamt = len(paket.stufen or [])
         if not 0 <= stand <= gesamt:
             raise ValidationError({"stufenstand": f"Muss zwischen 0 und {gesamt} liegen."})
 
@@ -107,6 +109,28 @@ class ArbeitspaketViewSet(SocosViewSet):
         # sie automatisch zu überschreiben, machte die Leiste gefährlich.
         if paket.status in ("offen", "laeuft", "fertig"):
             paket.status = "fertig" if stand >= gesamt else ("laeuft" if stand else "offen")
+        paket.save()
+        return Response(self.get_serializer(paket).data)
+
+    @action(detail=True, methods=["post"])
+    def vorlage(self, request, pk=None):
+        """
+        Setzt die Stufenleiste des Pakets auf eine der drei Vorlagen.
+
+        Der Aufrufer schickt nur den **Namen** der Vorlage, nicht ihren Inhalt.
+        Sonst stünden die Stufen an einer zweiten Stelle — im Frontend —, und
+        beim nächsten Nachbessern hätte man zwei Fassungen davon.
+        """
+        vorlage = request.data.get("vorlage")
+        if vorlage not in STUFENVORLAGEN:
+            erlaubt = ", ".join(STUFENVORLAGEN)
+            raise ValidationError({"vorlage": f"Unbekannt. Erlaubt sind: {erlaubt}."})
+
+        paket = self.get_object()
+        paket.stufen = stufenvorlage(vorlage)
+        # Der Stand gehört zur alten Leiste. Er auf die neue zu übertragen,
+        # hieße zu behaupten, „Stufe 3" bedeute in beiden dasselbe.
+        paket.stufenstand = 0
         paket.save()
         return Response(self.get_serializer(paket).data)
 

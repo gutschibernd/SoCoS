@@ -29,22 +29,32 @@ def buchung(person, paket, start, minuten=None, entwurf=False):
 
 @pytest.mark.django_db
 class TestStufen:
-    def test_bereich_bekommt_die_vorlage_seiner_art(self, paket):
-        namen = [s["name"] for s in paket.bereich.stufen]
+    def test_paket_bekommt_die_vorlage_der_bereichsart(self, paket):
+        namen = [s["name"] for s in paket.stufen]
         assert namen == ["Konzept", "Umsetzung", "Test", "Abschluss"]
 
     def test_die_kopie_ist_danach_frei_aenderbar(self, paket):
         """
-        Kopiert, nicht verwiesen: Eine Änderung an diesem Bereich darf keinen
-        anderen berühren.
+        Kopiert, nicht verwiesen: Eine Änderung an diesem Paket darf kein
+        anderes berühren — auch keines im selben Bereich. Genau dafür sitzt
+        die Leiste am Paket.
         """
-        anderer = Bereich.objects.create(
-            projekt=paket.bereich.projekt, titel="Zweite Entwicklung", art=Bereichsart.DEV
-        )
-        paket.bereich.stufen[1]["monate"] = 12
-        paket.bereich.save()
-        anderer.refresh_from_db()
-        assert anderer.stufen[1]["monate"] == 3
+        anderes = Arbeitspaket.objects.create(bereich=paket.bereich, titel="Zweites Paket")
+        paket.stufen[1]["monate"] = 12
+        paket.save()
+        anderes.refresh_from_db()
+        assert anderes.stufen[1]["monate"] == 3
+
+    def test_eine_geleerte_leiste_wird_nicht_wieder_befuellt(self, paket):
+        """
+        Eine leere Leiste ist eine Entscheidung, keine Lücke. Würde `save` sie
+        nachfüllen, käme man von ihr nie wieder weg.
+        """
+        paket.stufen = []
+        paket.save()
+        paket.refresh_from_db()
+        assert paket.stufen == []
+        assert auswertung.fortschritt(paket) == 0
 
     def test_fortschritt_rechnet_ueber_monate_nicht_ueber_anzahl(self, paket):
         """
