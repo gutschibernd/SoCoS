@@ -95,6 +95,33 @@ def test_rundlauf_datenbank_und_medien(tmp_path, medien, admin_nutzer):
 
 
 @pytest.mark.django_db(transaction=True)
+def test_der_medienordner_selbst_bleibt_stehen(tmp_path, medien, admin_nutzer):
+    """
+    Am Server ist MEDIA_ROOT der Einhängepunkt eines Docker-Volumes. Wer ihn
+    wegwirft und neu anlegt, bekommt dort „Device or resource busy" — und zwar
+    **nachdem** die Datenbank schon getauscht ist. Geleert werden darf nur der
+    Inhalt.
+
+    Geprüft wird das an der Inode: Bleibt sie gleich, ist es derselbe Ordner.
+    """
+    alt = (medien / "alt.txt")
+    alt.write_text("kommt weg")
+    inode_vorher = medien.stat().st_ino
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+
+    (medien / "dazwischen.txt").write_text("steht nicht im Archiv")
+    alt.unlink()
+
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    assert medien.stat().st_ino == inode_vorher, "Der Medienordner wurde neu angelegt."
+    assert alt.read_text() == "kommt weg"
+    assert not (medien / "dazwischen.txt").exists()
+
+
+@pytest.mark.django_db(transaction=True)
 def test_die_stufenleiste_eines_pakets_wandert_mit(tmp_path, medien, admin_nutzer):
     """
     Die Leiste ist ein JSON-Feld mit angepassten Dauern. Ein Export, der sie

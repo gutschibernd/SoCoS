@@ -183,10 +183,29 @@ def archiv_einspielen(quelle):
                 raise ArchivFehler(f"Das Archiv ließ sich nicht einlesen: {fehler}")
 
         medien_quelle = tmp / MEDIEN_IM_ARCHIV
-        medien_ziel = Path(settings.MEDIA_ROOT)
         if medien_quelle.exists():
-            if medien_ziel.exists():
-                shutil.rmtree(medien_ziel)
-            shutil.copytree(medien_quelle, medien_ziel)
+            _medien_ersetzen(medien_quelle)
 
     return geleert
+
+
+def _medien_ersetzen(quelle):
+    """
+    Den Medienordner **leeren und neu füllen** — nicht wegwerfen und neu anlegen.
+
+    Am Server ist `MEDIA_ROOT` der Einhängepunkt eines Docker-Volumes. Ein
+    `rmtree` darauf scheitert mit „Device or resource busy": Der Inhalt lässt
+    sich löschen, das Verzeichnis selbst nicht. Und der Fehler kommt **nach**
+    dem Datenbankteil — der Bestand wäre schon getauscht, das Einspielen
+    trotzdem abgebrochen.
+    """
+    ziel = Path(settings.MEDIA_ROOT)
+    ziel.mkdir(parents=True, exist_ok=True)
+
+    for eintrag in ziel.iterdir():
+        if eintrag.is_dir() and not eintrag.is_symlink():
+            shutil.rmtree(eintrag)
+        else:
+            eintrag.unlink()
+
+    shutil.copytree(quelle, ziel, dirs_exist_ok=True)

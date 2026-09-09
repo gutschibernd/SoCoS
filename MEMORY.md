@@ -48,6 +48,13 @@ im Ernstfall merkt.
   `deploy.sh` vor jedem Deploy schreibt; ein zweites Format bedeutete zwei Wege
   ins selbe Ziel und eine Datei, die im falschen davon nicht zurückgeht.
 
+**Beim ersten Einspielen am Server aufgefallen:** `MEDIA_ROOT` ist dort der
+Einhängepunkt eines Docker-Volumes. Das bisherige `rmtree` darauf scheiterte mit
+„Device or resource busy" — und zwar **nachdem** die Datenbank schon getauscht
+war: Bestand neu, Vorgang abgebrochen, Meldung ein Stacktrace. Jetzt wird der
+Ordner geleert statt weggeworfen. Ein Test hält das an der Inode fest; sie muss
+dieselbe bleiben.
+
 **Nicht gelöst und weiterhin offen:** Die Datei geht durch den Browser des
 Nutzers. Sie enthält Konten und Personendaten — wo sie danach liegt, entscheidet
 der Mensch davor. Der Dialog sagt das ausdrücklich; die Kopie außer Haus samt
