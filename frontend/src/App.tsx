@@ -5,6 +5,7 @@ import { Zustand } from "./basis/Zustand";
 import { Kopf } from "./bausteine/Kopf";
 import { Meldungen } from "./bausteine/Meldungen";
 import { Dashboard } from "./ansichten/Dashboard";
+import { Events } from "./ansichten/Events";
 import { Kontakte } from "./ansichten/Kontakte";
 import { Profil } from "./ansichten/Profil";
 import { Projekt } from "./ansichten/Projekt";
@@ -15,6 +16,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   projekt: { titel: "Projekt", unter: "Bereiche, Arbeitspakete, Stufen" },
   zeit: { titel: "Zeit", unter: "Buchungen und Nachträge" },
   kontakte: { titel: "Kontakte", unter: "Organisationen und Personen" },
+  events: { titel: "Events", unter: "Tagungen, Hitlist, wen wir getroffen haben" },
   profil: { titel: "Profil", unter: "Deine Stammdaten" },
 };
 
@@ -57,6 +59,9 @@ export function App() {
         {ort.seite === "zeit" && <Zeit ich={ich.data} />}
         {ort.seite === "kontakte" && (
           <Kontakte ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+        )}
+        {ort.seite === "events" && (
+          <Events ich={ich.data} unter={ort.unter} wechseln={wechseln} />
         )}
         {ort.seite === "profil" && <Profil ich={ich.data} />}
       </main>

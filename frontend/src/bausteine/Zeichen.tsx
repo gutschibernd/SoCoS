@@ -20,6 +20,7 @@ export type ZeichenName =
   | "projekt"
   | "zeit"
   | "kontakte"
+  | "event"
   | "plus"
   | "kreuz"
   | "hoch"
@@ -47,6 +48,9 @@ const PFADE: Record<ZeichenName, string> = {
   projekt: "M4 5h16M4 10h12M4 15h8M4 20h4",
   zeit: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0M12 12V6.5M12 12h4.5",
   kontakte: "M12 4.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7M4.5 20.5c0-4.1 3.4-6.5 7.5-6.5s7.5 2.4 7.5 6.5",
+  // Ein Blatt mit Kopfzeile und zwei Reitern — kein Kalender mit Gitter: Bei
+  // 18 px zerfällt ein Gitter zu Grau. Die Kopfzeile allein trägt das Bild.
+  event: "M4 6.5h16v14H4zM4 11h16M8.5 3.5v5M15.5 3.5v5",
   plus: "M12 5v14M5 12h14",
   kreuz: "M6 6l12 12M18 6L6 18",
   hoch: "M12 20V4M5 11l7-7 7 7",

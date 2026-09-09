@@ -490,6 +490,48 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .verlauf b { font-size: 14px; font-weight: 600; }
 .verlauf p { margin: 3px 0 0; font-size: 13px; color: var(--text-leise); line-height: 1.5; }
 
+/* --- Events --------------------------------------------------------------- */
+
+/* Der Stand einer Hitlist-Zeile. Eigene Namen, obwohl zwei der Farben denen
+   der Paketstatus gleichen — „status-fertig" für eine getroffene Person zu
+   schreiben wäre beim nächsten Lesen eine falsche Fährte. */
+.stand {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: var(--kante); white-space: nowrap;
+}
+.stand-offen     { background: var(--marke-hell);   color: var(--marke); }
+.stand-getroffen { background: var(--gut-hell);     color: var(--gut); }
+.stand-verpasst  { background: var(--warnung-hell); color: var(--warnung); }
+.stand-leer      { background: var(--ruhend-hell);  color: var(--text-leise); }
+.standzahlen { display: inline-flex; gap: 5px; flex-wrap: wrap; }
+
+/* Wie der Ball auf der Kontakteseite: ein Auswahlfeld, das aussieht wie die
+   Marke daneben. Ohne eigene Schriftgröße — darunter zoomt iOS. */
+.stand-wahl {
+  min-height: var(--griff); padding: 6px 8px; max-width: 130px;
+  border: 1px solid transparent; border-radius: var(--kante);
+  font-weight: 600; cursor: pointer;
+}
+.stand-wahl[data-stand="offen"]     { background: var(--marke-hell);   color: var(--marke); }
+.stand-wahl[data-stand="getroffen"] { background: var(--gut-hell);     color: var(--gut); }
+.stand-wahl[data-stand="verpasst"]  { background: var(--warnung-hell); color: var(--warnung); }
+
+/* Das Haus unter dem Namen. Steht in derselben Zelle, damit aus der Zeile am
+   Handy eine Karte mit **einem** Feld „Wen" wird und nicht mit zweien. */
+.dazu { display: block; font-size: 11px; color: var(--text-sehr-leise); margin-top: 2px; }
+
+.teamwahl { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-bottom: 4px; }
+
+/* Zwei Datumsfelder mit ihrer Beschriftung. Feste Breite statt flex-basis:
+   `.feld` bringt `width: 100%` mit — siehe .kopf-aktionen. */
+.eventdaten { margin: 10px 0 4px; }
+.datumsfeld { flex: 0 0 auto; width: 170px; }
+.datumsfeld .beschriftung-klein { display: block; margin-bottom: 3px; }
+
+/* Ein Satz unter einer Tabelle — nicht darüber: Über der Tabelle stünde er
+   zwischen Überschrift und Inhalt und würde jedes Mal mitgelesen. */
+.tabellen-hinweis { margin: 10px 0 0; font-size: 12px; color: var(--text-leise); line-height: 1.5; }
+
 /* --- Zeitansicht --------------------------------------------------------- */
 
 .summenzeile {
@@ -672,6 +714,11 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
      statt sich zu zweit 375 px zu teilen. */
   .kopf-aktionen { margin-left: 0; width: 100%; }
   .kopf-aktionen > .feld { width: 100%; flex: 1 1 100%; }
+
+  /* Auf der Eventseite: Die beiden Datumsfelder teilen sich die Zeile, statt
+     mit 170 px nebeneinander über den Rand zu laufen. */
+  .datumsfeld { flex: 1 1 calc(50% - 4px); width: auto; }
+  .stand-wahl { font-size: 15px; }
 }
 
 /* --- Meldungen ----------------------------------------------------------- */

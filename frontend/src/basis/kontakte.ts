@@ -17,6 +17,24 @@ import type { Kontakt, Organisation, Verlaufseintrag } from "./daten";
 
 export type Ballfilter = "alle" | "uns" | "ihnen";
 
+/**
+ * Die vier Arten eines Verlaufseintrags, mit ihrer Beschriftung.
+ *
+ * Sie stehen hier und nicht in der Kontakteseite, weil die Eventseite denselben
+ * Verlauf zeigt. Zwei Listen liefen beim nächsten neuen Wert auseinander — und
+ * die Werte selbst kommen ohnehin aus `Verlaufsart` in socos/models.py.
+ */
+export const VERLAUFSARTEN = [
+  { wert: "meeting", text: "Meeting" },
+  { wert: "mail", text: "Mail" },
+  { wert: "call", text: "Call" },
+  { wert: "event", text: "Event" },
+] as const;
+
+export function artText(art: string): string {
+  return VERLAUFSARTEN.find((a) => a.wert === art)?.text ?? art;
+}
+
 export type Verlaufszeile = Verlaufseintrag & {
   /** Mit wem — leer, wenn der Eintrag an der Organisation selbst hängt. */
   wem: string;

@@ -130,3 +130,26 @@ def test_deploy_schlaegt_bei_fehlschlag_nichts_zerstoerendes_vor():
             f"deploy.sh nennt `{verboten}`. Bei einem unklaren Fehlschlag ist "
             f"das ein Rat, der eine gesunde Anlage zerstört."
         )
+
+
+def test_die_oberflaeche_wird_unter_static_gebaut():
+    """
+    Gebaut liegt `frontend/dist` unter STATIC_URL, nicht an der Wurzel. Ohne
+    `base: "/static/"` schriebe Vite `/assets/index-….js` in die index.html —
+    und die Auffangroute in konfiguration/urls.py, die nur api/, admin/,
+    static/ und medien/ ausnimmt, lieferte darauf die React-Seite selbst
+    zurück. Der Browser bekäme text/html statt JavaScript und zeigte eine
+    weiße Seite.
+
+    Lokal sieht man das nie: dort liefert der Vite-Dev-Server die Dateien
+    selbst aus. Es fällt erst am Server auf.
+
+    `command === "build"` gehört mitgeprüft: Im Dev-Server zeigt der Proxy
+    `/static` auf Django, ein festes `/static/` nähme der Oberfläche dort ihre
+    eigenen Dateien.
+    """
+    inhalt = (WURZEL / "frontend" / "vite.config.ts").read_text(encoding="utf-8")
+    assert 'base: command === "build" ? "/static/" : "/"' in inhalt, (
+        "frontend/vite.config.ts setzt base nicht auf /static/ für den Bau. "
+        "Der gebaute Auftritt bliebe weiß."
+    )

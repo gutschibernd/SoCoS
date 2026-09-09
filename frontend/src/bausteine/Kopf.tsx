@@ -14,6 +14,7 @@ const MENUE: { seite: Seite; titel: string; zeichen: ZeichenName }[] = [
   { seite: "projekt", titel: "Projekt", zeichen: "projekt" },
   { seite: "zeit", titel: "Zeit", zeichen: "zeit" },
   { seite: "kontakte", titel: "Kontakte", zeichen: "kontakte" },
+  { seite: "events", titel: "Events", zeichen: "event" },
 ];
 
 export function Kopf({

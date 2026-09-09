@@ -24,6 +24,8 @@ MODELLE_IM_ARCHIV = [
     "socos.Organisation",
     "socos.Kontakt",
     "socos.Verlaufseintrag",
+    "socos.Event",
+    "socos.Eventziel",
     "socos.Kontostand",
     "socos.Fixkosten",
     "socos.Monatskosten",
@@ -33,8 +35,13 @@ MODELLE_IM_ARCHIV = [
 
 # Beim Einspielen wird in dieser Reihenfolge geleert: das Abhängige zuerst.
 LOESCHREIHENFOLGE = [
-    # Das Abhängige zuerst, sonst hält on_delete=PROTECT dagegen.
+    # Das Abhängige zuerst, sonst hält on_delete=PROTECT dagegen. Der
+    # Verlaufseintrag hängt am Event *und* am Kontakt, das Eventziel am Event
+    # *und* an Kontakt oder Organisation — beide stehen deshalb vor allen
+    # dreien.
     "socos.Verlaufseintrag",
+    "socos.Eventziel",
+    "socos.Event",
     "socos.Zeitbuchung",
     "socos.Unteraufgabe",
     "socos.Arbeitspaket",

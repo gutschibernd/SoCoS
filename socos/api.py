@@ -23,6 +23,8 @@ from socos import berechtigung, serializer as ser, sicherung
 from socos.models import (
     Arbeitspaket,
     Bereich,
+    Event,
+    Eventziel,
     Fixkosten,
     Kontakt,
     Kontostand,
@@ -314,6 +316,36 @@ class VerlaufViewSet(SocosViewSet):
         # Wer den Eintrag geschrieben hat, bestimmt der Server. Ein Feld, das
         # der Aufrufer setzen darf, ist keine Auskunft mehr.
         serializer.save(wer=self.request.user)
+
+
+# --- Events -----------------------------------------------------------------
+
+
+class EventViewSet(SocosViewSet):
+    serializer_class = ser.EventSerializer
+    queryset = Event.objects.prefetch_related(
+        "teilnehmer",
+        "ziele__organisation",
+        "ziele__kontakt__organisation",
+        "verlauf__kontakt",
+        "verlauf__organisation",
+        "verlauf__wer",
+    )
+
+
+class EventzielViewSet(SocosViewSet):
+    """Die Hitlist. Eine Zeile zeigt auf eine Organisation **oder** eine Person."""
+
+    serializer_class = ser.EventzielSerializer
+    queryset = Eventziel.objects.select_related(
+        "event", "organisation", "kontakt", "kontakt__organisation"
+    )
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        if event := self.request.query_params.get("event"):
+            menge = menge.filter(event_id=event)
+        return menge
 
 
 # --- Finanzen ---------------------------------------------------------------

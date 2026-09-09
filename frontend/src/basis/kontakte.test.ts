@@ -12,7 +12,20 @@ import {
 import type { Kontakt, Organisation, Verlaufseintrag } from "./daten";
 
 function eintrag(id: number, datum: string, titel = `Eintrag ${id}`): Verlaufseintrag {
-  return { id, datum, art: "call", titel, text: "", wer_name: "Bernd" };
+  return {
+    id,
+    kontakt: null,
+    kontakt_name: "",
+    organisation: null,
+    organisation_name: "",
+    event: null,
+    event_titel: "",
+    datum,
+    art: "call",
+    titel,
+    text: "",
+    wer_name: "Bernd",
+  };
 }
 
 function person(id: number, name: string, teil: Partial<Kontakt> = {}): Kontakt {

@@ -25,6 +25,7 @@ import {
   type Organisation,
 } from "../basis/daten";
 import {
+  artText,
   letzterKontakt,
   offenerPunkt,
   passtKontakt,
@@ -32,6 +33,7 @@ import {
   verlaufDerOrganisation,
   verlaufDerPersonen,
   wartenAufUns,
+  VERLAUFSARTEN,
   type Ballfilter,
   type Verlaufszeile,
 } from "../basis/kontakte";
@@ -50,13 +52,6 @@ const STUFEN: { wert: Organisation["stufe"]; titel: string }[] = [
   { wert: "partner", titel: "Partner" },
 ];
 
-const ARTEN = [
-  { wert: "meeting", text: "Meeting" },
-  { wert: "mail", text: "Mail" },
-  { wert: "call", text: "Call" },
-  { wert: "event", text: "Event" },
-];
-
 /** Der Weg zu den Personen ohne Organisation. Kein Name kann so heißen. */
 const LOSE = "lose";
 
@@ -65,7 +60,6 @@ const DATUM = new Intl.DateTimeFormat("de-AT", { day: "2-digit", month: "2-digit
 const alsDatum = (iso: string | null) => (iso ? DATUM.format(new Date(`${iso}T00:00:00`)) : "—");
 const stufentitel = (stufe: Organisation["stufe"]) =>
   STUFEN.find((s) => s.wert === stufe)?.titel ?? stufe;
-const artText = (art: string) => ARTEN.find((a) => a.wert === art)?.text ?? art;
 
 async function aendern(pfad: string, daten: Record<string, unknown>): Promise<void> {
   await hole(pfad, { method: "PATCH", body: JSON.stringify(daten) });
@@ -842,7 +836,7 @@ function Verlaufskarte({
               onChange={(e) => setEintrag({ ...eintrag, art: e.target.value })}
               aria-label="Art"
             >
-              {ARTEN.map((a) => (
+              {VERLAUFSARTEN.map((a) => (
                 <option key={a.wert} value={a.wert}>
                   {a.text}
                 </option>
@@ -908,6 +902,9 @@ function Verlaufskarte({
                 {z.text && <p>{z.text}</p>}
                 <span className="verlauf-fuss">
                   {artText(z.art)} · {z.wem || "an die Organisation"}
+                  {/* Woher der Eintrag kommt. Ohne das steht auf der
+                      Kontaktseite ein Gespräch ohne Anlass. */}
+                  {z.event_titel && ` · auf ${z.event_titel}`}
                   {z.wer_name && ` · notiert von ${z.wer_name}`}
                 </span>
               </div>

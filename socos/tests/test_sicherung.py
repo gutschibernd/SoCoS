@@ -19,9 +19,14 @@ from socos.models import (
     Arbeitspaket,
     Bereich,
     Bereichsart,
+    Event,
+    Eventziel,
+    Kontakt,
     Nutzer,
+    Organisation,
     Projekt,
     Protokolleintrag,
+    Verlaufseintrag,
 )
 
 
@@ -152,6 +157,33 @@ def test_die_stufenleiste_eines_pakets_wandert_mit(tmp_path, medien, admin_nutze
         {"name": "Bau", "monate": 2},
     ]
     assert wieder_da.stufenstand == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_event_hitlist_und_teilnehmer_wandern_mit(tmp_path, medien, bearbeiter):
+    """
+    Am Event hängen drei Dinge, die kein einzelnes Feld sind: die Hitlist, die
+    Teilnehmer (eine m:n-Beziehung) und der Verlauf, der über `event` dorthin
+    zeigt. Genau solche Beziehungen fehlen in einem Export, der vollständig
+    aussieht.
+    """
+    haus = Organisation.objects.create(name="Förderstelle Nord")
+    person = Kontakt.objects.create(organisation=haus, name="Berger")
+    event = Event.objects.create(titel="MedTech Days", ort="Wien", von="2026-10-14")
+    event.teilnehmer.add(bearbeiter)
+    Eventziel.objects.create(event=event, kontakt=person, anliegen="Antrag besprechen")
+    Verlaufseintrag.objects.create(
+        kontakt=person, event=event, art="event", titel="Am Stand angesprochen"
+    )
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    wieder_da = Event.objects.get(titel="MedTech Days")
+    assert [n.email for n in wieder_da.teilnehmer.all()] == [bearbeiter.email]
+    assert [z.anliegen for z in wieder_da.ziele.all()] == ["Antrag besprechen"]
+    assert [v.titel for v in wieder_da.verlauf.all()] == ["Am Stand angesprochen"]
 
 
 @pytest.mark.django_db(transaction=True)

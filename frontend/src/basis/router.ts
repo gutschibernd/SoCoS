@@ -1,7 +1,7 @@
 /**
  * Ein sehr kleiner Router.
  *
- * Kein react-router: Es gibt fünf Seiten und eine Ebene darunter. Ein
+ * Kein react-router: Es gibt sechs Seiten und eine Ebene darunter. Ein
  * Rahmenwerk brächte hier mehr Begriffe mit, als die Anwendung Wege hat.
  *
  * Warum die zweite Ebene überhaupt im Weg steht und nicht im Zustand der
@@ -14,7 +14,7 @@
 
 import { useEffect, useState } from "react";
 
-export const SEITEN = ["dashboard", "projekt", "zeit", "kontakte", "profil"] as const;
+export const SEITEN = ["dashboard", "projekt", "zeit", "kontakte", "events", "profil"] as const;
 export type Seite = (typeof SEITEN)[number];
 
 /**
@@ -30,6 +30,7 @@ export type Seite = (typeof SEITEN)[number];
 const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   projekt: (unter) => unter === "bearbeiten",
   kontakte: (unter) => unter === "lose" || /^\d+$/.test(unter),
+  events: (unter) => /^\d+$/.test(unter),
 };
 
 export type Ort = { seite: Seite; unter: string | null };
