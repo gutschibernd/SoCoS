@@ -10,7 +10,9 @@ function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[
       id: 1,
       titel: "Zulassung",
       untertitel: "",
-      farbe: "#000",
+      // Kein Hex-Wert, auch nicht in einer Prüfung: test_oberflaeche.py
+      // sucht nach Farbwerten im Frontend, und diese Farbe wird nie gezeichnet.
+      farbe: "var(--marke)",
       gebuchte_sekunden: 0,
       bereiche: [
         {
