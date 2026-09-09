@@ -594,6 +594,23 @@ class Verlaufseintrag(Basismodell):
         blank=True,
         related_name="verlauf",
     )
+    # Auf welchem Event der Eintrag entstanden ist. Nullbar: Die meisten
+    # Gespräche gehören zu keinem Event, und ein Eintrag darf nicht davon
+    # abhängen, dass vorher jemand ein Event angelegt hat.
+    #
+    # **Warum ein Feld und keine zweite Verlaufssorte:** Ein Gespräch auf einer
+    # Tagung ist dasselbe Ereignis wie ein Gespräch am Telefon — nur an einem
+    # anderen Ort. Zwei Listen nebeneinander liefen beim Lesen des Verlaufs
+    # auseinander, und die Frage „was ist mit diesem Haus zuletzt passiert?"
+    # hätte wieder zwei Antworten.
+    event = models.ForeignKey(
+        "Event",
+        verbose_name="Event",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="verlauf",
+    )
     datum = models.DateField("Datum", default=timezone.localdate)
     art = models.CharField("Art", max_length=10, choices=Verlaufsart.choices)
     titel = models.CharField("Titel", max_length=200)
@@ -623,6 +640,146 @@ class Verlaufseintrag(Basismodell):
 
     def __str__(self):
         return f"{self.datum:%d.%m.%Y} · {self.titel}"
+
+
+# --- Events -----------------------------------------------------------------
+
+
+class Event(Basismodell):
+    """
+    Eine Tagung, ein Kongress, ein Messetag — ein Anlass, bei dem man Leute
+    trifft.
+
+    Ein Event ist **kein Termin**: Es gibt keine Uhrzeit, keine Erinnerung und
+    keinen Kalender dahinter. Was es gibt, ist die Vorbereitung (wen wollen wir
+    dort ansprechen) und das Ergebnis (mit wem haben wir geredet, was kam
+    dabei heraus). Termine und Aufgaben sind bewusst zurückgestellt — siehe
+    MEMORY.md.
+    """
+
+    titel = models.CharField("Titel", max_length=200)
+    ort = models.CharField("Ort", max_length=160, blank=True)
+    von = models.DateField("Von")
+    # Leer heißt eintägig. Ein zweites Datum, das beim eintägigen Event
+    # dasselbe wie `von` enthielte, müsste man beim Verschieben doppelt
+    # pflegen — und genau das vergisst man.
+    bis = models.DateField("Bis", null=True, blank=True)
+    notiz = models.TextField("Notiz", blank=True)
+    # Wer von uns hinfährt. Ohne `through`: An der Zuordnung selbst hängt
+    # nichts weiter — kein Datum, keine Rolle, kein Status.
+    teilnehmer = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Teilnehmer",
+        blank=True,
+        related_name="events",
+    )
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Event"
+        verbose_name_plural = "Events"
+        # Das nächste zuerst — und Vergangenes rutscht von selbst nach unten.
+        ordering = ["-von", "titel"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(bis__isnull=True) | models.Q(bis__gte=models.F("von")),
+                name="event_endet_nicht_vor_seinem_anfang",
+            )
+        ]
+
+    def __str__(self):
+        return self.titel
+
+    @property
+    def letzter_tag(self):
+        """Der Tag, an dem das Event vorbei ist — bei eintägigen `von`."""
+        return self.bis or self.von
+
+
+class Zielstand(models.TextChoices):
+    """
+    Drei Werte, nicht fünf. Vor dem Event ist alles offen; danach ist die
+    einzige Frage, ob man die Person erwischt hat.
+    """
+
+    OFFEN = "offen", "offen"
+    GETROFFEN = "getroffen", "getroffen"
+    VERPASST = "verpasst", "verpasst"
+
+
+class Eventziel(Basismodell):
+    """
+    Eine Zeile auf der Hitlist: wen wollen wir auf diesem Event ansprechen.
+
+    Sie zeigt auf **genau eines** — eine Organisation oder eine Person. Dieselbe
+    Regel wie beim Verlaufseintrag, und aus demselben Grund: „Mit dem Institut
+    reden, egal mit wem" und „mit Frau Berger reden" sind zwei verschiedene
+    Vorhaben. Beides zugleich einzutragen hieße, dass beim Abhaken niemand
+    weiß, was nun erledigt ist.
+
+    Was auf dem Event tatsächlich besprochen wurde, steht **nicht** hier,
+    sondern als Verlaufseintrag mit `event` — sonst gäbe es zwei Orte für
+    dieselbe Auskunft.
+    """
+
+    event = models.ForeignKey(
+        Event, verbose_name="Event", on_delete=models.PROTECT, related_name="ziele"
+    )
+    organisation = models.ForeignKey(
+        Organisation,
+        verbose_name="Organisation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="eventziele",
+    )
+    kontakt = models.ForeignKey(
+        Kontakt,
+        verbose_name="Kontakt",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="eventziele",
+    )
+    anliegen = models.CharField("Anliegen", max_length=250, blank=True)
+    stand = models.CharField(
+        "Stand", max_length=10, choices=Zielstand.choices, default=Zielstand.OFFEN
+    )
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Eventziel"
+        verbose_name_plural = "Hitlist"
+        ordering = ["event", "reihenfolge", "id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(kontakt__isnull=False, organisation__isnull=True)
+                    | models.Q(kontakt__isnull=True, organisation__isnull=False)
+                ),
+                name="eventziel_zeigt_auf_genau_eines",
+            ),
+            # Zweimal dieselbe Organisation auf einer Liste ist kein zweites
+            # Vorhaben, sondern ein Doppelklick. Dass die Datenbank das abweist
+            # und nicht nur die Oberfläche, ist der Punkt: Die Oberfläche ist
+            # nicht der einzige Weg herein.
+            models.UniqueConstraint(
+                fields=["event", "organisation"],
+                condition=models.Q(organisation__isnull=False, geloescht_am__isnull=True),
+                name="eine_organisation_nur_einmal_je_event",
+            ),
+            models.UniqueConstraint(
+                fields=["event", "kontakt"],
+                condition=models.Q(kontakt__isnull=False, geloescht_am__isnull=True),
+                name="eine_person_nur_einmal_je_event",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.event.titel} · {self.wen}"
+
+    @property
+    def wen(self):
+        return str(self.kontakt or self.organisation)
 
 
 # --- Finanzen ---------------------------------------------------------------

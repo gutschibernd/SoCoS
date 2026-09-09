@@ -7,6 +7,61 @@ betrifft.
 
 ---
 
+## 2026-09-09 — Events: Hitlist vorher, Verlauf nachher
+
+Neuer Reiter zwischen Kontakten und Profil. Ein **Event** ist eine Tagung, ein
+Kongress, ein Messetag — der Anlass, bei dem man Leute trifft. Es trägt zwei
+Dinge: vorher die **Hitlist** (wen wollen wir dort ansprechen, und weshalb),
+nachher den **Verlauf** (mit wem haben wir geredet, was kam dabei heraus).
+
+Drei Änderungen am Schema: `Event`, `Eventziel` (eine Zeile der Hitlist) und
+ein nullbares Feld `event` am `Verlaufseintrag`.
+
+Entscheidungen, die man dem Code sonst nicht ansieht:
+
+- **Ein Event ist kein Termin.** Keine Uhrzeit, keine Erinnerung, kein
+  Kalender. Termine und Aufgaben bleiben zurückgestellt (siehe unten bei den
+  offenen Punkten) — das hier beantwortet eine andere Frage, nämlich „was ist
+  mit diesem Haus passiert".
+- **Der Verlauf am Event ist derselbe Verlauf wie beim Kontakt**, nur mit
+  einem Verweis auf das Event. Eine zweite Verlaufssorte („Eventnotiz") liefe
+  beim Lesen auseinander, und die Frage „was war zuletzt mit der Förderstelle?"
+  hätte wieder zwei Antworten. Auf der Kontakteseite steht deshalb jetzt
+  „· auf MedTech Days 2026" unter dem Eintrag.
+- **Eine Zeile der Hitlist zeigt auf genau eines** — eine Organisation *oder*
+  eine Person. Dieselbe Regel wie beim Verlaufseintrag, und aus demselben
+  Grund: „mit dem Institut reden, egal mit wem" und „mit Frau Berger reden"
+  sind zwei Vorhaben, und beim Abhaken wüsste sonst niemand, was erledigt ist.
+- **Die Hitlist zeigt nur auf Bestehendes**, nie auf einen frei getippten
+  Namen. Ein Name, der nur am Event steht, ist nach der Tagung nirgends
+  wiederzufinden. Wer jemanden erst vor Ort kennenlernt, legt ihn in der Karte
+  „Vor Ort kennengelernt" an: ein Griff, zwei Aufrufe — die Person landet in
+  den Kontakten **und** auf der Liste, gleich als „getroffen".
+- **Dieselbe Zeile zweimal anzulegen ist ein Doppelklick, kein Vorhaben.** Der
+  zweite Aufruf bekommt die vorhandene Zeile zurück statt einer Fehlermeldung;
+  ein roter Kasten erklärte nichts, was die Liste nicht schon zeigt. Die
+  Datenbank weist es über zwei Teilindizes trotzdem ab — sie ist die
+  Absicherung, nicht die Fehlermeldung.
+- **Der Stand hat drei Werte** (offen · getroffen · verpasst). Vor dem Event
+  ist alles offen; danach ist die einzige Frage, ob man die Person erwischt
+  hat. Alles Weitere steht im Verlauf.
+- **Verglichen wird mit dem letzten Tag, nicht mit dem ersten.** Eine
+  dreitägige Tagung ist an ihrem zweiten Tag nicht vergangen — genau der
+  Fehler, den man erst im Oktober sieht. `bis` leer heißt eintägig; ein
+  zweites Datum, das dann dasselbe enthielte, müsste man beim Verschieben
+  doppelt pflegen.
+- **`teilnehmer` ist eine m:n-Beziehung ohne `through`.** An der Zuordnung
+  hängt nichts weiter — kein Datum, keine Rolle. Sie wandert über das
+  Fixture des Events in die Sicherung; ein eigener Test prüft das, weil genau
+  solche Beziehungen in einem Export fehlen, der vollständig aussieht.
+- **`VERLAUFSARTEN` steht jetzt in `basis/kontakte.ts`**, nicht mehr in der
+  Kontakteseite: Die Eventseite zeigt denselben Verlauf, und zwei Listen
+  liefen beim nächsten neuen Wert auseinander.
+
+Geprüft an 1280×800 und 375×812, hell und dunkel, mit Daten und ohne.
+
+---
+
 ## 2026-09-08 — Kontakte: erst die Organisation, dann die Person
 
 Die Kontakteseite war ein Board über drei Spuren (Erstkontakt · Antrag · Partner)
@@ -586,4 +641,6 @@ nicht überall gibt. Es gibt keinen Grund, das Risiko für nichts einzugehen.
       ein nullbares Feld `unteraufgabe` an `Zeitbuchung` plus eine Entscheidung,
       wie eine Auswertung dann beide Ebenen zusammenfasst.
 - [ ] Termine/Tasks: Modell festlegen, sobald Bernd die Liste gekürzt hat.
+      **Events sind das nicht** — sie haben keine Uhrzeit und keine Erinnerung.
+      Wer das später baut, soll sie nicht dafür umwidmen.
 - [ ] Datenimport bauen, sobald `daten/sopharmis-daten.json` bereinigt ist.

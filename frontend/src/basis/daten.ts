@@ -107,6 +107,13 @@ export type Kontakt = {
 };
 export type Verlaufseintrag = {
   id: number;
+  kontakt: number | null;
+  kontakt_name: string;
+  organisation: number | null;
+  organisation_name: string;
+  /** Auf welchem Event der Eintrag entstanden ist — meistens auf keinem. */
+  event: number | null;
+  event_titel: string;
   datum: string;
   art: string;
   titel: string;
@@ -121,6 +128,44 @@ export type Organisation = {
   stufe: "erstkontakt" | "antrag" | "partner";
   nutzen: string;
   kontakte: Kontakt[];
+  verlauf: Verlaufseintrag[];
+};
+
+/**
+ * Eine Zeile der Hitlist. Sie zeigt auf **genau eines** — eine Organisation
+ * oder eine Person; dieselbe Regel wie beim Verlaufseintrag.
+ */
+export type Eventziel = {
+  id: number;
+  event: number;
+  organisation: number | null;
+  organisation_name: string;
+  kontakt: number | null;
+  kontakt_name: string;
+  /** Zu welchem Haus die Person gehört — leer bei einem losen Kontakt. */
+  kontakt_organisation: string;
+  anliegen: string;
+  stand: "offen" | "getroffen" | "verpasst";
+  reihenfolge: number;
+};
+
+/**
+ * Der Name verdeckt in Modulen, die ihn einführen, den DOM-Typ `Event`. Das
+ * ist hier ungefährlich — angefasst werden dort nur React-Ereignisse, deren
+ * Typ aus dem Handler kommt — und ein zweites Wort für dieselbe Sache
+ * („Veranstaltung") wäre der teurere Preis.
+ */
+export type Event = {
+  id: number;
+  titel: string;
+  ort: string;
+  von: string;
+  /** Leer heißt eintägig. */
+  bis: string | null;
+  notiz: string;
+  teilnehmer: number[];
+  teilnehmer_namen: string[];
+  ziele: Eventziel[];
   verlauf: Verlaufseintrag[];
 };
 
@@ -168,6 +213,9 @@ export const useOrganisationen = () =>
 export const useKontakte = () =>
   useQuery({ queryKey: ["kontakte"], queryFn: () => hole<Kontakt[]>("/kontakte/") });
 
+export const useEvents = () =>
+  useQuery({ queryKey: ["events"], queryFn: () => hole<Event[]>("/events/") });
+
 /**
  * Nach jeder Änderung werden **alle** betroffenen Abrufe verworfen.
  *
@@ -179,7 +227,8 @@ export function useNeuLaden() {
   const speicher = useQueryClient();
   return () => {
     for (const schluessel of [
-      "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen", "team", "ich", "protokoll",
+      "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
+      "events", "team", "ich", "protokoll",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

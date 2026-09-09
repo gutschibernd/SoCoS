@@ -11,6 +11,8 @@ from socos import berechtigung
 from socos.models import (
     Arbeitspaket,
     Bereich,
+    Event,
+    Eventziel,
     Fixkosten,
     Kontakt,
     Kontostand,
@@ -227,11 +229,20 @@ class ZeitbuchungSerializer(serializers.ModelSerializer):
 
 class VerlaufseintragSerializer(serializers.ModelSerializer):
     wer_name = serializers.CharField(source="wer.name", read_only=True, default="")
+    # Die Kontakteseite bekommt den Verlauf verschachtelt und weiß deshalb
+    # selbst, an wem ein Eintrag hängt. Die Eventseite bekommt ihn flach — dort
+    # steht ohne diese Namen nur eine Nummer.
+    kontakt_name = serializers.CharField(source="kontakt.name", read_only=True, default="")
+    organisation_name = serializers.CharField(
+        source="organisation.name", read_only=True, default=""
+    )
+    event_titel = serializers.CharField(source="event.titel", read_only=True, default="")
 
     class Meta:
         model = Verlaufseintrag
         fields = [
-            "id", "kontakt", "organisation", "datum", "art", "titel", "text",
+            "id", "kontakt", "kontakt_name", "organisation", "organisation_name",
+            "event", "event_titel", "datum", "art", "titel", "text",
             "wer", "wer_name",
         ]
         read_only_fields = ["wer"]
@@ -287,6 +298,91 @@ class OrganisationSerializer(serializers.ModelSerializer):
     def get_verlauf(self, org):
         menge = org.verlauf.filter(geloescht_am__isnull=True).order_by("-datum", "-id")
         return VerlaufseintragSerializer(menge, many=True, context=self.context).data
+
+
+# --- Events -----------------------------------------------------------------
+
+
+class EventzielSerializer(serializers.ModelSerializer):
+    """Eine Zeile der Hitlist. Sie zeigt auf genau eines von beiden."""
+
+    organisation_name = serializers.CharField(
+        source="organisation.name", read_only=True, default=""
+    )
+    kontakt_name = serializers.CharField(source="kontakt.name", read_only=True, default="")
+    # Zu wem die Person gehört. Auf einer Hitlist stehen zehn Namen, und ohne
+    # das Haus daneben weiß niemand mehr, wen er da ansprechen wollte.
+    kontakt_organisation = serializers.CharField(
+        source="kontakt.organisation.name", read_only=True, default=""
+    )
+
+    class Meta:
+        model = Eventziel
+        fields = [
+            "id", "event", "organisation", "organisation_name", "kontakt",
+            "kontakt_name", "kontakt_organisation", "anliegen", "stand",
+            "reihenfolge",
+        ]
+
+    def validate(self, daten):
+        kontakt = daten.get("kontakt", getattr(self.instance, "kontakt", None))
+        org = daten.get("organisation", getattr(self.instance, "organisation", None))
+        if bool(kontakt) == bool(org):
+            raise serializers.ValidationError(
+                "Eine Zeile der Hitlist zeigt auf genau eines — eine Organisation "
+                "oder eine Person."
+            )
+        return daten
+
+    def create(self, daten):
+        """
+        Steht der Eintrag schon auf der Liste, wird er zurückgegeben statt
+        angelegt.
+
+        **Warum kein Fehler:** Zweimal dieselbe Organisation einzutragen ist ein
+        Doppelklick, kein Vorhaben. Ein roter Kasten dafür erklärt nichts, was
+        die Liste nicht schon zeigt. Die Datenbank weist es trotzdem ab — sie
+        ist die Absicherung, nicht die Fehlermeldung.
+        """
+        vorhanden = Eventziel.objects.filter(
+            event=daten["event"],
+            organisation=daten.get("organisation"),
+            kontakt=daten.get("kontakt"),
+        ).first()
+        return vorhanden or super().create(daten)
+
+
+class EventSerializer(serializers.ModelSerializer):
+    ziele = serializers.SerializerMethodField()
+    verlauf = serializers.SerializerMethodField()
+    teilnehmer_namen = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Event
+        fields = [
+            "id", "titel", "ort", "von", "bis", "notiz", "teilnehmer",
+            "teilnehmer_namen", "ziele", "verlauf",
+        ]
+
+    def get_ziele(self, event):
+        # Nur die nicht gelöschten: über die Beziehung käme sonst auch weich
+        # Gelöschtes mit, weil Django dafür den Basis-Manager nimmt.
+        menge = event.ziele.filter(geloescht_am__isnull=True).order_by("reihenfolge", "id")
+        return EventzielSerializer(menge, many=True, context=self.context).data
+
+    def get_verlauf(self, event):
+        menge = event.verlauf.filter(geloescht_am__isnull=True).order_by("-datum", "-id")
+        return VerlaufseintragSerializer(menge, many=True, context=self.context).data
+
+    def get_teilnehmer_namen(self, event):
+        return [n.name for n in event.teilnehmer.all()]
+
+    def validate(self, daten):
+        von = daten.get("von", getattr(self.instance, "von", None))
+        bis = daten.get("bis", getattr(self.instance, "bis", None))
+        if von and bis and bis < von:
+            raise serializers.ValidationError({"bis": "Das Ende liegt vor dem Anfang."})
+        return daten
 
 
 # --- Finanzen ---------------------------------------------------------------

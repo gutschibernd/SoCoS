@@ -30,6 +30,12 @@ describe("ausPfad", () => {
     expect(ausPfad("/kontakte/quatsch")).toEqual({ seite: "kontakte", unter: null });
   });
 
+  it("liest das gewählte Event", () => {
+    expect(ausPfad("/events/3")).toEqual({ seite: "events", unter: "3" });
+    expect(ausPfad("/events")).toEqual({ seite: "events", unter: null });
+    expect(ausPfad("/events/lose")).toEqual({ seite: "events", unter: null });
+  });
+
   it("übergeht doppelte Schrägstriche", () => {
     expect(ausPfad("//kontakte//12")).toEqual({ seite: "kontakte", unter: "12" });
   });
