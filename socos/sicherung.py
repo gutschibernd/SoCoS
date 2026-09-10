@@ -41,13 +41,17 @@ LOESCHREIHENFOLGE = [
     # dreien.
     "socos.Verlaufseintrag",
     "socos.Eventziel",
+    # Der Kontakt steht **vor** dem Event, seit er mit `kennengelernt_auf` auf
+    # eines zeigt. Andersherum hielte PROTECT beim Leeren dagegen, und das
+    # Einspielen bräche mitten im Vorgang ab — mit einer halb geleerten
+    # Datenbank und dem Archiv als einziger Quelle.
+    "socos.Kontakt",
     "socos.Event",
     "socos.Zeitbuchung",
     "socos.Unteraufgabe",
     "socos.Arbeitspaket",
     "socos.Bereich",
     "socos.Projekt",
-    "socos.Kontakt",
     "socos.Organisation",
     "socos.Kontostand",
     "socos.Fixkosten",

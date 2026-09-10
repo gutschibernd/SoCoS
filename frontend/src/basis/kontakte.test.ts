@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ballText,
+  gesuchtePersonen,
   letzterKontakt,
   offenerPunkt,
   passtKontakt,
@@ -39,8 +40,12 @@ function person(id: number, name: string, teil: Partial<Kontakt> = {}): Kontakt 
     id,
     name,
     funktion: "",
+    email: "",
+    telefon: "",
     organisation: 1,
     organisation_name: "Förderstelle",
+    kennengelernt_auf: null,
+    kennengelernt_auf_titel: "",
     ball: "ihnen",
     offener_punkt: "",
     letzter_kontakt: null,
@@ -290,6 +295,47 @@ describe("zeigtLoseZeile", () => {
   it("folgt dem Filter, sobald es lose Personen gibt", () => {
     expect(zeigtLoseZeile(lose, lose, "ohne", "alle")).toBe(true);
     expect(zeigtLoseZeile(lose, [], "berger", "alle")).toBe(false);
+  });
+});
+
+describe("gesuchtePersonen", () => {
+  const belegschaft = [
+    person(1, "Daniel Krautzer", { funktion: "Standortleitung" }),
+    person(2, "Christian Rauch", { funktion: "" }),
+    person(3, "Anna Berger", { funktion: "" }),
+  ];
+
+  it("bleibt leer, solange nichts gesucht wird", () => {
+    // Sonst stünden unter jeder Organisation alle ihre Personen, und die
+    // Übersicht wäre wieder die lange Liste, die sie nicht mehr sein soll.
+    expect(gesuchtePersonen(belegschaft, "")).toEqual([]);
+    expect(gesuchtePersonen(belegschaft, "   ")).toEqual([]);
+  });
+
+  it("nennt die Person, auf die die Suche zeigt", () => {
+    expect(gesuchtePersonen(belegschaft, "rauch").map((k) => k.name)).toEqual([
+      "Christian Rauch",
+    ]);
+  });
+
+  it("findet auch über die Rolle", () => {
+    expect(gesuchtePersonen(belegschaft, "standort").map((k) => k.name)).toEqual([
+      "Daniel Krautzer",
+    ]);
+  });
+
+  it("findet über die Mailadresse", () => {
+    const mit = [person(4, "Sven Stegemann", { email: "sven@institut.example" })];
+    expect(gesuchtePersonen(mit, "institut.example").map((k) => k.name)).toEqual([
+      "Sven Stegemann",
+    ]);
+  });
+
+  it("hängt nicht die ganze Belegschaft an, wenn die Organisation gepasst hat", () => {
+    // Alle drei gehören zur „Förderstelle". Die Zeile steht wegen ihres
+    // eigenen Namens da; jeden dort Beschäftigten darunterzuschreiben wäre
+    // eine Antwort auf eine Frage, die niemand gestellt hat.
+    expect(gesuchtePersonen(belegschaft, "Förderstelle")).toEqual([]);
   });
 });
 

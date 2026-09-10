@@ -29,6 +29,7 @@ import {
   ballText,
   letzterKontakt,
   offenerPunkt,
+  gesuchtePersonen,
   passtKontakt,
   passtOrganisation,
   sortiereOrganisationen,
@@ -271,6 +272,30 @@ export function Kontakte({
   );
 }
 
+/**
+ * Die Namen, auf die eine Suche in dieser Zeile zeigt.
+ *
+ * Sie stehen unter dem Organisationsnamen und nicht in einer eigenen Spalte:
+ * Eine Spalte wäre bei jeder Suche da und sonst leer — und am Handy, wo aus
+ * der Zeile eine Karte wird, hinge sie als Feld ohne Inhalt darunter.
+ *
+ * Kein eigener Klick je Name: Der führte auf dieselbe Organisationsseite wie
+ * die Zeile darüber. Zwei Wege zum selben Ort sind einer zu viel.
+ */
+function Gefundene({ personen }: { personen: Kontakt[] }) {
+  if (personen.length === 0) return null;
+  return (
+    <div className="gefundene">
+      {personen.map((k) => (
+        <span key={k.id} className="gefunden">
+          {k.name}
+          {k.funktion && <span className="gefunden-rolle"> · {k.funktion}</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /* --- Die Liste ------------------------------------------------------------ */
 
 function Uebersicht({
@@ -443,6 +468,7 @@ function Uebersicht({
                         <i className="kuerzel">{o.kurz}</i>
                         {o.name}
                       </button>
+                      <Gefundene personen={gesuchtePersonen(o.kontakte, suche)} />
                     </td>
                     <td data-spalte="Typ">{o.typ || "—"}</td>
                     <td data-spalte="Stufe">
@@ -475,6 +501,7 @@ function Uebersicht({
                       <i className="kuerzel kuerzel-leer">—</i>
                       Lose Kontakte
                     </button>
+                    <Gefundene personen={gesuchtePersonen(gefilterteLose, suche)} />
                   </td>
                   <td data-spalte="Typ">Personen ohne Organisation</td>
                   <td data-spalte="Stufe">—</td>
@@ -918,6 +945,44 @@ function Personenkachel({
         )}
       </div>
 
+      {/* Mail und Telefon als Zeilen mit eigenem Zeichen statt mit
+          Beschriftung: „E-Mail: …" daneben wäre in einer Kachel aus fünf
+          Angaben die Hälfte der Zeile Rauschen. Wer nichts eingetragen hat,
+          sieht den Platzhalter — und weiß damit, dass hier etwas hingehört. */}
+      <div className="person-draht">
+        <span className="draht-zeile">
+          <Zeichen name="brief" klasse="draht-zeichen" />
+          {kontakt.email && !ich.darf.bearbeiten ? (
+            <a className="draht-verweis" href={`mailto:${kontakt.email}`}>
+              {kontakt.email}
+            </a>
+          ) : (
+            <Feldtext
+              wert={kontakt.email}
+              platzhalter="E-Mail …"
+              aendern={ich.darf.bearbeiten}
+              speichern={(email) => speichern({ email })}
+            />
+          )}
+        </span>
+        <span className="draht-zeile">
+          <Zeichen name="hoerer" klasse="draht-zeichen" />
+          {kontakt.telefon && !ich.darf.bearbeiten ? (
+            <a className="draht-verweis zahl" href={`tel:${kontakt.telefon.replace(/[^+\d]/g, "")}`}>
+              {kontakt.telefon}
+            </a>
+          ) : (
+            <Feldtext
+              wert={kontakt.telefon}
+              platzhalter="Telefon …"
+              klasse="zahl"
+              aendern={ich.darf.bearbeiten}
+              speichern={(telefon) => speichern({ telefon })}
+            />
+          )}
+        </span>
+      </div>
+
       <div className="person-punkt">
         <span className="beschriftung-klein">Offener Punkt</span>
         <Feldtext
@@ -927,6 +992,17 @@ function Personenkachel({
           speichern={(offener_punkt) => speichern({ offener_punkt })}
         />
       </div>
+
+      {/* Woher die Person kommt. Steht nur da, wenn sie auf einem Event
+          angelegt wurde — eine Zeile „kennengelernt: —" bei allen anderen
+          wäre eine Frage, die niemand gestellt hat. Nicht änderbar: Das ist
+          eine Tatsache von damals, kein Feld zum Pflegen. */}
+      {kontakt.kennengelernt_auf_titel && (
+        <div className="person-herkunft">
+          <Zeichen name="fahne" klasse="draht-zeichen" />
+          Kennengelernt auf {kontakt.kennengelernt_auf_titel}
+        </div>
+      )}
 
       {ich.darf.bearbeiten && haus && (
         <label className="person-haus">

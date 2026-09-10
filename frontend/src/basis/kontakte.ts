@@ -235,6 +235,33 @@ export function passtOrganisation(org: Organisation, suche: string, ball: Ballfi
 }
 
 /**
+ * Die Personen einer Organisation, auf die die Suche zeigt.
+ *
+ * **Wofür:** Die Übersicht listet Organisationen, nie Personen. Wer einen
+ * Namen sucht, bekam darum bisher eine Organisationszeile zurück und musste
+ * raten, wen darin er gefunden hatte — bei einem Haus mit acht Personen ist
+ * das keine Antwort. Steht der Name in der Zeile, ist die Suche fertig.
+ *
+ * Nur bei gesetzter Suche: Ohne sie stünden unter jeder Organisation alle
+ * ihre Personen, und die Übersicht wäre wieder die lange Liste, die sie
+ * bewusst nicht mehr ist. Der Ballfilter zählt hier **nicht** mit — er hat
+ * die Zeile schon ausgewählt; ihn ein zweites Mal anzulegen ließe eine Zeile
+ * mit leerer Namensliste stehen.
+ *
+ * **Gesucht wird nur in der Person selbst** — Name, Rolle, Mail, Telefon —
+ * und ausdrücklich nicht über `passtKontakt`. Das nimmt den Namen der
+ * Organisation mit, und wer „Förderstelle" eingibt, bekäme darüber die ganze
+ * Belegschaft unter die Zeile geschrieben. Der offene Punkt bleibt ebenfalls
+ * draußen: Er sagt, was ansteht, nicht wer jemand ist.
+ */
+export function gesuchtePersonen(kontakte: Kontakt[], suche: string): Kontakt[] {
+  if (!suche.trim()) return [];
+  return kontakte.filter((k) =>
+    enthaelt(`${k.name} ${k.funktion} ${k.email} ${k.telefon}`, suche),
+  );
+}
+
+/**
  * Ob die Zeile „Lose Kontakte" in der Übersicht steht.
  *
  * Sie ist der einzige Weg zu den Personen ohne Organisation. Stünde sie nur

@@ -929,6 +929,7 @@ function Verlaufskarte({
           <Fehlerzeile text={fehler} />
 
           <Kennengelernt
+            event={event}
             organisationen={organisationen}
             neuLaden={neuLaden}
             gewaehlt={(schluessel) => setEintrag({ ...eintrag, ziel: schluessel })}
@@ -1010,17 +1011,29 @@ function Zielgruppe({ titel, auswahl }: { titel: string; auswahl: Auswahl[] }) {
  * sie oben gleich ausgewählt — der nächste Griff ist der Eintrag.
  */
 const NEUES_HAUS = "neu";
+/**
+ * Ausdrücklich „ohne Organisation" — und **nicht** die leere Vorauswahl.
+ *
+ * Vorher stand „Keine Organisation" ganz oben und war vorbelegt. Wer im
+ * Gespräch schnell tippt, ließ es stehen; die Person landete ohne Haus in den
+ * Kontakten und stand dort nur noch hinter „Lose Kontakte" — mit Namen
+ * nirgends sichtbar. Jetzt ist das Feld leer, verlangt eine Wahl, und „ohne
+ * Organisation" ist eine davon: möglich, aber gewollt.
+ */
+const OHNE_HAUS = "ohne";
 
 function Kennengelernt({
+  event,
   organisationen,
   neuLaden,
   gewaehlt,
 }: {
+  event: Event;
   organisationen: Organisation[];
   neuLaden: () => void;
   gewaehlt: (schluessel: string) => void;
 }) {
-  const leer = { name: "", funktion: "", organisation: "", haus: "" };
+  const leer = { name: "", funktion: "", email: "", telefon: "", organisation: "", haus: "" };
   const [offen, setOffen] = useState(false);
   const [person, setPerson] = useState(leer);
   const [fehler, setFehler] = useState("");
@@ -1028,12 +1041,16 @@ function Kennengelernt({
   async function anlegen() {
     if (!person.name.trim())
       return setFehler("Ohne Namen lässt sich die Person später nicht zuordnen.");
+    if (!person.organisation)
+      return setFehler(
+        "Wohin gehört die Person? Ohne Organisation steht sie später nur unter „Lose Kontakte“.",
+      );
     if (person.organisation === NEUES_HAUS && !person.haus.trim())
       return setFehler("Wie heißt das Haus? Ohne Namen lässt es sich nicht anlegen.");
     setFehler("");
 
     let organisation: number | null =
-      person.organisation && person.organisation !== NEUES_HAUS
+      person.organisation !== OHNE_HAUS && person.organisation !== NEUES_HAUS
         ? Number(person.organisation)
         : null;
 
@@ -1050,7 +1067,13 @@ function Kennengelernt({
       body: JSON.stringify({
         name: person.name.trim(),
         funktion: person.funktion.trim(),
+        email: person.email.trim(),
+        telefon: person.telefon.trim(),
         organisation,
+        // Woher die Person kommt, weiß nur diese Stelle: Sie wird auf diesem
+        // Event angelegt. Später ist es nicht mehr zu rekonstruieren — der
+        // Verlauf sagt „wir haben dort geredet", nicht „wir kennen uns daher".
+        kennengelernt_auf: event.id,
       }),
     });
 
@@ -1058,7 +1081,10 @@ function Kennengelernt({
     setOffen(false);
     neuLaden();
     gewaehlt(`k${angelegt.id}`);
-    melden("gut", `${angelegt.name} steht jetzt in den Kontakten und oben im Feld.`);
+    melden(
+      "gut",
+      `${angelegt.name} steht jetzt in den Kontakten — kennengelernt auf ${event.titel}.`,
+    );
   }
 
   if (!offen)
@@ -1085,19 +1111,41 @@ function Kennengelernt({
           value={person.funktion}
           onChange={(e) => setPerson({ ...person, funktion: e.target.value })}
         />
+        {/* Mail und Telefon stehen hier und nicht erst in den Kontakten: Was
+            auf der Visitenkarte steht, hat man genau jetzt in der Hand. Wer
+            dafür später die Kontakteseite aufsuchen muss, tippt es nie ab. */}
+        <input
+          className="feld"
+          type="email"
+          inputMode="email"
+          autoComplete="off"
+          placeholder="E-Mail"
+          value={person.email}
+          onChange={(e) => setPerson({ ...person, email: e.target.value })}
+        />
+        <input
+          className="feld"
+          type="tel"
+          inputMode="tel"
+          autoComplete="off"
+          placeholder="Telefon"
+          value={person.telefon}
+          onChange={(e) => setPerson({ ...person, telefon: e.target.value })}
+        />
         <select
           className="feld"
           value={person.organisation}
           onChange={(e) => setPerson({ ...person, organisation: e.target.value })}
           aria-label="Gehört zu"
         >
-          <option value="">Keine Organisation</option>
+          <option value="">Wohin gehört die Person?</option>
           <option value={NEUES_HAUS}>＋ Neue Organisation …</option>
           {organisationen.map((o) => (
             <option key={o.id} value={o.id}>
               {o.name}
             </option>
           ))}
+          <option value={OHNE_HAUS}>Ohne Organisation</option>
         </select>
         {person.organisation === NEUES_HAUS && (
           <input

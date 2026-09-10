@@ -262,13 +262,21 @@ class KontaktSerializer(serializers.ModelSerializer):
     organisation_name = serializers.CharField(
         source="organisation.name", read_only=True, default=""
     )
+    # Der Titel des Events, auf dem die Person kennengelernt wurde. Ohne ihn
+    # stünde in der Kachel eine Zahl, und der Frontend müsste die Eventliste
+    # laden, nur um einen Namen anzuzeigen.
+    kennengelernt_auf_titel = serializers.CharField(
+        source="kennengelernt_auf.titel", read_only=True, default=""
+    )
     letzter_kontakt = serializers.SerializerMethodField()
     verlauf = serializers.SerializerMethodField()
 
     class Meta:
         model = Kontakt
         fields = [
-            "id", "name", "funktion", "organisation", "organisation_name",
+            "id", "name", "funktion", "email", "telefon",
+            "organisation", "organisation_name",
+            "kennengelernt_auf", "kennengelernt_auf_titel",
             "ball", "offener_punkt", "letzter_kontakt", "verlauf",
         ]
 

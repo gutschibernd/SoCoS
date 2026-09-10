@@ -99,8 +99,13 @@ export type Kontakt = {
   id: number;
   name: string;
   funktion: string;
+  email: string;
+  telefon: string;
   organisation: number | null;
   organisation_name: string;
+  /** Das Event, auf dem die Person kennengelernt wurde — meistens keines. */
+  kennengelernt_auf: number | null;
+  kennengelernt_auf_titel: string;
   ball: "uns" | "ihnen" | "nichts";
   offener_punkt: string;
   letzter_kontakt: string | null;

@@ -34,7 +34,10 @@ export type ZeichenName =
   | "haken"
   | "achtung"
   | "zahnrad"
-  | "abmelden";
+  | "abmelden"
+  | "brief"
+  | "hoerer"
+  | "fahne";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -73,6 +76,17 @@ const PFADE: Record<ZeichenName, string> = {
   // geht. Kein Schlüssel und kein Schalter: Beide bedeuten ebenso gut
   // „sperren" oder „ausschalten" — hier geht jemand hinaus, sonst nichts.
   abmelden: "M12 4.5H4.5v15H12M10 12h9.5M16 8.5l3.5 3.5-3.5 3.5",
+  // Umschlag mit einem Knick statt zwei sich kreuzenden Linien: Bei 14 px in
+  // der Personenkachel wird aus dem gekreuzten Umschlag ein Fleck.
+  brief: "M4 6.5h16v11H4zM4 7l8 6 8-6",
+  // Ein Hörer, auf die Grundform reduziert — Bogen mit zwei Enden. Der
+  // klassische gedrehte Telefonhörer braucht Rundungen, die bei dieser Größe
+  // ineinanderlaufen.
+  hoerer:
+    "M8.5 4.5H5.2a1.2 1.2 0 0 0-1.2 1.3c.5 7.3 6.2 13 13.5 13.5a1.2 1.2 0 0 0 1.3-1.2v-3.3l-4-1.4-2 2a14.5 14.5 0 0 1-5.9-5.9l2-2z",
+  // Eine Fahne an einem Mast: „hier war das". Kein Ortsnadel-Zeichen — die
+  // Person wurde auf einem Anlass kennengelernt, nicht an einem Ort.
+  fahne: "M6 20.5V4M6 4.5h12l-2.5 4 2.5 4H6",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

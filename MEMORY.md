@@ -7,6 +7,77 @@ betrifft.
 
 ---
 
+## 2026-09-10 — Der Kontakt bekommt Erreichbarkeit und eine Herkunft
+
+Ausgelöst von einer Meldung von Bernd: Zwei Personen, die er am Server im
+Event-Bereich angelegt hatte, seien in den Kontakten „nicht zu finden".
+
+### Was der Befund war
+
+Sie waren angelegt, nichts war verloren. Die Kontakteseite listet seit dem
+Umbau vom 8. September **Organisationen**, und ein Personenname steht dort
+grundsätzlich nirgends: Der eine steckte hinter der Zeile seines Hauses, der
+andere — ohne Organisation angelegt — hinter „Lose Kontakte". Die Suche fand
+zwar beide, zeigte aber wieder nur die Organisationszeile.
+
+**Die Ursache war nicht der Speicher, sondern eine Vorbelegung.** Im Formular
+„Steht noch nicht in den Kontakten" stand „Keine Organisation" oben und war
+vorausgewählt. Wer im Gespräch schnell tippt, lässt so etwas stehen.
+
+### Drei Festlegungen
+
+**1. `Kontakt.kennengelernt_auf` ist ein Feld, keine Ableitung.**
+Naheliegend wäre gewesen, die Herkunft aus dem frühesten Verlaufseintrag mit
+einem Event zu rechnen — das ist die Regel „Abgeleitete Werte werden
+gerechnet" aus CLAUDE.md. Sie greift hier nicht: Trifft man jemanden, den man
+seit Jahren kennt, auf einer Tagung wieder, stünde bei ihm plötzlich
+„kennengelernt auf dem FFG Forum". Woher jemand kommt, ist eine Tatsache von
+damals, keine Rechnung über den heutigen Verlauf. Sie entsteht an genau einer
+Stelle — beim Anlegen im Event — und ist später nicht zu rekonstruieren.
+
+`on_delete=PROTECT` wie überall: Ein Event, auf dem jemand kennengelernt
+wurde, lässt sich nicht mehr entfernen (409). Sonst zeigte die Kachel auf
+etwas, das es nicht mehr gibt, und die Auskunft verschwände still.
+
+**2. Die Löschreihenfolge der Sicherung dreht sich um.**
+`socos.Kontakt` steht jetzt **vor** `socos.Event`. Das ist die eigentliche
+Falle an dieser Änderung: Das Archiv sähe weiter vollständig aus, und erst das
+Einspielen bräche mitten im Leeren ab — mit halb geleerter Datenbank und dem
+Archiv als einziger Quelle. `test_kontakt_mit_erreichbarkeit_und_herkunft_wandert_mit`
+hält die Reihenfolge fest; wird sie zurückgedreht, fällt der Test.
+
+**3. „Ohne Organisation" bleibt möglich, wird aber eine Wahl.**
+Das Feld startet leer und verlangt eine Entscheidung; „Ohne Organisation"
+steht als letzte Möglichkeit darin. Nicht verboten — es gibt echte lose
+Kontakte —, aber nicht mehr das, was man aus Versehen bekommt.
+
+### Personen sind in der Übersicht wieder auffindbar
+
+`gesuchtePersonen` in `basis/kontakte.ts`: Bei gesetzter Suche stehen die
+passenden Namen unter der Organisationszeile. **Nur bei gesetzter Suche** —
+ohne sie wäre die Übersicht wieder die lange Personenliste, die sie bewusst
+nicht mehr ist.
+
+Der Helfer sucht ausdrücklich **nicht** über `passtKontakt`: Das nimmt den
+Namen der Organisation mit, und wer „Förderstelle" eingibt, bekäme die ganze
+Belegschaft unter die Zeile geschrieben. Gesucht wird in Name, Rolle, Mail und
+Telefon — dem, was eine Person ausmacht. Der offene Punkt bleibt draußen: Er
+sagt, was ansteht, nicht wer jemand ist.
+
+### Telefon ist Text, kein zerlegtes Feld
+
+Was auf einer Visitenkarte steht, ist mal `+43 664 …`, mal `0664 …`, mal eine
+Durchwahl in Klammern. Ein erzwungenes Format hieße, dass die Nummer gar nicht
+eingetragen wird.
+
+### Offen
+
+Mail und Telefon gibt es bisher nur bei der **Person**, nicht bei der
+Organisation. Eine Zentrale („office@…") hat noch keinen Platz. Kommt sie
+dazu, gehört sie an `Organisation` und nicht als Schein-Person daneben.
+
+---
+
 ## 2026-09-10 — Ein dritter Ball, und aus drei Stufen wird eine Skala
 
 Zwei Änderungen an derselben Seite, beide von Bernd angestoßen.

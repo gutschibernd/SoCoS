@@ -604,6 +604,33 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .person-name { font-size: 15px; font-weight: 600; }
 .person-rolle { font-size: 12px; color: var(--text-sehr-leise); margin-top: 2px; }
 .person-punkt { padding-top: 9px; border-top: 1px solid var(--flaeche-leise); font-size: 14px; }
+
+/* Mail und Telefon. Das Zeichen sitzt in einer festen Spalte, damit die
+   beiden Zeilen untereinander bündig anfangen — sonst rutscht die zweite um
+   die Breitendifferenz der Zeichen nach innen. */
+.person-draht { display: flex; flex-direction: column; gap: 4px; font-size: 13px; min-width: 0; }
+.draht-zeile { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.draht-zeichen { width: 14px; height: 14px; flex: 0 0 14px; color: var(--text-sehr-leise); }
+/* Die Adresse darf die Kachel nicht aufziehen: Eine lange Mailadresse hat
+   keine Leerzeichen und bräche sonst das Raster der drei Spalten auf. */
+.draht-zeile > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.draht-verweis { color: var(--text-leise); text-decoration: none; }
+.draht-verweis:hover { text-decoration: underline; }
+
+/* Woher die Person kommt — leise, weil es eine Herkunftsangabe ist und kein
+   Vorgang. Sie steht über dem Fuß und nicht in ihm: Im Fuß stünde sie neben
+   „Zuletzt" und läse sich wie ein zweites Datum. */
+.person-herkunft {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: var(--text-sehr-leise);
+}
+
+/* Die Namen unter der Organisationszeile. Eingerückt auf die Breite des
+   Kürzels davor, damit sie unter dem Namen stehen und nicht unter der Marke. */
+.gefundene { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0 0 34px; }
+.gefunden { font-size: 12px; color: var(--text-leise); }
+.gefunden-rolle { color: var(--text-sehr-leise); }
+
 .person-haus { display: block; }
 .person-haus .beschriftung-klein { margin-bottom: 3px; }
 .person-fuss {

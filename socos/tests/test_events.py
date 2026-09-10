@@ -206,3 +206,70 @@ class TestVerlaufAmEvent:
         )
         client.force_login(admin_nutzer)
         assert client.delete(f"/api/events/{event.pk}/").status_code == 409
+
+
+class TestKennengelerntAufDemEvent:
+    """
+    Wer auf einem Event angelegt wird, behält, woher er kommt.
+
+    Das ist die einzige Stelle, an der diese Auskunft entsteht: Später ist sie
+    nicht mehr zu rekonstruieren. Ein Verlaufseintrag mit Event sagt „wir haben
+    dort geredet" — auch bei jemandem, den man seit Jahren kennt.
+    """
+
+    @pytest.mark.django_db
+    def test_die_herkunft_wird_beim_anlegen_festgehalten(self, client, bearbeiter, event, haus):
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/kontakte/",
+            {
+                "name": "Christian Rauch",
+                "funktion": "Geschäftsführung",
+                "email": "rauch@example.invalid",
+                "telefon": "+43 664 1234567",
+                "organisation": haus.pk,
+                "kennengelernt_auf": event.pk,
+            },
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201, antwort.content
+
+        angelegt = antwort.json()
+        assert angelegt["email"] == "rauch@example.invalid"
+        assert angelegt["telefon"] == "+43 664 1234567"
+        # Der Titel kommt mit, damit die Kachel keinen zweiten Abruf braucht,
+        # nur um aus einer Zahl einen Namen zu machen.
+        assert angelegt["kennengelernt_auf_titel"] == event.titel
+
+    @pytest.mark.django_db
+    def test_die_herkunft_steht_auch_in_der_liste(self, client, bearbeiter, event, haus):
+        Kontakt.objects.create(name="Rauch", organisation=haus, kennengelernt_auf=event)
+        client.force_login(bearbeiter)
+        liste = client.get("/api/kontakte/").json()
+        assert [k["kennengelernt_auf_titel"] for k in liste] == [event.titel]
+
+    @pytest.mark.django_db
+    def test_ein_kontakt_braucht_kein_event(self, client, bearbeiter, haus):
+        """Die meisten Personen lernt man nicht auf einer Tagung kennen."""
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/kontakte/",
+            {"name": "Von Hand", "organisation": haus.pk},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201
+        assert antwort.json()["kennengelernt_auf"] is None
+        assert antwort.json()["kennengelernt_auf_titel"] == ""
+
+    @pytest.mark.django_db
+    def test_ein_event_mit_kennengelernten_wird_nicht_geloescht(
+        self, client, admin_nutzer, event, haus
+    ):
+        """
+        Sonst zeigte die Kachel danach auf ein Event, das es nicht mehr gibt —
+        und die Auskunft „kennengelernt auf …" wäre still verschwunden.
+        """
+        Kontakt.objects.create(name="Rauch", organisation=haus, kennengelernt_auf=event)
+        client.force_login(admin_nutzer)
+        assert client.delete(f"/api/events/{event.pk}/").status_code == 409
+

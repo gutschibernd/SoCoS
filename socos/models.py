@@ -604,8 +604,33 @@ class Kontakt(Basismodell):
     )
     name = models.CharField("Name", max_length=160)
     funktion = models.CharField("Rolle", max_length=160, blank=True)
+    email = models.EmailField("E-Mail", blank=True)
+    # Als Text und nicht zerlegt in Vorwahl und Nummer: Was auf einer
+    # Visitenkarte steht, ist mal „+43 664 …", mal „0664 …", mal eine
+    # Durchwahl mit Klammer. Ein Format zu erzwingen hieße, dass jemand die
+    # Nummer gar nicht einträgt.
+    telefon = models.CharField("Telefon", max_length=60, blank=True)
     ball = models.CharField("Am Zug", max_length=6, choices=Ball.choices, default=Ball.UNS)
     offener_punkt = models.CharField("Offener Punkt", max_length=250, blank=True)
+    # Wo diese Person hergekommen ist.
+    #
+    # **Warum ein Feld und nicht aus dem Verlauf gerechnet:** Der früheste
+    # Verlaufseintrag mit einem Event wäre die naheliegende Ableitung — und
+    # sie ist falsch, sobald man jemanden, den man längst kennt, auf einer
+    # Tagung wiedertrifft. Dann stünde bei einem Kontakt aus dem Jahr davor
+    # plötzlich „kennengelernt auf dem FFG Forum". Woher jemand kommt, ist
+    # eine Tatsache und keine Rechnung; sie wird beim Anlegen festgehalten.
+    #
+    # Leer heißt: nicht auf einem Event kennengelernt (oder von Hand angelegt,
+    # bevor es das Feld gab). Kein Ersatzwert, der beides vermischt.
+    kennengelernt_auf = models.ForeignKey(
+        "Event",
+        verbose_name="Kennengelernt auf",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="kennengelernte",
+    )
 
     class Meta(Basismodell.Meta):
         verbose_name = "Kontakt"

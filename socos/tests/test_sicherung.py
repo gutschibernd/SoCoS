@@ -187,6 +187,37 @@ def test_event_hitlist_und_teilnehmer_wandern_mit(tmp_path, medien, bearbeiter):
 
 
 @pytest.mark.django_db(transaction=True)
+def test_kontakt_mit_erreichbarkeit_und_herkunft_wandert_mit(tmp_path, medien, bearbeiter):
+    """
+    Mail, Telefon und das Event, auf dem jemand kennengelernt wurde.
+
+    Das Feld `kennengelernt_auf` zeigt vom Kontakt auf das Event und dreht
+    damit die Löschreihenfolge um: Wird das Event zuerst geleert, hält PROTECT
+    dagegen und das Einspielen bricht mitten im Vorgang ab. Dieser Test fällt,
+    wenn jemand die Reihenfolge in `sicherung.py` zurückdreht — die Ausfuhr
+    allein sähe weiter vollständig aus.
+    """
+    haus = Organisation.objects.create(name="Institut Süd")
+    event = Event.objects.create(titel="FFG Forum", ort="Wien", von="2026-10-02")
+    Kontakt.objects.create(
+        organisation=haus,
+        name="Rauch",
+        email="rauch@example.invalid",
+        telefon="+43 664 1234567",
+        kennengelernt_auf=event,
+    )
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    wieder_da = Kontakt.objects.get(name="Rauch")
+    assert wieder_da.email == "rauch@example.invalid"
+    assert wieder_da.telefon == "+43 664 1234567"
+    assert wieder_da.kennengelernt_auf.titel == "FFG Forum"
+
+
+@pytest.mark.django_db(transaction=True)
 def test_stillgelegter_nutzer_wandert_mit(tmp_path, medien, bearbeiter):
     """
     Ein stillgelegtes Konto ist Bestand, kein Müll — das Änderungsprotokoll
