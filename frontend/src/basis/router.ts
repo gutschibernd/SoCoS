@@ -43,6 +43,15 @@ export const RUBRIKEN = ["konten", "protokoll", "sicherung"] as const;
 export type Rubrik = (typeof RUBRIKEN)[number];
 
 /**
+ * Die Teile des Profils — dieselbe Bauart wie die Rubriken der Einstellungen,
+ * nur mit der Leiste auf der anderen Seite. Auch sie stehen im Weg und nicht
+ * im Zustand der Ansicht: Sonst würfe die Zurück-Geste des Geräts jemanden aus
+ * dem Profil heraus, statt vom Teil zum Profil zurück.
+ */
+export const PROFILTEILE = ["person", "kontakt", "adresse", "konto"] as const;
+export type Profilteil = (typeof PROFILTEILE)[number];
+
+/**
  * Was hinter einer Seite stehen darf. Was hier nicht durchkommt, wird beim
  * Lesen des Pfades verworfen — sonst hinge an einer beliebigen erfundenen
  * zweiten Stufe eine Ansicht in einem Zustand, den niemand vorgesehen hat.
@@ -58,9 +67,25 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   kontakte: (unter) => unter === "lose" || /^\d+$/.test(unter),
   events: (unter) => /^\d+$/.test(unter),
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
+  profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),
 };
 
 export type Ort = { seite: Seite; unter: string | null };
+
+/**
+ * Wie tief die Anwendung in der Geschichte des Browsers steht — mitgeschrieben
+ * in `history.state`.
+ *
+ * **Warum überhaupt gezählt wird:** Ein „Zurück", das blind `history.back()`
+ * ruft, führt bei einer direkt aufgerufenen Seite aus SoCoS heraus — auf die
+ * Seite davor im Browser, also irgendwohin. Der Zähler steht im Zustand des
+ * Eintrags und nicht in einer Variablen, weil er sonst beim Vor und Zurück
+ * auseinanderliefe: Der Browser gibt den Zustand des Eintrags zurück, eine
+ * Variable zählt nur hoch.
+ */
+type Weggeschichte = { tiefe: number } | null;
+
+const tiefe = () => (window.history.state as Weggeschichte)?.tiefe ?? 0;
 
 export function ausPfad(pfad: string): Ort {
   const teile = pfad.replace(/^\/+/, "").split("/").filter(Boolean);
@@ -74,7 +99,16 @@ export function alsPfad(seite: Seite, unter: string | null): string {
   return unter ? `/${seite}/${unter}` : `/${seite}`;
 }
 
-export function useSeite(): [Ort, (seite: Seite, unter?: string | null) => void] {
+export type Weg = {
+  ort: Ort;
+  wechseln: (seite: Seite, unter?: string | null) => void;
+  /** Eine Ebene hoch, sonst in der Geschichte zurück, sonst zur Startseite. */
+  zurueck: () => void;
+  /** Ob es überhaupt ein Zurück gibt — auf der Startseite beim ersten Aufruf nicht. */
+  kannZurueck: boolean;
+};
+
+export function useSeite(): Weg {
   const [ort, setOrt] = useState<Ort>(() => ausPfad(window.location.pathname));
 
   useEffect(() => {
@@ -84,9 +118,29 @@ export function useSeite(): [Ort, (seite: Seite, unter?: string | null) => void]
   }, []);
 
   const wechseln = (seite: Seite, unter: string | null = null) => {
-    window.history.pushState(null, "", alsPfad(seite, unter));
+    window.history.pushState({ tiefe: tiefe() + 1 }, "", alsPfad(seite, unter));
     setOrt({ seite, unter });
   };
 
-  return [ort, wechseln];
+  /**
+   * Drei Fälle, in dieser Reihenfolge:
+   *
+   * 1. Steht etwas hinter der Seite (ein Kontakt, ein Event, „bearbeiten"),
+   *    geht es **eine Ebene hoch** — nicht in der Geschichte zurück. Wer über
+   *    einen Verlaufseintrag von einem Kontakt zu einem Event gesprungen ist,
+   *    will von dort zur Eventliste und nicht wieder zum Kontakt.
+   * 2. Sonst zurück in der Geschichte, solange sie in SoCoS bleibt.
+   * 3. Sonst zur Startseite. Von dort führt jeder weitere Weg mit einem Klick
+   *    weiter — anders als aus einem Lesezeichen heraus, wo „zurück" den
+   *    Browser aus der Anwendung trüge.
+   */
+  const zurueck = () => {
+    if (ort.unter) return wechseln(ort.seite, null);
+    if (tiefe() > 0) return window.history.back();
+    if (ort.seite !== "start") return wechseln("start");
+  };
+
+  const kannZurueck = ort.unter !== null || tiefe() > 0 || ort.seite !== "start";
+
+  return { ort, wechseln, zurueck, kannZurueck };
 }

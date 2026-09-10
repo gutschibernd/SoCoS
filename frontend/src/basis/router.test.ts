@@ -56,6 +56,12 @@ describe("ausPfad", () => {
     expect(ausPfad("/einstellungen/quatsch")).toEqual({ seite: "einstellungen", unter: null });
   });
 
+  it("liest den Teil des Profils", () => {
+    expect(ausPfad("/profil")).toEqual({ seite: "profil", unter: null });
+    expect(ausPfad("/profil/adresse")).toEqual({ seite: "profil", unter: "adresse" });
+    expect(ausPfad("/profil/gehalt")).toEqual({ seite: "profil", unter: null });
+  });
+
   it("übergeht doppelte Schrägstriche", () => {
     expect(ausPfad("//kontakte//12")).toEqual({ seite: "kontakte", unter: "12" });
   });

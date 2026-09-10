@@ -9,6 +9,7 @@ import {
   passtEvent,
   teileNachZeit,
   wen,
+  wenGetroffen,
   zaehlung,
 } from "./events";
 
@@ -140,6 +141,45 @@ describe("nochOffen", () => {
   it("nimmt bei einer losen Person ihre Rolle als Zusatz", () => {
     const offen = nochOffen([], personen, []);
     expect(offen.personen.map((a) => a.dazu)).toEqual(["FFG", "Einkauf"]);
+  });
+});
+
+describe("wenGetroffen", () => {
+  const orgs = [
+    { id: 1, name: "FFG", typ: "Förderstelle" },
+    { id: 2, name: "TU Graz", typ: "Forschung" },
+  ] as Organisation[];
+  const personen = [
+    { id: 7, name: "Berger", funktion: "Leitung", organisation_name: "FFG" },
+    { id: 8, name: "Huber", funktion: "Einkauf", organisation_name: "" },
+  ] as Kontakt[];
+
+  // Der Kern der Sache: Wer nicht auf der Hitlist steht, kann trotzdem
+  // getroffen worden sein. Vorher bot der Verlauf nur die Hitlist an.
+  it("bietet auch an, wer nicht auf der Hitlist steht", () => {
+    const wahl = wenGetroffen(orgs, personen, [
+      ziel({ id: 1, kontakt: 7, kontakt_name: "Berger", kontakt_organisation: "FFG" }),
+    ]);
+    expect(wahl.hitlist.map((a) => a.name)).toEqual(["Berger"]);
+    expect(wahl.personen.map((a) => a.name)).toEqual(["Huber"]);
+    expect(wahl.organisationen.map((a) => a.name)).toEqual(["FFG", "TU Graz"]);
+  });
+
+  // Sonst stünde derselbe Name zweimal im Auswahlfeld, einmal je Gruppe.
+  it("zeigt niemanden zweimal", () => {
+    const wahl = wenGetroffen(orgs, personen, [
+      ziel({ id: 1, organisation: 2, organisation_name: "TU Graz" }),
+      ziel({ id: 2, kontakt: 8, kontakt_name: "Huber" }),
+    ]);
+    const alle = [...wahl.hitlist, ...wahl.personen, ...wahl.organisationen].map((a) => a.wert);
+    expect(new Set(alle).size).toBe(alle.length);
+  });
+
+  it("kommt mit einem Event ohne Hitlist zurecht", () => {
+    const wahl = wenGetroffen(orgs, personen, []);
+    expect(wahl.hitlist).toEqual([]);
+    expect(wahl.personen).toHaveLength(2);
+    expect(wahl.organisationen).toHaveLength(2);
   });
 });
 

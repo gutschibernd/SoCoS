@@ -7,6 +7,104 @@ betrifft.
 
 ---
 
+## 2026-09-10 — Zurück-Knopf, Profil in vier Teilen, Events umgestellt
+
+Vier Befunde von Bernd an einem Nachmittag. Der Reihe nach.
+
+### Der Zurück-Knopf fehlte auf sechs von acht Seiten
+
+Er stand in zwei Ansichten (Kontakte, Events) als „Alle Organisationen" /
+„Alle Events" **in** der Ansicht. Überall sonst führte der einzige Weg zurück
+über die Kopfleiste — und auf Profil und Einstellungen, die dort keinen Eintrag
+haben, gar keiner.
+
+Jetzt steht er **einmal** in der Titelzeile in `App.tsx`, für alle Seiten. Was
+in acht Ansichten steht, weicht in der neunten ab.
+
+**Was er tut, in dieser Reihenfolge** (`useSeite().zurueck`, basis/router.ts):
+
+1. Steht etwas hinter der Seite (`/kontakte/12`, `/events/3`,
+   `/projekt/bearbeiten`), geht es **eine Ebene hoch** — nicht in der Geschichte
+   zurück. Wer über einen Verlaufseintrag von einem Kontakt zu einem Event
+   gesprungen ist, will von dort zur Eventliste.
+2. Sonst `history.back()`, **solange die Geschichte in SoCoS bleibt**.
+3. Sonst zur Startseite.
+
+**Die Falle, deretwegen gezählt wird:** Ein blindes `history.back()` trägt
+jemanden, der eine Seite direkt aufgerufen hat (Lesezeichen, Neuladen), aus
+SoCoS heraus — auf die Seite davor im Browser. Deshalb schreibt `wechseln` eine
+Tiefe in `history.state`. Sie steht im Zustand des Eintrags und nicht in einer
+Variablen: Eine Variable zählt nur hoch, der Browser gibt beim Vor und Zurück
+den Zustand des jeweiligen Eintrags zurück.
+
+Die beiden Zeilen in Kontakten und Events sind auf ihre Brotkrume
+zusammengeschrumpft — die Ortsangabe bleibt, der zweite Knopf daneben wäre
+Doppelung.
+
+### Das Profil war eine Liste, kein Aufbau
+
+Sieben Felder untereinander. Jetzt vier Teile mit einer Leiste — **rechts**,
+nicht links wie in den Einstellungen: Hier wird geschrieben, und das Formular
+soll am selben linken Rand beginnen wie jede andere Seite; die Leiste ist die
+Übersicht daneben.
+
+- **Person** (Name, Rolle, Geburtsdatum) · **Kontakt** (E-Mail, Telefon) ·
+  **Adresse** (Straße, Ort) · **Konto**.
+- **Konto ist nur zum Ansehen**: Berechtigung, Kürzel, Farbe, und der Hinweis,
+  dass das Passwort ein Admin am Server setzt. Ein Passwortfeld im Browser
+  hieße, dass das Passwort in Verlauf und Passwortspeicher landet — dieselbe
+  Entscheidung wie beim Anlegen von Konten (siehe `Team.tsx`).
+- **Der Teil steht im Weg** (`/profil/adresse`), wie die Rubriken der
+  Einstellungen. Sonst würfe die Zurück-Geste jemanden aus dem Profil heraus,
+  statt vom Teil zum Profil.
+- **Gespeichert wird alles Geänderte, nicht nur der offene Teil.** Sonst
+  verlöre ein Wechsel von „Person" zu „Adresse" die angefangene Zeile — an
+  einer Stelle, die aussieht, als hätte man bloß umgeblättert. Unverändertes
+  geht gar nicht erst hinaus; es stünde sonst als „alt = neu" im
+  Änderungsprotokoll.
+
+### Events: der Verlauf gehört über die Hitlist
+
+Die Hitlist stand über dem Verlauf und war immer offen. Wer auf einer Tagung
+schnell ein Gespräch festhalten wollte, scrollte erst an zwanzig geplanten
+Namen vorbei.
+
+- **Verlauf oben, Hitlist darunter — und zugeklappt**, bei jedem Aufruf neu
+  (`<details>`, kein gemerkter Zustand: Gemerkt wäre sie genau dann offen, wenn
+  man sie am wenigsten braucht). Zugeklappt zeigt die Zeile trotzdem, wie viele
+  offen sind.
+- `<details>` und kein Knopf mit Zustand: Auf- und Zuklappen kann der Browser
+  selbst, samt Tastatur und Vorlesen. Ein Klick auf das `?` im `<summary>`
+  bekommt ein `preventDefault` — sonst klappte jede Erklärung die Karte zu.
+
+### Ein Verlaufseintrag hängt an keiner Hitlist-Zeile mehr
+
+**Das war der eigentliche Fehler.** Der Verlauf bot nur die Namen von der
+Hitlist an. Wer jemanden traf, der nicht auf dem Plan stand, musste ihn erst auf
+die Planungsliste setzen — und die Liste erzählte danach eine Vorbereitung, die
+es nie gab.
+
+Jetzt bietet `wenGetroffen` (basis/events.ts) **alle** Kontakte und
+Organisationen an, die Hitlist-Namen zuerst gruppiert. Die Hitlist ist wieder
+das, was sie sein soll: der Plan von vorher.
+
+**Und das Formular legt die Organisation gleich mit an.** „Vor Ort
+kennengelernt" ist aus der Hitlist- in die Verlaufskarte gewandert (dort, wo die
+Hitlist zugeklappt ist, hätte es niemand mehr gefunden), es steht still
+zugeklappt hinter einem Knopf, und die Organisation kann neu sein: Wer auf einer
+Tagung jemanden von einem unbekannten Haus trifft, hätte sonst drei Stationen
+vor sich — Kontakte, Organisation, Person, zurück zum Event. Nach der dritten
+notiert das niemand mehr.
+
+Die neue Person landet **nicht** mehr auf der Hitlist (das tat sie vorher, als
+„getroffen"), sondern ist oben im Feld „Mit wem" gleich ausgewählt.
+
+**Nicht abgenommen:** Wieder ohne die Prüfung an 1280×800 und 375×812 in hell
+und dunkel — die Oberfläche verlangt eine Anmeldung. Auf Bernds Wunsch trotzdem
+committet.
+
+---
+
 ## 2026-09-10 — Das Zahnrad führt auf eine Seite, nicht in einen Dialog
 
 Bernd wollte hinter dem Zahnrad rechts oben „ein gesamtes Untermenü, kein Popup".
