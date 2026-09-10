@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ballText,
   letzterKontakt,
   offenerPunkt,
   passtKontakt,
   passtOrganisation,
+  stufenrang,
+  stufentitel,
   verlaufDerOrganisation,
   verlaufDerPersonen,
   wartenAufUns,
@@ -50,7 +53,7 @@ function organisation(teil: Partial<Organisation> = {}): Organisation {
     name: "Förderstelle",
     kurz: "FÖR",
     typ: "Förderstelle",
-    stufe: "antrag",
+    stufe: "angebahnt",
     nutzen: "",
     kontakte: [],
     verlauf: [],
@@ -117,9 +120,43 @@ describe("wartenAufUns", () => {
       person(1, "A", { ball: "uns" }),
       person(2, "B", { ball: "ihnen" }),
       person(3, "C", { ball: "uns" }),
+      person(4, "D", { ball: "nichts" }),
     ];
 
     expect(wartenAufUns(kontakte)).toBe(2);
+  });
+});
+
+describe("ballText", () => {
+  it("beschriftet alle drei Stände", () => {
+    expect(ballText("uns")).toBe("bei uns");
+    expect(ballText("ihnen")).toBe("bei ihnen");
+    expect(ballText("nichts")).toBe("nichts offen");
+  });
+
+  it("gibt einen unbekannten Wert unverändert zurück, statt ihn zu verschlucken", () => {
+    expect(ballText("krumm")).toBe("krumm");
+  });
+});
+
+describe("stufenrang", () => {
+  it("zählt von der ersten Stufe an, nicht von null", () => {
+    expect(stufenrang("erstkontakt")).toBe(1);
+    expect(stufenrang("partner")).toBe(5);
+  });
+
+  it("ordnet die Stufen von fern nach nah", () => {
+    const raenge = ["erstkontakt", "kennengelernt", "austausch", "angebahnt", "partner"].map(
+      stufenrang,
+    );
+
+    expect(raenge).toEqual([...raenge].sort((a, b) => a - b));
+  });
+
+  it("gibt einer unbekannten Stufe keine Marke, statt sie ganz nach vorn zu stellen", () => {
+    // „antrag" gab es bis zur Skala. Ein alter Wert soll die Leiter nicht füllen.
+    expect(stufenrang("antrag")).toBe(0);
+    expect(stufentitel("antrag")).toBe("antrag");
   });
 });
 
@@ -153,6 +190,15 @@ describe("offenerPunkt", () => {
   it("ist leer, wenn nichts offen ist", () => {
     expect(offenerPunkt([person(1, "A", { ball: "ihnen" })])).toEqual({ text: "", weitere: 0 });
   });
+
+  it("stellt eine stehengebliebene Notiz hinter das, was wirklich läuft", () => {
+    const kontakte = [
+      person(1, "A", { ball: "nichts", offener_punkt: "Broschüre lag bei" }),
+      person(2, "B", { ball: "ihnen", offener_punkt: "Wir warten auf den Bericht" }),
+    ];
+
+    expect(offenerPunkt(kontakte)).toEqual({ text: "Wir warten auf den Bericht", weitere: 1 });
+  });
 });
 
 describe("passtKontakt", () => {
@@ -165,7 +211,15 @@ describe("passtKontakt", () => {
   it("filtert nach dem Ball", () => {
     expect(passtKontakt(andrea, "", "uns")).toBe(true);
     expect(passtKontakt(andrea, "", "ihnen")).toBe(false);
+    expect(passtKontakt(andrea, "", "nichts")).toBe(false);
     expect(passtKontakt(andrea, "", "alle")).toBe(true);
+  });
+
+  it("holt mit „nichts offen“ nur die, bei denen gerade nichts ansteht", () => {
+    const ruhig = person(8, "Martin Haslinger", { ball: "nichts" });
+
+    expect(passtKontakt(ruhig, "", "nichts")).toBe(true);
+    expect(passtKontakt(ruhig, "", "ihnen")).toBe(false);
   });
 
   it("sucht ohne Rücksicht auf Groß- und Kleinschreibung in Name, Rolle und Punkt", () => {

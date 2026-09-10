@@ -500,8 +500,23 @@ class Zeitbuchung(Basismodell):
 
 
 class Organisationsstufe(models.TextChoices):
+    """
+    Wie nah wir einer Organisation sind — eine Leiter, keine Schubladen.
+
+    Vorher standen hier drei Kategorien, und eine davon (`antrag`) war ein
+    Vorgang, kein Verhältnis: Ein Haus, das man gut kennt und mit dem gerade
+    kein Antrag läuft, fiel damit auf „Erstkontakt" zurück. Jetzt beschreiben
+    alle Stufen dasselbe — wie weit die Beziehung ist —, und dadurch ist
+    „weiter oben" eine Aussage.
+
+    **Die Reihenfolge ist die Skala.** Wer eine Stufe einschiebt, schiebt sie
+    an die Stelle, an die sie gehört; die Anzeige zählt die Punkte davor.
+    """
+
     ERSTKONTAKT = "erstkontakt", "Erstkontakt"
-    ANTRAG = "antrag", "Antrag läuft"
+    KENNENGELERNT = "kennengelernt", "Kennengelernt"
+    AUSTAUSCH = "austausch", "Im Austausch"
+    ANGEBAHNT = "angebahnt", "Angebahnt"
     PARTNER = "partner", "Partner"
 
 
@@ -532,10 +547,20 @@ class Organisation(Basismodell):
 
 
 class Ball(models.TextChoices):
-    """Wer am Zug ist. `uns` heißt: wir schulden etwas."""
+    """
+    Wer am Zug ist. `uns` heißt: wir schulden etwas.
+
+    `nichts` ist der dritte Fall: Der Kontakt läuft, aber gerade steht nichts
+    an — kein Rückstand bei uns, und wir warten auch auf nichts. Ohne ihn
+    landeten diese Personen unter „bei ihnen", und der Filter „Wir warten"
+    zeigte Leute, auf die niemand wartet. Der Wert ist absichtlich kein
+    Weglassen (leer): Er ist eine Aussage, und ein leeres Feld wäre von
+    „noch nie eingetragen" nicht zu unterscheiden.
+    """
 
     UNS = "uns", "bei uns"
     IHNEN = "ihnen", "bei ihnen"
+    NICHTS = "nichts", "nichts offen"
 
 
 class Kontakt(Basismodell):

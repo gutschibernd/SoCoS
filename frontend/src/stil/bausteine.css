@@ -485,12 +485,21 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   font-size: 11px; font-weight: 600; white-space: nowrap;
 }
 
-/* Die Stufe der Organisation. Eigene Namen, obwohl die Farben denen der
-   Paketstatus gleichen: „status-zugesagt" für einen Partner zu schreiben wäre
-   beim nächsten Lesen eine falsche Fährte. */
-.stufe-erstkontakt { background: var(--ruhend-hell); color: var(--text-leise); }
-.stufe-antrag      { background: var(--marke-hell);  color: var(--marke); }
-.stufe-partner     { background: var(--gut-hell);    color: var(--gut); }
+/* Die Nähe zu einer Organisation als Leiter: fünf Marken, die erreichten
+   gefüllt. Eine Farbe für alle, nicht eine je Stufe — die Aussage steckt in
+   der Anzahl, und fünf Farben nebeneinander sähen aus wie fünf Bedeutungen.
+
+   Rechteckig, nicht rund: eckige Kanten sind aus dem Entwurf verbindlich.
+   Die Marken tragen `flex: 0 0 auto`, damit sie in einer engen Tabellenspalte
+   nicht zu Strichen zusammengedrückt werden. */
+.leiter { display: inline-flex; align-items: center; gap: 8px; }
+.leiter-marken { display: inline-flex; gap: 3px; }
+.leiter-marken i {
+  flex: 0 0 auto; width: 8px; height: 14px; border-radius: 1px;
+  background: var(--rand-stark);
+}
+.leiter-marken i.voll { background: var(--marke); }
+.leiter-text { font-size: 11px; font-weight: 600; color: var(--text-leise); white-space: nowrap; }
 
 .zurueckzeile { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .brotkrume { font-size: 13px; color: var(--text-leise); }
@@ -526,8 +535,9 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   border: 1px solid transparent; border-radius: var(--kante);
   font-weight: 600; cursor: pointer;
 }
-.ball-wahl[data-ball="uns"]   { background: var(--warnung-hell); color: var(--warnung); }
-.ball-wahl[data-ball="ihnen"] { background: var(--flaeche-leise); color: var(--text-leise); }
+.ball-wahl[data-ball="uns"]    { background: var(--warnung-hell); color: var(--warnung); }
+.ball-wahl[data-ball="ihnen"]  { background: var(--flaeche-leise); color: var(--text-leise); }
+.ball-wahl[data-ball="nichts"] { background: var(--gut-hell);      color: var(--gut); }
 
 /* Nachbuchen steht über dem Verlauf, nicht darunter: Wer etwas einträgt, hat
    es gerade erlebt und soll nicht erst an zwanzig Einträgen vorbeiscrollen. */
@@ -542,6 +552,9 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 }
 .ball-uns { background: var(--warnung-hell); color: var(--warnung); }
 .ball-ihnen { background: var(--flaeche-leise); color: var(--text-leise); }
+/* Grün und nicht grau: „nichts offen" ist ein Ergebnis, kein Nichts. Grau
+   sähe aus wie „nie gepflegt" — genau die Zeile, über die man hinwegliest. */
+.ball-nichts { background: var(--gut-hell); color: var(--gut); }
 
 .verlauf { list-style: none; margin: 0; padding: 0; }
 .verlauf li { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--flaeche-leise); }

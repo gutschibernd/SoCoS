@@ -15,7 +15,57 @@
 
 import type { Kontakt, Organisation, Verlaufseintrag } from "./daten";
 
-export type Ballfilter = "alle" | "uns" | "ihnen";
+export type Ballfilter = "alle" | Kontakt["ball"];
+
+/**
+ * Wer am Zug ist, mit seiner Beschriftung — die Werte kommen aus `Ball` in
+ * socos/models.py.
+ *
+ * Als Liste und nicht als Bedingung im Markup: Solange es zwei Werte waren,
+ * war `ball === "uns" ? … : …` kurz und richtig. Beim dritten wird daraus
+ * still eine falsche Aussage — „nichts offen" stünde als „bei ihnen" da, und
+ * auffallen würde es niemandem.
+ */
+export const BAELLE = [
+  { wert: "uns", text: "bei uns" },
+  { wert: "ihnen", text: "bei ihnen" },
+  { wert: "nichts", text: "nichts offen" },
+] as const;
+
+export function ballText(ball: string): string {
+  return BAELLE.find((b) => b.wert === ball)?.text ?? ball;
+}
+
+/**
+ * Die Skala der Nähe zu einer Organisation, von fern nach nah — dieselbe
+ * Reihenfolge wie `Organisationsstufe` in socos/models.py.
+ *
+ * Sie steht hier und nicht in der Kontakteseite, weil die Anzeige aus der
+ * **Stellung** in dieser Liste besteht: „zwei von fünf". Zwei Listen wären
+ * zwei Skalen, und eine eingeschobene Stufe verschöbe nur eine davon.
+ */
+export const STUFEN = [
+  { wert: "erstkontakt", titel: "Erstkontakt" },
+  { wert: "kennengelernt", titel: "Kennengelernt" },
+  { wert: "austausch", titel: "Im Austausch" },
+  { wert: "angebahnt", titel: "Angebahnt" },
+  { wert: "partner", titel: "Partner" },
+] as const;
+
+export function stufentitel(stufe: string): string {
+  return STUFEN.find((s) => s.wert === stufe)?.titel ?? stufe;
+}
+
+/**
+ * Die wievielte Stufe das ist, 1 … STUFEN.length.
+ *
+ * Ein unbekannter Wert — eine Stufe, die es einmal gab und nicht mehr gibt —
+ * ergibt 0: keine gefüllte Marke, aber auch kein Absturz und keine
+ * Behauptung, das Haus stünde ganz am Anfang.
+ */
+export function stufenrang(stufe: string): number {
+  return STUFEN.findIndex((s) => s.wert === stufe) + 1;
+}
 
 /**
  * Die vier Arten eines Verlaufseintrags, mit ihrer Beschriftung.
@@ -79,13 +129,21 @@ export function wartenAufUns(kontakte: Kontakt[]): number {
  * Gezeigt wird einer, die übrigen als Zahl daneben: Alle aufzuzählen sprengt
  * die Zeile, gar keinen zu zeigen macht die Spalte wertlos.
  *
- * Vorne steht, was **wir** schulden. Ein Punkt, auf den wir bloß warten, ist
- * aber auch offen — ihn zu verschweigen ließe die Zeile leer aussehen,
- * obwohl dort etwas läuft.
+ * Vorne steht, was **wir** schulden, dahinter, worauf wir warten. Ein Punkt,
+ * auf den wir bloß warten, ist auch offen — ihn zu verschweigen ließe die
+ * Zeile leer aussehen, obwohl dort etwas läuft.
+ *
+ * Ganz hinten steht der Text einer Person, bei der nichts offen ist: Er ist
+ * stehengebliebene Notiz, kein Vorgang. Ihn zu unterschlagen wäre trotzdem
+ * falsch — er stünde sonst nirgends mehr, obwohl ihn jemand geschrieben hat.
  */
 export function offenerPunkt(kontakte: Kontakt[]): { text: string; weitere: number } {
   const offene = kontakte.filter((k) => k.offener_punkt.trim());
-  const zuerst = offene.filter((k) => k.ball === "uns").concat(offene.filter((k) => k.ball !== "uns"));
+  const rang = (k: Kontakt) => {
+    const i = BAELLE.findIndex((b) => b.wert === k.ball);
+    return i < 0 ? BAELLE.length : i;
+  };
+  const zuerst = [...offene].sort((a, b) => rang(a) - rang(b));
   return { text: zuerst[0]?.offener_punkt ?? "", weitere: Math.max(0, zuerst.length - 1) };
 }
 

@@ -267,17 +267,17 @@ class Command(BaseCommand):
         #
         # Erfundene Organisationen und Personen. Die echten kommen aus daten/.
         orgs = [
-            ("Bundesförderstelle", "Förderstelle", "antrag",
+            ("Bundesförderstelle", "Förderstelle", "angebahnt",
              "Kleinprojekt läuft, Zwischenbericht steht an."),
-            ("Landesförderstelle", "Förderstelle", "antrag",
+            ("Landesförderstelle", "Förderstelle", "angebahnt",
              "Umsetzungsschiene beantragt, Entscheidung offen."),
             ("Regionalagentur", "Förderstelle", "erstkontakt",
              "Büroförderung angefragt, noch keine Rückmeldung."),
             ("Universitätsklinik", "Forschung", "partner",
              "Studiendesign in Abstimmung, Ethikantrag vorbereitet."),
-            ("Apothekenkooperation", "Partner", "partner",
+            ("Apothekenkooperation", "Partner", "austausch",
              "Praxistest der Dispensierhilfe zugesagt."),
-            ("Gesundheitsfonds", "Fonds", "erstkontakt",
+            ("Gesundheitsfonds", "Fonds", "kennengelernt",
              "Interesse an der Präventionsseite, will ein Konzept sehen."),
         ]
         angelegt = {}
@@ -312,6 +312,10 @@ class Command(BaseCommand):
             (None, "J. Steiner", "Loser Kontakt aus dem Netzwerk", "ihnen",
              "Einschätzung zur Vermarktung", [
                  (21, "event", "Gespräch auf einer Veranstaltung", "Nicht priorisiert."),
+             ]),
+            ("Universitätsklinik", "B. Moser", "Studienassistenz", "nichts",
+             "", [
+                 (7, "mail", "Terminbestätigung", "Alles beisammen, nächster Termin steht."),
              ]),
         ]
 

@@ -101,7 +101,7 @@ export type Kontakt = {
   funktion: string;
   organisation: number | null;
   organisation_name: string;
-  ball: "uns" | "ihnen";
+  ball: "uns" | "ihnen" | "nichts";
   offener_punkt: string;
   letzter_kontakt: string | null;
   verlauf: Verlaufseintrag[];
@@ -126,7 +126,7 @@ export type Organisation = {
   name: string;
   kurz: string;
   typ: string;
-  stufe: "erstkontakt" | "antrag" | "partner";
+  stufe: "erstkontakt" | "kennengelernt" | "austausch" | "angebahnt" | "partner";
   nutzen: string;
   kontakte: Kontakt[];
   verlauf: Verlaufseintrag[];

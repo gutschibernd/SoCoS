@@ -26,14 +26,19 @@ import {
 } from "../basis/daten";
 import {
   artText,
+  ballText,
   letzterKontakt,
   offenerPunkt,
   passtKontakt,
   passtOrganisation,
   verlaufDerOrganisation,
   verlaufDerPersonen,
+  stufenrang,
+  stufentitel,
   wartenAufUns,
   zeigtLoseZeile,
+  BAELLE,
+  STUFEN,
   VERLAUFSARTEN,
   type Ballfilter,
   type Verlaufszeile,
@@ -48,20 +53,37 @@ import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 
-const STUFEN: { wert: Organisation["stufe"]; titel: string }[] = [
-  { wert: "erstkontakt", titel: "Erstkontakt" },
-  { wert: "antrag", titel: "Antrag läuft" },
-  { wert: "partner", titel: "Partner" },
-];
-
 /** Der Weg zu den Personen ohne Organisation. Kein Name kann so heißen. */
 const LOSE = "lose";
 
 const DATUM = new Intl.DateTimeFormat("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 const alsDatum = (iso: string | null) => (iso ? DATUM.format(new Date(`${iso}T00:00:00`)) : "—");
-const stufentitel = (stufe: Organisation["stufe"]) =>
-  STUFEN.find((s) => s.wert === stufe)?.titel ?? stufe;
+
+/**
+ * Die Nähe als Leiter: so viele Marken gefüllt, wie die Stufe weit ist.
+ *
+ * Warum nicht mehr ein farbiger Chip je Kategorie: Drei Chips waren drei
+ * Schubladen, und dass eine über der anderen steht, sah man ihnen nicht an.
+ * Fünf Marken zeigen die Ordnung ohne ein Wort, und im Überfliegen einer
+ * Liste sieht man, wo etwas erst anfängt und wo etwas trägt.
+ *
+ * Die Marken selbst sind für den Screenreader nichts — die Beschriftung
+ * daneben sagt dasselbe in Worten, und „Punkt Punkt Punkt" sagt gar nichts.
+ */
+function Naehe({ stufe }: { stufe: Organisation["stufe"] }) {
+  const rang = stufenrang(stufe);
+  return (
+    <span className="leiter">
+      <span className="leiter-marken" aria-hidden="true">
+        {STUFEN.map((s, i) => (
+          <i key={s.wert} className={i < rang ? "voll" : ""} />
+        ))}
+      </span>
+      <span className="leiter-text">{stufentitel(stufe)}</span>
+    </span>
+  );
+}
 
 async function aendern(pfad: string, daten: Record<string, unknown>): Promise<void> {
   await hole(pfad, { method: "PATCH", body: JSON.stringify(daten) });
@@ -256,8 +278,9 @@ function Uebersicht({
             <option value="alle">Alle</option>
             <option value="uns">Warten auf uns</option>
             <option value="ihnen">Wir warten</option>
+            <option value="nichts">Nichts offen</option>
           </select>
-          <Hilfe text="„Warten auf uns“ heißt: wir schulden etwas. „Wir warten“ heißt: der Ball liegt bei den anderen. Der Ball hängt an den Personen — eine Organisation passt, wenn eine ihrer Personen passt." />
+          <Hilfe text="„Warten auf uns“ heißt: wir schulden etwas. „Wir warten“ heißt: der Ball liegt bei den anderen. „Nichts offen“ heißt: der Kontakt läuft, aber gerade steht nichts an. Der Ball hängt an den Personen — eine Organisation passt, wenn eine ihrer Personen passt." />
         </div>
       </div>
 
@@ -305,7 +328,7 @@ function Uebersicht({
                     </td>
                     <td data-spalte="Typ">{o.typ || "—"}</td>
                     <td data-spalte="Stufe">
-                      <span className={`status stufe-${o.stufe}`}>{stufentitel(o.stufe)}</span>
+                      <Naehe stufe={o.stufe} />
                     </td>
                     <td data-spalte="Personen" className="zahl">
                       {o.kontakte.length}
@@ -393,11 +416,21 @@ function NeueOrganisation({
   );
 }
 
+/**
+ * Ein Ball für die ganze Organisation, obwohl er an den Personen hängt.
+ *
+ * Gezeigt wird der dringendste Stand: Eine Schuld von uns steht über einem
+ * Warten, und beides steht über „nichts offen". Andersherum sähe eine Zeile
+ * ruhig aus, in der eine Person seit Wochen auf uns wartet.
+ */
 function AmZug({ kontakte }: { kontakte: Kontakt[] }) {
   if (kontakte.length === 0) return <>—</>;
   const uns = wartenAufUns(kontakte);
-  if (uns === 0) return <span className="ball ball-ihnen">bei ihnen</span>;
-  return <span className="ball ball-uns">{uns === kontakte.length ? "bei uns" : `${uns} bei uns`}</span>;
+  if (uns > 0) {
+    return <span className="ball ball-uns">{uns === kontakte.length ? "bei uns" : `${uns} bei uns`}</span>;
+  }
+  const ball = kontakte.some((k) => k.ball === "ihnen") ? "ihnen" : "nichts";
+  return <span className={`ball ball-${ball}`}>{ballText(ball)}</span>;
 }
 
 /* --- Eine Organisation ---------------------------------------------------- */
@@ -451,22 +484,30 @@ function Organisationsseite({
           </div>
 
           <div className="kopf-aktionen">
-            {ich.darf.bearbeiten && (
-              <select
-                className="feld"
-                value={org.stufe}
-                onChange={async (e) => {
-                  await aendern(`/organisationen/${org.id}/`, { stufe: e.target.value });
-                  neuLaden();
-                }}
-                aria-label={`Stufe von ${org.name}`}
-              >
-                {STUFEN.map((s) => (
-                  <option key={s.wert} value={s.wert}>
-                    {s.titel}
-                  </option>
-                ))}
-              </select>
+            {/* Wer nicht bearbeiten darf, sah die Stufe hier bisher gar nicht —
+                sie hing an der Auswahlliste. Die Leiter sagt dasselbe, ohne
+                etwas anzubieten, das ohnehin nicht geht. */}
+            {ich.darf.bearbeiten ? (
+              <>
+                <select
+                  className="feld"
+                  value={org.stufe}
+                  onChange={async (e) => {
+                    await aendern(`/organisationen/${org.id}/`, { stufe: e.target.value });
+                    neuLaden();
+                  }}
+                  aria-label={`Stufe von ${org.name}`}
+                >
+                  {STUFEN.map((s) => (
+                    <option key={s.wert} value={s.wert}>
+                      {s.titel}
+                    </option>
+                  ))}
+                </select>
+                <Hilfe text="Wie weit die Beziehung ist, nicht was gerade läuft. Erstkontakt: einmal gesprochen. Kennengelernt: wir wissen, wer dort was macht. Im Austausch: es meldet sich auch jemand von dort. Angebahnt: eine Zusammenarbeit ist konkret unterwegs — ein Antrag, ein Termin, ein Vertrag. Partner: die Zusammenarbeit läuft." />
+              </>
+            ) : (
+              <Naehe stufe={org.stufe} />
             )}
             {ich.darf.loeschen && (
               <button
@@ -738,13 +779,14 @@ function Personenkachel({
             onChange={(e) => speichern({ ball: e.target.value })}
             aria-label={`Am Zug bei ${kontakt.name}`}
           >
-            <option value="uns">bei uns</option>
-            <option value="ihnen">bei ihnen</option>
+            {BAELLE.map((b) => (
+              <option key={b.wert} value={b.wert}>
+                {b.text}
+              </option>
+            ))}
           </select>
         ) : (
-          <span className={`ball ball-${kontakt.ball}`}>
-            {kontakt.ball === "uns" ? "bei uns" : "bei ihnen"}
-          </span>
+          <span className={`ball ball-${kontakt.ball}`}>{ballText(kontakt.ball)}</span>
         )}
       </div>
 

@@ -7,6 +7,61 @@ betrifft.
 
 ---
 
+## 2026-09-10 — Ein dritter Ball, und aus drei Stufen wird eine Skala
+
+Zwei Änderungen an derselben Seite, beide von Bernd angestoßen.
+
+### „nichts offen" als dritter Stand
+
+Der Ball kannte `uns` und `ihnen`. Ein Kontakt, bei dem gerade schlicht nichts
+ansteht, hatte keinen richtigen Platz: Er stand auf „bei ihnen", und der Filter
+„Wir warten" zeigte damit Leute, auf die niemand wartet.
+
+- **`Ball.NICHTS` ist ein eigener Wert, kein leeres Feld.** Leer wäre von „noch
+  nie eingetragen" nicht zu unterscheiden; „nichts offen" ist aber eine
+  Aussage, die jemand getroffen hat.
+- **Der Chip ist grün (`--gut`), nicht grau.** Grau sähe aus wie „nie gepflegt"
+  — genau die Zeile, über die man hinwegliest.
+- **`BAELLE` in `basis/kontakte.ts` löst `ball === "uns" ? … : …` ab.** Beim
+  dritten Wert wird aus so einer Bedingung still eine falsche Aussage, und
+  auffallen würde es niemandem. Dieselbe Reihung ordnet jetzt auch die Spalte
+  „Offener Punkt": erst was wir schulden, dann worauf wir warten, dann die
+  stehengebliebene Notiz einer Person, bei der nichts offen ist.
+- **In der Übersicht gewinnt der dringendste Stand.** Eine Organisation zeigt
+  „bei uns", sobald eine Person dort auf uns wartet; „nichts offen" steht nur
+  da, wenn es für alle gilt.
+
+### Die Stufe einer Organisation ist jetzt eine Leiter
+
+Vorher drei Kategorien: Erstkontakt · Antrag läuft · Partner. **Eine davon war
+ein Vorgang, kein Verhältnis** — ein Haus, das man gut kennt und mit dem gerade
+kein Antrag läuft, fiel auf „Erstkontakt" zurück.
+
+Jetzt fünf Stufen derselben Art, von fern nach nah: Erstkontakt ·
+Kennengelernt · Im Austausch · Angebahnt · Partner.
+
+- **Die Reihenfolge in `Organisationsstufe` ist die Skala.** `stufenrang` in
+  `basis/kontakte.ts` zählt die Stellung in derselben Liste; wer eine Stufe
+  einschiebt, schiebt sie an ihren Platz, und die Anzeige stimmt weiter.
+- **Angezeigt wird sie als fünf Marken, eine Farbe.** Fünf Farben nebeneinander
+  sähen aus wie fünf Bedeutungen; die Aussage steckt in der Anzahl. Drei Chips
+  konnten das nicht: Dass einer über dem anderen steht, sah man ihnen nicht an.
+- **`antrag` wandert per Migration auf `angebahnt`** (0007). Zurück fallen
+  `kennengelernt` und `austausch` auf `erstkontakt` — die alte Leiter kennt die
+  Zwischenstufen nicht, und sie zu `partner` zu machen wäre eine Behauptung.
+- **Wer nicht bearbeiten darf, sieht die Stufe jetzt überhaupt.** Sie hing
+  vorher allein an der Auswahlliste, und die gab es für Leser nicht.
+- **Ein unbekannter Wert bekommt keine Marke** (`stufenrang` → 0) statt der
+  ersten. Ein alter Wert soll die Leiter nicht füllen und nicht behaupten, das
+  Haus stünde am Anfang.
+
+**Offen:** `Organisationsstufe` und `Ball` stehen im Frontend ein zweites Mal
+(`STUFEN`, `BAELLE`) — wie `VERLAUFSARTEN` seit dem Event-Reiter. Solange die
+Listen kurz sind, ist das billiger als ein Endpunkt, der Auswahlwerte ausliefert.
+Beim nächsten Wert, der auseinanderläuft, ist die Entscheidung neu zu treffen.
+
+---
+
 ## 2026-09-09 — Formulare, die auf einen Klick geschwiegen haben
 
 Bernd hat gemeldet: Formular leer, Knopf gedrückt, **nichts passiert**. Zwei
