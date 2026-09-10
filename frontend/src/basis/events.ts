@@ -122,6 +122,35 @@ export function nochOffen(
   };
 }
 
+/**
+ * Wen man auf diesem Event getroffen haben kann: **alle** Kontakte und
+ * Organisationen, nicht nur die von der Hitlist.
+ *
+ * **Warum das nicht die Hitlist ist:** Die Hitlist ist der Plan von vorher —
+ * wen wir ansprechen wollen. Wen man dort tatsächlich trifft, entscheidet der
+ * Gang über den Flur. Solange der Verlauf nur die Namen von der Liste anbot,
+ * musste jemand erst auf die Planungsliste, damit man ein Gespräch mit ihm
+ * festhalten konnte; die Liste erzählte danach eine Vorbereitung, die es nie
+ * gab.
+ *
+ * Die Namen von der Liste stehen trotzdem zuerst — auf einer Tagung sind sie
+ * die häufigste Wahl.
+ */
+export function wenGetroffen(
+  organisationen: Organisation[],
+  kontakte: Kontakt[],
+  ziele: Eventziel[],
+): { hitlist: Auswahl[]; personen: Auswahl[]; organisationen: Auswahl[] } {
+  const uebrig = nochOffen(organisationen, kontakte, ziele);
+  return {
+    hitlist: ziele
+      .map((z) => ({ wert: schluessel(z), ...wen(z) }))
+      .filter((a): a is Auswahl => a.wert !== ""),
+    personen: uebrig.personen,
+    organisationen: uebrig.organisationen,
+  };
+}
+
 function enthaelt(heuhaufen: string, nadel: string): boolean {
   return heuhaufen.toLowerCase().includes(nadel.trim().toLowerCase());
 }

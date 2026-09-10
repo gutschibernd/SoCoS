@@ -4,17 +4,20 @@
  * Ein Event ist der Anlass, bei dem man Leute trifft — eine Tagung, ein
  * Kongress, ein Messetag. Die Seite trägt zwei Dinge:
  *
- * - **Vorher die Hitlist**: wen wollen wir dort ansprechen, und weshalb. Jede
- *   Zeile zeigt auf eine Organisation **oder** auf eine Person aus den
- *   Kontakten — nicht auf einen frei getippten Namen. Sonst stünde nach der
- *   Tagung eine Liste da, die mit den Kontakten nichts zu tun hat.
- * - **Nachher der Verlauf**: was besprochen wurde. Das sind gewöhnliche
+ * - **Der Verlauf**: was besprochen wurde. Das sind gewöhnliche
  *   Verlaufseinträge mit einem Verweis auf das Event — dieselben Einträge, die
  *   auch auf der Kontakteseite stehen. Keine zweite Verlaufssorte.
+ * - **Die Hitlist**: wen wollen wir dort ansprechen, und weshalb. Jede Zeile
+ *   zeigt auf eine Organisation **oder** auf eine Person aus den Kontakten —
+ *   nicht auf einen frei getippten Namen. Sonst stünde nach der Tagung eine
+ *   Liste da, die mit den Kontakten nichts zu tun hat.
  *
- * Wer erst vor Ort jemanden kennenlernt, legt die Person unten in der
- * Hitlist-Karte an: Sie landet in den Kontakten **und** auf der Liste, in
- * einem Griff.
+ * **Der Verlauf steht oben, die Hitlist zugeklappt darunter.** Die Hitlist ist
+ * die Vorbereitung; während des Events und danach ist der Verlauf das, was
+ * gebraucht wird. Und **ein Verlaufseintrag hängt an keiner Hitlist-Zeile**:
+ * Wen man trifft, entscheidet der Gang über den Flur, nicht der Plan von
+ * vorher. Wer erst vor Ort kennengelernt wird, wird im Verlaufsformular
+ * angelegt — samt seinem Haus, wenn SoCoS das noch nicht kennt.
  *
  * Das gewählte Event steht im Weg (`/events/3`), nicht im Zustand dieser
  * Ansicht — aus demselben Grund wie bei den Kontakten (siehe basis/router.ts).
@@ -41,13 +44,15 @@ import {
   letzterTag,
   nochOffen,
   passtEvent,
-  schluessel,
   teileNachZeit,
   wen,
+  wenGetroffen,
   zaehlung,
+  type Auswahl,
   type Zaehlung,
 } from "../basis/events";
 import { artText } from "../basis/kontakte";
+import { melden } from "../basis/meldungen";
 import type { Seite } from "../basis/router";
 import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
@@ -428,11 +433,9 @@ function Eventseite({
 
   return (
     <>
+      {/* Nur die Ortsangabe: Der Knopf „Alle Events", der hier stand, ist der
+          Zurück-Knopf in der Titelzeile geworden. */}
       <div className="zurueckzeile">
-        <button type="button" className="knopf-still" onClick={zurueck}>
-          <Zeichen name="zeiger" klasse="zeiger-zurueck" />
-          Alle Events
-        </button>
         <span className="brotkrume">Events · {event.titel}</span>
       </div>
 
@@ -524,6 +527,20 @@ function Eventseite({
         </div>
       </div>
 
+      {/*
+        Der Verlauf steht über der Hitlist, seit die Hitlist zugeklappt ist.
+        Vorher lag die Planung von *vorher* über dem, was man *währenddessen*
+        notiert — und wer auf einer Tagung schnell ein Gespräch festhalten
+        wollte, scrollte erst an zwanzig Namen vorbei.
+      */}
+      <Verlaufskarte
+        event={event}
+        organisationen={organisationen}
+        kontakte={kontakte}
+        ich={ich}
+        neuLaden={neuLaden}
+      />
+
       <Hitlistkarte
         event={event}
         organisationen={organisationen}
@@ -532,8 +549,6 @@ function Eventseite({
         neuLaden={neuLaden}
         zumLoeschen={zumLoeschen}
       />
-
-      <Verlaufskarte event={event} ich={ich} neuLaden={neuLaden} />
     </>
   );
 }
@@ -599,9 +614,7 @@ function Hitlistkarte({
   zumLoeschen: (auftrag: Loeschauftrag) => void;
 }) {
   const [zeile, setZeile] = useState({ ziel: "", anliegen: "" });
-  const [neuePerson, setNeuePerson] = useState({ name: "", funktion: "", organisation: "" });
   const [fehler, setFehler] = useState("");
-  const [personFehler, setPersonFehler] = useState("");
 
   const offen = nochOffen(organisationen, kontakte, event.ziele);
   const nichtsMehrDa = offen.organisationen.length === 0 && offen.personen.length === 0;
@@ -623,42 +636,28 @@ function Hitlistkarte({
     neuLaden();
   }
 
-  /**
-   * Vor Ort kennengelernt: Die Person kommt in die Kontakte **und** auf die
-   * Liste, als „getroffen". Zwei Aufrufe, aber ein Griff — wer sie erst in den
-   * Kontakten anlegen und dann hier suchen müsste, tut es nicht.
+  /*
+   * Zugeklappt, solange niemand sie aufmacht — und zwar bei jedem Aufruf neu.
+   * Die Hitlist ist die Vorbereitung: Vor dem Event wird sie gefüllt, während
+   * des Events braucht man den Verlauf darüber, danach schaut man einmal
+   * hinein. Ein gemerkter Zustand („zuletzt war sie offen") hieße, dass sie
+   * genau dann aufgeklappt ist, wenn man sie am wenigsten braucht.
+   *
+   * Der Stand steht in der Zeile — zugeklappt sieht man trotzdem, wie viele
+   * offen sind.
    */
-  async function kennengelernt() {
-    if (!neuePerson.name.trim())
-      return setPersonFehler("Ohne Namen lässt sich die Person später nicht zuordnen.");
-    setPersonFehler("");
-    const angelegt = await hole<Kontakt>("/kontakte/", {
-      method: "POST",
-      body: JSON.stringify({
-        name: neuePerson.name.trim(),
-        funktion: neuePerson.funktion.trim(),
-        organisation: neuePerson.organisation ? Number(neuePerson.organisation) : null,
-      }),
-    });
-    await hole("/eventziele/", {
-      method: "POST",
-      body: JSON.stringify({
-        event: event.id,
-        kontakt: angelegt.id,
-        organisation: null,
-        stand: "getroffen",
-      }),
-    });
-    setNeuePerson({ name: "", funktion: "", organisation: "" });
-    neuLaden();
-  }
-
   return (
-    <div className="karte">
-      <h2>
-        Hitlist
-        <Hilfe text="Wen wollen wir hier ansprechen? Jede Zeile zeigt auf eine Organisation oder auf eine Person aus den Kontakten — nie auf einen frei getippten Namen. Nur so findet man den Faden nach der Tagung wieder." />
-      </h2>
+    <details className="karte klappkarte">
+      <summary>
+        <Zeichen name="zeiger" klasse="zeiger-klapp" />
+        <span className="klapptitel">Hitlist</span>
+        <Standzahlen zahlen={zaehlung(event.ziele)} />
+        {/* Ein Klick im `?` darf die Karte nicht auf- und zuklappen — das tut
+            in einem <summary> sonst jeder Klick. */}
+        <span onClick={(e) => e.preventDefault()}>
+          <Hilfe text="Wen wollen wir hier ansprechen? Jede Zeile zeigt auf eine Organisation oder auf eine Person aus den Kontakten — nie auf einen frei getippten Namen. Wen man tatsächlich getroffen hat, steht oben im Verlauf; dafür muss hier niemand stehen." />
+        </span>
+      </summary>
 
       {ich.darf.bearbeiten && (
         <div className="nachbuchen">
@@ -745,47 +744,7 @@ function Hitlistkarte({
         </table>
       )}
 
-      {ich.darf.bearbeiten && (
-        <div className="nachtrag">
-          <span className="beschriftung-klein">Vor Ort kennengelernt</span>
-          <div className="feld-reihe">
-            <input
-              className="feld"
-              placeholder="Name der Person"
-              value={neuePerson.name}
-              onChange={(e) => setNeuePerson({ ...neuePerson, name: e.target.value })}
-            />
-            <input
-              className="feld"
-              placeholder="Rolle"
-              value={neuePerson.funktion}
-              onChange={(e) => setNeuePerson({ ...neuePerson, funktion: e.target.value })}
-            />
-            <select
-              className="feld"
-              value={neuePerson.organisation}
-              onChange={(e) => setNeuePerson({ ...neuePerson, organisation: e.target.value })}
-              aria-label="Gehört zu"
-            >
-              <option value="">Keine Organisation</option>
-              {organisationen.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
-            <button type="button" className="knopf-still" onClick={kennengelernt}>
-              <Zeichen name="plus" />
-              Person
-            </button>
-          </div>
-          <Fehlerzeile text={personFehler} />
-          <p className="tabellen-hinweis">
-            Legt die Person in den Kontakten an und setzt sie hier gleich auf „getroffen“.
-          </p>
-        </div>
-      )}
-    </div>
+    </details>
   );
 }
 
@@ -866,10 +825,14 @@ function Hitlistzeile({
 
 function Verlaufskarte({
   event,
+  organisationen,
+  kontakte,
   ich,
   neuLaden,
 }: {
   event: Event;
+  organisationen: Organisation[];
+  kontakte: Kontakt[];
   ich: Ich;
   neuLaden: () => void;
 }) {
@@ -881,14 +844,11 @@ function Verlaufskarte({
   }));
   const [fehler, setFehler] = useState("");
 
+  const wahl = wenGetroffen(organisationen, kontakte, event.ziele);
+
   async function anlegen() {
     const wohin = alsAnfrage(eintrag.ziel);
-    if (!wohin)
-      return setFehler(
-        event.ziele.length === 0
-          ? "Setz zuerst jemanden auf die Hitlist — der Verlauf hängt immer an einem Namen von dort."
-          : "Wähl aus, mit wem geredet wurde.",
-      );
+    if (!wohin) return setFehler("Wähl aus, mit wem geredet wurde.");
     if (!eintrag.titel.trim())
       return setFehler("Trag ein, worum es ging. Ein Eintrag ohne Anlass hilft später niemandem.");
     setFehler("");
@@ -913,31 +873,26 @@ function Verlaufskarte({
     <div className="karte">
       <h2>
         Verlauf
-        <Hilfe text="Was hier notiert wird, steht auch beim Kontakt — es ist derselbe Eintrag. Angeboten werden die Namen von der Hitlist: Wer noch nicht daraufsteht, kommt zuerst dorthin." />
+        <Hilfe text="Was hier notiert wird, steht auch beim Kontakt — es ist derselbe Eintrag. Angeboten wird jeder Kontakt, nicht nur die Hitlist: Wen man trifft, entscheidet der Gang über den Flur. Wer noch gar nicht in den Kontakten steht, wird hier gleich angelegt." />
       </h2>
 
       {ich.darf.bearbeiten && (
         <div className="nachbuchen">
           <div className="feld-reihe">
+            {/* Alle Kontakte, nicht nur die Hitlist: Wen man trifft,
+                entscheidet der Gang über den Flur. Die geplanten Namen stehen
+                trotzdem oben — sie sind die häufigste Wahl. */}
             <select
               className="feld"
               style={{ flex: "1 1 230px" }}
               value={eintrag.ziel}
               onChange={(e) => setEintrag({ ...eintrag, ziel: e.target.value })}
               aria-label="Mit wem"
-              disabled={event.ziele.length === 0}
             >
-              <option value="">
-                {event.ziele.length === 0 ? "Erst jemanden auf die Hitlist" : "Mit wem?"}
-              </option>
-              {event.ziele.map((z) => {
-                const wer = wen(z);
-                return (
-                  <option key={z.id} value={schluessel(z)}>
-                    {wer.dazu ? `${wer.name} — ${wer.dazu}` : wer.name}
-                  </option>
-                );
-              })}
+              <option value="">Mit wem?</option>
+              <Zielgruppe titel="Von der Hitlist" auswahl={wahl.hitlist} />
+              <Zielgruppe titel="Personen" auswahl={wahl.personen} />
+              <Zielgruppe titel="Organisationen" auswahl={wahl.organisationen} />
             </select>
             <input
               type="date"
@@ -972,6 +927,12 @@ function Verlaufskarte({
             </button>
           </div>
           <Fehlerzeile text={fehler} />
+
+          <Kennengelernt
+            organisationen={organisationen}
+            neuLaden={neuLaden}
+            gewaehlt={(schluessel) => setEintrag({ ...eintrag, ziel: schluessel })}
+          />
         </div>
       )}
 
@@ -1010,6 +971,160 @@ function Verlaufskarte({
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/**
+ * Eine Gruppe im Auswahlfeld — leer wird sie gar nicht erst gezeichnet, sonst
+ * stünde auf einem frischen Event eine Überschrift ohne Einträge darunter.
+ */
+function Zielgruppe({ titel, auswahl }: { titel: string; auswahl: Auswahl[] }) {
+  if (auswahl.length === 0) return null;
+  return (
+    <optgroup label={titel}>
+      {auswahl.map((a) => (
+        <option key={a.wert} value={a.wert}>
+          {a.dazu ? `${a.name} — ${a.dazu}` : a.name}
+        </option>
+      ))}
+    </optgroup>
+  );
+}
+
+/**
+ * Vor Ort kennengelernt: Person anlegen, samt Haus, ohne die Seite zu
+ * verlassen.
+ *
+ * **Warum die Organisation gleich mit angelegt wird:** Wer auf einer Tagung
+ * jemanden von einem Haus trifft, das SoCoS noch nicht kennt, hätte sonst drei
+ * Wege vor sich — Kontakte, Organisation anlegen, zurück, Person anlegen,
+ * zurück zum Event. Nach der dritten Station notiert das niemand mehr, und das
+ * Gespräch ist verloren.
+ *
+ * Zugeklappt, weil der Regelfall die Auswahl darüber ist: Die meisten, mit
+ * denen man redet, stehen schon in den Kontakten.
+ *
+ * Die neue Person landet **nicht** auf der Hitlist. Die ist der Plan von
+ * vorher; wen man tatsächlich getroffen hat, steht im Verlauf. Stattdessen ist
+ * sie oben gleich ausgewählt — der nächste Griff ist der Eintrag.
+ */
+const NEUES_HAUS = "neu";
+
+function Kennengelernt({
+  organisationen,
+  neuLaden,
+  gewaehlt,
+}: {
+  organisationen: Organisation[];
+  neuLaden: () => void;
+  gewaehlt: (schluessel: string) => void;
+}) {
+  const leer = { name: "", funktion: "", organisation: "", haus: "" };
+  const [offen, setOffen] = useState(false);
+  const [person, setPerson] = useState(leer);
+  const [fehler, setFehler] = useState("");
+
+  async function anlegen() {
+    if (!person.name.trim())
+      return setFehler("Ohne Namen lässt sich die Person später nicht zuordnen.");
+    if (person.organisation === NEUES_HAUS && !person.haus.trim())
+      return setFehler("Wie heißt das Haus? Ohne Namen lässt es sich nicht anlegen.");
+    setFehler("");
+
+    let organisation: number | null =
+      person.organisation && person.organisation !== NEUES_HAUS
+        ? Number(person.organisation)
+        : null;
+
+    if (person.organisation === NEUES_HAUS) {
+      const haus = await hole<Organisation>("/organisationen/", {
+        method: "POST",
+        body: JSON.stringify({ name: person.haus.trim() }),
+      });
+      organisation = haus.id;
+    }
+
+    const angelegt = await hole<Kontakt>("/kontakte/", {
+      method: "POST",
+      body: JSON.stringify({
+        name: person.name.trim(),
+        funktion: person.funktion.trim(),
+        organisation,
+      }),
+    });
+
+    setPerson(leer);
+    setOffen(false);
+    neuLaden();
+    gewaehlt(`k${angelegt.id}`);
+    melden("gut", `${angelegt.name} steht jetzt in den Kontakten und oben im Feld.`);
+  }
+
+  if (!offen)
+    return (
+      <button type="button" className="knopf-still nachtrag" onClick={() => setOffen(true)}>
+        <Zeichen name="plus" />
+        Steht noch nicht in den Kontakten
+      </button>
+    );
+
+  return (
+    <div className="nachtrag">
+      <span className="beschriftung-klein">Vor Ort kennengelernt</span>
+      <div className="feld-reihe">
+        <input
+          className="feld"
+          placeholder="Name der Person"
+          value={person.name}
+          onChange={(e) => setPerson({ ...person, name: e.target.value })}
+        />
+        <input
+          className="feld"
+          placeholder="Rolle"
+          value={person.funktion}
+          onChange={(e) => setPerson({ ...person, funktion: e.target.value })}
+        />
+        <select
+          className="feld"
+          value={person.organisation}
+          onChange={(e) => setPerson({ ...person, organisation: e.target.value })}
+          aria-label="Gehört zu"
+        >
+          <option value="">Keine Organisation</option>
+          <option value={NEUES_HAUS}>＋ Neue Organisation …</option>
+          {organisationen.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </select>
+        {person.organisation === NEUES_HAUS && (
+          <input
+            className="feld"
+            placeholder="Name der Organisation"
+            value={person.haus}
+            onChange={(e) => setPerson({ ...person, haus: e.target.value })}
+            aria-label="Name der neuen Organisation"
+          />
+        )}
+        <button type="button" className="knopf" onClick={anlegen}>
+          <Zeichen name="plus" />
+          Anlegen
+        </button>
+        <button
+          type="button"
+          className="knopf-still"
+          onClick={() => {
+            setPerson(leer);
+            setFehler("");
+            setOffen(false);
+          }}
+        >
+          Abbrechen
+        </button>
+      </div>
+      <Fehlerzeile text={fehler} />
     </div>
   );
 }

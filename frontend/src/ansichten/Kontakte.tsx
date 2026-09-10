@@ -165,7 +165,6 @@ export function Kontakte({
           organisationen={organisationen.data}
           ich={ich}
           neuLaden={neuLaden}
-          zurueck={zurueck}
           zumLoeschen={setLoeschen}
         />
       ) : (
@@ -452,7 +451,7 @@ function Organisationsseite({
 }) {
   return (
     <>
-      <Zurueck name={org.name} zurueck={zurueck} />
+      <Brotkrume name={org.name} />
 
       <div className="karte">
         <div className="projekt-kopf">
@@ -571,19 +570,17 @@ function LoseSeite({
   organisationen,
   ich,
   neuLaden,
-  zurueck,
   zumLoeschen,
 }: {
   kontakte: Kontakt[];
   organisationen: Organisation[];
   ich: Ich;
   neuLaden: () => void;
-  zurueck: () => void;
   zumLoeschen: (auftrag: Loeschauftrag) => void;
 }) {
   return (
     <>
-      <Zurueck name="Lose Kontakte" zurueck={zurueck} />
+      <Brotkrume name="Lose Kontakte" />
 
       <div className="karte">
         <div className="projekt-kopf">
@@ -617,13 +614,15 @@ function LoseSeite({
   );
 }
 
-function Zurueck({ name, zurueck }: { name: string; zurueck: () => void }) {
+/**
+ * Nur noch die Ortsangabe. Der Knopf „Alle Organisationen", der hier stand,
+ * ist der Zurück-Knopf in der Titelzeile geworden — er tut dasselbe (eine
+ * Ebene hoch, siehe basis/router.ts) und steht auf jeder Seite an derselben
+ * Stelle, statt auf zweien von acht.
+ */
+function Brotkrume({ name }: { name: string }) {
   return (
     <div className="zurueckzeile">
-      <button type="button" className="knopf-still" onClick={zurueck}>
-        <Zeichen name="zeiger" klasse="zeiger-zurueck" />
-        Alle Organisationen
-      </button>
       <span className="brotkrume">Kontakte · {name}</span>
     </div>
   );

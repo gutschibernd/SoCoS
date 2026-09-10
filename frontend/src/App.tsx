@@ -2,9 +2,11 @@ import { useIch } from "./basis/daten";
 import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
 import { useSeite, type Seite } from "./basis/router";
 import { Zustand } from "./basis/Zustand";
+import { Zeichen } from "./bausteine/Zeichen";
 import { Kopf } from "./bausteine/Kopf";
 import { Meldungen } from "./bausteine/Meldungen";
 import { Dashboard } from "./ansichten/Dashboard";
+import { Einstellungen } from "./ansichten/Einstellungen";
 import { Events } from "./ansichten/Events";
 import { Kontakte } from "./ansichten/Kontakte";
 import { Profil } from "./ansichten/Profil";
@@ -23,6 +25,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   kontakte: { titel: "Kontakte", unter: "Organisationen und Personen" },
   events: { titel: "Events", unter: "Tagungen, Hitlist, wen wir getroffen haben" },
   profil: { titel: "Profil", unter: "Deine Stammdaten" },
+  einstellungen: { titel: "Einstellungen", unter: "Konten, Protokoll, Sicherung" },
 };
 
 /* Die einzige Unterseite bekommt ihre eigene Zeile, statt sie aus dem Namen
@@ -31,7 +34,7 @@ const PROJEKT_BEARBEITEN = { titel: "Projekt bearbeiten", unter: "Gliedern, umor
 
 export function App() {
   const ich = useIch();
-  const [ort, wechseln] = useSeite();
+  const { ort, wechseln, zurueck, kannZurueck } = useSeite();
 
   // Wer nicht angemeldet ist, gehört zur Anmeldung — nicht auf eine
   // Fehlerseite, von der aus es keinen Weg weitergibt.
@@ -57,6 +60,20 @@ export function App() {
       <Meldungen />
       <main className="seite">
         <div className="titelzeile">
+          {/*
+            Der Zurück-Knopf steht hier und nicht in den einzelnen Ansichten.
+            Er stand vorher in zweien von acht — auf den übrigen Seiten führte
+            der einzige Weg zurück über die Kopfleiste, und auf dem Profil und
+            in den Einstellungen, die dort keinen Eintrag haben, gar keiner.
+            Ein Ort für alle: Was in acht Ansichten steht, weicht in der
+            neunten ab.
+          */}
+          {kannZurueck && (
+            <button type="button" className="zurueck" onClick={zurueck}>
+              <Zeichen name="zeiger" klasse="zeiger-zurueck" />
+              Zurück
+            </button>
+          )}
           <h1>{kopfzeile.titel}</h1>
           <div className="unter">{kopfzeile.unter}</div>
         </div>
@@ -73,7 +90,12 @@ export function App() {
         {ort.seite === "events" && (
           <Events ich={ich.data} unter={ort.unter} wechseln={wechseln} />
         )}
-        {ort.seite === "profil" && <Profil ich={ich.data} />}
+        {ort.seite === "profil" && (
+          <Profil ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+        )}
+        {ort.seite === "einstellungen" && (
+          <Einstellungen ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+        )}
       </main>
     </>
   );

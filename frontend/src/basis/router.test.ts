@@ -44,6 +44,24 @@ describe("ausPfad", () => {
     expect(ausPfad("/events/lose")).toEqual({ seite: "events", unter: null });
   });
 
+  // Die Rubrik gehört in den Weg und nicht in den Zustand der Ansicht:
+  // „/einstellungen/protokoll" soll ein Lesezeichen sein dürfen.
+  it("liest die Rubrik der Einstellungen", () => {
+    expect(ausPfad("/einstellungen")).toEqual({ seite: "einstellungen", unter: null });
+    expect(ausPfad("/einstellungen/konten")).toEqual({ seite: "einstellungen", unter: "konten" });
+    expect(ausPfad("/einstellungen/sicherung")).toEqual({
+      seite: "einstellungen",
+      unter: "sicherung",
+    });
+    expect(ausPfad("/einstellungen/quatsch")).toEqual({ seite: "einstellungen", unter: null });
+  });
+
+  it("liest den Teil des Profils", () => {
+    expect(ausPfad("/profil")).toEqual({ seite: "profil", unter: null });
+    expect(ausPfad("/profil/adresse")).toEqual({ seite: "profil", unter: "adresse" });
+    expect(ausPfad("/profil/gehalt")).toEqual({ seite: "profil", unter: null });
+  });
+
   it("übergeht doppelte Schrägstriche", () => {
     expect(ausPfad("//kontakte//12")).toEqual({ seite: "kontakte", unter: "12" });
   });

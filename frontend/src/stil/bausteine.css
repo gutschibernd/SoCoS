@@ -57,6 +57,21 @@
   display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
 }
 .titelzeile h1 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em; }
+
+/* Der Zurück-Knopf steht links vor der Überschrift und ist still: Er ist auf
+   jeder Seite da und darf deshalb nicht um Aufmerksamkeit ringen. Die vollen
+   44 px bekommt er trotzdem — er ist am Handy der meistgetroffene Knopf der
+   Anwendung. `align-self: center`, weil die Titelzeile an der Schriftlinie
+   ausrichtet und der Knopf sonst über der Überschrift hinge. */
+.zurueck {
+  flex: 0 0 auto; align-self: center;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: var(--griff); padding: 0 12px 0 8px;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text-leise);
+  font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+}
+.zurueck:hover { border-color: var(--marke-rand); color: var(--marke); }
 .titelzeile .unter { font-size: 14px; color: var(--text-leise); }
 
 /* --- Karten und Raster --------------------------------------------------- */
@@ -312,10 +327,77 @@
   background: transparent; color: var(--kopf-text-leise); cursor: pointer;
 }
 .kopf-knopf:hover { background: var(--marke); color: var(--kopf-text); }
+/* Das Zahnrad ist seit den Einstellungen ein Link und keine Schaltfläche mehr:
+   Es führt auf eine Seite, also gehört ein Weg dahinter. Unterstrichen wäre es
+   das einzige unterstrichene Zeichen in der Leiste. */
+a.kopf-knopf { text-decoration: none; }
+.kopf-knopf[aria-current="page"] { background: var(--kopf-aktiv); color: var(--marke-dunkel); }
 
 /* Das Formular ist nur die Hülle um den Knopf und darf im Flex-Fluss der
    Kopfleiste nichts eigenes beitragen. */
 .abmelden { display: flex; flex: 0 0 auto; margin: 0; }
+
+/* --- Einstellungen: Untermenü und Inhalt --------------------------------- */
+
+/* Zwei Spalten am Rechner, das Menü links. Am Handy (unten) legt es sich als
+   Reihe darüber — dieselben Elemente, keine zweite Ansicht. */
+.einstellungen { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; }
+.untermenue { display: flex; flex-direction: column; gap: 2px; align-content: start; }
+.untermenue a {
+  display: flex; align-items: center; min-height: var(--griff);
+  padding: 0 12px; border-radius: var(--kante);
+  color: var(--text-leise); text-decoration: none; font-size: 14px; font-weight: 500;
+}
+.untermenue a:hover { background: var(--flaeche-leise); color: var(--text); }
+.untermenue a[aria-current="page"] {
+  background: var(--flaeche); border: 1px solid var(--rand);
+  color: var(--text); font-weight: 600;
+}
+
+/* Das Profil trägt dieselbe Leiste, nur rechts: Dort wird geschrieben, und das
+   Formular soll am linken Rand beginnen wie auf jeder anderen Seite. Im Markup
+   steht die Leiste zuerst — am Handy gehört sie nach oben, und die Tastatur
+   soll sie vor dem Formular erreichen. */
+.profilseite { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; }
+.profilseite > .untermenue { order: 2; }
+
+.profilfeld { display: block; margin-bottom: 14px; }
+.profilfeld .beschriftung-klein { margin-bottom: 4px; }
+.feldhinweis {
+  display: block; margin: 5px 0 0; font-size: 12px; color: var(--text-leise); line-height: 1.5;
+}
+.feldhinweis code { font-family: var(--schrift-zahl); font-size: 11px; }
+.profilwert { margin: 0 0 4px; font-size: 14px; }
+.kontozeile {
+  display: flex; align-items: center; gap: 12px;
+  padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--rand);
+}
+/* Im Profil steht das Kürzel groß und trägt die eigene Farbe — nicht die
+   Markenfläche wie in der Kontaktliste. */
+.kontozeile .kuerzel {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  font-size: 14px; color: var(--marke-dunkel);
+}
+
+/* --- Karte zum Auf- und Zuklappen ---------------------------------------- */
+
+/* `<details>` und nicht ein Knopf mit Zustand: Das Auf- und Zuklappen kann der
+   Browser selbst, samt Tastatur und Vorlesen. Der Pfeil des Systems wird
+   ausgeblendet — er käme in seiner eigenen Form und Farbe. */
+.klappkarte > summary {
+  display: flex; align-items: center; gap: 10px;
+  min-height: var(--griff); margin: -4px 0; cursor: pointer;
+  list-style: none;
+}
+.klappkarte > summary::-webkit-details-marker { display: none; }
+.klappkarte > summary:hover .klapptitel { color: var(--marke); }
+.klapptitel {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-sehr-leise); font-weight: 600;
+}
+/* Dasselbe Zeichen wie beim Zurück, nur nach unten gedreht, wenn offen. */
+.zeiger-klapp { color: var(--text-sehr-leise); transition: transform 0.15s; }
+.klappkarte[open] > summary .zeiger-klapp { transform: rotate(90deg); }
 
 /* --- Startseite ---------------------------------------------------------- */
 /*
@@ -821,6 +903,16 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   .navigation { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; }
   .kopf-rechts { gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
   .kopf-rechts .uhr-chip { flex: 1 1 100%; padding: 6px 6px 6px 12px; }
+
+  /* Zwei Spalten haben bei 375 px keinen Platz: Das Untermenü wird zur Reihe
+     über dem Inhalt und darf waagrecht wandern, wenn die drei Rubriken nicht
+     nebeneinander passen. */
+  .einstellungen, .profilseite { grid-template-columns: minmax(0, 1fr); }
+  /* Am Handy steht die Leiste oben — auch die des Profils, die am Rechner
+     rechts sitzt. Unter dem Formular fände sie niemand. */
+  .profilseite > .untermenue { order: 0; }
+  .untermenue { flex-direction: row; overflow-x: auto; gap: 6px; }
+  .untermenue a { flex: 0 0 auto; }
 
   .mini { min-height: var(--griff); }
   .tabelle td.zeilen-aktionen { justify-content: flex-end; }
