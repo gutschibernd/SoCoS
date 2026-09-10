@@ -62,6 +62,49 @@ Beim nächsten Wert, der auseinanderläuft, ist die Entscheidung neu zu treffen.
 
 ---
 
+## 2026-09-10 — Prioritäten: was ein Haus uns bringt, neben dem, wie nah es ist
+
+Bernd wollte eine Prio-Spalte in der Organisationsübersicht — auswählbar in der
+Zeile, sortierbar per Klick auf den Kopf.
+
+**Warum ein eigenes Feld neben der Stufe und keine sechste Stufe:** Die Stufe
+sagt, wie nah wir uns sind; die Priorität, wie viel es bringt, näher zu kommen.
+Eine Förderstelle, mit der wir noch nie geredet haben, kann das Wichtigste auf
+der Liste sein — und ein alter Partner, an dem nichts mehr hängt, das
+Unwichtigste. Auf einer gemeinsamen Leiter ließe sich genau das nicht mehr
+sagen.
+
+**`offen` ist ein Wert, kein leeres Feld.** „Noch nicht eingeschätzt" ist eine
+Auskunft; `""` wäre keine, und `mittel` als Vorgabe wäre eine Behauptung, die
+niemand aufgestellt hat. Die Migration setzt darum alle bestehenden Häuser auf
+`offen` und rät nichts (etwa: Partner = hoch).
+
+**In der Sortierung steht `offen` hinten — auch umgekehrt.** Was niemand
+angesehen hat, gehört nicht an die Spitze einer Liste, die nach Wichtigkeit
+sortiert. Ein unbekannter Wert (eine Stufe, die es einmal gab) landet ebenfalls
+hinten statt vor „hoch": `findIndex` gibt −1, und −1 sortiert nach vorn.
+
+**Gleichstand fällt immer auf den Namen zurück.** Sonst stünden die Häuser mit
+„hoch" bei jedem Neuladen anders — `sort` ist zwar stabil, aber die Liste wird
+vorher gefiltert.
+
+**Sortiert wird im Browser, nicht am Server.** Drei Nutzer, eine vollständig
+geladene Liste. Ein `?sortiere=` brächte einen zweiten Ort, an dem die
+Reihenfolge steht.
+
+**Zweimal bedienbar, ein Zustand:** Am Rechner sortiert der Klick auf den
+Spaltenkopf. Am Handy wird aus der Tabelle eine Karte, `thead` ist dort
+ausgeblendet — und mit ihm wäre die Sortierung unerreichbar. Deshalb steht in
+der Filterzeile ein Auswahlfeld, das nur unter 720 px sichtbar ist und in
+denselben Zustand schreibt. Zwei Formen, eine Wahrheit.
+
+**Beim Prüfen aufgefallen, nicht von mir behoben:** KWF steht in der Datenbank
+auf `stufe = "antrag"` — ein Wert, den es seit der Skala-Migration (0007) nicht
+mehr gibt. Die Übersicht zeigt ihn deshalb als „antrag" ohne gefüllte Marke.
+Der Datensatz muss nach dem Lauf der Migration so gesetzt worden sein.
+
+---
+
 ## 2026-09-10 — Zurück-Knopf, Profil in vier Teilen, Events umgestellt
 
 Vier Befunde von Bernd an einem Nachmittag. Der Reihe nach.

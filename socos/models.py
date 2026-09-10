@@ -520,6 +520,28 @@ class Organisationsstufe(models.TextChoices):
     PARTNER = "partner", "Partner"
 
 
+class Prioritaet(models.TextChoices):
+    """
+    Was für uns drinsteckt — das Verwertungspotential einer Organisation.
+
+    **Nicht dasselbe wie die Stufe.** Die Stufe sagt, wie nah wir uns sind;
+    die Priorität, wie viel es bringt, näher zu kommen. Eine Förderstelle, mit
+    der wir noch nie geredet haben, kann das Wichtigste auf der Liste sein —
+    und ein alter Partner, an dem nichts mehr hängt, das Unwichtigste. Wären
+    es Stufen derselben Leiter, ließe sich genau das nicht mehr sagen.
+
+    `OFFEN` ist die Vorgabe und ein eigener Wert, kein leeres Feld: „noch
+    nicht eingeschätzt" ist eine Auskunft, „" wäre keine. In der Sortierung
+    steht es hinter `GERING` — was niemand angesehen hat, gehört nicht nach
+    oben.
+    """
+
+    HOCH = "hoch", "Hoch"
+    MITTEL = "mittel", "Mittel"
+    GERING = "gering", "Gering"
+    OFFEN = "offen", "Noch offen"
+
+
 class Organisation(Basismodell):
     name = models.CharField("Name", max_length=200)
     kurz = models.CharField("Kürzel", max_length=8, blank=True)
@@ -529,6 +551,12 @@ class Organisation(Basismodell):
         max_length=14,
         choices=Organisationsstufe.choices,
         default=Organisationsstufe.ERSTKONTAKT,
+    )
+    prioritaet = models.CharField(
+        "Priorität",
+        max_length=6,
+        choices=Prioritaet.choices,
+        default=Prioritaet.OFFEN,
     )
     nutzen = models.TextField("Nutzen und Interesse", blank=True)
 

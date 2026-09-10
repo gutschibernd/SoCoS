@@ -31,16 +31,20 @@ import {
   offenerPunkt,
   passtKontakt,
   passtOrganisation,
+  sortiereOrganisationen,
   verlaufDerOrganisation,
   verlaufDerPersonen,
+  prioritaetstext,
   stufenrang,
   stufentitel,
   wartenAufUns,
   zeigtLoseZeile,
   BAELLE,
+  PRIORITAETEN,
   STUFEN,
   VERLAUFSARTEN,
   type Ballfilter,
+  type Sortierung,
   type Verlaufszeile,
 } from "../basis/kontakte";
 import type { Seite } from "../basis/router";
@@ -82,6 +86,84 @@ function Naehe({ stufe }: { stufe: Organisation["stufe"] }) {
       </span>
       <span className="leiter-text">{stufentitel(stufe)}</span>
     </span>
+  );
+}
+
+/**
+ * Ein Spaltenkopf, nach dem sich sortieren lässt.
+ *
+ * Ein Knopf im `<th>` und kein `onClick` auf dem `<th>` selbst: Ein Kopf mit
+ * Klick erreicht niemand mit der Tastatur — derselbe Grund wie bei der
+ * Zeilenüberschrift darunter. `aria-sort` sagt dem Screenreader, was gerade
+ * gilt; das Zeichen daneben sagt es dem Auge.
+ */
+function Sortierkopf({
+  titel,
+  nach,
+  sortierung,
+  sortieren,
+  children,
+}: {
+  titel: string;
+  nach: Sortierung["nach"];
+  sortierung: Sortierung;
+  sortieren: (nach: Sortierung["nach"]) => void;
+  children?: React.ReactNode;
+}) {
+  const aktiv = sortierung.nach === nach;
+  return (
+    <th aria-sort={aktiv ? (sortierung.auf ? "ascending" : "descending") : "none"}>
+      <button type="button" className="sortierkopf" onClick={() => sortieren(nach)}>
+        {titel}
+        <Zeichen
+          name={aktiv && !sortierung.auf ? "hoch" : "runter"}
+          klasse={aktiv ? "sortierpfeil" : "sortierpfeil still"}
+        />
+      </button>
+      {children}
+    </th>
+  );
+}
+
+/**
+ * Das Verwertungspotential, in der Zeile änderbar.
+ *
+ * Ein Auswahlfeld und kein Weg über die Organisationsseite: Eine Liste
+ * durchgehen und dabei einschätzen ist **ein** Vorgang — wer für jedes Haus
+ * hinein- und wieder herausklicken muss, schätzt beim vierten nichts mehr ein.
+ *
+ * Gespeichert wird sofort, ohne Knopf daneben: Es ist ein Wert aus vier, und
+ * ein falscher ist mit demselben Griff zurückgestellt.
+ */
+function Prio({
+  organisation,
+  ich,
+  neuLaden,
+}: {
+  organisation: Organisation;
+  ich: Ich;
+  neuLaden: () => void;
+}) {
+  if (!ich.darf.bearbeiten)
+    return <span className={`prio prio-${organisation.prioritaet}`}>{prioritaetstext(organisation.prioritaet)}</span>;
+
+  return (
+    <select
+      className="prio-wahl"
+      data-prio={organisation.prioritaet}
+      value={organisation.prioritaet}
+      aria-label={`Priorität von ${organisation.name}`}
+      onChange={async (e) => {
+        await aendern(`/organisationen/${organisation.id}/`, { prioritaet: e.target.value });
+        neuLaden();
+      }}
+    >
+      {PRIORITAETEN.map((p) => (
+        <option key={p.wert} value={p.wert}>
+          {p.text}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -208,6 +290,16 @@ function Uebersicht({
   const [ball, setBall] = useState<Ballfilter>("alle");
   const [neue, setNeue] = useState({ name: "", typ: "" });
   const [fehler, setFehler] = useState("");
+  // Nach Namen, wie die Liste vom Server kommt. Die Sortierung steht im
+  // Zustand der Ansicht und nicht im Weg: Sie ist eine Blickrichtung auf
+  // dieselbe Liste, kein anderer Ort — genau wie Suche und Ballfilter.
+  const [sortierung, setSortierung] = useState<Sortierung>({ nach: "name", auf: true });
+
+  /* Erneut auf dieselbe Spalte dreht die Richtung um; eine andere Spalte
+     fängt bei ihrer natürlichen Richtung an — Namen von A an, Priorität mit
+     dem Wichtigsten oben. */
+  const sortieren = (nach: Sortierung["nach"]) =>
+    setSortierung((s) => (s.nach === nach ? { nach, auf: !s.auf } : { nach, auf: true }));
 
   async function anlegen() {
     if (!neue.name.trim()) return setFehler("Ohne Namen gibt es nichts anzulegen.");
@@ -223,7 +315,10 @@ function Uebersicht({
     oeffnen(String(angelegt.id));
   }
 
-  const gefiltert = organisationen.filter((o) => passtOrganisation(o, suche, ball));
+  const gefiltert = sortiereOrganisationen(
+    organisationen.filter((o) => passtOrganisation(o, suche, ball)),
+    sortierung,
+  );
   const gefilterteLose = lose.filter((k) => passtKontakt(k, suche, ball));
   const nichts = organisationen.length === 0 && lose.length === 0;
   const loseZeigen = zeigtLoseZeile(lose, gefilterteLose, suche, ball);
@@ -280,6 +375,27 @@ function Uebersicht({
             <option value="nichts">Nichts offen</option>
           </select>
           <Hilfe text="„Warten auf uns“ heißt: wir schulden etwas. „Wir warten“ heißt: der Ball liegt bei den anderen. „Nichts offen“ heißt: der Kontakt läuft, aber gerade steht nichts an. Der Ball hängt an den Personen — eine Organisation passt, wenn eine ihrer Personen passt." />
+
+          {/*
+            Dasselbe wie ein Klick auf den Spaltenkopf, nur am Handy: Dort wird
+            aus der Tabelle eine Karte, und der Kopf — mit ihm die Sortierung —
+            ist ausgeblendet. Beide schreiben in denselben Zustand; ein zweiter
+            Sortierbegriff daneben wäre eine zweite Wahrheit.
+          */}
+          <select
+            className="feld nur-handy"
+            value={`${sortierung.nach}-${sortierung.auf ? "auf" : "ab"}`}
+            onChange={(e) => {
+              const [nach, richtung] = e.target.value.split("-");
+              setSortierung({ nach: nach as Sortierung["nach"], auf: richtung === "auf" });
+            }}
+            aria-label="Sortierung"
+          >
+            <option value="name-auf">Name A–Z</option>
+            <option value="name-ab">Name Z–A</option>
+            <option value="prioritaet-auf">Prio — wichtig zuerst</option>
+            <option value="prioritaet-ab">Prio — wichtig zuletzt</option>
+          </select>
         </div>
       </div>
 
@@ -301,9 +417,12 @@ function Uebersicht({
           <table className="tabelle">
             <thead>
               <tr>
-                <th>Organisation</th>
+                <Sortierkopf titel="Organisation" nach="name" sortierung={sortierung} sortieren={sortieren} />
                 <th>Typ</th>
                 <th>Stufe</th>
+                <Sortierkopf titel="Prio" nach="prioritaet" sortierung={sortierung} sortieren={sortieren}>
+                  <Hilfe text="Wie viel für uns drinsteckt — das Verwertungspotential. Nicht dasselbe wie die Stufe: Die sagt, wie nah wir uns sind. Eine Förderstelle, mit der wir noch nie geredet haben, kann das Wichtigste auf der Liste sein." />
+                </Sortierkopf>
                 <th>Personen</th>
                 <th>Am Zug</th>
                 <th>Zuletzt</th>
@@ -328,6 +447,9 @@ function Uebersicht({
                     <td data-spalte="Typ">{o.typ || "—"}</td>
                     <td data-spalte="Stufe">
                       <Naehe stufe={o.stufe} />
+                    </td>
+                    <td data-spalte="Prio">
+                      <Prio organisation={o} ich={ich} neuLaden={neuLaden} />
                     </td>
                     <td data-spalte="Personen" className="zahl">
                       {o.kontakte.length}
@@ -356,6 +478,10 @@ function Uebersicht({
                   </td>
                   <td data-spalte="Typ">Personen ohne Organisation</td>
                   <td data-spalte="Stufe">—</td>
+                  {/* Lose Kontakte sind keine Organisation und haben keine
+                      Priorität — hier stünde sonst ein Auswahlfeld, das
+                      nirgends hinschreibt. */}
+                  <td data-spalte="Prio">—</td>
                   <td data-spalte="Personen" className="zahl">
                     {gefilterteLose.length}
                   </td>
@@ -508,6 +634,9 @@ function Organisationsseite({
             ) : (
               <Naehe stufe={org.stufe} />
             )}
+            {/* Dieselbe Auswahl wie in der Übersicht: Wer hier einschätzt,
+                sucht sie nicht erst eine Ebene höher. */}
+            <Prio organisation={org} ich={ich} neuLaden={neuLaden} />
             {ich.darf.loeschen && (
               <button
                 type="button"

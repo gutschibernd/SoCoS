@@ -12,6 +12,8 @@ import {
   verlaufDerPersonen,
   wartenAufUns,
   zeigtLoseZeile,
+  prioritaetsrang,
+  sortiereOrganisationen,
 } from "./kontakte";
 import type { Kontakt, Organisation, Verlaufseintrag } from "./daten";
 
@@ -54,6 +56,7 @@ function organisation(teil: Partial<Organisation> = {}): Organisation {
     kurz: "FÖR",
     typ: "Förderstelle",
     stufe: "angebahnt",
+    prioritaet: "offen",
     nutzen: "",
     kontakte: [],
     verlauf: [],
@@ -287,5 +290,81 @@ describe("zeigtLoseZeile", () => {
   it("folgt dem Filter, sobald es lose Personen gibt", () => {
     expect(zeigtLoseZeile(lose, lose, "ohne", "alle")).toBe(true);
     expect(zeigtLoseZeile(lose, [], "berger", "alle")).toBe(false);
+  });
+});
+
+describe("sortiereOrganisationen", () => {
+  const liste = [
+    organisation({ id: 1, name: "Zeta", prioritaet: "mittel" }),
+    organisation({ id: 2, name: "Alpha", prioritaet: "gering" }),
+    organisation({ id: 3, name: "Beta", prioritaet: "hoch" }),
+    organisation({ id: 4, name: "Gamma", prioritaet: "offen" }),
+    organisation({ id: 5, name: "Delta", prioritaet: "hoch" }),
+  ];
+  const namen = (liste: Organisation[]) => liste.map((o) => o.name);
+
+  it("stellt das Wichtigste nach oben", () => {
+    expect(namen(sortiereOrganisationen(liste, { nach: "prioritaet", auf: true }))).toEqual([
+      "Beta",
+      "Delta",
+      "Zeta",
+      "Alpha",
+      "Gamma",
+    ]);
+  });
+
+  // Was niemand eingeschätzt hat, gehört nicht an die Spitze — auch nicht,
+  // wenn man die Richtung umdreht.
+  it("dreht die Richtung um", () => {
+    expect(namen(sortiereOrganisationen(liste, { nach: "prioritaet", auf: false }))).toEqual([
+      "Gamma",
+      "Alpha",
+      "Zeta",
+      "Beta",
+      "Delta",
+    ]);
+  });
+
+  // Sonst stünden gleich wichtige Häuser bei jedem Neuladen anders.
+  it("fällt bei Gleichstand auf den Namen zurück", () => {
+    const gleich = sortiereOrganisationen(
+      [
+        organisation({ id: 1, name: "Zeta", prioritaet: "hoch" }),
+        organisation({ id: 2, name: "Alpha", prioritaet: "hoch" }),
+      ],
+      { nach: "prioritaet", auf: false },
+    );
+    expect(namen(gleich)).toEqual(["Alpha", "Zeta"]);
+  });
+
+  it("sortiert nach Namen, auf und ab", () => {
+    expect(namen(sortiereOrganisationen(liste, { nach: "name", auf: true }))).toEqual([
+      "Alpha",
+      "Beta",
+      "Delta",
+      "Gamma",
+      "Zeta",
+    ]);
+    expect(namen(sortiereOrganisationen(liste, { nach: "name", auf: false }))[0]).toBe("Zeta");
+  });
+
+  it("lässt die übergebene Liste in Ruhe", () => {
+    const vorher = namen(liste);
+    sortiereOrganisationen(liste, { nach: "prioritaet", auf: true });
+    expect(namen(liste)).toEqual(vorher);
+  });
+
+  // Ein Wert, den es einmal gab und nicht mehr gibt, darf die Liste nicht
+  // anführen.
+  it("stellt einen unbekannten Wert ganz nach hinten", () => {
+    expect(prioritaetsrang("weissnicht")).toBeGreaterThan(prioritaetsrang("offen"));
+    const mitAltem = sortiereOrganisationen(
+      [
+        organisation({ id: 1, name: "Alt", prioritaet: "weissnicht" as Organisation["prioritaet"] }),
+        organisation({ id: 2, name: "Neu", prioritaet: "gering" }),
+      ],
+      { nach: "prioritaet", auf: true },
+    );
+    expect(namen(mitAltem)).toEqual(["Neu", "Alt"]);
   });
 });

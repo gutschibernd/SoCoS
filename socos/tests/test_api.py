@@ -432,6 +432,44 @@ class TestStammdaten:
 
 
 @pytest.mark.django_db
+class TestOrganisationsprioritaet:
+    """
+    Das Verwertungspotential — eigenes Feld neben der Stufe, weil es etwas
+    anderes sagt: Die Stufe misst die Nähe, die Priorität den Nutzen.
+    """
+
+    def test_ohne_angabe_ist_sie_nicht_eingeschaetzt(self, client, bearbeiter):
+        """Kein geratener Mittelwert: „offen" ist eine Auskunft, „mittel" wäre eine Behauptung."""
+        org = Organisation.objects.create(name="KWF")
+        client.force_login(bearbeiter)
+        daten = client.get(f"/api/organisationen/{org.pk}/").json()
+        assert daten["prioritaet"] == "offen"
+
+    def test_ein_bearbeiter_darf_sie_setzen(self, client, bearbeiter):
+        org = Organisation.objects.create(name="FFG")
+        client.force_login(bearbeiter)
+        antwort = client.patch(
+            f"/api/organisationen/{org.pk}/",
+            {"prioritaet": "hoch"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 200
+        org.refresh_from_db()
+        assert org.prioritaet == "hoch"
+
+    def test_ein_erfundener_wert_kommt_nicht_durch(self, client, bearbeiter):
+        """Sonst stünde in der Spalte ein Wort, das keine Sortierung kennt."""
+        org = Organisation.objects.create(name="AWS")
+        client.force_login(bearbeiter)
+        antwort = client.patch(
+            f"/api/organisationen/{org.pk}/",
+            {"prioritaet": "sehr wichtig"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 400
+
+
+@pytest.mark.django_db
 class TestVerlauf:
     def test_gehoert_zu_genau_einem(self, client, bearbeiter):
         org = Organisation.objects.create(name="KWF")

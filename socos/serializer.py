@@ -289,7 +289,10 @@ class OrganisationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organisation
-        fields = ["id", "name", "kurz", "typ", "stufe", "nutzen", "kontakte", "verlauf"]
+        fields = [
+            "id", "name", "kurz", "typ", "stufe", "prioritaet", "nutzen",
+            "kontakte", "verlauf",
+        ]
 
     def get_kontakte(self, org):
         menge = org.kontakte.filter(geloescht_am__isnull=True).order_by("name")

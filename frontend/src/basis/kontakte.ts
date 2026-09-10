@@ -68,6 +68,66 @@ export function stufenrang(stufe: string): number {
 }
 
 /**
+ * Das Verwertungspotential, von viel nach wenig — dieselbe Reihenfolge wie
+ * `Prioritaet` in socos/models.py.
+ *
+ * **Die Reihenfolge ist zugleich die Sortierung.** Ein zweiter Ort mit einem
+ * Rang je Wert („hoch = 1") liefe beim ersten eingeschobenen Wert von dieser
+ * Liste weg.
+ *
+ * „Nicht eingeschätzt" steht hinten und nicht vorn: Was niemand angesehen hat,
+ * gehört nicht an die Spitze einer Liste, die nach Wichtigkeit sortiert.
+ */
+export const PRIORITAETEN = [
+  { wert: "hoch", text: "Hoch" },
+  { wert: "mittel", text: "Mittel" },
+  { wert: "gering", text: "Gering" },
+  // „Noch offen" und nicht „nicht eingeschätzt": In der Zeile stehen vier
+  // Wörter nebeneinander, und das längste bestimmt die Breite der Spalte.
+  { wert: "offen", text: "Noch offen" },
+] as const;
+
+export function prioritaetstext(prioritaet: string): string {
+  return PRIORITAETEN.find((p) => p.wert === prioritaet)?.text ?? prioritaet;
+}
+
+/** Unbekanntes ganz nach hinten, statt vor „hoch" zu landen (findIndex = -1). */
+export function prioritaetsrang(prioritaet: string): number {
+  const i = PRIORITAETEN.findIndex((p) => p.wert === prioritaet);
+  return i < 0 ? PRIORITAETEN.length : i;
+}
+
+/** Wonach die Übersicht sortiert ist. `auf` heißt: die erste Zeile zuerst. */
+export type Sortierung = { nach: "name" | "prioritaet"; auf: boolean };
+
+/**
+ * Die Übersicht in der gewählten Ordnung.
+ *
+ * **Gleichstand fällt immer auf den Namen zurück** — sonst stünden die zehn
+ * Häuser mit „hoch" bei jedem Neuladen in einer anderen Reihenfolge, weil die
+ * Liste vom Server nach Namen kommt, `sort` aber nur *stabil* ist, solange
+ * niemand sie vorher gefiltert hat.
+ *
+ * Sortiert wird hier und nicht am Server: Es sind drei Nutzer und eine Liste,
+ * die vollständig geladen ist. Ein `?sortiere=` in der Anfrage brächte einen
+ * zweiten Ort, an dem die Reihenfolge steht.
+ */
+export function sortiereOrganisationen(
+  organisationen: Organisation[],
+  { nach, auf }: Sortierung,
+): Organisation[] {
+  const richtung = auf ? 1 : -1;
+  return [...organisationen].sort((a, b) => {
+    if (nach === "prioritaet") {
+      const unterschied = prioritaetsrang(a.prioritaet) - prioritaetsrang(b.prioritaet);
+      if (unterschied !== 0) return unterschied * richtung;
+      return a.name.localeCompare(b.name, "de");
+    }
+    return a.name.localeCompare(b.name, "de") * richtung;
+  });
+}
+
+/**
  * Die vier Arten eines Verlaufseintrags, mit ihrer Beschriftung.
  *
  * Sie stehen hier und nicht in der Kontakteseite, weil die Eventseite denselben

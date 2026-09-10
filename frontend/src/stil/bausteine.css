@@ -671,6 +671,52 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .stand-wahl[data-stand="getroffen"] { background: var(--gut-hell);     color: var(--gut); }
 .stand-wahl[data-stand="verpasst"]  { background: var(--warnung-hell); color: var(--warnung); }
 
+/* --- Priorität und Sortierung in der Übersicht --------------------------- */
+
+/* Dasselbe Muster wie der Stand auf der Eventseite: ein Auswahlfeld, das
+   aussieht wie die Marke, die daneben stünde. Ohne eigene Schriftgröße —
+   darunter zoomt iOS beim Hineintippen. */
+.prio-wahl {
+  min-height: var(--griff); padding: 6px 8px; max-width: 150px;
+  border: 1px solid transparent; border-radius: var(--kante);
+  font-weight: 600; cursor: pointer;
+}
+.prio-wahl[data-prio="hoch"]   { background: var(--warnung-hell); color: var(--warnung); }
+.prio-wahl[data-prio="mittel"] { background: var(--marke-hell);   color: var(--marke); }
+.prio-wahl[data-prio="gering"] { background: var(--ruhend-hell);  color: var(--text-leise); }
+/* Nicht eingeschätzt bleibt farblos: Eine Farbe behauptete eine Einschätzung,
+   die niemand getroffen hat. */
+.prio-wahl[data-prio="offen"]  { background: transparent; color: var(--text-sehr-leise); }
+
+/* Was der Leser sieht — dieselben Farben, ohne Feld darum. */
+.prio {
+  display: inline-block; padding: 3px 8px; border-radius: var(--kante);
+  font-size: 12px; font-weight: 600;
+}
+.prio-hoch   { background: var(--warnung-hell); color: var(--warnung); }
+.prio-mittel { background: var(--marke-hell);   color: var(--marke); }
+.prio-gering { background: var(--ruhend-hell);  color: var(--text-leise); }
+.prio-offen  { color: var(--text-sehr-leise); }
+
+/* Der Spaltenkopf, nach dem sortiert wird: ein Knopf, der aussieht wie die
+   Beschriftung daneben — nur der Pfeil verrät ihn. Er erbt die Schrift des
+   `<th>`, damit sortierbare und feste Köpfe in einer Zeile stehen können,
+   ohne dass eine der beiden Sorten hervorsticht. */
+.sortierkopf {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit;
+}
+.sortierkopf:hover { color: var(--marke); }
+.sortierpfeil { width: 13px; height: 13px; }
+/* Die Spalte, nach der gerade nicht sortiert wird, zeigt ihren Pfeil nur
+   angedeutet: Ganz ohne Pfeil sähe man nicht, dass sie sortierbar ist. */
+.sortierpfeil.still { opacity: 0.3; }
+
+/* Am Rechner sortiert der Spaltenkopf, am Handy dieses Feld — siehe den
+   Medienblock unten, wo der Kopf verschwindet. */
+.nur-handy { display: none; }
+
 /* Das Haus unter dem Namen. Steht in derselben Zelle, damit aus der Zeile am
    Handy eine Karte mit **einem** Feld „Wen" wird und nicht mit zweien. */
 .dazu { display: block; font-size: 11px; color: var(--text-sehr-leise); margin-top: 2px; }
@@ -835,6 +881,9 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
      neuen Feld vergessen. */
   .tabelle, .tabelle tbody, .tabelle tr, .tabelle td { display: block; width: 100%; }
   .tabelle thead { display: none; }
+  /* Mit dem Kopf verschwinden auch die sortierbaren Spalten. Das Feld in der
+     Filterzeile tritt an ihre Stelle — derselbe Zustand, andere Form. */
+  .nur-handy { display: block; flex: 1 1 100%; }
   .tabelle tr {
     border: 1px solid var(--rand); border-radius: var(--kante);
     margin-bottom: 10px; padding: 4px 0; background: var(--flaeche);
@@ -926,7 +975,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   /* Auf der Eventseite: Die beiden Datumsfelder teilen sich die Zeile, statt
      mit 170 px nebeneinander über den Rand zu laufen. */
   .datumsfeld { flex: 1 1 calc(50% - 4px); width: auto; }
-  .stand-wahl { font-size: 15px; }
+  .stand-wahl, .prio-wahl { font-size: 15px; }
 }
 
 /* --- Meldungen ----------------------------------------------------------- */

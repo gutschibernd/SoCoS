@@ -127,6 +127,7 @@ export type Organisation = {
   kurz: string;
   typ: string;
   stufe: "erstkontakt" | "kennengelernt" | "austausch" | "angebahnt" | "partner";
+  prioritaet: "hoch" | "mittel" | "gering" | "offen";
   nutzen: string;
   kontakte: Kontakt[];
   verlauf: Verlaufseintrag[];
