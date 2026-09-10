@@ -4,8 +4,6 @@ import { hole } from "../basis/api";
 import { useNeuLaden, type Ich } from "../basis/daten";
 import { melden } from "../basis/meldungen";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
-import { Protokoll } from "../bausteine/Protokoll";
-import { Team } from "../bausteine/Team";
 
 const FELDER: { schluessel: string; titel: string; typ?: string }[] = [
   { schluessel: "name", titel: "Name" },
@@ -35,7 +33,6 @@ export function Profil({ ich }: { ich: Ich }) {
   }
 
   return (
-    <div className="spalte">
     <div className="karte" style={{ maxWidth: 620 }}>
       <h2>Stammdaten</h2>
       <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--text-leise)" }}>
@@ -68,10 +65,6 @@ export function Profil({ ich }: { ich: Ich }) {
         {gespeichert && <span className="rueckmeldung gut">Gespeichert.</span>}
         <Fehlerzeile text={fehler} />
       </div>
-    </div>
-
-    {ich.darf.nutzer_verwalten && <Team ich={ich} />}
-    <Protokoll />
     </div>
   );
 }

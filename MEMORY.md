@@ -7,6 +7,49 @@ betrifft.
 
 ---
 
+## 2026-09-10 — Das Zahnrad führt auf eine Seite, nicht in einen Dialog
+
+Bernd wollte hinter dem Zahnrad rechts oben „ein gesamtes Untermenü, kein Popup".
+Aus dem Sicherungsdialog ist die Seite **`/einstellungen`** geworden, mit drei
+Rubriken im Untermenü links: **Konten · Änderungsprotokoll · Sicherung**.
+
+**Warum eine Seite und nicht der Dialog:** Der Dialog konnte genau eine Sache.
+Alles Weitere hätte ihn in eine zweite Anwendung im Fenster verwandelt — mit
+eigenem Zurück, eigener Tiefe und ohne Weg, den man sich merken kann. Auf einer
+Seite hat jede Rubrik einen Pfad, ein Lesezeichen und die Zurück-Geste des
+Geräts.
+
+**Die Rubrik steht im Weg, nicht im Zustand der Ansicht.** `RUBRIKEN` liegt in
+`basis/router.ts` neben `SEITEN`, `/einstellungen/protokoll` überlebt ein
+Neuladen. Derselbe Grund wie bei den Kontakten: Zwei Geschichten nebeneinander —
+eine im Browser, eine in der Ansicht — sind der schlechtere Weg.
+
+**Team und Protokoll sind aus dem Profil hierher gewandert.** Sie standen dort
+unter den eigenen Stammdaten, weil es keinen anderen Ort gab. Das Profil ist
+jetzt, was sein Untertitel sagt: die eigenen Stammdaten.
+
+**Wer welche Rubrik sieht, entscheiden die Rechte aus `/api/ich/`** —
+`nutzer_verwalten` für die Konten, `sichern` für die Sicherung, das Protokoll
+sehen alle drei Rollen („wer hat diese Zeit nachträglich geändert" ist keine
+Admin-Frage). Was jemand nicht darf, steht gar nicht erst im Untermenü, und wer
+gar nichts davon darf, sieht das Zahnrad nicht. Geprüft wird trotzdem am Server
+bei jedem Aufruf: Eine versteckte Rubrik ist nur eine ungenannte URL.
+
+**Ein Redirect gibt es bewusst nicht.** `/einstellungen` ohne Rubrik und
+`/einstellungen/konten` ohne das Recht dazu zeigen beide die erste offene
+Rubrik. Der Weg ohne Rubrik bleibt gültig, damit ein Lesezeichen darauf auch
+nach einer Rechteänderung noch irgendwohin führt.
+
+**Die Nachfrage vor dem Ersetzen des Bestands bleibt ein Dialog**, obwohl die
+Rubrik eine Seite ist. Sie soll den Blick festhalten und zwei Wege offen lassen;
+ein Abschnitt weiter unten auf derselben Seite wäre wegscrollbar.
+
+**Nicht abgenommen:** Die Prüfung an 1280×800 und 375×812 in hell und dunkel
+steht aus — die Oberfläche verlangt eine Anmeldung, und Passwörter tippt der
+Assistent nicht ein. Auf Bernds Wunsch ohne diese Abnahme committet.
+
+---
+
 ## 2026-09-09 — Formulare, die auf einen Klick geschwiegen haben
 
 Bernd hat gemeldet: Formular leer, Knopf gedrückt, **nichts passiert**. Zwei
@@ -285,8 +328,9 @@ dieselbe bleiben.
 
 **Nicht gelöst und weiterhin offen:** Die Datei geht durch den Browser des
 Nutzers. Sie enthält Konten und Personendaten — wo sie danach liegt, entscheidet
-der Mensch davor. Der Dialog sagt das ausdrücklich; die Kopie außer Haus samt
-Verschlüsselung bleibt der offene Punkt unten.
+der Mensch davor. Die Rubrik sagt das ausdrücklich; die Kopie außer Haus samt
+Verschlüsselung bleibt der offene Punkt unten. (Der Dialog von damals ist seit
+2026-09-10 die Rubrik „Sicherung" unter `/einstellungen` — siehe oben.)
 
 ---
 

@@ -1,7 +1,7 @@
 /**
  * Ein sehr kleiner Router.
  *
- * Kein react-router: Es gibt sieben Seiten und eine Ebene darunter. Ein
+ * Kein react-router: Es gibt acht Seiten und eine Ebene darunter. Ein
  * Rahmenwerk brächte hier mehr Begriffe mit, als die Anwendung Wege hat.
  *
  * „start" ist die Wurzel und zugleich der Rückfall für einen Pfad, den es
@@ -27,23 +27,37 @@ export const SEITEN = [
   "kontakte",
   "events",
   "profil",
+  "einstellungen",
 ] as const;
 export type Seite = (typeof SEITEN)[number];
+
+/**
+ * Die Rubriken der Einstellungen. Sie stehen hier und nicht in der Ansicht,
+ * weil der Weg sie kennen muss: `/einstellungen/protokoll` soll ein Lesezeichen
+ * sein dürfen und nach dem Neuladen dieselbe Rubrik zeigen.
+ *
+ * Wer eine Rubrik sehen darf, entscheidet die Ansicht anhand der Rechte aus
+ * `/api/ich/` — und der Server bei jedem Aufruf noch einmal selbst.
+ */
+export const RUBRIKEN = ["konten", "protokoll", "sicherung"] as const;
+export type Rubrik = (typeof RUBRIKEN)[number];
 
 /**
  * Was hinter einer Seite stehen darf. Was hier nicht durchkommt, wird beim
  * Lesen des Pfades verworfen — sonst hinge an einer beliebigen erfundenen
  * zweiten Stufe eine Ansicht in einem Zustand, den niemand vorgesehen hat.
  *
- * Eine Prüfung statt einer Liste, weil die beiden Fälle verschieden gebaut
- * sind: „projekt" hat einen einzigen festen Weg, „kontakte" trägt dort eine
- * Organisationsnummer, die man nicht aufzählen kann. Ob es die Organisation
- * noch gibt, weiß erst die Ansicht — sie zeigt dann die Liste.
+ * Eine Prüfung statt einer Liste, weil die Fälle verschieden gebaut sind:
+ * „projekt" hat einen einzigen festen Weg, „einstellungen" eine kurze feste
+ * Liste, „kontakte" trägt dort eine Organisationsnummer, die man nicht
+ * aufzählen kann. Ob es die Organisation noch gibt, weiß erst die Ansicht —
+ * sie zeigt dann die Liste.
  */
 const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   projekt: (unter) => unter === "bearbeiten",
   kontakte: (unter) => unter === "lose" || /^\d+$/.test(unter),
   events: (unter) => /^\d+$/.test(unter),
+  einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
 };
 
 export type Ort = { seite: Seite; unter: string | null };

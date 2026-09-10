@@ -1,15 +1,19 @@
 /**
- * Der ganze Bestand hinaus und wieder herein — hinter dem Zahnrad rechts oben.
+ * Der ganze Bestand hinaus und wieder herein — die Rubrik „Sicherung" der
+ * Einstellungen.
  *
  * Dasselbe wie `sicherung_erstellen` und `sicherung_einspielen` am Server, nur
- * ohne SSH. Das Zahnrad ist klein und steht am Rand: Es ist nichts, was man im
- * Tagesbetrieb braucht.
+ * ohne SSH.
  *
  * **Die Nachfrage vor dem Einspielen ist der eigentliche Inhalt dieser Datei.**
  * Ein Klick ersetzt hier Projekte, Zeiten, Kontakte *und* alle Konten samt
- * Passwörtern. Deshalb: erst die Datei wählen, dann eine zweite Seite, die den
+ * Passwörtern. Deshalb: erst die Datei wählen, dann eine Nachfrage, die den
  * Dateinamen nennt und sagt, was verschwindet — und der mildere Weg (erst
  * sichern) steht daneben.
+ *
+ * Die Nachfrage bleibt ein Dialog, obwohl die Rubrik selbst eine Seite ist:
+ * Sie soll den Blick festhalten und nur zwei Wege offen lassen. Ein Abschnitt
+ * weiter unten auf derselben Seite wäre wegscrollbar.
  */
 
 import { useState } from "react";
@@ -21,7 +25,7 @@ import { Zeichen } from "./Zeichen";
 
 type Stand = "ruhig" | "fragt" | "laeuft";
 
-export function Sicherungsdialog({ schliessen }: { schliessen: () => void }) {
+export function Sicherung() {
   const [datei, setDatei] = useState<File | null>(null);
   const [stand, setStand] = useState<Stand>("ruhig");
 
@@ -60,10 +64,62 @@ export function Sicherungsdialog({ schliessen }: { schliessen: () => void }) {
   }
 
   return (
-    <div className="dialog-grund" role="dialog" aria-modal="true" onClick={schliessen}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
-        {stand === "fragt" && datei ? (
-          <>
+    <>
+      <div className="karte">
+        <h2>Sicherung</h2>
+        <p className="sicherung-hinweis">
+          Der gesamte Bestand in einer Datei: Datenbank und hochgeladene Dateien.
+          Sie enthält auch die Konten — sie gehört nicht in eine E-Mail und nicht in
+          eine Cloud, die nicht uns gehört.
+        </p>
+
+        <div className="sicherung-teil">
+          <h3>Herunterladen</h3>
+          {/* Ein gewöhnlicher Link, wie beim Zeitnachweis: Der Browser lädt
+              das Archiv selbst, ohne dass es erst durch JavaScript wandert. */}
+          <a className="knopf" href="/api/sicherung/">
+            <Zeichen name="runter" />
+            Sicherung herunterladen
+          </a>
+        </div>
+
+        <div className="sicherung-teil">
+          <h3>Wiederherstellen</h3>
+          <input
+            className="feld"
+            type="file"
+            accept=".gz,.tgz,application/gzip,application/x-gzip"
+            onChange={(e) => setDatei(e.target.files?.[0] ?? null)}
+          />
+          <p className="sicherung-hinweis">
+            Ersetzt den gesamten Bestand durch die gewählte Datei. Erwartet wird ein
+            Archiv aus „Sicherung herunterladen“ (<code>socos-….tar.gz</code>).
+          </p>
+          <div className="feld-reihe">
+            <button
+              type="button"
+              className="knopf"
+              onClick={() =>
+                datei
+                  ? setStand("fragt")
+                  : melden("fehler", "Wähl zuerst das Archiv, das eingespielt werden soll.")
+              }
+              disabled={stand === "laeuft"}
+            >
+              {stand === "laeuft" ? "Wird eingespielt …" : "Bestand ersetzen"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {stand === "fragt" && datei && (
+        <div
+          className="dialog-grund"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setStand("ruhig")}
+        >
+          <div className="dialog" onClick={(e) => e.stopPropagation()}>
             <h2>Bestand durch „{datei.name}“ ersetzen?</h2>
             <p>
               <b>Alles</b> wird ersetzt: Projekte, Zeiten, Kontakte, Finanzen, das
@@ -78,83 +134,13 @@ export function Sicherungsdialog({ schliessen }: { schliessen: () => void }) {
               <a className="knopf-still" href="/api/sicherung/">
                 Vorher das Heutige sichern
               </a>
-              <button
-                type="button"
-                className="knopf"
-                onClick={einspielen}
-                disabled={stand !== "fragt"}
-              >
+              <button type="button" className="knopf" onClick={einspielen}>
                 Ersetzen
               </button>
             </div>
-          </>
-        ) : (
-          <>
-            <h2>Sicherung</h2>
-            <p>
-              Der gesamte Bestand in einer Datei: Datenbank und hochgeladene Dateien.
-              Sie enthält auch die Konten — sie gehört nicht in eine E-Mail und nicht in
-              eine Cloud, die nicht uns gehört.
-            </p>
-
-            <div className="sicherung-teil">
-              <h3>Herunterladen</h3>
-              {/* Ein gewöhnlicher Link, wie beim Zeitnachweis: Der Browser lädt
-                  das Archiv selbst, ohne dass es erst durch JavaScript wandert. */}
-              <a className="knopf" href="/api/sicherung/" onClick={() => schliessen()}>
-                <Zeichen name="runter" />
-                Sicherung herunterladen
-              </a>
-            </div>
-
-            <div className="sicherung-teil">
-              <h3>Wiederherstellen</h3>
-              <input
-                className="feld"
-                type="file"
-                accept=".gz,.tgz,application/gzip,application/x-gzip"
-                onChange={(e) => setDatei(e.target.files?.[0] ?? null)}
-              />
-              <p className="sicherung-hinweis">
-                Ersetzt den gesamten Bestand durch die gewählte Datei. Erwartet wird ein
-                Archiv aus „Sicherung herunterladen“ (<code>socos-….tar.gz</code>).
-              </p>
-              <div className="dialog-knoepfe">
-                <button type="button" className="knopf-still" onClick={schliessen}>
-                  Schließen
-                </button>
-                <button
-                  type="button"
-                  className="knopf"
-                  onClick={() =>
-                    datei
-                      ? setStand("fragt")
-                      : melden("fehler", "Wähl zuerst das Archiv, das eingespielt werden soll.")
-                  }
-                  disabled={stand === "laeuft"}
-                >
-                  {stand === "laeuft" ? "Wird eingespielt …" : "Bestand ersetzen"}
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** Der kleine Knopf rechts oben. Nur für den Admin — entschieden wird das am Server. */
-export function Zahnrad({ oeffnen }: { oeffnen: () => void }) {
-  return (
-    <button
-      type="button"
-      className="kopf-knopf"
-      onClick={oeffnen}
-      aria-label="Sicherung"
-      title="Sicherung: herunterladen und wiederherstellen"
-    >
-      <Zeichen name="zahnrad" />
-    </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

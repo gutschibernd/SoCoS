@@ -312,10 +312,32 @@
   background: transparent; color: var(--kopf-text-leise); cursor: pointer;
 }
 .kopf-knopf:hover { background: var(--marke); color: var(--kopf-text); }
+/* Das Zahnrad ist seit den Einstellungen ein Link und keine Schaltfläche mehr:
+   Es führt auf eine Seite, also gehört ein Weg dahinter. Unterstrichen wäre es
+   das einzige unterstrichene Zeichen in der Leiste. */
+a.kopf-knopf { text-decoration: none; }
+.kopf-knopf[aria-current="page"] { background: var(--kopf-aktiv); color: var(--marke-dunkel); }
 
 /* Das Formular ist nur die Hülle um den Knopf und darf im Flex-Fluss der
    Kopfleiste nichts eigenes beitragen. */
 .abmelden { display: flex; flex: 0 0 auto; margin: 0; }
+
+/* --- Einstellungen: Untermenü und Inhalt --------------------------------- */
+
+/* Zwei Spalten am Rechner, das Menü links. Am Handy (unten) legt es sich als
+   Reihe darüber — dieselben Elemente, keine zweite Ansicht. */
+.einstellungen { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; }
+.untermenue { display: flex; flex-direction: column; gap: 2px; align-content: start; }
+.untermenue a {
+  display: flex; align-items: center; min-height: var(--griff);
+  padding: 0 12px; border-radius: var(--kante);
+  color: var(--text-leise); text-decoration: none; font-size: 14px; font-weight: 500;
+}
+.untermenue a:hover { background: var(--flaeche-leise); color: var(--text); }
+.untermenue a[aria-current="page"] {
+  background: var(--flaeche); border: 1px solid var(--rand);
+  color: var(--text); font-weight: 600;
+}
 
 /* --- Startseite ---------------------------------------------------------- */
 /*
@@ -808,6 +830,13 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   .navigation { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; }
   .kopf-rechts { gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
   .kopf-rechts .uhr-chip { flex: 1 1 100%; padding: 6px 6px 6px 12px; }
+
+  /* Zwei Spalten haben bei 375 px keinen Platz: Das Untermenü wird zur Reihe
+     über dem Inhalt und darf waagrecht wandern, wenn die drei Rubriken nicht
+     nebeneinander passen. */
+  .einstellungen { grid-template-columns: minmax(0, 1fr); }
+  .untermenue { flex-direction: row; overflow-x: auto; gap: 6px; }
+  .untermenue a { flex: 0 0 auto; }
 
   .mini { min-height: var(--griff); }
   .tabelle td.zeilen-aktionen { justify-content: flex-end; }

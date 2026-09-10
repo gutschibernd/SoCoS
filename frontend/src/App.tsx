@@ -5,6 +5,7 @@ import { Zustand } from "./basis/Zustand";
 import { Kopf } from "./bausteine/Kopf";
 import { Meldungen } from "./bausteine/Meldungen";
 import { Dashboard } from "./ansichten/Dashboard";
+import { Einstellungen } from "./ansichten/Einstellungen";
 import { Events } from "./ansichten/Events";
 import { Kontakte } from "./ansichten/Kontakte";
 import { Profil } from "./ansichten/Profil";
@@ -23,6 +24,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   kontakte: { titel: "Kontakte", unter: "Organisationen und Personen" },
   events: { titel: "Events", unter: "Tagungen, Hitlist, wen wir getroffen haben" },
   profil: { titel: "Profil", unter: "Deine Stammdaten" },
+  einstellungen: { titel: "Einstellungen", unter: "Konten, Protokoll, Sicherung" },
 };
 
 /* Die einzige Unterseite bekommt ihre eigene Zeile, statt sie aus dem Namen
@@ -74,6 +76,9 @@ export function App() {
           <Events ich={ich.data} unter={ort.unter} wechseln={wechseln} />
         )}
         {ort.seite === "profil" && <Profil ich={ich.data} />}
+        {ort.seite === "einstellungen" && (
+          <Einstellungen ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+        )}
       </main>
     </>
   );
