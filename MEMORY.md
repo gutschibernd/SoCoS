@@ -7,6 +7,82 @@ betrifft.
 
 ---
 
+## 2026-09-11 — Die Anmeldeseite bekommt einen lebenden Hintergrund
+
+Wunsch von Bernd: Die Anmeldung soll einen interaktiven, animierten Hintergrund
+bekommen.
+
+### Ein Raster aus Quadraten, kein Partikelnebel
+
+Gebaut ist ein Feld kleiner Quadrate auf einem festen Raster (40 px am Rechner,
+34 px am Handy), gezeichnet auf ein `<canvas>` hinter der Karte. Es hat drei
+Antriebe, die sich addieren:
+
+1. **Zwei überlagerte Sinuswellen** als Grundatmen. Zwei schiefe Wellen ergeben
+   ein Muster, das sich nicht erkennbar wiederholt; eine allein zöge als
+   sichtbarer Streifen durch.
+2. **Der Zeiger** zieht die Quadrate in einem Umkreis von 230 px zu sich, lässt
+   sie wachsen und färbt sie von `--rand-stark` über `--marke` bis `--wortmarke-o`.
+   Solange niemand die Maus bewegt hat — am Handy also immer — wandert ein
+   gedachter Zeiger in einer weiten Acht über die Fläche.
+3. **Ringe**, die von einem Punkt auslaufen: beim Aufschlagen der Seite aus der
+   Karte, bei jedem Klick, bei jedem Anschlag in einem Feld, beim Absenden.
+
+Der dritte Punkt ist der eigentliche: Man tippt sein Passwort, und die Seite
+antwortet. Das ist die Stelle, an der der Hintergrund aufhört, Zierde zu sein.
+
+**Warum kein Partikelsystem und keine Bibliothek:** Die Formensprache steht fest
+(eckige Kanten, 4-Spalten-Raster). Ein Raster ist das Zeichen, das diese Anwendung
+ohnehin führt. Und die Seite läuft **ohne** das React-Bundle — sie muss stehen,
+bevor irgendetwas gebaut ist. Also eine Schleife und drei Zustandsgrößen, inline
+in der Vorlage.
+
+### Die Falle: ein Formular, das erst durch eine Animation sichtbar wird
+
+Die Karte und ihre Teile kommen versetzt herein — aus `opacity: 0`. Beim Prüfen
+stand das Formular unsichtbar da: Der Browser hält die Zeitleiste in einem
+verdeckten Tab an, die Animationen blieben bei 193 ms stehen, und in der Karte
+war nichts als die Wortmarke.
+
+Das war hier eine Eigenart der Prüfumgebung. Die Lehre ist es nicht: **Eine
+Anmeldemaske, die bei `opacity: 0` beginnt, ist einen Aussetzer davon entfernt,
+unbenutzbar zu sein** — und das ist die eine Seite, die stehen muss. Zwei
+Festlegungen deshalb:
+
+- Der ganze Auftritt hängt an der Klasse `.belebt`, und die setzt das Skript als
+  erste Anweisung. Ohne Skript steht das Formular schlicht und sichtbar da.
+- `animation-fill-mode: backwards`, nicht `both`. Nach dem Lauf gilt wieder der
+  normale Zustand des Elements, nicht der letzte Bildschritt.
+
+### Gemessen wird die Leinwand, nicht das Fenster
+
+`window.innerWidth` ist in einem Rahmen, der beim Laden noch keine Größe hat, 0 —
+das Raster wäre dann leer und bliebe es, weil kein `resize` mehr käme. Gemessen
+wird deshalb `leinwand.clientWidth`, und neu vermessen wird über einen
+`ResizeObserver` auf der Leinwand (entprellt um 120 ms, weil am Handy jedes Ein-
+und Ausblenden der Adressleiste eine Messung auslöst).
+
+### Der Test, der `--verzug` nicht durchgelassen hat
+
+Die Verzögerung der einzelnen Teile stand zuerst als `--verzug` am Element.
+`test_die_anmeldeseite_erfindet_keine_eigenen_farbnamen` hat das abgelehnt: Der
+Test prüft **alle** `--namen` der Anmeldeseite gegen `farben.css`, nicht nur die,
+die nach Farbe aussehen. Das ist richtig so — sonst käme irgendwann eine Farbe auf
+demselben Weg herein. Die Verzögerung steht jetzt als `animation-delay` direkt am
+Element.
+
+Aus demselben Grund ist der Schatten der Karte neutrales Schwarz mit wenig
+Deckkraft und kein getöntes Grün: Ein eigener Farbwert an vierter Stelle wäre
+genau der, der beim nächsten Umstellen der Palette stehen bleibt.
+
+### Offen
+
+Die Bewegung selbst ist **nicht Bild für Bild geprüft** — die Prüfumgebung hatte
+die Zeitleiste angehalten. Nachgewiesen sind: das Raster, der Zeigerhof, dass ein
+Ring seinen Ursprung verlässt, hell und dunkel, 1280×800 und 375×812.
+
+---
+
 ## 2026-09-11 — Anrede am Kontakt, und der Mailentwurf daraus
 
 Zwei Wünsche von Bernd an einem Tag: Der Knopf „Umhängen" in der Personenkachel

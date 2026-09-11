@@ -146,11 +146,106 @@ button:hover { filter: brightness(0.92); }
   font-size: 14px;
 }
 .hinweis { margin: 18px 0 0; font-size: 13px; color: var(--text-leise); line-height: 1.5; }
+
+/*
+ * Der lebende Hintergrund.
+ *
+ * Ein Raster kleiner Quadrate — dieselbe Formensprache wie die Oberfläche
+ * (eckige Kanten, 4-Spalten-Raster). Es atmet von selbst und reagiert auf
+ * Zeiger und Tastendruck. Gezeichnet wird auf ein <canvas>, nicht mit
+ * hunderten DOM-Knoten: 700 Elemente je Bild wären am Handy nicht flüssig.
+ *
+ * Warum kein React: Diese Seite läuft ohne das Bundle (siehe Kopf der Datei).
+ * Der Zustand steckt deshalb in ein paar Variablen und einer Schleife.
+ */
+.hintergrund {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  display: block;
+}
+/* Ein Schleier über dem Raster, nach innen dichter: Die Karte steht in der
+   Mitte, und Text braucht dort Ruhe. Ohne das flimmert es hinter dem Rand
+   der Karte und zieht das Auge vom Formular weg. */
+.schleier {
+  position: fixed; inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 48% at 50% 50%, var(--grund) 0%, color-mix(in srgb, var(--grund) 70%, transparent) 42%, transparent 72%);
+}
+/* Schwarz mit wenig Deckkraft, kein getöntes Grün: Ein Schatten ist keine
+   Farbe der Palette, und eine vierte Stelle mit einem eigenen Farbwert wäre
+   genau die, die beim nächsten Ändern übrig bleibt. Ebenso in bausteine.css. */
+.karte { position: relative; z-index: 2; box-shadow: 0 18px 44px -28px rgba(0, 0, 0, 0.30); }
+
+/*
+ * Auftritt: Die Teile der Karte kommen einzeln und leicht versetzt herein.
+ * Die Verzögerung steht als animation-delay am Element selbst, damit die
+ * Reihenfolge im Markup abzulesen ist und nicht in einer Liste von
+ * :nth-child-Regeln steht. Eine eigene Variable dafür wäre ein --name, den
+ * es in farben.css nicht gibt — und den lässt der Test nicht durch (zu
+ * Recht: sonst käme irgendwann eine Farbe auf demselben Weg herein).
+ *
+ * **Alles hängt an `.belebt`, und die Klasse setzt das Skript.** Ohne
+ * Skript steht das Formular schlicht da — sichtbar. Eine Anmeldemaske, die
+ * bei `opacity: 0` beginnt und erst durch eine Animation sichtbar wird,
+ * ist genau einen Aussetzer davon entfernt, unbenutzbar zu sein: Der Browser
+ * hält Animationen in verdeckten Tabs an, und dann sitzt jemand vor einer
+ * leeren Karte. Diese Seite ist die eine, die stehen muss.
+ *
+ * Aus demselben Grund `backwards` und nicht `both`: Nach dem Lauf gilt
+ * wieder der normale Zustand des Elements, nicht der letzte Bildschritt.
+ */
+@keyframes herein {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: none; }
+}
+.belebt .karte > *, .belebt .feld {
+  animation: herein 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+/* Die Karte selbst wächst aus ihrer Oberkante heraus — die 3px-Marke oben
+   zieht als Linie auf, bevor der Inhalt steht. */
+@keyframes karte-auf {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+.belebt .karte { animation: karte-auf 620ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+
+/* Das Feld trägt eine Linie, die beim Fokus von der Mitte aufzieht. Der
+   Rahmen allein sagt zu wenig, und ein Fokusring bleibt trotzdem stehen
+   (outline unten) — die Linie ist Zugabe, nicht Ersatz. */
+.feld { position: relative; }
+.feld::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 16px;
+  height: 2px;
+  background: var(--marke);
+  transform: scaleX(0);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.feld:focus-within::after { transform: scaleX(1); }
+
+button { transition: transform 120ms ease, filter 120ms ease; }
+button:active { transform: translateY(1px) scale(0.995); }
+
+/*
+ * Wer Bewegung abbestellt hat, bekommt keine. Das Raster bleibt als ein
+ * stehendes Bild — die Seite ist dann ruhig, aber nicht leer.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .belebt .karte, .belebt .karte > *, .belebt .feld { animation: none; }
+  .feld::after { transition: none; }
+  button { transition: none; }
+}
 </style>
 </head>
 <body>
+<canvas class="hintergrund" aria-hidden="true"></canvas>
+<div class="schleier" aria-hidden="true"></div>
+
 <main class="karte">
-  <div class="marke">
+  <div class="marke" style="animation-delay: 90ms">
     <img src="/static/favicon.svg" alt="" width="46" height="46" />
     <div>
       <div class="wort">S<i>o</i>C<i>o</i>S</div>
@@ -169,7 +264,7 @@ button:hover { filter: brightness(0.92); }
     zum Zeilenende, der Rest stünde als Text auf der Seite.
   {% endcomment %}
   {% if form.errors %}
-    <div class="fehler" role="alert">
+    <div class="fehler" role="alert" style="animation-delay: 150ms">
       {% if form.username.errors or form.password.errors %}
         Bitte E-Mail <b>und</b> Passwort eintragen.
       {% else %}
@@ -179,24 +274,280 @@ button:hover { filter: brightness(0.92); }
     </div>
   {% endif %}
 
-  <form method="post" novalidate>
+  <form method="post" novalidate style="animation-delay: 190ms">
     {% csrf_token %}
-    <label for="id_username">E-Mail</label>
-    <input type="email" name="username" id="id_username" autocomplete="username"
-           autocapitalize="none" autocorrect="off" required autofocus
-           value="{{ form.username.value|default:'' }}" />
+    <div class="feld" style="animation-delay: 230ms">
+      <label for="id_username">E-Mail</label>
+      <input type="email" name="username" id="id_username" autocomplete="username"
+             autocapitalize="none" autocorrect="off" required autofocus
+             value="{{ form.username.value|default:'' }}" />
+    </div>
 
-    <label for="id_password">Passwort</label>
-    <input type="password" name="password" id="id_password"
-           autocomplete="current-password" required />
+    <div class="feld" style="animation-delay: 290ms">
+      <label for="id_password">Passwort</label>
+      <input type="password" name="password" id="id_password"
+             autocomplete="current-password" required />
+    </div>
 
     <button type="submit">Anmelden</button>
     <input type="hidden" name="next" value="{{ next }}" />
   </form>
 
-  <p class="hinweis">
+  <p class="hinweis" style="animation-delay: 350ms">
     Es gibt keine Selbstanmeldung. Konten legt ein Administrator an.
   </p>
 </main>
+<script>
+/*
+ * Das Raster im Hintergrund.
+ *
+ * Kein Rahmenwerk, keine Bibliothek: Die Seite muss stehen, bevor irgendetwas
+ * gebaut ist (siehe Kopf der Datei). Also ein <canvas>, eine Schleife und
+ * drei Zustandsgrößen — Zeiger, Wellen, Zeit.
+ *
+ * Die Farben werden **aus der Palette gelesen**, nicht hier notiert. Sonst
+ * stünde ein vierter Satz Farbwerte in der Datei, und der wäre beim nächsten
+ * Ändern der Palette als einziger falsch. Beim Wechsel hell/dunkel werden sie
+ * neu gelesen.
+ */
+(function () {
+  /* Zuerst die Klasse, dann alles andere: Sie schaltet den Auftritt der
+     Karte frei (siehe .belebt im Stil). Ohne Skript bleibt er aus, und das
+     Formular steht von Anfang an sichtbar da. */
+  document.body.classList.add('belebt');
+
+  var leinwand = document.querySelector('.hintergrund');
+  if (!leinwand || !leinwand.getContext) return;
+  var ctx = leinwand.getContext('2d');
+  if (!ctx) return;
+
+  var ruhe = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* --- Farben aus der Palette ------------------------------------------- */
+
+  var farben = { grund: [201, 196, 183], marke: [20, 89, 95], akzent: [138, 86, 56] };
+
+  function zerlegen(wert, ersatz) {
+    var h = (wert || '').trim();
+    if (h.charAt(0) !== '#' || (h.length !== 4 && h.length !== 7)) return ersatz;
+    if (h.length === 4) h = '#' + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+    return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)];
+  }
+
+  function farbenLesen() {
+    var s = getComputedStyle(document.documentElement);
+    farben.grund = zerlegen(s.getPropertyValue('--rand-stark'), farben.grund);
+    farben.marke = zerlegen(s.getPropertyValue('--marke'), farben.marke);
+    farben.akzent = zerlegen(s.getPropertyValue('--wortmarke-o'), farben.akzent);
+  }
+
+  function mischen(a, b, k) {
+    return 'rgb(' + ((a[0] + (b[0] - a[0]) * k) | 0) + ',' +
+                    ((a[1] + (b[1] - a[1]) * k) | 0) + ',' +
+                    ((a[2] + (b[2] - a[2]) * k) | 0) + ')';
+  }
+
+  /* --- Das Raster -------------------------------------------------------- */
+
+  var zellen = [];
+  var breite = 0, hoehe = 0;
+
+  function aufbauen() {
+    /* Gemessen wird die Leinwand selbst, nicht `window.innerWidth`. In einem
+       Rahmen, der beim Laden noch keine Größe hat, ist innerWidth 0 — das
+       Raster wäre dann leer und bliebe es, weil kein resize mehr käme. */
+    breite = Math.round(leinwand.clientWidth || window.innerWidth || 0);
+    hoehe = Math.round(leinwand.clientHeight || window.innerHeight || 0);
+    zellen = [];
+    if (breite < 2 || hoehe < 2) return;
+    /* Am Handy weiter auseinander: gleich viele Punkte auf kleinerer Fläche
+       wären ein Grau, kein Raster. */
+    var abstand = breite < 700 ? 34 : 40;
+    /* Zwei Pixel je Punkt reichen; mehr kostet am Handy Bilder pro Sekunde. */
+    var dichte = Math.min(window.devicePixelRatio || 1, 2);
+
+    leinwand.width = Math.round(breite * dichte);
+    leinwand.height = Math.round(hoehe * dichte);
+    ctx.setTransform(dichte, 0, 0, dichte, 0, 0);
+
+    for (var x = abstand / 2; x < breite + abstand; x += abstand) {
+      for (var y = abstand / 2; y < hoehe + abstand; y += abstand) {
+        zellen.push({ x: x, y: y });
+      }
+    }
+  }
+
+  /* --- Zustand ----------------------------------------------------------- */
+
+  var zeiger = { x: -999, y: -999, echt: false };
+  var wellen = [];
+  var REICHWEITE = 230;
+
+  function welle(x, y, staerke) {
+    /* Mehr als ein Dutzend gleichzeitig sieht niemand, kostet aber je Zelle
+       eine Runde mehr. Die älteste fällt heraus. */
+    if (wellen.length > 11) wellen.shift();
+    wellen.push({ x: x, y: y, t0: performance.now() / 1000, staerke: staerke, leben: 2.2 });
+  }
+
+  function wellevon(el, staerke) {
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    welle(r.left + r.width / 2, r.top + r.height / 2, staerke);
+  }
+
+  /* --- Zeichnen ---------------------------------------------------------- */
+
+  function bild(t) {
+    ctx.clearRect(0, 0, breite, hoehe);
+
+    /* Abgelaufene Wellen fallen weg, bevor über die Zellen gelaufen wird —
+       nicht innerhalb der Schleife, sonst geschieht es tausendfach. */
+    for (var w = wellen.length - 1; w >= 0; w--) {
+      if (t - wellen[w].t0 > wellen[w].leben) wellen.splice(w, 1);
+    }
+
+    for (var i = 0; i < zellen.length; i++) {
+      var z = zellen[i];
+
+      /* Grundatmen: zwei langsame Wellen über die ganze Fläche, die sich
+         überlagern. Eine allein zieht als sichtbarer Streifen durch; zwei
+         schiefe ergeben ein Muster, das sich nicht erkennbar wiederholt.
+         Was hier ausdrücklich **nicht** steht, ist ein Zufallswert je Zelle:
+         damit zappelt jeder Punkt für sich, und aus der Welle wird Rauschen. */
+      var e = 0.09
+        + 0.075 * Math.sin(z.x * 0.0100 + z.y * 0.0130 - t * 0.50)
+        + 0.055 * Math.sin(z.x * 0.0210 - z.y * 0.0080 + t * 0.33);
+
+      var dx = zeiger.x - z.x, dy = zeiger.y - z.y;
+      var d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+      var zug = 0;
+      if (d < REICHWEITE) {
+        var f = 1 - d / REICHWEITE;
+        f = f * f;
+        e += f * 1.05;
+        zug = f * 8;
+      }
+
+      for (var k = 0; k < wellen.length; k++) {
+        var wl = wellen[k];
+        var alter = t - wl.t0;
+        var wx = wl.x - z.x, wy = wl.y - z.y;
+        var wd = Math.sqrt(wx * wx + wy * wy);
+        /* 340 Pixel je Sekunde: Bei 1280 Pixeln Breite braucht der Ring
+           knapp zwei Sekunden bis zum Rand. Schneller gesehen ist er ein
+           Zucken, langsamer ein Kriechen. */
+        var band = Math.abs(wd - alter * 340);
+        if (band < 100) {
+          var g = 1 - band / 100;
+          /* Die Wurzel hält den Ring länger auf Kraft und lässt ihn erst
+             zum Schluss weg — linear abgezogen ist er nach einem Drittel
+             des Weges schon kaum noch da. */
+          e += g * g * wl.staerke * Math.sqrt(1 - alter / wl.leben);
+        }
+      }
+
+      if (e < 0) e = 0; else if (e > 1.2) e = 1.2;
+
+      var seite = 2.4 + e * 8;
+      var farbe = e < 0.5
+        ? mischen(farben.grund, farben.marke, e / 0.5)
+        : mischen(farben.marke, farben.akzent, (e - 0.5) / 0.7);
+
+      ctx.globalAlpha = 0.22 + Math.min(e, 1) * 0.6;
+      ctx.fillStyle = farbe;
+      /* Zum Zeiger hin gezogen, nicht weggedrückt: Das Raster folgt der Hand,
+         statt vor ihr auszuweichen — die Seite wirkt dadurch zugewandt. */
+      ctx.fillRect(
+        z.x + (dx / d) * zug - seite / 2,
+        z.y + (dy / d) * zug - seite / 2,
+        seite, seite
+      );
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* --- Lauf -------------------------------------------------------------- */
+
+  function standbild() {
+    zeiger.x = -999; zeiger.y = -999;
+    wellen = [];
+    bild(0);
+  }
+
+  function schleife(jetzt) {
+    var t = jetzt / 1000;
+    if (!zeiger.echt) {
+      /* Solange niemand die Maus bewegt hat — am Handy also immer — wandert
+         ein gedachter Zeiger in einer weiten Acht über die Fläche. Ohne das
+         stünde das Raster beim ersten Blick fast still. */
+      zeiger.x = breite * (0.5 + 0.33 * Math.sin(t * 0.21));
+      zeiger.y = hoehe * (0.5 + 0.30 * Math.sin(t * 0.34 + 1.1));
+    }
+    bild(t);
+    requestAnimationFrame(schleife);
+  }
+
+  farbenLesen();
+  aufbauen();
+
+  var dunkel = window.matchMedia('(prefers-color-scheme: dark)');
+  var beiWechsel = function () { farbenLesen(); if (ruhe.matches) standbild(); };
+  if (dunkel.addEventListener) dunkel.addEventListener('change', beiWechsel);
+
+  var zeitgeber;
+  function neuVermessen() {
+    /* Am Handy löst jedes Ein- und Ausblenden der Adressleiste eine Messung
+       aus. Das Raster jedesmal neu aufzubauen ruckelt sichtbar. */
+    clearTimeout(zeitgeber);
+    zeitgeber = setTimeout(function () {
+      aufbauen();
+      if (ruhe.matches) standbild();
+    }, 120);
+  }
+  if (window.ResizeObserver) {
+    new ResizeObserver(neuVermessen).observe(leinwand);
+  } else {
+    window.addEventListener('resize', neuVermessen);
+  }
+
+  if (ruhe.matches) {
+    standbild();
+    return;
+  }
+
+  requestAnimationFrame(schleife);
+
+  window.addEventListener('pointermove', function (e) {
+    zeiger.echt = true;
+    zeiger.x = e.clientX;
+    zeiger.y = e.clientY;
+  }, { passive: true });
+
+  window.addEventListener('pointerdown', function (e) {
+    welle(e.clientX, e.clientY, 1.2);
+  }, { passive: true });
+
+  /* Jeder Anschlag im Formular schickt einen Ring los. Das ist der Punkt, an
+     dem der Hintergrund aufhört, Zierde zu sein: Man tippt sein Passwort und
+     sieht die Seite darauf antworten. Klein gehalten (0,5), sonst wird das
+     Eintippen einer langen Adresse zum Gewitter. */
+  var felder = document.querySelectorAll('.karte input[type=email], .karte input[type=password]');
+  for (var n = 0; n < felder.length; n++) {
+    felder[n].addEventListener('input', function () { wellevon(this, 0.5); }, { passive: true });
+    felder[n].addEventListener('focus', function () { wellevon(this, 0.8); }, { passive: true });
+  }
+
+  var form = document.querySelector('.karte form');
+  if (form) {
+    form.addEventListener('submit', function () {
+      wellevon(form.querySelector('button'), 1.9);
+    });
+  }
+
+  /* Ein Ring beim Aufschlagen der Seite, gleich nachdem die Karte steht. */
+  setTimeout(function () { wellevon(document.querySelector('.karte'), 1.15); }, 420);
+})();
+</script>
 </body>
 </html>
