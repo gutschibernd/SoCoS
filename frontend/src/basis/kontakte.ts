@@ -280,3 +280,62 @@ export function zeigtLoseZeile(
   if (lose.length > 0) return gefilterteLose.length > 0;
   return !suche.trim() && ball === "alle";
 }
+
+/* --- Der Mailentwurf ------------------------------------------------------- */
+
+/**
+ * Die Anreden, wie sie im Feld stehen — die Werte kommen aus `Anrede` in
+ * socos/models.py. Leer steht mit in der Liste, weil „nicht bekannt" ein
+ * gültiger Zustand ist und wählbar bleiben muss: Wer sich vertippt hat, kommt
+ * sonst nicht mehr zurück.
+ */
+export const ANREDEN = [
+  { wert: "", text: "ohne Anrede" },
+  { wert: "herr", text: "Herr" },
+  { wert: "frau", text: "Frau" },
+] as const;
+
+/**
+ * Der Nachname — alles bis zum letzten Leerzeichen weggeschnitten.
+ *
+ * Das ist eine Faustregel und trifft bei nachgestellten Graden („Anna Muster,
+ * MSc") und bei mehrteiligen Namen („van der Berg") daneben. Sie steht
+ * trotzdem hier, weil „Sehr geehrte Frau Anna Muster" in einem Brief falsch
+ * klingt und die Alternative — den Namen in zwei Felder zerlegen — jede
+ * Person doppelt zu pflegen hieße.
+ *
+ * **Tragbar ist die Faustregel nur, weil daraus ein Entwurf wird und keine
+ * gesendete Mail:** Was danebengeht, steht im Mailprogramm vor jemandem, der
+ * es in zwei Sekunden ausbessert.
+ */
+function nachname(name: string): string {
+  const teile = name.trim().split(/\s+/);
+  return teile[teile.length - 1] ?? "";
+}
+
+/**
+ * Die erste Zeile des Entwurfs — ohne Anrede förmlich-neutral mit vollem
+ * Namen, sonst „Sehr geehrte Frau Muster".
+ */
+export function anredezeile(kontakt: Pick<Kontakt, "name" | "anrede">): string {
+  const name = kontakt.name.trim();
+  if (!name) return "Guten Tag,";
+  if (kontakt.anrede === "herr") return `Sehr geehrter Herr ${nachname(name)},`;
+  if (kontakt.anrede === "frau") return `Sehr geehrte Frau ${nachname(name)},`;
+  return `Guten Tag ${name},`;
+}
+
+/**
+ * Die `mailto:`-Adresse, die das Mailprogramm mit fertiger Anrede öffnet.
+ *
+ * Kein Betreff: Den kennt nur, wer die Mail schreibt. Ein geratener
+ * („Kontaktaufnahme") müsste jedes Mal gelöscht werden, und irgendwann geht
+ * er einmal so hinaus.
+ *
+ * Nach der Anrede stehen zwei Umbrüche, damit der Cursor dort landet, wo der
+ * erste Satz hingehört.
+ */
+export function mailentwurf(kontakt: Pick<Kontakt, "name" | "anrede" | "email">): string {
+  const koerper = `${anredezeile(kontakt)}\n\n`;
+  return `mailto:${encodeURIComponent(kontakt.email)}?body=${encodeURIComponent(koerper)}`;
+}

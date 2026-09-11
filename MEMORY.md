@@ -7,6 +7,55 @@ betrifft.
 
 ---
 
+## 2026-09-11 — Anrede am Kontakt, und der Mailentwurf daraus
+
+Zwei Wünsche von Bernd an einem Tag: Der Knopf „Umhängen" in der Personenkachel
+sollte weg, und aus einer hinterlegten Mailadresse sollte sich das Mailprogramm
+mit fertiger Anrede öffnen lassen.
+
+### „Umhängen" ist ersatzlos weg
+
+Der Knopf klappte in einer Organisation das Feld „Gehört zu" erst auf; bei den
+losen Personen stand dasselbe Feld offen da. Die Begründung von damals — in einer
+Organisation steht in jeder Kachel dasselbe Haus, das ist Rauschen — stimmt
+optisch und war praktisch trotzdem falsch: Das Zuordnen *ist* das Auswählen, ein
+Knopf davor ist ein Griff ohne eigene Bedeutung. Beim **Anlegen** war es ohnehin
+nie nötig; eine Person, die in einer Organisation angelegt wird, bekommt die
+Organisation gleich mit. Jetzt steht das Feld immer offen.
+
+### `Kontakt.anrede` ist ein Feld, keine Ableitung
+
+Für „Sehr geehrte Frau Muster" braucht es das Geschlecht, und das stand nirgends.
+Naheliegend wäre eine Ableitung aus dem Vornamen. **Sie kommt nicht in Frage:**
+Eine Vornamensliste trifft bei Kurzformen, bei Namen aus anderen Sprachen und bei
+allen daneben, die in keine der beiden Schubladen passen — und zwar in der
+Anrede einer Mail, also genau dort, wo es auffällt und verletzt.
+
+Leer ist deshalb ein **gültiger Endzustand** und kein halb gepflegtes Feld: Der
+Entwurf beginnt dann mit „Guten Tag Anna Muster," — richtig für jede Person, nur
+weniger förmlich. „Sehr geehrte/r" mit Schrägstrich gibt es nicht; das wäre eine
+Lücke, die jede einzelne Mail aufhalten würde.
+
+### Der Nachname ist eine Faustregel, und das ist hier tragbar
+
+`anredezeile` schneidet für die förmliche Anrede alles bis zum letzten
+Leerzeichen weg. Das geht bei „Anna Muster, MSc" und bei „van der Berg" daneben.
+Der Grund, es trotzdem so zu machen: Das Ergebnis ist ein **Entwurf im
+Mailprogramm**, keine gesendete Mail. Was danebengeht, steht vor jemandem, der es
+in zwei Sekunden ausbessert. Die Alternative — Vor- und Nachname als zwei Felder
+— hieße, jede Person doppelt zu pflegen, damit ein Sonderfall seltener wird.
+
+**Wo die Grenze läge:** Sobald aus dem Entwurf ein Versand ohne Blick darauf wird
+(Serienmail, automatische Erinnerung), ist die Faustregel nicht mehr tragbar.
+Dann braucht es getrennte Namensfelder — nicht vorher.
+
+### Kein Betreff im Entwurf
+
+`mailentwurf` setzt nur den Rumpf. Ein geratener Betreff („Kontaktaufnahme")
+müsste jedes Mal gelöscht werden, und genau einmal geht er so hinaus.
+
+---
+
 ## 2026-09-10 — Der Kontakt bekommt Erreichbarkeit und eine Herkunft
 
 Ausgelöst von einer Meldung von Bernd: Zwei Personen, die er am Server im

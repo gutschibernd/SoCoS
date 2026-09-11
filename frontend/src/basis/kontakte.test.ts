@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  anredezeile,
   ballText,
   gesuchtePersonen,
   letzterKontakt,
@@ -15,6 +16,7 @@ import {
   zeigtLoseZeile,
   prioritaetsrang,
   sortiereOrganisationen,
+  mailentwurf,
 } from "./kontakte";
 import type { Kontakt, Organisation, Verlaufseintrag } from "./daten";
 
@@ -39,6 +41,7 @@ function person(id: number, name: string, teil: Partial<Kontakt> = {}): Kontakt 
   return {
     id,
     name,
+    anrede: "",
     funktion: "",
     email: "",
     telefon: "",
@@ -412,5 +415,45 @@ describe("sortiereOrganisationen", () => {
       { nach: "prioritaet", auf: true },
     );
     expect(namen(mitAltem)).toEqual(["Neu", "Alt"]);
+  });
+});
+
+describe("Anrede und Mailentwurf", () => {
+  it("spricht mit gepflegter Anrede förmlich und nur mit dem Nachnamen an", () => {
+    expect(anredezeile(person(1, "Anna Muster", { anrede: "frau" }))).toBe(
+      "Sehr geehrte Frau Muster,",
+    );
+    expect(anredezeile(person(2, "Karl Huber", { anrede: "herr" }))).toBe(
+      "Sehr geehrter Herr Huber,",
+    );
+  });
+
+  // Der Leerfall ist kein halb ausgefülltes Feld, sondern eine eigene,
+  // vollständige Anrede — sonst stünde „Sehr geehrte/r " in der Mail.
+  it("bleibt ohne Anrede neutral und nimmt den ganzen Namen", () => {
+    expect(anredezeile(person(3, "Anna Muster"))).toBe("Guten Tag Anna Muster,");
+  });
+
+  it("verschluckt sich nicht an einem leeren oder einteiligen Namen", () => {
+    expect(anredezeile(person(4, "   "))).toBe("Guten Tag,");
+    expect(anredezeile(person(5, "  ", { anrede: "frau" }))).toBe("Guten Tag,");
+    expect(anredezeile(person(6, "Muster", { anrede: "herr" }))).toBe("Sehr geehrter Herr Muster,");
+  });
+
+  // Mehrfache Leerzeichen sind beim Eintippen der Normalfall, nicht der
+  // Sonderfall — „Frau  Muster" mit zwei Leerzeichen wäre in der Mail sichtbar.
+  it("übersteht überzählige Leerzeichen im Namen", () => {
+    expect(anredezeile(person(7, "  Anna   Muster  ", { anrede: "frau" }))).toBe(
+      "Sehr geehrte Frau Muster,",
+    );
+  });
+
+  it("baut eine mailto-Adresse mit kodierter Anrede und Platz für den ersten Satz", () => {
+    const url = mailentwurf(
+      person(8, "Anna Muster", { anrede: "frau", email: "anna@muster.at" }),
+    );
+    expect(url).toBe(
+      "mailto:anna%40muster.at?body=Sehr%20geehrte%20Frau%20Muster%2C%0A%0A",
+    );
   });
 });

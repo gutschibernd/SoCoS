@@ -631,8 +631,16 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .gefunden { font-size: 12px; color: var(--text-leise); }
 .gefunden-rolle { color: var(--text-sehr-leise); }
 
-.person-haus { display: block; }
-.person-haus .beschriftung-klein { margin-bottom: 3px; }
+/* Anrede und Organisation stehen nebeneinander, nicht untereinander: Zwei
+   Auswahlfelder übereinander sähen in einer Kachel aus fünf Angaben nach
+   Formular aus. Die Anrede bekommt nur so viel Breite, wie „ohne Anrede"
+   braucht — der Rest gehört dem Organisationsnamen, der lang werden kann. */
+.person-felder { display: flex; gap: 8px; align-items: flex-end; }
+.person-anrede { flex: 0 0 108px; }
+.person-haus { flex: 1; min-width: 0; }
+.person-felder label { display: block; }
+.person-felder .beschriftung-klein { margin-bottom: 3px; }
+.person-felder .feld-klein { width: 100%; margin-top: 0; }
 .person-fuss {
   margin-top: auto; display: flex; align-items: center; justify-content: space-between;
   gap: 9px; font-size: 11px; color: var(--text-sehr-leise);
@@ -792,6 +800,9 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   background: var(--flaeche); color: var(--marke); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
 }
+/* Der Mailentwurf ist ein `mailto:`-Verweis und kein Knopf — ohne das hier
+   bekäme er den Unterstrich, den ein Verweis mitbringt. */
+a.mini { text-decoration: none; }
 .mini:disabled { opacity: 0.4; cursor: default; }
 .mini:hover { border-color: var(--marke-rand); }
 

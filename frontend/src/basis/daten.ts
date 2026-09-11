@@ -98,6 +98,8 @@ export type Dashboard = {
 export type Kontakt = {
   id: number;
   name: string;
+  /** „herr" oder „frau" — leer heißt: nicht bekannt, nicht geraten. */
+  anrede: "" | "herr" | "frau";
   funktion: string;
   email: string;
   telefon: string;

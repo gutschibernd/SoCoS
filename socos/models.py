@@ -591,6 +591,25 @@ class Ball(models.TextChoices):
     NICHTS = "nichts", "nichts offen"
 
 
+class Anrede(models.TextChoices):
+    """
+    Wie eine Person in einem Brief angesprochen wird.
+
+    **Warum ein Feld und nicht aus dem Vornamen geraten:** Eine Liste von
+    Vornamen trifft bei Kurzformen, bei Namen aus anderen Sprachen und bei
+    allen, die in keine der beiden Schubladen passen, das Falsche — und zwar
+    in der Anrede einer Mail, also genau dort, wo es auffällt und beleidigt.
+    Lieber leer lassen als raten.
+
+    Leer ist deshalb ein gültiger Zustand und kein halb ausgefülltes Feld:
+    Der Mailentwurf beginnt dann mit „Guten Tag Anna Muster," — richtig für
+    jede Person, nur weniger förmlich.
+    """
+
+    HERR = "herr", "Herr"
+    FRAU = "frau", "Frau"
+
+
 class Kontakt(Basismodell):
     """Eine Person außerhalb des Teams. Ohne Organisation ist sie ein loser Kontakt."""
 
@@ -603,6 +622,7 @@ class Kontakt(Basismodell):
         related_name="kontakte",
     )
     name = models.CharField("Name", max_length=160)
+    anrede = models.CharField("Anrede", max_length=4, choices=Anrede.choices, blank=True)
     funktion = models.CharField("Rolle", max_length=160, blank=True)
     email = models.EmailField("E-Mail", blank=True)
     # Als Text und nicht zerlegt in Vorwahl und Nummer: Was auf einer

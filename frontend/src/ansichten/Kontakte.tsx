@@ -25,8 +25,10 @@ import {
   type Organisation,
 } from "../basis/daten";
 import {
+  ANREDEN,
   artText,
   ballText,
+  mailentwurf,
   letzterKontakt,
   offenerPunkt,
   gesuchtePersonen,
@@ -840,7 +842,6 @@ function Personenkarte({
               key={k.id}
               kontakt={k}
               organisationen={organisationen}
-              imHaus={gehoertZu !== null}
               ich={ich}
               neuLaden={neuLaden}
               zumLoeschen={zumLoeschen}
@@ -881,25 +882,16 @@ function Personenkarte({
 function Personenkachel({
   kontakt,
   organisationen,
-  imHaus,
   ich,
   neuLaden,
   zumLoeschen,
 }: {
   kontakt: Kontakt;
   organisationen: Organisation[];
-  /** Ob wir gerade in einer Organisation stehen — bei den losen nicht. */
-  imHaus: boolean;
   ich: Ich;
   neuLaden: () => void;
   zumLoeschen: (auftrag: Loeschauftrag) => void;
 }) {
-  // Bei den losen Personen ist „wohin gehört die?" die Hauptsache und steht
-  // offen da. In einer Organisation stünde in jeder Kachel dieselbe Antwort —
-  // dreimal dasselbe Feld ist Rauschen, und umgehängt wird selten. Dort liegt
-  // es hinter einem Knopf.
-  const [haus, setHaus] = useState(!imHaus);
-
   const speichern = async (daten: Record<string, unknown>) => {
     await aendern(`/kontakte/${kontakt.id}/`, daten);
     neuLaden();
@@ -1004,34 +996,67 @@ function Personenkachel({
         </div>
       )}
 
-      {ich.darf.bearbeiten && haus && (
-        <label className="person-haus">
-          <span className="beschriftung-klein">Gehört zu</span>
-          <select
-            className="feld feld-klein"
-            value={kontakt.organisation ?? ""}
-            onChange={(e) =>
-              speichern({ organisation: e.target.value ? Number(e.target.value) : null })
-            }
-          >
-            <option value="">Keine Organisation</option>
-            {organisationen.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* „Gehört zu" steht offen da, auch innerhalb einer Organisation, wo in
+          jeder Kachel dasselbe Haus steht. Hier stand ein Knopf „Umhängen",
+          der das Feld erst aufklappte: ein Griff mehr für die Zuordnung, die
+          das Auswählen ohnehin schon erledigt. Wer das Feld sieht, ordnet zu;
+          wer erst raten muss, wo es steckt, tut es nicht.
+
+          Die Anrede daneben ist kein Titel und keine Angabe über die Person,
+          sondern das, was im Mailentwurf vor dem Namen steht — deshalb steht
+          sie bei den Feldern und nicht beim Namen, und deshalb sieht sie nur,
+          wer auch bearbeiten darf. */}
+      {ich.darf.bearbeiten && (
+        <div className="person-felder">
+          <label className="person-anrede">
+            <span className="beschriftung-klein">Anrede</span>
+            <select
+              className="feld feld-klein"
+              value={kontakt.anrede}
+              onChange={(e) => speichern({ anrede: e.target.value })}
+            >
+              {ANREDEN.map((a) => (
+                <option key={a.wert} value={a.wert}>
+                  {a.text}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="person-haus">
+            <span className="beschriftung-klein">Gehört zu</span>
+            <select
+              className="feld feld-klein"
+              value={kontakt.organisation ?? ""}
+              onChange={(e) =>
+                speichern({ organisation: e.target.value ? Number(e.target.value) : null })
+              }
+            >
+              <option value="">Keine Organisation</option>
+              {organisationen.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       )}
 
       <div className="person-fuss">
         <span>
           Zuletzt <span className="zahl">{alsDatum(kontakt.letzter_kontakt)}</span>
         </span>
-        {ich.darf.bearbeiten && imHaus && !haus && (
-          <button type="button" className="mini" onClick={() => setHaus(true)}>
-            Umhängen
-          </button>
+        {/* Öffnet das Mailprogramm mit fertiger Anrede. Ein Verweis und kein
+            Knopf: `mailto:` ist eine Adresse, und der Browser weiß selbst, was
+            er damit tut — ein `onClick` mit `location.href` wäre dasselbe,
+            nur ohne Kontextmenü und ohne Tastaturbedienung. Ohne hinterlegte
+            Adresse steht er gar nicht da; ein abgeblendeter Knopf, der nichts
+            tut, ist eine Frage ohne Antwort. */}
+        {kontakt.email && (
+          <a className="mini" href={mailentwurf(kontakt)} aria-label={`Mail an ${kontakt.name}`}>
+            <Zeichen name="brief" />
+            Mail
+          </a>
         )}
         {ich.darf.loeschen && (
           <button

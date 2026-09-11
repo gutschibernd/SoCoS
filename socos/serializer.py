@@ -274,7 +274,7 @@ class KontaktSerializer(serializers.ModelSerializer):
     class Meta:
         model = Kontakt
         fields = [
-            "id", "name", "funktion", "email", "telefon",
+            "id", "name", "anrede", "funktion", "email", "telefon",
             "organisation", "organisation_name",
             "kennengelernt_auf", "kennengelernt_auf_titel",
             "ball", "offener_punkt", "letzter_kontakt", "verlauf",
