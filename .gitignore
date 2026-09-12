@@ -37,3 +37,8 @@ frontend/tsconfig.tsbuildinfo
 
 # Laufprotokolle der Skripte
 protokolle/
+
+# Der zusammengesetzte Design-Canvas ist Bauergebnis aus den .dc.html-
+# Dateien daneben — 2,6 MB, die sich bei jedem Neubau ändern.
+entwurf/redesign/socos-ui-entwuerfe.html
+entwurf/redesign/verworfen/

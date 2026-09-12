@@ -13,7 +13,7 @@
       "x": 0,
       "y": -170,
       "w": 660,
-      "text": "ENTWURF B — „Werkbank“, final\nSeitenleiste, Start ungruppiert oben, Gruppen „Intern“ und „Extern“. Die Uhr sitzt fest am Fuß der Leiste.\nKlickbar: Menü, Uhr, „zuletzt gebucht“ (startet die Uhr links unten), Zeitraum-Umschalter, Personenfilter, Nachtragen, Löschdialog, Pipeline-Filter und Kartenauswahl. Hell/Dunkel über den Regler über jedem Artboard."
+      "text": "ENTWURF B — „Werkbank“, final\nSeitenleiste, Start ungruppiert oben, Gruppen „Intern“ und „Extern“. Die Uhr sitzt fest am Fuß der Leiste. Feste 232 px ohne Einklappknopf — eingeklappt wird nur am Handy, und dort ist es die Fußleiste.\nKlickbar: Menü, Uhr, „zuletzt gebucht“ (startet die Uhr links unten), Zeitraum-Umschalter, Personenfilter, Nachtragen, Löschdialog, Pipeline-Filter und Kartenauswahl. Hell/Dunkel über den Regler über jedem Artboard."
     },
     {
       "id": "note-dash",
