@@ -37,7 +37,9 @@ export type ZeichenName =
   | "abmelden"
   | "brief"
   | "hoerer"
-  | "fahne";
+  | "fahne"
+  | "zuhause"
+  | "mehr";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -87,6 +89,12 @@ const PFADE: Record<ZeichenName, string> = {
   // Eine Fahne an einem Mast: „hier war das". Kein Ortsnadel-Zeichen — die
   // Person wurde auf einem Anlass kennengelernt, nicht an einem Ort.
   fahne: "M6 20.5V4M6 4.5h12l-2.5 4 2.5 4H6",
+  /* „start" ist schon das Dreieck, mit dem die Uhr losgeht — der Menüeintrag
+     zur Startseite braucht deshalb einen eigenen Namen. */
+  zuhause: "M3.5 11L12 3.5l8.5 7.5V20.5h-17zM9.5 20.5v-6h5v6",
+  /* Nur am Handy: der fünfte Platz in der Fußleiste, hinter dem steht, was
+     dort nicht mehr hinpasst. */
+  mehr: "M4 6.5h16M4 12h16M4 17.5h16",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

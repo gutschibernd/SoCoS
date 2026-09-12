@@ -101,10 +101,36 @@ wie beim Favicon: Die Anmeldeseite muss stehen, bevor `collectstatic` gelaufen i
   die sich widersprechen, wären schlimmer als eine weniger. Selbst gezeichnetes
   SVG, kein Diagrammpaket (dieselbe Regel wie bei den Zeichen).
 
+### Etappe 2: die Seitenleiste (2026-09-12)
+
+`Kopf.tsx` heißt jetzt `Seitenleiste.tsx`. Das Menü steht als **eine** Liste
+(`GRUPPEN`) da; die vier Abkürzungen der Fußleiste am Handy (`FUSS`) nennen nur
+Seitennamen und suchen Zeichen und Titel dort heraus — sonst hätte ein
+umbenannter Eintrag am Handy noch den alten Namen.
+
+Am Handy wird dieselbe Leiste zur Schublade hinter „Mehr" — kein zweites Menü.
+Die Uhr ist ein eigener Baustein (`Uhrblock`) und steht an zwei Plätzen: am Fuß
+der Leiste und am Handy über der Fußleiste, wo der Daumen liegt.
+
+**Zwei Schwellen, und das ist Absicht.** Die Leiste klappt bei **900 px** weg,
+die Tabellen werden erst bei **720 px** zu Karten: 232 px Leiste plus eine
+brauchbare Inhaltsspalte gehen sich unter 900 nicht mehr aus, lange bevor eine
+Tabelle bricht. Zwei verschiedene Fragen, zwei verschiedene Antworten.
+
+**Die Falle, die hier drinsteckt:** Die Schublade fährt über `left` herein und
+nicht über `transform`. `transform` macht aus einem Element einen Bezugsrahmen
+für alles, was darin `position: fixed` ist — der dunkle Schatten und die Uhr
+über der Fußleiste würden mit der Schublade mitwandern, statt stehen zu
+bleiben. Das sieht man erst am Gerät.
+
+Die alte Medienabfrage für 721–1279 px ist ersatzlos weg: Sie löste, dass die
+Kopfzeile ihre eine Zeile sprengte. Es gibt keine Kopfzeile mehr.
+
 ### Was noch offen ist
 
-Etappe 2 (Seitenleiste, Menü, Start-Eintrag, Fußleiste am Handy) und Etappe 3
-(Zeitraum-Leiste über den Kennzahlen, Liniendiagramm, Tabellen-Feinschliff).
+Etappe 3: Zeitraum-Leiste über den Kennzahlen, Kontostand als Liniendiagramm,
+Tabellen-Feinschliff, und die `style={{ borderTop… }}`-Reste in `Dashboard.tsx`
+und `Zeit.tsx`.
 
 In `Dashboard.tsx` und `Zeit.tsx` stehen noch `style={{ borderTop… }}`-Angaben
 mit Farbwerten — sie verstoßen gegen „kein Farbwert in einer Komponente" und

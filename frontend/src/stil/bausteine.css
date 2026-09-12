@@ -8,77 +8,112 @@
 
 /* --- Gerüst ------------------------------------------------------------- */
 
-.seite { max-width: 1400px; margin: 0 auto; padding: 18px 22px 44px; }
-
-.kopf { background: var(--kopf-grund); border-bottom: 1px solid var(--marke-tiefer); }
-
 /*
- * Die Kopfleiste bleibt am Rechner **eine** Zeile — deshalb `nowrap`.
- *
- * Mit `wrap` bricht Flexbox um, bevor irgendetwas schrumpft: Bei 1280 px
- * fehlten gut fünfzig Pixel, und statt sie irgendwo wegzunehmen sprang der
- * ganze rechte Block (Uhr, Name, Zahnrad) in eine zweite Zeile. Ohne `wrap`
- * gibt stattdessen das nach, was am wenigsten kostet: der Pakettitel in der
- * Uhr wird kürzer und bekommt Auslassungspunkte. Alles andere ist
- * ausdrücklich schrumpffest (`flex: 0 0 auto`).
- *
- * Unter 1280 px reicht auch das nicht mehr — dort stellt sich die Navigation
- * in eine eigene Zeile (siehe unten). Das Handy bleibt davon unberührt.
+ * Zwei Spalten: die Leiste links, der Inhalt rechts. Am Handy wird daraus eine
+ * Schublade und eine Fußleiste — siehe ganz unten.
  */
-.kopf-innen {
-  max-width: 1400px; margin: 0 auto; padding: 10px 22px;
-  display: flex; align-items: center; gap: 16px; flex-wrap: nowrap;
-}
-.marke {
-  display: flex; align-items: center; gap: 8px; padding: 7px 12px;
-  flex: 0 0 auto;
-  min-height: var(--griff);   /* auch das Logo ist ein Knopf — zur Startseite */
-  border: 1px solid var(--kopf-rand); border-radius: var(--kante);
-  cursor: pointer; background: none;
-}
-.marke:hover { background: var(--marke); }
-.marke img { display: block; border-radius: var(--kante); }
-.marke b { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.025em; }
+.geruest { display: flex; min-height: 100vh; align-items: flex-start; }
 
-.navigation { display: flex; gap: 2px; flex: 0 0 auto; flex-wrap: nowrap; }
+.inhalt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+/* Kein `margin: 0 auto` mehr: Neben einer Leiste sieht zentrierter Inhalt aus,
+   als wäre er von ihr weggerutscht. Er beginnt jetzt dort, wo die Leiste
+   aufhört. */
+.seite { width: 100%; max-width: 1400px; padding: 20px 24px 36px; }
+
+/* --- Die Seitenleiste ---------------------------------------------------- */
+/*
+ * Sie löst drei Dinge, die in eine Kopfzeile nicht mehr hineingingen: Die
+ * Navigation wächst nach unten statt nach rechts (die alte Leiste sprengte
+ * bei 1280 px ihre Zeile und stellte das Menü in eine zweite), Profil und
+ * Einstellungen stehen sichtbar statt hinter einem Zahnrad ganz außen, und
+ * die laufende Uhr hat einen festen Platz am Fuß statt eines Chips im
+ * Gedränge — mit Raum für den vollen Pakettitel, der vorher als erstes
+ * abgeschnitten wurde.
+ *
+ * Feste 232 px, kein Einklappen. Bei drei Nutzern spart das nichts, was einen
+ * gemerkten Zustand wert wäre — und ein gemerkter Zustand ist einer, der
+ * falsch sein kann.
+ *
+ * `position: sticky` mit voller Höhe: Die Leiste bleibt stehen, während der
+ * Inhalt daneben läuft. Ohne das wäre die Uhr auf einer langen Buchungsliste
+ * nach zwei Handbewegungen weg.
+ */
+.leiste {
+  flex: 0 0 232px; width: 232px;
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column;
+  padding: 14px 10px 12px;
+  background: var(--kopf-grund);
+}
+
+.leiste-marke {
+  display: flex; align-items: center; gap: 10px;
+  height: 36px; padding: 0 4px; margin-bottom: 14px;
+}
+.leiste-marke img { display: block; border-radius: var(--kante); }
+.leiste-marke b { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.03em; }
+
+.navigation { display: flex; flex-direction: column; gap: 1px; }
 .navigation a {
-  padding: 9px 16px; border-radius: var(--kante); font-size: 14px; font-weight: 600;
-  white-space: nowrap; color: var(--kopf-text-leise);
-  min-height: var(--griff); display: flex; align-items: center; gap: 8px;
+  position: relative;
+  display: flex; align-items: center; gap: 11px;
+  min-height: var(--griff); padding: 0 12px 0 13px;
+  border-radius: var(--kante);
+  font-size: 13.5px; font-weight: 500; white-space: nowrap;
+  color: var(--kopf-text-leise);
 }
 .navigation a:hover { background: var(--kopf-aktiv); color: var(--kopf-text); }
 /* Vorher ein cremefarbener Block auf Dunkelgrün — der hellste Fleck der
    ganzen Seite saß dort, wo man nicht hinsieht. Jetzt ein ruhig aufgehellter
-   Block mit einer Kupferkante unten: Er sagt dasselbe und schreit nicht. */
-.navigation a[aria-current="page"] {
-  background: var(--kopf-aktiv); color: var(--kopf-aktiv-text);
-  box-shadow: inset 0 -2px 0 var(--kopf-kante);
+   Block mit einer Kupferkante an der Seite: Er sagt dasselbe und schreit nicht. */
+.navigation a[aria-current="page"] { background: var(--kopf-aktiv); color: var(--kopf-aktiv-text); }
+.navigation a[aria-current="page"]::before {
+  content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px;
+  border-radius: 0 var(--kante) var(--kante) 0; background: var(--kopf-kante);
 }
 
-.kopf-rechts { margin-left: auto; display: flex; align-items: center; gap: 14px; min-width: 0; }
-
-/* --- Titelzeile --------------------------------------------------------- */
-
-.titelzeile {
-  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+/* Die einzige Stelle der Anwendung, an der Versalien bleiben: zwei Wörter,
+   nie Fließtext, und sie ordnen eine Liste statt etwas zu benennen. */
+.navigation-gruppe {
+  padding: 16px 13px 7px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--kopf-text-leise); opacity: 0.72;
 }
-.titelzeile h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.03em; }
+
+.leiste-fuss { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+
+/* --- Kontextleiste ------------------------------------------------------- */
+/*
+ * Sie trägt, wo man ist — Überschrift, Beizeile, Zurück. Und sonst nichts.
+ *
+ * Sie bleibt beim Scrollen stehen: Auf einer langen Buchungsliste ist die
+ * Überschrift sonst nach zwei Handbewegungen weg, und mit ihr der einzige
+ * Hinweis, welchen Monat man gerade ansieht.
+ */
+.kontextleiste {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  min-height: 52px; padding: 7px 24px;
+  background: var(--flaeche); border-bottom: 1px solid var(--rand);
+}
+.kontextleiste h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+.kontext-trenner { width: 1px; height: 16px; background: var(--rand); flex: 0 0 1px; }
+.kontextleiste .unter { font-size: 12.5px; color: var(--text-sehr-leise); }
 
 /* Der Zurück-Knopf steht links vor der Überschrift und ist still: Er ist auf
    jeder Seite da und darf deshalb nicht um Aufmerksamkeit ringen. Die vollen
    44 px bekommt er trotzdem — er ist am Handy der meistgetroffene Knopf der
-   Anwendung. `align-self: center`, weil die Titelzeile an der Schriftlinie
-   ausrichtet und der Knopf sonst über der Überschrift hinge. */
+   Anwendung. */
 .zurueck {
-  flex: 0 0 auto; align-self: center;
+  flex: 0 0 auto;
   display: inline-flex; align-items: center; gap: 6px;
-  min-height: var(--griff); padding: 0 12px 0 8px;
+  min-height: 36px; padding: 0 12px 0 8px;
   border: 1px solid var(--rand-stark); border-radius: var(--kante);
   background: var(--flaeche); color: var(--text-leise);
-  font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer;
 }
-.zurueck:hover { border-color: var(--marke-rand); color: var(--marke); }
-.titelzeile .unter { font-size: 14px; color: var(--text-leise); }
+.zurueck:hover { border-color: var(--akzent); color: var(--akzent); }
 
 /* --- Die Beschriftung --------------------------------------------------- */
 /*
@@ -338,79 +373,107 @@
 .feld-reihe > * { flex: 1 1 160px; }
 .feld-reihe > .knopf, .feld-reihe > .knopf-still { flex: 0 0 auto; }
 
-/* --- Uhr im Kopf --------------------------------------------------------- */
-
-.uhr-chip {
-  display: flex; align-items: center; gap: 12px;
-  padding: 6px 8px 6px 14px;
+/* --- Die laufende Uhr ---------------------------------------------------- */
+/*
+ * Am Fuß der Leiste, am Handy über der Fußleiste — **ein** Baustein an zwei
+ * Plätzen (siehe Seitenleiste.tsx).
+ *
+ * Der alte Chip in der Kopfzeile war der lauteste Block der Leiste und
+ * zugleich der einzige, der nachgeben durfte: Wurde es eng, verlor als erstes
+ * der Pakettitel seine Zeichen. Hier steht er unter der Zeit und hat die volle
+ * Breite — auf die Frage „woran arbeite ich gerade" ist ein abgeschnittener
+ * Titel keine Antwort.
+ */
+.uhrblock {
   border: 1px solid var(--kopf-rand); border-radius: var(--kante);
-  min-width: 0;
+  padding: 10px 11px;
 }
-.uhr-chip[data-laeuft="ja"] { background: var(--kopf-aktiv); }
-.uhr-chip .punkt {
-  width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px;
+.uhrblock[data-laeuft="ja"] { background: var(--kopf-aktiv); }
+.uhrblock-zeit { display: flex; align-items: center; gap: 8px; }
+.uhrblock-zeit .zahl,
+.uhrblock-zeit time { font-size: 17px; font-weight: 500; color: #fff; }
+.uhrblock .punkt {
+  width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%;
   background: var(--kopf-text-leise);
 }
-/* Der Punkt lag in --kopf-aktiv. Solange das ein cremefarbener Ton war, sah
-   man ihn; seit die aktive Fläche selbst dunkelgrün ist, wäre er unsichtbar
-   auf dem gleichfarbigen Chip. „Läuft“ ist ohnehin ein Zustand, und dafür
-   gibt es --gut. */
-.uhr-chip[data-laeuft="ja"] .punkt { background: var(--gut); }
-.uhr-chip .zahl { font-size: 15px; color: #fff; white-space: nowrap; flex: 0 0 auto; }
-/* Der einzige Teil der Kopfleiste, der nachgeben darf: `flex: 0 1 auto` mit
-   `min-width: 0`. Wird der Platz eng, wird der Pakettitel kürzer statt die
-   Leiste zweizeilig. */
-.uhr-chip .wo {
-  font-size: 13px; color: var(--kopf-text-leise);
-  flex: 0 1 auto; min-width: 0;
-  max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* „Läuft" ist ein Zustand, und dafür gibt es --gut. Der Punkt lag vorher in
+   --kopf-aktiv; seit das die Fläche des Chips selbst ist, wäre er unsichtbar. */
+.uhrblock[data-laeuft="ja"] .punkt { background: var(--gut); }
+.uhrblock-wo {
+  margin-top: 5px; font-size: 12px; line-height: 1.35;
+  color: var(--kopf-text-leise);
 }
-.uhr-knopf {
-  min-height: var(--griff); padding: 7px 14px; flex: 0 0 auto;
-  display: inline-flex; align-items: center; gap: 8px;
+.uhrblock-knopf {
+  width: 100%; min-height: var(--griff); margin-top: 9px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   border: 1px solid var(--kopf-rand); border-radius: var(--kante);
-  background: transparent; color: var(--kopf-text);
-  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  background: transparent; color: var(--kopf-text-leise);
+  font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
-/* Kein --marke-dunkel: Das ist im dunklen Thema ein *heller* Ton und ergäbe
-   auf der Leiste Hell auf Hell. Die Leistenfarben heißen --kopf-*. */
-.uhr-knopf:hover { background: var(--kopf-rand); }
+.uhrblock-knopf:hover { background: var(--kopf-rand); color: var(--kopf-text); }
+/* Läuft die Uhr, ist Clock-out die Handlung — und Handlungen tragen Kupfer.
+   Auf der Leiste heißt der Ton --kopf-kante: --akzent ist hell genug für Weiß,
+   aber zu dunkel für Dunkelgrün. */
+.uhrblock[data-laeuft="ja"] .uhrblock-knopf {
+  background: var(--kopf-kante); border-color: var(--kopf-kante); color: var(--marke-tiefer);
+}
+.uhrblock[data-laeuft="ja"] .uhrblock-knopf:hover {
+  background: var(--kopf-kante); color: var(--marke-tiefer); filter: brightness(1.08);
+}
 
+/* --- Konto am Fuß der Leiste --------------------------------------------- */
+
+.leiste-konto { display: flex; align-items: center; gap: 4px; }
 .profil {
-  display: flex; align-items: center; gap: 9px; flex: 0 0 auto;
-  padding: 6px 12px 6px 6px; min-height: var(--griff);
-  border: 1px solid var(--kopf-rand); border-radius: var(--kante);
-  background: transparent; cursor: pointer;
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 9px;
+  padding: 5px 6px; min-height: var(--griff);
+  border: 1px solid transparent; border-radius: var(--kante);
+  background: transparent; cursor: pointer; text-align: left;
 }
-.profil:hover { background: var(--marke); }
+.profil:hover { background: var(--kopf-aktiv); }
 .profil i {
-  width: 27px; height: 27px; border-radius: var(--kante); flex: 0 0 auto;
+  width: 26px; height: 26px; border-radius: var(--kante); flex: 0 0 26px;
   display: grid; place-items: center;
-  font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
+  font-size: 10px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
 }
-.profil span { font-size: 14px; color: var(--kopf-text); white-space: nowrap; }
+.profil span { min-width: 0; }
+.profil b {
+  display: block; font-size: 13px; font-weight: 500; color: var(--kopf-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.profil em {
+  display: block; font-size: 11px; font-style: normal; color: var(--kopf-text-leise);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
-/* Die beiden Zeichenknöpfe ganz außen — Zahnrad und Abmelden: quadratisch,
-   still, aber mit den vollen 44 px Grifffläche, auch am Handy, wo daneben nur
-   noch Initialen stehen. Eine Form für beide: zwei Klassen mit denselben
-   Werten wären beim ersten Nachbessern verschieden. */
-.kopf-knopf {
+/* Zahnrad und Abmelden: quadratisch, still, aber mit den vollen 44 px
+   Grifffläche. Eine Form für beide — zwei Klassen mit denselben Werten wären
+   beim ersten Nachbessern verschieden. */
+.leiste-knopf {
   flex: 0 0 auto;
-  width: var(--griff); height: var(--griff);
+  width: 34px; height: var(--griff);
   display: grid; place-items: center;
-  border: 1px solid var(--kopf-rand); border-radius: var(--kante);
+  border: 1px solid transparent; border-radius: var(--kante);
   background: transparent; color: var(--kopf-text-leise); cursor: pointer;
 }
-.kopf-knopf:hover { background: var(--marke); color: var(--kopf-text); }
-/* Das Zahnrad ist seit den Einstellungen ein Link und keine Schaltfläche mehr:
-   Es führt auf eine Seite, also gehört ein Weg dahinter. Unterstrichen wäre es
-   das einzige unterstrichene Zeichen in der Leiste. */
-a.kopf-knopf { text-decoration: none; }
-.kopf-knopf[aria-current="page"] { background: var(--kopf-aktiv); color: var(--kopf-aktiv-text); }
+.leiste-knopf:hover { background: var(--kopf-aktiv); color: var(--kopf-text); }
+/* Das Zahnrad ist ein Link und keine Schaltfläche: Es führt auf eine Seite,
+   also gehört ein Weg dahinter. Unterstrichen wäre es das einzige
+   unterstrichene Zeichen in der Leiste. */
+a.leiste-knopf { text-decoration: none; }
+.leiste-knopf[aria-current="page"] { background: var(--kopf-aktiv); color: var(--kopf-aktiv-text); }
 
-/* Das Formular ist nur die Hülle um den Knopf und darf im Flex-Fluss der
-   Kopfleiste nichts eigenes beitragen. */
+/* Das Formular ist nur die Hülle um den Knopf und darf im Fluss der Leiste
+   nichts eigenes beitragen. */
 .abmelden { display: flex; flex: 0 0 auto; margin: 0; }
+
+/* --- Schublade, Uhr und Fußleiste am Handy ------------------------------- */
+/*
+ * Am Rechner gibt es diese drei nicht. Eingeschaltet werden sie in der
+ * Medienabfrage ganz unten; hier steht nur, dass sie aus sind.
+ */
+.leiste-schatten, .uhr-handy, .fussleiste { display: none; }
 
 /* --- Einstellungen: Untermenü und Inhalt --------------------------------- */
 
@@ -940,26 +1003,92 @@ a.mini { text-decoration: none; }
 
 
 /* ==========================================================================
-   Dazwischen — schmaler Rechner, Tablet quer (721 bis 1279 px)
+   Handy und schmales Tablet (bis 900 px): aus der Leiste wird eine Schublade
    ==========================================================================
 
-   Unter 1280 px passen Logo, Menü und der rechte Block nicht mehr in eine
-   Zeile, ohne dass etwas Wichtiges abgeschnitten wird. Statt alles zu
-   verkleinern, stellt sich die Navigation über die volle Breite darunter:
-   Logo links, Uhr und Person rechts, das Menü in Zeile zwei.
+   Die Grenze liegt bei 900 und nicht bei den 720 der Tabellen: 232 px Leiste
+   plus eine brauchbare Inhaltsspalte gehen sich darunter nicht mehr aus, lange
+   bevor eine Tabelle zur Karte werden muss. Zwei verschiedene Schwellen sind
+   hier richtig, weil es zwei verschiedene Fragen sind.
 
-   Die Untergrenze ist Absicht. Am Handy (bis 720 px) gilt die andere,
-   bereits abgestimmte Aufteilung weiter unten — sie soll hier nicht
-   mitgeändert werden.
+   Aufteilung am Handy: vier Abkürzungen in der Fußleiste, darüber die Uhr, und
+   hinter „Mehr" dieselbe Leiste als Schublade — nicht ein zweites Menü.
    ========================================================================== */
 
-@media (min-width: 721px) and (max-width: 1279px) {
-  .kopf-innen { flex-wrap: wrap; }
-  .navigation { order: 3; flex: 1 1 100%; min-width: 0; flex-wrap: wrap; }
-  /* Sicherheitsnetz: Bleibt Zeile eins knapp, geht die Uhr über die Breite —
-     dieselbe Auflösung wie am Handy, statt eines abgeschnittenen Zahnrads. */
-  .kopf-rechts { flex-wrap: wrap; justify-content: flex-end; }
-  .uhr-chip .wo { max-width: 130px; }
+@media (max-width: 900px) {
+  .geruest { display: block; }
+
+  /*
+   * Die Schublade fährt über `left` herein und nicht über `transform`.
+   * `transform` macht aus dem Element einen Bezugsrahmen für alles, was darin
+   * `position: fixed` ist — der Schatten und die Uhr würden mitwandern, statt
+   * stehen zu bleiben. Das ist die Art Fehler, die man erst am Gerät sieht.
+   */
+  .leiste {
+    position: fixed; top: 0; bottom: 0; left: -272px; z-index: 70;
+    width: 264px; flex-basis: auto; height: auto;
+    overflow-y: auto;
+    transition: left 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .leiste[data-offen="ja"] { left: 0; }
+
+  .leiste-schatten {
+    display: block; position: fixed; inset: 0; z-index: 60;
+    border: 0; padding: 0; background: rgb(0 0 0 / 0.45); cursor: pointer;
+  }
+
+  /* In der Schublade steht die Uhr nicht noch einmal — sie hat am Handy ihren
+     eigenen Platz über der Fußleiste, wo der Daumen liegt. */
+  .leiste .uhrblock { display: none; }
+
+  .uhr-handy {
+    display: block; position: fixed; z-index: 50;
+    left: 0; right: 0;
+    bottom: calc(60px + env(safe-area-inset-bottom));
+    background: var(--kopf-grund);
+    border-top: 1px solid var(--kopf-rand);
+    padding: 8px max(12px, env(safe-area-inset-left)) 8px max(12px, env(safe-area-inset-right));
+  }
+  /* Am Handy liegt die Uhr waagrecht: Zeit und Ort links, der Knopf rechts.
+     Hochkant bräuchte sie drei Zeilen und nähme dem Inhalt ein Viertel. */
+  .uhr-handy .uhrblock { border: 0; padding: 0; background: none; display: flex; align-items: center; gap: 11px; }
+  .uhr-handy .uhrblock[data-laeuft="ja"] { background: none; }
+  .uhr-handy .uhrblock-zeit { flex: 0 0 auto; }
+  .uhr-handy .uhrblock-wo {
+    margin-top: 0; flex: 1 1 auto; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .uhr-handy .uhrblock-knopf { width: auto; margin-top: 0; flex: 0 0 auto; padding: 0 16px; }
+
+  .fussleiste {
+    display: flex; position: fixed; z-index: 55;
+    left: 0; right: 0; bottom: 0;
+    background: var(--kopf-grund);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .fussleiste > a, .fussleiste > button {
+    position: relative; flex: 1; min-width: 0;
+    height: 60px; padding: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 10.5px; font-weight: 500;
+    color: var(--kopf-text-leise); text-decoration: none;
+  }
+  .fussleiste .zeichen { width: 19px; height: 19px; }
+  .fussleiste > a[aria-current="page"],
+  .fussleiste > button[data-offen="ja"] { color: var(--kopf-aktiv-text); font-weight: 600; }
+  .fussleiste > a[aria-current="page"]::before,
+  .fussleiste > button[data-offen="ja"]::before {
+    content: ""; position: absolute; top: 0; left: 22px; right: 22px; height: 2px;
+    background: var(--kopf-kante);
+  }
+
+  /* Platz für Uhr und Fußleiste am Fuß der Seite. Ohne das liegt die letzte
+     Tabellenzeile unter der Leiste und ist nicht erreichbar. */
+  .seite { padding: 16px 16px calc(140px + env(safe-area-inset-bottom)); }
+  .kontextleiste { padding: 7px 16px; top: 0; }
 }
 
 /* ==========================================================================
@@ -1000,11 +1129,6 @@ a.mini { text-decoration: none; }
   .raster-4, .raster-3, .raster-2, .kacheln { grid-template-columns: 1fr; }
   .seite { padding: 14px 14px 40px; }
 
-  /* Die vier Einträge tragen seit den Zeichen je 26 px mehr. Ohne das engere
-     Polster bräuchte die Navigation am Handy eine dritte Zeile — die 44 px
-     Höhe bleiben, es geht nur seitlich enger zu. */
-  .navigation a { padding: 9px 11px; }
-
   /* Jeder Text, den man antippen kann, ist ein Fingerziel — auch einer, der
      wie Fließtext aussieht. Am Rechner bleibt er kompakt, dort trifft die
      Maus auch 24 px. */
@@ -1031,26 +1155,6 @@ a.mini { text-decoration: none; }
   .stufe[data-erledigt="ja"] { border-left: 3px solid var(--marke); }
 
   .nachweis-knoepfe { justify-content: flex-start; }
-
-  /* In der Kopfleiste ist kein Platz für Beiwerk: Uhr und Knopf bleiben, das
-     Wo und der Name gehen. */
-  .uhr-chip .wo { display: none; }
-  .profil span { display: none; }
-
-  /* Seit das Zahnrad danebensteht, sind es vier Dinge in einer Zeile, und bei
-     375 px wurde das letzte rechts abgeschnitten. Statt alles zu verkleinern —
-     die Grifffläche bleibt bei 44 px — bekommt die Uhr die ganze Breite und
-     die beiden Knöpfe stellen sich darunter rechts. Ein einzelnes Zahnrad in
-     einer eigenen dritten Zeile sähe verloren aus. */
-  /* Die Grundregel ist `nowrap` (eine Zeile am Rechner) — am Handy wird
-     wieder umgebrochen: Logo, Menü, rechter Block untereinander. */
-  .kopf-innen { flex-wrap: wrap; }
-  /* `min-width: 0` gehört dazu: Ohne das bleibt die Leiste bei ihrer
-     Wunschbreite von gut 500 px stehen und ragt rechts aus dem Bild, statt
-     ihre fünf Einträge auf zwei Zeilen zu verteilen. */
-  .navigation { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; }
-  .kopf-rechts { gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
-  .kopf-rechts .uhr-chip { flex: 1 1 100%; padding: 6px 6px 6px 12px; }
 
   /* Zwei Spalten haben bei 375 px keinen Platz: Das Untermenü wird zur Reihe
      über dem Inhalt und darf waagrecht wandern, wenn die drei Rubriken nicht

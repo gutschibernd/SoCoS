@@ -3,7 +3,7 @@ import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
 import { useSeite, type Seite } from "./basis/router";
 import { Zustand } from "./basis/Zustand";
 import { Zeichen } from "./bausteine/Zeichen";
-import { Kopf } from "./bausteine/Kopf";
+import { Seitenleiste } from "./bausteine/Seitenleiste";
 import { Meldungen } from "./bausteine/Meldungen";
 import { Dashboard } from "./ansichten/Dashboard";
 import { Einstellungen } from "./ansichten/Einstellungen";
@@ -55,11 +55,21 @@ export function App() {
       : TITEL[ort.seite];
 
   return (
-    <>
-      <Kopf ich={ich.data} seite={ort.seite} wechseln={wechseln} />
+    <div className="geruest">
+      <Seitenleiste ich={ich.data} seite={ort.seite} wechseln={wechseln} />
       <Meldungen />
-      <main className="seite">
-        <div className="titelzeile">
+      <div className="inhalt">
+        {/*
+          Die Kontextleiste trägt, wo man ist — und sonst nichts. Zeitraum und
+          Anlegeknöpfe standen im Entwurf einmal rechts darin und gehören nicht
+          hierher: Ein Zeitraum ist ein Filter und steht über den Zahlen, die
+          er ändert; eine seltene Handlung gehört an die Karte, um die es geht.
+
+          Sie bleibt beim Scrollen stehen. Auf einer langen Buchungsliste ist
+          die Überschrift sonst nach zwei Handbewegungen weg, und mit ihr der
+          einzige Hinweis, welchen Monat man gerade ansieht.
+        */}
+        <div className="kontextleiste">
           {/*
             Der Zurück-Knopf steht hier und nicht in den einzelnen Ansichten.
             Er stand vorher in zweien von acht — auf den übrigen Seiten führte
@@ -75,28 +85,31 @@ export function App() {
             </button>
           )}
           <h1>{kopfzeile.titel}</h1>
+          <i className="kontext-trenner" />
           <div className="unter">{kopfzeile.unter}</div>
         </div>
 
-        {ort.seite === "start" && <Start ich={ich.data} wechseln={wechseln} />}
-        {ort.seite === "dashboard" && <Dashboard ich={ich.data} wechseln={wechseln} />}
-        {ort.seite === "projekt" && (
-          <Projekt ich={ich.data} bearbeiten={bearbeiten} wechseln={wechseln} />
-        )}
-        {ort.seite === "zeit" && <Zeit ich={ich.data} />}
-        {ort.seite === "kontakte" && (
-          <Kontakte ich={ich.data} unter={ort.unter} wechseln={wechseln} />
-        )}
-        {ort.seite === "events" && (
-          <Events ich={ich.data} unter={ort.unter} wechseln={wechseln} />
-        )}
-        {ort.seite === "profil" && (
-          <Profil ich={ich.data} unter={ort.unter} wechseln={wechseln} />
-        )}
-        {ort.seite === "einstellungen" && (
-          <Einstellungen ich={ich.data} unter={ort.unter} wechseln={wechseln} />
-        )}
-      </main>
-    </>
+        <main className="seite">
+          {ort.seite === "start" && <Start ich={ich.data} wechseln={wechseln} />}
+          {ort.seite === "dashboard" && <Dashboard ich={ich.data} wechseln={wechseln} />}
+          {ort.seite === "projekt" && (
+            <Projekt ich={ich.data} bearbeiten={bearbeiten} wechseln={wechseln} />
+          )}
+          {ort.seite === "zeit" && <Zeit ich={ich.data} />}
+          {ort.seite === "kontakte" && (
+            <Kontakte ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+          )}
+          {ort.seite === "events" && (
+            <Events ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+          )}
+          {ort.seite === "profil" && (
+            <Profil ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+          )}
+          {ort.seite === "einstellungen" && (
+            <Einstellungen ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+          )}
+        </main>
+      </div>
+    </div>
   );
 }
