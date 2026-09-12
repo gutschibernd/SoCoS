@@ -1,0 +1,392 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Archivo, "Helvetica Neue", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #0D4E52; text-decoration: none; }
+  a:hover { color: #A2552C; }
+
+  .wurzel {
+    --grund: #FAFAF7; --flaeche: #FFFFFF; --leise: #F3F2EC;
+    --rand: #D2CCBC; --rand-stark: #B0AA99;
+    --text: #171A18; --text-leise: #565C58; --text-schwach: #69706B;
+    --akzent: #A2552C; --akzent-tint: #F8EDE5;
+    --teal: #0D4E52; --teal-tint: #E4EEED;
+    --gut: #3D6B44; --gut-tint: #E7EFE6;
+    --warn: #963D22; --warn-tint: #FAE8E0;
+    --ruh: #8C918C;
+    --leiste: #0B2A2C; --leiste-2: #123A3D; --leiste-3: #1B4A4D;
+    --leiste-text: #E4EDEC; --leiste-leise: #94B3B2; --leiste-still: #6E8F8F;
+  }
+  .wurzel[data-thema="dunkel"] {
+    --grund: #14171A; --flaeche: #1C2124; --leise: #23292C;
+    --rand: #303739; --rand-stark: #4A5255;
+    --text: #ECEEEC; --text-leise: #A9B1AE; --text-schwach: #8C9491;
+    --akzent: #D98C5C; --akzent-tint: #2C2019;
+    --teal: #66B9B6; --teal-tint: #16302F;
+    --gut: #86B37D; --gut-tint: #1B281C;
+    --warn: #DE8A6C; --warn-tint: #31201A;
+    --ruh: #8C9491;
+    --leiste: #0A2224; --leiste-2: #103134; --leiste-3: #17474B;
+    --leiste-text: #DDE9E8; --leiste-leise: #8FADAC; --leiste-still: #6E8F8F;
+  }
+
+  .wurzel { background: var(--grund); color: var(--text); font-size: 14px; line-height: 1.45; }
+  .zahl { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .beschriftung { font-size: 12.5px; font-weight: 600; color: var(--text-leise); }
+  .hinweis { font-size: 12.5px; color: var(--text-schwach); }
+  .karte { background: var(--flaeche); border: 1px solid var(--rand); border-radius: 2px; }
+  .karte > h2 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -0.015em; }
+
+  .rnav { display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px 0 13px; border-radius: 2px; cursor: pointer; font-size: 13.5px; font-weight: 500; color: var(--leiste-leise); position: relative; }
+  .rnav:hover { background: var(--leiste-2); color: #FFFFFF; }
+  .gruppe { font-size: 10.5px; font-weight: 600; color: var(--leiste-still); letter-spacing: 0.07em; text-transform: uppercase; padding: 16px 13px 7px; }
+
+  .knopf { border: 0; border-radius: 2px; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; height: 34px; white-space: nowrap; }
+  .knopf-voll { background: var(--akzent); color: #FFFFFF; }
+  .knopf-voll:hover { filter: brightness(1.08); }
+  .knopf-still { background: transparent; color: var(--text); border: 1px solid var(--rand-stark); }
+  .knopf-still:hover { border-color: var(--akzent); color: var(--akzent); }
+  .zeile:hover { background: var(--leise); }
+  svg { display: block; }
+</style>
+</helmet>
+
+<div class="wurzel" data-thema="{{ thema }}" style="min-height: 900px; display: flex;">
+
+  <aside style="width: 232px; flex: 0 0 232px; background: var(--leiste); display: flex; flex-direction: column; padding: 14px 10px 12px;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px; height: 36px; margin-bottom: 14px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E4EDEC" stroke-width="2" stroke-linecap="square"><path d="M4 6h16M4 12h10M4 18h16"></path><circle cx="18" cy="12" r="2.5"></circle></svg>
+      <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.03em;">SoCoS</div>
+      <div style="margin-left: auto; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94B3B2" stroke-width="2" stroke-linecap="square"><rect x="3" y="4" width="18" height="16"></rect><path d="M9 4v16"></path></svg>
+      </div>
+    </div>
+
+    <sc-for list="{{ navStart }}" as="n" hint-placeholder-count="1">
+      <div class="rnav" onClick="{{ n.waehlen }}" style="background: {{ n.bg }}; color: {{ n.fg }};">
+        <div style="position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 0 2px 2px 0; background: {{ n.kante }};"></div>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="square"><path d="{{ n.pfad }}"></path></svg>{{ n.titel }}
+      </div>
+    </sc-for>
+
+    <div class="gruppe">Intern</div>
+    <sc-for list="{{ navIntern }}" as="n" hint-placeholder-count="3">
+      <div class="rnav" onClick="{{ n.waehlen }}" style="background: {{ n.bg }}; color: {{ n.fg }};">
+        <div style="position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 0 2px 2px 0; background: {{ n.kante }};"></div>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="square"><path d="{{ n.pfad }}"></path></svg>{{ n.titel }}
+      </div>
+    </sc-for>
+
+    <div class="gruppe">Extern</div>
+    <sc-for list="{{ navExtern }}" as="n" hint-placeholder-count="2">
+      <div class="rnav" onClick="{{ n.waehlen }}" style="background: {{ n.bg }}; color: {{ n.fg }};">
+        <div style="position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 0 2px 2px 0; background: {{ n.kante }};"></div>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="square"><path d="{{ n.pfad }}"></path></svg>{{ n.titel }}
+      </div>
+    </sc-for>
+
+    <div style="margin-top: auto;"></div>
+
+    <div style="border-top: 1px solid var(--leiste-3); padding-top: 11px; margin-bottom: 10px;">
+      <div style="background: var(--leiste-2); border: 1px solid var(--leiste-3); border-radius: 2px; padding: 10px 11px; cursor: pointer;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #86B37D;"></div>
+          <div class="zahl" style="font-size: 17px; font-weight: 500; color: #FFFFFF;">01:47:12</div>
+        </div>
+        <div style="font-size: 12px; color: var(--leiste-leise); margin-top: 5px; line-height: 1.35;">Zulassung MDR · Klinische Bewertung</div>
+        <div style="height: 30px; border-radius: 2px; background: #D98C5C; color: #2A1A10; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; margin-top: 9px;">Clock-out</div>
+      </div>
+    </div>
+
+    <div class="rnav" style="height: 40px;">
+      <div class="zahl" style="width: 24px; height: 24px; border-radius: 2px; background: #A2552C; color: #FFF; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: 0 0 24px;">BG</div>
+      <div>
+        <div style="font-size: 13px; color: var(--leiste-text); font-weight: 500;">Bernd G.</div>
+        <div style="font-size: 11px; color: var(--leiste-still);">Administrator</div>
+      </div>
+      <div style="margin-left: auto;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94B3B2" stroke-width="2"><circle cx="12" cy="12" r="3.2"></circle><path d="M12 3v2.5M12 18.5V21M21 12h-2.5M5.5 12H3M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8M18.4 18.4l-1.8-1.8M7.4 7.4L5.6 5.6"></path></svg>
+      </div>
+    </div>
+  </aside>
+
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+
+    <div style="height: 52px; border-bottom: 1px solid var(--rand); background: var(--flaeche); display: flex; align-items: center; gap: 12px; padding: 0 24px; flex: 0 0 52px;">
+      <div style="font-size: 15px; font-weight: 600; letter-spacing: -0.02em;">Dashboard</div>
+      <div style="width: 1px; height: 16px; background: var(--rand);"></div>
+      <div class="hinweis">Woche, Geld, Fortschritt</div>
+    </div>
+
+    <main style="padding: 18px 24px 26px; display: flex; flex-direction: column; gap: 16px; max-width: 1320px;">
+
+      <div style="display: flex; align-items: center; gap: 13px; background: var(--warn-tint); border-left: 3px solid var(--warn); border-radius: 2px; padding: 11px 15px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="square" style="flex: 0 0 17px;"><path d="M12 3L1.5 21h21L12 3zM12 9.5v5M12 17.5v.5"></path></svg>
+        <div style="font-size: 13.5px;"><b style="font-weight: 600;">Zwei Buchungen warten auf deine Bestätigung.</b> Sie wurden am Tagesende abgeschnitten und zählen in keiner Summe mit.</div>
+        <div class="knopf knopf-still" style="margin-left: auto; height: 30px; font-size: 13px;">Ansehen</div>
+      </div>
+
+      <!-- Der Zeitraum steht über den Zahlen, die er ändert — nicht als Knopf
+           in der Kontextleiste. Er gilt sichtbar für die Leiste darunter und
+           für nichts sonst, und er ist immer ausgeschrieben: Es gibt keinen
+           stillen Filter, der eine Periode voraussetzt. -->
+      <div style="display: flex; align-items: center; gap: 11px;">
+        <div class="beschriftung">Zeitraum</div>
+        <div style="display: flex; border: 1px solid var(--rand-stark); border-radius: 2px; overflow: hidden;">
+          <sc-for list="{{ zeitraeume }}" as="z" hint-placeholder-count="3">
+            <div onClick="{{ z.waehlen }}" style="height: 30px; padding: 0 13px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; background: {{ z.bg }}; color: {{ z.fg }}; border-left: 1px solid {{ z.trenner }};">{{ z.titel }}</div>
+          </sc-for>
+        </div>
+        <div class="zahl hinweis">{{ spanne }}</div>
+        <div class="hinweis" style="margin-left: auto;">Gilt für die vier Werte darunter.</div>
+      </div>
+
+      <div class="karte" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));">
+        <div style="padding: 15px 20px; border-right: 1px solid var(--rand);">
+          <div class="beschriftung">Kontostand</div>
+          <div class="zahl" style="font-size: 27px; font-weight: 500; margin-top: 6px; letter-spacing: -0.04em;">142.860 €</div>
+          <div class="hinweis" style="margin-top: 4px;">Stand 10.09.2026</div>
+        </div>
+        <div style="padding: 15px 20px; border-right: 1px solid var(--rand);">
+          <div class="beschriftung" style="display: flex; align-items: center; gap: 6px;">Kosten / Monat
+            <span style="width: 15px; height: 15px; border: 1px solid var(--rand-stark); border-radius: 50%; color: var(--text-schwach); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; cursor: help;">?</span>
+          </div>
+          <div class="zahl" style="font-size: 27px; font-weight: 500; margin-top: 6px; letter-spacing: -0.04em;">18.400 €</div>
+          <div class="hinweis" style="margin-top: 4px;">Schnitt aus drei Monaten</div>
+        </div>
+        <div style="padding: 15px 20px; border-right: 1px solid var(--rand);">
+          <div class="beschriftung">Runway</div>
+          <div style="display: flex; align-items: baseline; gap: 7px; margin-top: 6px;">
+            <div class="zahl" style="font-size: 27px; font-weight: 500; letter-spacing: -0.04em;">7,8</div>
+            <div style="font-size: 14px; color: var(--text-leise);">Monate</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: var(--gut); flex: 0 0 6px;"></div>
+            <div class="hinweis">reicht bis Mai 2027</div>
+          </div>
+        </div>
+        <div style="padding: 15px 20px;">
+          <div class="beschriftung">{{ stundenTitel }}</div>
+          <div class="zahl" style="font-size: 27px; font-weight: 500; margin-top: 6px; letter-spacing: -0.04em;">{{ stunden }}</div>
+          <div class="hinweis" style="margin-top: 4px;">{{ stundenHinweis }}</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px;">
+
+        <div class="karte" style="padding: 15px 18px;">
+          <h2 style="margin-bottom: 11px;">Team jetzt</h2>
+          <div style="display: flex; flex-direction: column; gap: 1px;">
+            <div class="zeile" style="display: flex; align-items: center; gap: 11px; padding: 8px; margin: 0 -8px; border-radius: 2px;">
+              <div class="zahl" style="width: 28px; height: 28px; border-radius: 2px; background: #A2552C; color: #FFF; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: 0 0 28px;">BG</div>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 13.5px; font-weight: 500;">Bernd G.</div>
+                <div class="hinweis" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Klinische Bewertung</div>
+              </div>
+              <div style="width: 6px; height: 6px; border-radius: 50%; background: var(--gut); flex: 0 0 6px;"></div>
+              <div class="zahl" style="font-size: 13px; color: var(--text-leise); width: 46px; text-align: right; flex: 0 0 46px;">32:40</div>
+            </div>
+            <div class="zeile" style="display: flex; align-items: center; gap: 11px; padding: 8px; margin: 0 -8px; border-radius: 2px;">
+              <div class="zahl" style="width: 28px; height: 28px; border-radius: 2px; background: #0D4E52; color: #FFF; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: 0 0 28px;">MR</div>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 13.5px; font-weight: 500;">M. Reiter</div>
+                <div class="hinweis" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Gehäuse-Revision</div>
+              </div>
+              <div style="width: 6px; height: 6px; border-radius: 50%; background: var(--gut); flex: 0 0 6px;"></div>
+              <div class="zahl" style="font-size: 13px; color: var(--text-leise); width: 46px; text-align: right; flex: 0 0 46px;">35:05</div>
+            </div>
+            <div class="zeile" style="display: flex; align-items: center; gap: 11px; padding: 8px; margin: 0 -8px; border-radius: 2px;">
+              <div class="zahl" style="width: 28px; height: 28px; border-radius: 2px; background: #565C58; color: #FFF; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: 0 0 28px;">TH</div>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-size: 13.5px; font-weight: 500;">T. Hofer</div>
+                <div class="hinweis">keine Buchung läuft</div>
+              </div>
+              <div style="width: 6px; height: 6px; border-radius: 50%; background: var(--ruh); flex: 0 0 6px;"></div>
+              <div class="zahl" style="font-size: 13px; color: var(--text-leise); width: 46px; text-align: right; flex: 0 0 46px;">28:30</div>
+            </div>
+          </div>
+
+          <div style="height: 1px; background: var(--rand); margin: 13px -18px 12px;"></div>
+          <div class="beschriftung" style="margin-bottom: 10px;">Verteilung auf Projekte</div>
+          <div style="display: flex; height: 10px; gap: 2px;">
+            <div style="width: 46%; background: var(--teal);"></div>
+            <div style="width: 31%; background: var(--akzent);"></div>
+            <div style="width: 23%; background: var(--ruh);"></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;"><div style="width: 8px; height: 8px; background: var(--teal); flex: 0 0 8px;"></div><div class="hinweis" style="flex: 1;">Zulassung MDR</div><div class="zahl hinweis">44:10</div></div>
+            <div style="display: flex; align-items: center; gap: 8px;"><div style="width: 8px; height: 8px; background: var(--akzent); flex: 0 0 8px;"></div><div class="hinweis" style="flex: 1;">Prototyp v3</div><div class="zahl hinweis">29:50</div></div>
+            <div style="display: flex; align-items: center; gap: 8px;"><div style="width: 8px; height: 8px; background: var(--ruh); flex: 0 0 8px;"></div><div class="hinweis" style="flex: 1;">Förderantrag FFG</div><div class="zahl hinweis">22:15</div></div>
+          </div>
+        </div>
+
+        <div class="karte" style="padding: 15px 18px;">
+          <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 13px;">
+            <h2>Projektfortschritt</h2>
+            <div class="hinweis" style="margin-left: auto;">Stufen mit Monatsdauer</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div>
+              <div style="display: flex; align-items: baseline; gap: 9px; margin-bottom: 7px;">
+                <div style="font-size: 13.5px; font-weight: 600;">Zulassung MDR</div>
+                <div class="hinweis">Stufe 3 von 5</div>
+                <div class="zahl" style="margin-left: auto; font-size: 12.5px; color: var(--text-leise);">61 %</div>
+              </div>
+              <div style="display: flex; gap: 2px;">
+                <div style="flex: 2; height: 28px; background: var(--teal-tint); border: 1px solid var(--teal); color: var(--teal); font-size: 10.5px; font-weight: 600; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Konzept</div>
+                <div style="flex: 3; height: 28px; background: var(--teal-tint); border: 1px solid var(--teal); color: var(--teal); font-size: 10.5px; font-weight: 600; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Technische Doku</div>
+                <div style="flex: 4; height: 28px; background: var(--akzent); border: 1px solid var(--akzent); color: #FFFFFF; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Klinische Bewertung</div>
+                <div style="flex: 3; height: 28px; background: var(--leise); border: 1px solid var(--rand); color: var(--text-schwach); font-size: 10.5px; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Audit</div>
+                <div style="flex: 2; height: 28px; background: var(--leise); border: 1px solid var(--rand); color: var(--text-schwach); font-size: 10.5px; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">CE</div>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; align-items: baseline; gap: 9px; margin-bottom: 7px;">
+                <div style="font-size: 13.5px; font-weight: 600;">Prototyp v3</div>
+                <div class="hinweis">Stufe 2 von 4</div>
+                <div class="zahl" style="margin-left: auto; font-size: 12.5px; color: var(--text-leise);">38 %</div>
+              </div>
+              <div style="display: flex; gap: 2px;">
+                <div style="flex: 3; height: 28px; background: var(--teal-tint); border: 1px solid var(--teal); color: var(--teal); font-size: 10.5px; font-weight: 600; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Spezifikation</div>
+                <div style="flex: 4; height: 28px; background: var(--akzent); border: 1px solid var(--akzent); color: #FFFFFF; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Gehäuse-Revision</div>
+                <div style="flex: 3; height: 28px; background: var(--leise); border: 1px solid var(--rand); color: var(--text-schwach); font-size: 10.5px; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Serienreife</div>
+                <div style="flex: 2; height: 28px; background: var(--leise); border: 1px solid var(--rand); color: var(--text-schwach); font-size: 10.5px; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Test</div>
+              </div>
+            </div>
+            <div>
+              <div style="display: flex; align-items: baseline; gap: 9px; margin-bottom: 7px;">
+                <div style="font-size: 13.5px; font-weight: 600;">Förderantrag FFG</div>
+                <div class="hinweis">Stufe 2 von 3</div>
+                <div class="zahl" style="margin-left: auto; font-size: 12.5px; color: var(--text-leise);">55 %</div>
+              </div>
+              <div style="display: flex; gap: 2px;">
+                <div style="flex: 3; height: 28px; background: var(--teal-tint); border: 1px solid var(--teal); color: var(--teal); font-size: 10.5px; font-weight: 600; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Kostenplan</div>
+                <div style="flex: 4; height: 28px; background: var(--akzent); border: 1px solid var(--akzent); color: #FFFFFF; font-size: 10.5px; font-weight: 600; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Antragstext</div>
+                <div style="flex: 3; height: 28px; background: var(--leise); border: 1px solid var(--rand); color: var(--text-schwach); font-size: 10.5px; display: flex; align-items: center; padding: 0 7px; overflow: hidden; white-space: nowrap;">Einreichung</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!--
+        Der Kontostand als Linie. Die gestrichelte Fortschreibung benutzt
+        *dieselbe* Formel wie die Kennzahl Runway oben — Kontostand geteilt
+        durch erwartete Monatskosten. Deshalb trifft sie die Nulllinie genau
+        dort, wo „7,8 Monate“ es sagt. Zwei Darstellungen desselben Werts,
+        die sich widersprechen, wären schlimmer als eine weniger.
+
+        „Stand eintragen“ sitzt an dieser Karte und nicht in der Kopfzeile
+        der Seite: Es ist die Handlung *dieser* Zahl, nicht die des Dashboards.
+      -->
+      <div class="karte" style="padding: 15px 18px 14px;">
+        <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px;">
+          <h2>Kontostand</h2>
+          <div class="hinweis">zwölf Monate, dann fortgeschrieben</div>
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+              <svg width="18" height="8" viewBox="0 0 18 8"><path d="M0,4 L18,4" stroke="var(--teal)" stroke-width="2"></path></svg>
+              <div class="hinweis">erfasst</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 7px;">
+              <svg width="18" height="8" viewBox="0 0 18 8"><path d="M0,4 L18,4" stroke="var(--akzent)" stroke-width="2" stroke-dasharray="4 3"></path></svg>
+              <div class="hinweis">fortgeschrieben</div>
+            </div>
+            <div class="knopf knopf-still" style="height: 30px; font-size: 13px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M12 5v14M5 12h14"></path></svg>
+              Stand eintragen
+            </div>
+          </div>
+        </div>
+
+        <svg viewBox="0 0 1120 190" style="width: 100%; height: 190px; overflow: visible;" preserveAspectRatio="none">
+          <path d="M0.0,8.0 L58.9,14.2 L117.9,20.2 L176.8,30.1 L235.8,25.5 L294.7,36.2 L353.7,42.5 L412.6,50.0 L471.6,55.2 L530.5,60.0 L589.5,63.7 L648.4,67.9 L648.4,168.0 L0.0,168.0 Z" fill="var(--teal-tint)"></path>
+          <path d="M0,168 L1120,168" stroke="var(--rand-stark)" stroke-width="1"></path>
+          <path d="M648.4,0 L648.4,168" stroke="var(--rand-stark)" stroke-width="1" stroke-dasharray="3 3"></path>
+          <path d="M0.0,8.0 L58.9,14.2 L117.9,20.2 L176.8,30.1 L235.8,25.5 L294.7,36.2 L353.7,42.5 L412.6,50.0 L471.6,55.2 L530.5,60.0 L589.5,63.7 L648.4,67.9" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linejoin="round"></path>
+          <path d="M648.4,67.9 L707.4,80.8 L766.3,93.7 L825.3,106.6 L884.2,119.5 L943.2,132.4 L1002.1,145.3 L1061.1,158.2 L1120.0,168.0" fill="none" stroke="var(--akzent)" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"></path>
+          <circle cx="648.4" cy="67.9" r="4" fill="var(--flaeche)" stroke="var(--teal)" stroke-width="2.5"></circle>
+          <circle cx="1120" cy="168" r="3.5" fill="var(--akzent)"></circle>
+        </svg>
+
+        <div style="display: flex; margin-top: 7px; position: relative; height: 34px;">
+          <div style="width: 57.9%; display: flex; justify-content: space-between; border-top: 1px solid var(--rand); padding-top: 6px;">
+            <div><div class="zahl hinweis" style="font-size: 11px;">10/2025</div><div class="zahl" style="font-size: 11px; color: var(--text-leise);">228.400 €</div></div>
+            <div style="text-align: right;"><div class="zahl" style="font-size: 11px; color: var(--teal); font-weight: 600;">heute · 09/2026</div><div class="zahl" style="font-size: 11px; color: var(--text);">142.860 €</div></div>
+          </div>
+          <div style="width: 42.1%; display: flex; justify-content: flex-end; border-top: 1px solid var(--akzent); padding-top: 6px;">
+            <div style="text-align: right;"><div class="zahl" style="font-size: 11px; color: var(--akzent); font-weight: 600;">Runway-Ende · 05/2027</div><div class="zahl hinweis" style="font-size: 11px;">bei 18.400 € / Monat</div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "thema": {"editor": "enum", "options": ["hell", "dunkel"], "default": "hell", "section": "Entwurf B"}
+}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const aktiv = s.aktiv || 'Dashboard';
+    const zeit = s.zeit || 'Diese Woche';
+
+    const bauen = (titel, pfad) => ({
+      titel: titel,
+      pfad: pfad,
+      bg: titel === aktiv ? 'var(--leiste-2)' : 'transparent',
+      fg: titel === aktiv ? '#FFFFFF' : 'var(--leiste-leise)',
+      kante: titel === aktiv ? '#D98C5C' : 'transparent',
+      waehlen: () => this.setState({ aktiv: titel })
+    });
+
+    const raeume = ['Diese Woche', 'Dieser Monat', 'Alles'];
+    const werte = {
+      'Diese Woche': { spanne: '08.09. – 14.09.2026', titel: 'Woche Team', wert: '96:15:00', hinweis: 'von 108:00 geplant' },
+      'Dieser Monat': { spanne: '01.09. – 30.09.2026', titel: 'Monat Team', wert: '341:50:00', hinweis: 'von 432:00 geplant' },
+      'Alles': { spanne: 'ohne Einschränkung', titel: 'Gesamt Team', wert: '4128:25:00', hinweis: 'seit 01.10.2025' }
+    };
+    const w = werte[zeit];
+
+    return {
+      thema: this.props.thema || 'hell',
+      navStart: [bauen('Start', 'M4 11l8-7 8 7v9H4v-9zM9.5 20v-6h5v6')],
+      navIntern: [
+        bauen('Dashboard', 'M4 13h6V4H4v9zM14 20h6V4h-6v16zM4 20h6v-4H4v4z'),
+        bauen('Projekt', 'M4 5h6l2 3h8v11H4V5z'),
+        bauen('Zeit', 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3.5 2')
+      ],
+      navExtern: [
+        bauen('Kontakte', 'M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M17 8h4M19 6v4'),
+        bauen('Events', 'M3 5h18v16H3V5zM3 10h18M8 3v4M16 3v4M8 15h3')
+      ],
+      zeitraeume: raeume.map((t, i) => ({
+        titel: t,
+        bg: t === zeit ? 'var(--akzent)' : 'var(--flaeche)',
+        fg: t === zeit ? '#FFFFFF' : 'var(--text-leise)',
+        trenner: i === 0 ? 'transparent' : 'var(--rand-stark)',
+        waehlen: () => this.setState({ zeit: t })
+      })),
+      spanne: w.spanne,
+      stundenTitel: w.titel,
+      stunden: w.wert,
+      stundenHinweis: w.hinweis
+    };
+  }
+}
+</script>
+</body>
+</html>

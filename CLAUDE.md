@@ -133,6 +133,10 @@ im Ernstfall, unter Zeitdruck, wenn das Original schon weg ist.
   ein Raster, eine Strichstärke, Farbe von `currentColor`. Sie stehen alle in
   `frontend/src/bausteine/Zeichen.tsx`, ihre Regeln in `bausteine.css` — nicht je
   Zeichen. Ein neues Zeichen kommt dort dazu, sonst nirgends.
+- **Die Schriften liegen lokal** (`statisch/schriften.css`, `statisch/schriften/`).
+  Kein Verweis auf `fonts.googleapis.com`: Der meldet bei jedem Seitenaufruf die
+  IP des Nutzers an einen Dritten, und in einem MedTech-Umfeld ist das kein
+  theoretisches Argument. Ein neuer Schnitt kommt als woff2 dazu, nicht als Link.
 - **Die Marke hat eine Geometrie, und die steht in `socos/marke.py`.** Favicon,
   ICO, Apple-Touch-Icon und der PDF-Kopf kommen von dort; Kopfleiste und
   Anmeldeseite binden `statisch/favicon.svg` als Bild ein. Wer das Zeichen
@@ -160,13 +164,28 @@ im Ernstfall, unter Zeitdruck, wenn das Original schon weg ist.
 **Jede Änderung an der Oberfläche wird an beiden Größen geprüft, bevor sie committet
 wird — 1280×800 und 375×812, hell und dunkel.**
 
-### Visuelle Sprache (verbindlich, aus dem Entwurf)
+### Visuelle Sprache (verbindlich, Entwurf „Werkbank" 2026-09-12)
 
-Eckige Kanten (2 px Radius) · `#0F4448` `#14595F` `#8A5638` `#EFEDE6` `#FFFFFF` ·
-**Figtree** für Text, **IBM Plex Mono** für Zahlen und Zeiten · 4-Spalten-Raster.
+Eckige Kanten (2 px Radius) · Seitengrund `#FAFAF7`, Fläche `#FFFFFF`, Kante
+`#D2CCBC` · Akzent `#A2552C` (Kupfer — **das ist die Handlung**), Marke
+`#0D4E52` (Verweise und „läuft"), Leiste `#0B2A2C` (in **beiden** Themen dunkel)
+· **Archivo** für Text, **IBM Plex Mono** für Zahlen und Zeiten, Grundgröße
+14 px · Trennung durch Haarlinien, **keine Schatten** · 4-Spalten-Raster,
+Abstände in Vierern.
 
-Layout und Beschriftungen nicht neu erfinden. Vorlage ist
-`Sopharmis Internal v6 leer.dc.html`. Wenn etwas fehlt: nachfragen.
+Die Entwürfe liegen in `entwurf/redesign/`. **Layout und Beschriftungen** kommen
+weiterhin aus `entwurf/Sopharmis Internal v6 leer.dc.html` — nur Farbe, Schrift
+und Raum nicht mehr. Wenn etwas fehlt: nachfragen.
+
+**Jeder Textton wird gegen jeden Untergrund gerechnet, auf dem er steht** — nicht
+nur gegen Weiß. Genau daran ist die Palette schon zweimal gescheitert: ein Ton,
+der auf Weiß 4,66:1 hält, fällt auf dem Seitengrund auf 4,46. Und ein Ton, der
+als Punkt genügt, kann als Text auf seiner eigenen hellen Fläche bei 2,86:1
+liegen. Die Zahlen stehen als Kommentar in `farben.css`.
+
+**Ein Ton, der auf der Leiste steht, heißt `--kopf-*`.** `--marke-dunkel` und
+`--auf-marke` kippen zwischen hell und dunkel, die Leiste nicht — wer dort einen
+Markenton benutzt, bekommt im dunklen Thema Hell auf Hell.
 
 ## Tests
 

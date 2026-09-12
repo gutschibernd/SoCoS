@@ -7,6 +7,110 @@ betrifft.
 
 ---
 
+## 2026-09-12 — Neue visuelle Sprache: Entwurf „Werkbank" (Etappe 1 von 3)
+
+### Warum überhaupt
+
+Bernd war mit Farbe, Schrift, Kontrast und Interaktivität unzufrieden. Aus zwei
+Entwürfen (A „Ruhig" — gleiche Struktur, nur optimiert; B „Werkbank" —
+Seitenleiste statt Kopfleiste) ist **B** gewählt worden. Die Entwürfe liegen als
+Design-Canvas in `entwurf/redesign/` (Arbeitsdateien) und als Artefakt unter
+`claude.ai/code/artifact/73c6181d-5e37-4e19-8ac5-a8c26ddfe79d`.
+
+**Das ersetzt die bis dahin verbindliche visuelle Sprache** aus
+`entwurf/Sopharmis Internal v6 leer.dc.html` (Figtree, `#0F4448`/`#EFEDE6`).
+CLAUDE.md ist im selben Zug nachgezogen. Der alte Entwurf bleibt liegen — er ist
+weiterhin die Quelle für *Layout und Beschriftungen*, nur nicht mehr für Farbe
+und Schrift.
+
+### „Kontrast stört mich" waren drei Fehler, nicht einer
+
+Gemessen, nicht geschätzt:
+
+1. **Die Fläche trennte nicht.** Karte zu Seitengrund **1,17:1**, Kante zu Karte
+   **1,38:1** — Beige, Weiß und Rand lagen in einem Band. Jetzt Grund `#FAFAF7`,
+   Kante `#D2CCBC` (**1,60:1**), und die Trennung trägt die Kante, nicht die
+   Erhebung; Schatten gibt es keine.
+2. **Die Kopfleiste schlug zu laut an.** Inaktive Einträge auf **4,82:1** (knapp
+   über der Schwelle, also mühsam), aktiv als cremefarbener Block `#E8D9BE` —
+   der hellste Fleck der Seite saß dort, wo man nicht hinsieht. Jetzt inaktiv
+   auf **6,77:1**, aktiv ein ruhig aufgehellter Block mit Kupferkante unten.
+3. **Elf Pixel, gesperrt, in Versalien** — und zwar **elfmal in bausteine.css
+   einzeln hingeschrieben**. Das war der eigentliche Befund: Wer den Ton ändert,
+   ändert ihn an einer Stelle und übersieht zehn. Jetzt **eine** Regel
+   (`.karte > h2, .kennzahl .beschriftung, .tabelle th, …`), 12,5 px in
+   gemischter Schreibung.
+
+### Die Falle, die zweimal zugeschlagen hat
+
+**Ein Textton muss gegen *jeden* Untergrund gerechnet werden, auf dem er steht —
+nicht nur gegen Weiß.** `--text-sehr-leise` stand erst auf `#6F7671`: hält 4,66:1
+auf Weiß und fällt auf dem Seitengrund (4,46) und auf der leisen Fläche (4,16)
+durch. `#69706B` hält alle drei. Genau dieser Fehler stand in der Vorfassung von
+`farben.css` schon einmal kommentiert und ist wiedergekommen, weil beim zweiten
+Anlauf wieder nur gegen Weiß geprüft wurde.
+
+Dasselbe bei `--ruhend`: als Punkt unauffällig, als **Text** auf
+`--ruhend-hell` (`.status-verworfen`) nur **2,86:1**. Auf `#6B6F6B` gesetzt.
+
+Alle 25 Paare (Text, Marke, Akzent, vier Zustände, Leiste) sind in beiden Themen
+gerechnet und liegen über 4,5:1.
+
+### Was die Farben jetzt bedeuten
+
+**Das Kupfer führt, das Grün zieht sich in die Leiste zurück.** Vorher trugen
+Grün, Kupfer, Grün-Hell, Creme und vier Zustandsfarben gleichzeitig Bedeutung,
+und keine stach heraus, weil alle es taten. Jetzt heißt `--akzent` (`#A2552C`)
+„das ist die Handlung"; `--marke` (`#0D4E52`) bleibt für Verweise und den
+Zustand „läuft"; die Leiste ist in **beiden** Themen dunkel.
+
+Daraus folgen zwei neue Namen in `farben.css`: `--kopf-aktiv-text` und
+`--kopf-kante`. Grund: `--auf-marke` und `--akzent` kippen zwischen den Themen,
+die Leiste nicht — wer dort `--marke-dunkel` benutzt, bekommt im dunklen Thema
+Hell auf Hell. Das ist an drei Stellen tatsächlich passiert (`.uhr-knopf:hover`,
+`.kopf-knopf[aria-current]`, die Initialen in `.profil i` / `.personen i`) und
+dort behoben; die Initialen stehen jetzt auf `--marke-tiefer`, dem einzigen Ton,
+der in beiden Themen dunkel ist.
+
+### Schrift: Archivo statt Figtree, und sie liegt lokal
+
+Archivo läuft enger und kantiger — bei 14 px Grundgröße (vorher 15) passt in
+eine Tabellenzeile spürbar mehr, ohne dass sie gedrängt wirkt.
+
+**Die Schriften kommen nicht mehr von Google** (`statisch/schriften.css`, 11
+woff2-Schnitte, 294 kB). Ein Verweis auf `fonts.googleapis.com` meldet bei jedem
+Seitenaufruf die IP des Nutzers an einen Dritten; in einem MedTech-Umfeld ist das
+kein theoretisches Argument. Nur `latin` und `latin-ext` — `latin-ext` bleibt,
+weil darin die tschechischen, polnischen und ungarischen Zeichen stehen, die in
+Kontaktnamen vorkommen. Feste Pfade statt `{% static %}`, dieselbe Begründung
+wie beim Favicon: Die Anmeldeseite muss stehen, bevor `collectstatic` gelaufen ist.
+
+### Entschieden, nicht offen
+
+- **Start bleibt eine eigene Seite** und bekommt in Etappe 2 einen Menüeintrag
+  ganz oben. Mit Seitenleiste gibt es kein Logo mehr zum Klicken — heute ist das
+  der einzige Weg dorthin.
+- **Menügruppen heißen „Intern" (Dashboard, Projekt, Zeit) und „Extern"
+  (Kontakte, Events).** „Arbeit"/„Leute" trennte nicht sauber: Zeit ist auch
+  Leute, Events sind auch Arbeit.
+- **Die Seitenleiste ist am Rechner fest 232 px, ohne Einklappknopf.** Eingeklappt
+  wird nur am Handy — dort ist sie ohnehin eine Fußleiste mit fünf Einträgen.
+- **Kontostand wird ein Liniendiagramm** mit gestrichelter Fortschreibung. Die
+  Fortschreibung benutzt *dieselbe* Formel wie die Kennzahl Runway
+  (Kontostand ÷ erwartete Monatskosten) — zwei Darstellungen desselben Werts,
+  die sich widersprechen, wären schlimmer als eine weniger. Selbst gezeichnetes
+  SVG, kein Diagrammpaket (dieselbe Regel wie bei den Zeichen).
+
+### Was noch offen ist
+
+Etappe 2 (Seitenleiste, Menü, Start-Eintrag, Fußleiste am Handy) und Etappe 3
+(Zeitraum-Leiste über den Kennzahlen, Liniendiagramm, Tabellen-Feinschliff).
+
+In `Dashboard.tsx` und `Zeit.tsx` stehen noch `style={{ borderTop… }}`-Angaben
+mit Farbwerten — sie verstoßen gegen „kein Farbwert in einer Komponente" und
+sind seit dem Wegfall der farbigen Kennzahl-Oberkante zum Teil wirkungslos.
+Aufräumen in Etappe 3.
+
 ## 2026-09-11 — Die Anmeldeseite bekommt einen lebenden Hintergrund
 
 Wunsch von Bernd: Die Anmeldung soll einen interaktiven, animierten Hintergrund
@@ -1123,7 +1227,9 @@ beiden kleinen **o** kupfern: das Kürzel entziffert sich selbst als
 Bold, beide auf dem Bitstream-Vera-Skelett): Sie kommt in der Anwendung sonst
 nirgends vor und stünde zwischen lauter Figtree wie eingeklebt. Dazu kommt die
 Lizenz — Verdana-Konturen dürfen nicht weitergegeben werden; frei wären nur
-DejaVu (Vera-Lizenz) oder Figtree (OFL).
+DejaVu (Vera-Lizenz) oder Figtree (OFL). *(Nachtrag 2026-09-12: Die Schrift der
+Oberfläche ist jetzt Archivo — siehe den Eintrag zur neuen visuellen Sprache.
+Das Argument bleibt dasselbe, nur der Name der Umgebungsschrift ändert sich.)*
 
 **Signet: vier abgestufte Balken** — Projekt · Bereich · Arbeitspaket ·
 Unteraufgabe; der kupferne ist das Arbeitspaket, die Ebene, an der die Uhr

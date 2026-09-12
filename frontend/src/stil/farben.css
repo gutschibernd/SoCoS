@@ -6,71 +6,99 @@
  * Anmeldeseite läuft ohne das React-Bundle. Die Namen sind dort dieselben,
  * damit man die zweite Stelle findet.
  *
- * Die Werte kommen aus dem abgestimmten Entwurf (entwurf/Sopharmis Internal
- * v6 leer.dc.html) und sind verbindlich.
+ * Die Werte kommen aus dem Entwurf „Werkbank“ (entwurf/redesign/) und sind
+ * verbindlich. Jeder Textton ist gegen **jeden** Untergrund gerechnet, auf dem
+ * er vorkommt — die Kommentare unten nennen die Zahlen.
  */
 
 :root {
   color-scheme: light;
 
-  /* Flächen */
-  --grund: #efede6;
+  /* Flächen. Die Trennung trägt die Kante, nicht die Erhebung: Der Grund liegt
+     dicht an Weiß, dafür ist der Rand kräftig genug, um gesehen zu werden.
+     Vorher lagen Grund (#EFEDE6), Fläche (#FFFFFF) und Rand (#DFDBD1) in einem
+     Band — Fläche zu Grund 1,17:1, Kante zu Fläche 1,38:1. Die Karte war da
+     und hob sich nicht ab. */
+  --grund: #fafaf7;
   --flaeche: #ffffff;
-  --flaeche-leise: #f7f5f0;
-  --rand: #dfdbd1;
-  --rand-stark: #c9c4b7;
+  --flaeche-leise: #f3f2ec;
+  --rand: #d2ccbc;
+  --rand-stark: #b0aa99;
 
   /* Text
    *
-   * `--text-leise` und `--text-sehr-leise` sind dunkler als im Entwurf
-   * (dort #7C8A8C und #8B979A). Gemessen erreichten die Originalwerte auf
-   * Weiß nur 3,58:1 und 3,00:1 — WCAG AA verlangt für Text unter 18 px
-   * mindestens 4,5:1, und genau in diesen Tönen stehen die 11-px-Beschriftungen
-   * über jeder Karte. Die neuen Werte halten 4,5:1 auf allen drei Untergründen
-   * (Weiß, Seitengrund, leise Fläche) und behalten den Farbton bei. */
-  --text: #16272b;
-  --text-leise: #5a6668;
-  --text-sehr-leise: #5e6a6c;
+   * Alle drei Töne sind gegen **alle** Untergründe gerechnet, auf denen sie
+   * vorkommen — nicht nur gegen Weiß. `--text-sehr-leise` stand zuerst auf
+   * #6F7671: das hält 4,66:1 auf Weiß und fällt auf dem Seitengrund (4,46)
+   * und auf der leisen Fläche (4,16) unter die Schwelle. #69706B hält alle
+   * drei (4,66 / 4,86 / 4,53). Genau dieser Fehler steht in der Vorfassung
+   * dieser Datei schon einmal kommentiert; er ist beim zweiten Anlauf
+   * wiedergekommen, weil nur gegen Weiß geprüft wurde. */
+  --text: #171a18;
+  --text-leise: #565c58;
+  --text-sehr-leise: #69706b;
 
-  /* Marke */
-  --marke: #14595f;
-  --marke-dunkel: #0f4448;
-  --marke-tiefer: #0a3336;
-  --marke-hell: #e2eeec;
-  --marke-rand: #a8c6c4;
-  --akzent: #8a5638;
-  --akzent-hell: #f4ebe1;
+  /* Marke
+   *
+   * Das Grün zieht sich in die Leiste zurück und ist dort die Identität.
+   * Im Inhalt führt das Kupfer: Es gibt genau **einen** Ton, der „hier“ und
+   * „das ist die Handlung“ heißt. Vorher trugen Grün, Kupfer, Grün-Hell,
+   * Creme und vier Zustandsfarben gleichzeitig Bedeutung, und keine davon
+   * stach heraus, weil alle es taten. */
+  --marke: #0d4e52;
+  --marke-dunkel: #0a3e41;
+  --marke-tiefer: #072b2d;
+  --marke-hell: #e4eeed;
+  --marke-rand: #8fb6b4;
+  --akzent: #a2552c;
+  --akzent-hell: #f8ede5;
   /* Die Wortmarke. Gebraucht wird sie derzeit nur auf der Anmeldeseite — dort
-     steht sie groß und zweifarbig (die beiden kleinen o im Kupfer). Sie steht
-     trotzdem hier, weil die Palette der eine Ort ist; sonst hätte
-     anmelden.html zwei Farben, die es hier nicht gibt. */
-  --wortmarke: #0f4448;
-  --wortmarke-o: #8a5638;
-  /* Text auf einer Markenfläche. Hell ist die Marke dunkel genug für Weiß;
-     dunkel ist sie aufgehellt, und Weiß darauf käme auf 2,3:1. */
+     steht sie groß und zweifarbig (die beiden kleinen o im Kupfer). */
+  --wortmarke: #0d4e52;
+  --wortmarke-o: #a2552c;
+  /* Text auf einer Markenfläche. */
   --auf-marke: #ffffff;
 
-  /* Kopfleiste */
-  --kopf-grund: #0f4448;
-  --kopf-text: #dce8e7;
-  --kopf-text-leise: #8fb4b5;
-  --kopf-rand: #2a6a6e;
-  --kopf-aktiv: #e8d9be;
+  /* Leiste (heute die Kopfzeile, ab Etappe 2 die Seitenleiste)
+   *
+   * Sie ist in **beiden** Themen dunkel — deshalb stehen hier auch im hellen
+   * Thema dunkle Werte, und deshalb braucht die aktive Kante einen eigenen
+   * Namen: `--akzent` ist hell genug für Weiß, aber zu dunkel für Dunkelgrün.
+   *
+   * `--kopf-text-leise` stand auf #8FB4B5 und kam damit auf 4,82:1 — knapp
+   * über der Schwelle und entsprechend mühsam. #94B3B2 auf #0B2A2C sind 6,77. */
+  --kopf-grund: #0b2a2c;
+  --kopf-text: #e4edec;
+  --kopf-text-leise: #94b3b2;
+  --kopf-rand: #1b4a4d;
+  --kopf-aktiv: #123a3d;
+  --kopf-aktiv-text: #ffffff;
+  --kopf-kante: #d98c5c;
 
-  /* Zustände */
-  --gut: #4c6b41;
-  --gut-hell: #e9efe3;
-  --warnung: #9c4229;
-  --warnung-hell: #f7e6df;
-  --ruhend: #a0a9ab;
-  --ruhend-hell: #f1efe8;
-  --wartend: #5b4a6b;
-  --wartend-hell: #ede8f0;
+  /* Zustände. Jeder Ton ist gegen seine eigene helle Fläche gerechnet, nicht
+     gegen Weiß — dort steht er nämlich. */
+  --gut: #3d6b44;
+  --gut-hell: #e7efe6;
+  --warnung: #963d22;
+  --warnung-hell: #fae8e0;
+  /* Auf #8C918C kam dieser Ton als Text auf seiner eigenen Fläche nur auf
+     2,86:1 — und genau so steht er dort: `.status-verworfen` setzt ihn auf
+     `--ruhend-hell`. #6B6F6B hält 4,55:1. Als Punkt und Linie tut der
+     dunklere Ton dasselbe wie der helle. */
+  --ruhend: #6b6f6b;
+  --ruhend-hell: #f3f2ec;
+  --wartend: #5c4a70;
+  --wartend-hell: #eee9f2;
 
   /* Maße */
   --kante: 2px;          /* eckige Kanten, verbindlich aus dem Entwurf */
   --griff: 44px;         /* was der Finger trifft, ist mindestens so hoch */
-  --schrift: Figtree, system-ui, -apple-system, sans-serif;
+  /* Archivo statt Figtree: enger und kantiger, damit in eine dichte
+     Tabellenzeile mehr hineinpasst, ohne gedrängt zu wirken. Der Ersatzstapel
+     ist mit Bedacht gewählt — Helvetica Neue liegt metrisch nah genug, dass
+     der Umsprung beim Laden nicht springt. Beide Schriften liegen lokal,
+     siehe statisch/schriften.css. */
+  --schrift: Archivo, "Helvetica Neue", system-ui, -apple-system, sans-serif;
   --schrift-zahl: "IBM Plex Mono", ui-monospace, monospace;
 }
 
@@ -78,84 +106,92 @@
   :root:not([data-thema="hell"]) {
     color-scheme: dark;
 
-    --grund: #12191a;
-    --flaeche: #1a2325;
-    --flaeche-leise: #202b2d;
-    --rand: #2c393b;
-    --rand-stark: #3d4d50;
+    --grund: #14171a;
+    --flaeche: #1c2124;
+    --flaeche-leise: #23292c;
+    --rand: #303739;
+    --rand-stark: #4a5255;
 
-    --text: #e6e9e6;
-    --text-leise: #9aa8aa;
-    --text-sehr-leise: #869496;
+    --text: #eceeec;
+    --text-leise: #a9b1ae;
+    --text-sehr-leise: #8c9491;
 
-    --marke: #5ea8a8;
-    --marke-dunkel: #0f4448;
-    --marke-tiefer: #0a3336;
-    --marke-hell: #1d3436;
-    --marke-rand: #3a6b6c;
-    --akzent: #c88a63;
-    --akzent-hell: #2e2420;
-    /* Dunkel trägt das Grün der Wortmarke nicht: auf #1a2325 kommt #0f4448
-       auf 1,2:1 und ist schlicht nicht da — sie steht dann in Textfarbe. */
-    --wortmarke: #e6e9e6;
-    --wortmarke-o: #c88a63;
-    --auf-marke: #0b2224;
+    --marke: #66b9b6;
+    --marke-dunkel: #8fd0cd;
+    --marke-tiefer: #072b2d;
+    --marke-hell: #16302f;
+    --marke-rand: #3a6361;
+    --akzent: #d98c5c;
+    --akzent-hell: #2c2019;
+    /* Dunkel trägt das Grün der Wortmarke nicht: auf #1C2124 käme #0D4E52 auf
+       1,2:1 und wäre schlicht nicht da — sie steht dann in Textfarbe. */
+    --wortmarke: #eceeec;
+    --wortmarke-o: #d98c5c;
+    --auf-marke: #07201f;
 
-    --kopf-grund: #0d3a3d;
-    --kopf-text: #cfe0df;
-    --kopf-text-leise: #9dbdbe;
-    --kopf-rand: #1f5559;
-    --kopf-aktiv: #e8d9be;
+    /* Die Leiste ist ohnehin dunkel; sie wird nur noch eine Spur tiefer
+       gesetzt, damit sie sich vom dunklen Inhalt abhebt. */
+    --kopf-grund: #0a2224;
+    --kopf-text: #dde9e8;
+    --kopf-text-leise: #8fadac;
+    --kopf-rand: #17474b;
+    --kopf-aktiv: #103134;
+    --kopf-aktiv-text: #ffffff;
+    --kopf-kante: #d98c5c;
 
-    --gut: #8fb37f;
-    --gut-hell: #1f2a1e;
-    --warnung: #d98a6d;
-    --warnung-hell: #33211c;
-    --ruhend: #6f7b7d;
-    --ruhend-hell: #212a2b;
-    --wartend: #a898bb;
-    --wartend-hell: #262130;
+    --gut: #86b37d;
+    --gut-hell: #1b281c;
+    --warnung: #de8a6c;
+    --warnung-hell: #31201a;
+    --ruhend: #8c9491;
+    --ruhend-hell: #23292c;
+    --wartend: #ac9bc2;
+    --wartend-hell: #241f2e;
   }
 }
 
 :root[data-thema="dunkel"] {
   color-scheme: dark;
 
-  --grund: #12191a;
-  --flaeche: #1a2325;
-  --flaeche-leise: #202b2d;
-  --rand: #2c393b;
-  --rand-stark: #3d4d50;
+  --grund: #14171a;
+  --flaeche: #1c2124;
+  --flaeche-leise: #23292c;
+  --rand: #303739;
+  --rand-stark: #4a5255;
 
-  --text: #e6e9e6;
-  --text-leise: #9aa8aa;
-  --text-sehr-leise: #869496;
+  --text: #eceeec;
+  --text-leise: #a9b1ae;
+  --text-sehr-leise: #8c9491;
 
-  --marke: #5ea8a8;
-  --marke-dunkel: #0f4448;
-  --marke-tiefer: #0a3336;
-  --marke-hell: #1d3436;
-  --marke-rand: #3a6b6c;
-  --akzent: #c88a63;
-  --akzent-hell: #2e2420;
-  /* Dunkel trägt das Grün der Wortmarke nicht: auf #1a2325 kommt #0f4448
-     auf 1,2:1 und ist schlicht nicht da — sie steht dann in Textfarbe. */
-  --wortmarke: #e6e9e6;
-  --wortmarke-o: #c88a63;
-  --auf-marke: #0b2224;
+  --marke: #66b9b6;
+  --marke-dunkel: #8fd0cd;
+  --marke-tiefer: #072b2d;
+  --marke-hell: #16302f;
+  --marke-rand: #3a6361;
+  --akzent: #d98c5c;
+  --akzent-hell: #2c2019;
+  /* Dunkel trägt das Grün der Wortmarke nicht: auf #1C2124 käme #0D4E52 auf
+     1,2:1 und wäre schlicht nicht da — sie steht dann in Textfarbe. */
+  --wortmarke: #eceeec;
+  --wortmarke-o: #d98c5c;
+  --auf-marke: #07201f;
 
-  --kopf-grund: #0d3a3d;
-  --kopf-text: #cfe0df;
-  --kopf-text-leise: #9dbdbe;
-  --kopf-rand: #1f5559;
-  --kopf-aktiv: #e8d9be;
+  /* Die Leiste ist ohnehin dunkel; sie wird nur noch eine Spur tiefer
+     gesetzt, damit sie sich vom dunklen Inhalt abhebt. */
+  --kopf-grund: #0a2224;
+  --kopf-text: #dde9e8;
+  --kopf-text-leise: #8fadac;
+  --kopf-rand: #17474b;
+  --kopf-aktiv: #103134;
+  --kopf-aktiv-text: #ffffff;
+  --kopf-kante: #d98c5c;
 
-  --gut: #8fb37f;
-  --gut-hell: #1f2a1e;
-  --warnung: #d98a6d;
-  --warnung-hell: #33211c;
-  --ruhend: #6f7b7d;
-  --ruhend-hell: #212a2b;
-  --wartend: #a898bb;
-  --wartend-hell: #262130;
+  --gut: #86b37d;
+  --gut-hell: #1b281c;
+  --warnung: #de8a6c;
+  --warnung-hell: #31201a;
+  --ruhend: #8c9491;
+  --ruhend-hell: #23292c;
+  --wartend: #ac9bc2;
+  --wartend-hell: #241f2e;
 }

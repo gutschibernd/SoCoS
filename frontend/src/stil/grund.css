@@ -8,7 +8,10 @@ body {
   background: var(--grund);
   color: var(--text);
   font-family: var(--schrift);
-  font-size: 15px;
+  /* 14 statt 15: Archivo läuft enger als Figtree und trägt bei 14 px
+     dieselbe Lesbarkeit — dafür passt in eine Tabellenzeile spürbar mehr,
+     ohne dass sie gedrängt wirkt. */
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
   /* Am Handy darf nichts unter der Notch oder dem Homebalken liegen. */
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
@@ -23,8 +26,11 @@ input, select, textarea, button {
   font-family: inherit;
   font-size: 16px;
 }
+/* Der Fokusring lag in --marke-rand und kam auf Weiß auf 2,0:1 — für den
+   einzigen Hinweis darauf, wo die Tastatur gerade steht, ist das zu wenig.
+   --akzent hält 5,4:1 und ist derselbe Ton, der auch „hier“ heißt. */
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
-  outline: 2px solid var(--marke-rand);
+  outline: 2px solid var(--akzent);
   outline-offset: 1px;
 }
 

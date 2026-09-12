@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Archivo, "Helvetica Neue", system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #171A18; }
+  a { color: #0D4E52; text-decoration: none; }
+  a:hover { color: #A2552C; }
+  .zahl { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  h2 { margin: 0 0 4px; font-size: 18px; font-weight: 600; letter-spacing: -0.03em; }
+  .lead { font-size: 13.5px; color: #565C58; margin: 0 0 18px; line-height: 1.6; max-width: 840px; }
+  .blatt { background: #FFFFFF; border: 1px solid #D2CCBC; border-radius: 2px; padding: 22px 24px; }
+  .marke { font-size: 10.5px; font-weight: 600; color: #565C58; letter-spacing: .07em; text-transform: uppercase; }
+  .sw { height: 54px; border-radius: 2px; border: 1px solid rgba(0,0,0,.09); }
+  .swz { font-size: 11px; color: #565C58; margin-top: 5px; line-height: 1.45; }
+  .gut { color: #3D6B44; font-weight: 600; }
+  .schlecht { color: #963D22; font-weight: 600; }
+  svg { display: block; }
+</style>
+</helmet>
+
+<div style="background: #EFEEE9; padding: 36px 40px 44px; min-height: 1500px; font-size: 14px; line-height: 1.5;">
+  <div style="max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+
+    <div>
+      <div class="marke">SoCoS · Redesign · Entwurf B „Werkbank“</div>
+      <h2 style="font-size: 26px; margin-top: 6px;">Warum das so aussieht</h2>
+      <p class="lead">Gemessen, nicht geschätzt: alle Verhältnisse unten sind ausgerechnete WCAG-Kontrastwerte der tatsächlich verwendeten Werte. Der Schwellwert für Text unter 18 px ist 4,5:1.</p>
+    </div>
+
+    <div class="blatt">
+      <h2>Drei Befunde am jetzigen Stand</h2>
+      <p class="lead" style="margin-bottom: 20px;">Nicht „zu wenig Kontrast“ pauschal — es sind drei verschiedene Fehler, und zwei davon zeigen in entgegengesetzte Richtungen.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;">
+        <div>
+          <div class="marke" style="margin-bottom: 9px;">1 · Die Fläche trennt nicht</div>
+          <div style="background: #EFEDE6; padding: 16px; border-radius: 2px; height: 84px;">
+            <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 13px 15px;">
+              <div style="font-size: 13px; color: #5a6668; font-family: Figtree, sans-serif;">Weiße Karte auf Seitengrund</div>
+            </div>
+          </div>
+          <div style="font-size: 13px; color: #565C58; margin-top: 11px; line-height: 1.55;">
+            Fläche zu Grund <b class="zahl schlecht">1,17:1</b>, Kante zu Fläche <b class="zahl schlecht">1,38:1</b>. Beige, Weiß und Rand liegen in einem Band — die Karte ist da, hebt sich aber nicht ab.
+          </div>
+        </div>
+
+        <div>
+          <div class="marke" style="margin-bottom: 9px;">2 · Die Leiste schlägt zu laut an</div>
+          <div style="background: #0f4448; padding: 16px; border-radius: 2px; height: 84px;">
+            <div style="display: flex; gap: 2px;">
+              <div style="padding: 9px 14px; font-size: 13px; font-weight: 600; color: #8fb4b5; font-family: Figtree, sans-serif;">Projekt</div>
+              <div style="padding: 9px 14px; font-size: 13px; font-weight: 600; color: #0f4448; background: #e8d9be; border-radius: 2px; font-family: Figtree, sans-serif;">Zeit</div>
+              <div style="padding: 9px 14px; font-size: 13px; font-weight: 600; color: #8fb4b5; font-family: Figtree, sans-serif;">Kontakte</div>
+            </div>
+          </div>
+          <div style="font-size: 13px; color: #565C58; margin-top: 11px; line-height: 1.55;">
+            Inaktiv auf <b class="zahl schlecht">4,82:1</b> — knapp über der Grenze. Aktiv als cremefarbener Block: der hellste Fleck der Seite sitzt dort, wo man nicht hinsieht.
+          </div>
+        </div>
+
+        <div>
+          <div class="marke" style="margin-bottom: 9px;">3 · Elf Pixel, gesperrt, in Versalien</div>
+          <div style="background: #FFFFFF; border: 1px solid #DFDBD1; border-radius: 2px; padding: 16px; height: 84px;">
+            <div style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #5e6a6c; font-weight: 600; font-family: Figtree, sans-serif;">Erwartete Monatskosten</div>
+            <div class="zahl" style="font-size: 26px; margin-top: 7px;">18.400 €</div>
+          </div>
+          <div style="font-size: 13px; color: #565C58; margin-top: 11px; line-height: 1.55;">
+            Steht über jeder Karte, jeder Tabellenspalte, jeder Kennzahl. Bei 11 px ist jede Kontrastreserve weg, und Versalien nehmen der Wortform das, woran man sie erkennt.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="blatt">
+      <div style="display: flex; align-items: baseline; gap: 12px;">
+        <h2>Die Palette</h2>
+        <div style="font-size: 13px; color: #565C58;">Archivo + IBM Plex Mono · Kante 2 px · keine Schatten</div>
+      </div>
+      <p class="lead">Papierweiße Fläche, Trennung durch Haarlinien statt durch Erhebung, <b>eine</b> Akzentfarbe. Das Markengrün zieht sich in die Seitenleiste zurück und bleibt dort die Identität; im Inhalt führt Kupfer. So gibt es genau einen Ton, der „hier“ heißt — und wenn man ihn sieht, weiß man, dass er etwas bedeutet.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px;">
+        <div><div class="sw" style="background: #FAFAF7;"></div><div class="swz"><b class="zahl">#FAFAF7</b><br>Seitengrund</div></div>
+        <div><div class="sw" style="background: #FFFFFF;"></div><div class="swz"><b class="zahl">#FFFFFF</b><br>Kartenfläche</div></div>
+        <div><div class="sw" style="background: #D2CCBC;"></div><div class="swz"><b class="zahl">#D2CCBC</b><br>Kante<br><span class="gut zahl">1,60:1</span> zu Weiß</div></div>
+        <div><div class="sw" style="background: #A2552C;"></div><div class="swz"><b class="zahl">#A2552C</b><br>Akzent<br><span class="gut zahl">5,42:1</span> auf Weiß</div></div>
+        <div><div class="sw" style="background: #0D4E52;"></div><div class="swz"><b class="zahl">#0D4E52</b><br>Marke / Teal<br><span class="gut zahl">9,42:1</span> auf Weiß</div></div>
+        <div><div class="sw" style="background: #0B2A2C;"></div><div class="swz"><b class="zahl">#0B2A2C</b><br>Seitenleiste</div></div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-top: 14px;">
+        <div><div class="sw" style="background: #171A18;"></div><div class="swz"><b class="zahl">#171A18</b><br>Text<br><span class="gut zahl">17,54:1</span></div></div>
+        <div><div class="sw" style="background: #565C58;"></div><div class="swz"><b class="zahl">#565C58</b><br>Text leise<br><span class="gut zahl">6,85:1</span></div></div>
+        <div><div class="sw" style="background: #69706B;"></div><div class="swz"><b class="zahl">#69706B</b><br>Text schwach<br><span class="gut zahl">4,86:1</span> auf Grund</div></div>
+        <div><div class="sw" style="background: #3D6B44;"></div><div class="swz"><b class="zahl">#3D6B44</b><br>Gut</div></div>
+        <div><div class="sw" style="background: #5C4A70;"></div><div class="swz"><b class="zahl">#5C4A70</b><br>Wartend<br><span class="gut zahl">6,59:1</span> auf Tint</div></div>
+        <div><div class="sw" style="background: #94B3B2;"></div><div class="swz"><b class="zahl">#94B3B2</b><br>Leiste inaktiv<br><span class="gut zahl">6,77:1</span> <span style="color:#69706B;">(heute 4,82)</span></div></div>
+      </div>
+
+      <div style="background: #F3F2EC; border-left: 3px solid #0D4E52; border-radius: 2px; padding: 13px 16px; margin-top: 18px; font-size: 13px; color: #565C58; line-height: 1.6;">
+        <b style="color: #171A18;">Der schwache Grauton ist zweimal gerechnet worden.</b> Der erste Wert (<span class="zahl">#6F7671</span>) hielt 4,5:1 auf Weiß, fiel aber auf dem Seitengrund und auf der leisen Fläche darunter — genau der Fehler, der in <span class="zahl">farben.css</span> heute schon einmal kommentiert steht. <span class="zahl">#69706B</span> hält alle drei Untergründe.
+      </div>
+    </div>
+
+    <div class="blatt">
+      <h2>Schriftleiter</h2>
+      <p class="lead">Heute gibt es faktisch drei Größen: 21 für die Überschrift, 15 für alles, 11 für alle Beschriftungen. Dazwischen ist nichts — deshalb muss die 11 alles tragen, was kleiner sein soll als normaler Text, und deshalb ist sie überall. Archivo ist enger und kantiger als Figtree: In einer dichten Tabellenzeile passt mehr hinein, ohne dass es gedrängt aussieht.</p>
+
+      <div style="display: flex; flex-direction: column; gap: 11px; max-width: 720px;">
+        <div style="display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid #E3E0D6; padding-bottom: 9px;"><div class="zahl" style="font-size: 11px; color: #565C58; width: 96px; flex: 0 0 96px;">17 / 600</div><div style="font-size: 17px; font-weight: 600; letter-spacing: -0.03em;">Hallo Bernd</div><div style="font-size: 12.5px; color: #69706B;">Kontextleiste — wo bin ich</div></div>
+        <div style="display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid #E3E0D6; padding-bottom: 9px;"><div class="zahl" style="font-size: 11px; color: #565C58; width: 96px; flex: 0 0 96px;">14 / 600</div><div style="font-size: 14px; font-weight: 600;">Kartenüberschrift</div></div>
+        <div style="display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid #E3E0D6; padding-bottom: 9px;"><div class="zahl" style="font-size: 11px; color: #565C58; width: 96px; flex: 0 0 96px;">13,5 / 400</div><div style="font-size: 13.5px;">Tabellenzellen und Listenzeilen</div></div>
+        <div style="display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid #E3E0D6; padding-bottom: 9px;"><div class="zahl" style="font-size: 11px; color: #565C58; width: 96px; flex: 0 0 96px;">12,5 / 600</div><div style="font-size: 12.5px; font-weight: 600; color: #565C58;">Beschriftung — gemischt, nicht gesperrt</div></div>
+        <div style="display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid #E3E0D6; padding-bottom: 9px;"><div class="zahl" style="font-size: 11px; color: #565C58; width: 96px; flex: 0 0 96px;">12,5 / 400</div><div style="font-size: 12.5px; color: #69706B;">Hinweis unter einem Wert</div></div>
+        <div style="display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid #E3E0D6; padding-bottom: 9px;"><div class="zahl" style="font-size: 11px; color: #565C58; width: 96px; flex: 0 0 96px;">10,5 / 600</div><div style="font-size: 10.5px; font-weight: 600; color: #6E8F8F; letter-spacing: .07em; text-transform: uppercase;">Gruppe in der Seitenleiste</div><div style="font-size: 12.5px; color: #69706B;">die einzige Stelle mit Versalien — zwei Wörter, nie Fließtext</div></div>
+        <div style="display: flex; align-items: baseline; gap: 16px;"><div class="zahl" style="font-size: 11px; color: #565C58; width: 96px; flex: 0 0 96px;">27 mono</div><div class="zahl" style="font-size: 27px; font-weight: 500; letter-spacing: -0.04em;">142.860 €</div></div>
+      </div>
+    </div>
+
+    <div class="blatt">
+      <h2>Zustände</h2>
+      <p class="lead">Ein Knopf hat vier: ruhend, überfahren, gedrückt, stillgelegt. Heute gibt es zwei davon (<span class="zahl">filter: brightness</span> und <span class="zahl">opacity: .5</span>). Das ist der Punkt, an dem sich eine Oberfläche „tot“ anfühlt.</p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 9px; align-items: center;">
+        <div style="height: 34px; padding: 0 14px; border-radius: 2px; background: #A2552C; color: #FFF; font-size: 13.5px; font-weight: 600; display: flex; align-items: center;">Ruhend</div>
+        <div style="height: 34px; padding: 0 14px; border-radius: 2px; background: #B35F32; color: #FFF; font-size: 13.5px; font-weight: 600; display: flex; align-items: center;">Überfahren</div>
+        <div style="height: 34px; padding: 0 14px; border-radius: 2px; background: #8A4724; color: #FFF; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; box-shadow: inset 0 2px 3px rgba(0,0,0,.28);">Gedrückt</div>
+        <div style="height: 34px; padding: 0 14px; border-radius: 2px; background: #F3F2EC; color: #9DA29E; border: 1px solid #D2CCBC; font-size: 13.5px; font-weight: 600; display: flex; align-items: center;">Stillgelegt</div>
+        <div style="width: 1px; height: 26px; background: #D2CCBC; margin: 0 5px;"></div>
+        <div style="height: 34px; padding: 0 14px; border-radius: 2px; border: 1px solid #B0AA99; font-size: 13.5px; font-weight: 600; display: flex; align-items: center;">Still, ruhend</div>
+        <div style="height: 34px; padding: 0 14px; border-radius: 2px; border: 1px solid #A2552C; color: #A2552C; font-size: 13.5px; font-weight: 600; display: flex; align-items: center;">Still, überfahren</div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px;">
+        <div style="height: 24px; padding: 0 9px; border-radius: 2px; background: #F3F2EC; color: #565C58; font-size: 12px; font-weight: 600; display: flex; align-items: center;">Offen</div>
+        <div style="height: 24px; padding: 0 9px; border-radius: 2px; background: #E4EEED; color: #0D4E52; font-size: 12px; font-weight: 600; display: flex; align-items: center;">Läuft</div>
+        <div style="height: 24px; padding: 0 9px; border-radius: 2px; background: #EEE9F2; color: #5C4A70; font-size: 12px; font-weight: 600; display: flex; align-items: center;">Eingereicht</div>
+        <div style="height: 24px; padding: 0 9px; border-radius: 2px; background: #E7EFE6; color: #3D6B44; font-size: 12px; font-weight: 600; display: flex; align-items: center;">Fertig</div>
+        <div style="height: 24px; padding: 0 9px; border-radius: 2px; background: #FAE8E0; color: #963D22; font-size: 12px; font-weight: 600; display: flex; align-items: center;">Offene Frage</div>
+        <div style="height: 24px; padding: 0 9px; border-radius: 2px; background: #F3F2EC; color: #8C918C; font-size: 12px; font-weight: 600; display: flex; align-items: center;">Verworfen</div>
+      </div>
+
+      <div style="display: flex; gap: 9px; margin-top: 16px; max-width: 640px;">
+        <div style="height: 34px; flex: 1; border: 1px solid #B0AA99; border-radius: 2px; display: flex; align-items: center; padding: 0 11px; font-size: 13.5px; color: #69706B;">Ruhend</div>
+        <div style="height: 34px; flex: 1; border: 1px solid #A2552C; outline: 2px solid #A2552C; outline-offset: -1px; border-radius: 2px; display: flex; align-items: center; padding: 0 11px; font-size: 13.5px;">Im Fokus</div>
+        <div style="height: 34px; flex: 1; border: 1px solid #963D22; border-radius: 2px; display: flex; align-items: center; padding: 0 11px; font-size: 13.5px; color: #963D22;">Fehler</div>
+      </div>
+    </div>
+
+    <div class="blatt">
+      <h2>Raum</h2>
+      <p class="lead">Heute stehen im CSS 15, 17, 12, 14, 18, 22, 26, 44 nebeneinander — Zahlen, die einzeln entschieden wurden. Der Entwurf rechnet in Vierern. Das ist kein Selbstzweck: Wenn jeder Abstand ein Vielfaches ist, sieht man sofort, welcher davon absichtlich anders ist.</p>
+      <div style="display: flex; align-items: flex-end; gap: 14px;">
+        <div style="text-align: center;"><div style="width: 4px; height: 30px; background: #0D4E52;"></div><div class="zahl" style="font-size: 11px; color: #565C58; margin-top: 6px;">4</div></div>
+        <div style="text-align: center;"><div style="width: 8px; height: 30px; background: #0D4E52;"></div><div class="zahl" style="font-size: 11px; color: #565C58; margin-top: 6px;">8</div></div>
+        <div style="text-align: center;"><div style="width: 12px; height: 30px; background: #0D4E52;"></div><div class="zahl" style="font-size: 11px; color: #565C58; margin-top: 6px;">12</div></div>
+        <div style="text-align: center;"><div style="width: 16px; height: 30px; background: #0D4E52;"></div><div class="zahl" style="font-size: 11px; color: #565C58; margin-top: 6px;">16</div></div>
+        <div style="text-align: center;"><div style="width: 20px; height: 30px; background: #0D4E52;"></div><div class="zahl" style="font-size: 11px; color: #565C58; margin-top: 6px;">20</div></div>
+        <div style="text-align: center;"><div style="width: 24px; height: 30px; background: #0D4E52;"></div><div class="zahl" style="font-size: 11px; color: #565C58; margin-top: 6px;">24</div></div>
+        <div style="text-align: center;"><div style="width: 32px; height: 30px; background: #0D4E52;"></div><div class="zahl" style="font-size: 11px; color: #565C58; margin-top: 6px;">32</div></div>
+        <div style="text-align: center;"><div style="width: 44px; height: 30px; background: #A2552C;"></div><div class="zahl" style="font-size: 11px; color: #565C58; margin-top: 6px;">44</div></div>
+        <div style="font-size: 13px; color: #565C58; padding-bottom: 3px; line-height: 1.5;">44 bleibt, was es ist: die Mindesthöhe von allem, was ein Finger trifft.<br>Der einzige Wert, der aus einer Regel kommt und nicht aus der Leiter.</div>
+      </div>
+    </div>
+
+    <div class="blatt">
+      <h2>Was sich seit dem ersten Vorschlag geändert hat</h2>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 26px; margin-top: 14px; font-size: 13px; line-height: 1.6; color: #565C58;">
+        <div><b style="color: #171A18;">Kontextleiste geräumt.</b> Zeitraum und „Stand eintragen“ standen rechts oben. Der Zeitraum steht jetzt über den vier Werten, die er ändert; „Stand eintragen“ sitzt an der Kontostand-Karte. Die Leiste trägt nur noch, wo man ist.</div>
+        <div><b style="color: #171A18;">Start hat einen Menüeintrag.</b> Vorher führte nur ein Klick aufs Logo hin — mit Seitenleiste gibt es kein Logo zum Klicken mehr. Start steht ungruppiert ganz oben, Dashboard darunter im ersten Block.</div>
+        <div><b style="color: #171A18;">Gruppen heißen „Intern“ und „Extern“.</b> „Arbeit“ und „Leute“ trennten nicht sauber: Zeit ist auch Leute, Events sind auch Arbeit. Intern ist, was wir selbst tun; extern, mit wem wir reden.</div>
+        <div><b style="color: #171A18;">Kontostand ist eine Linie.</b> Die gestrichelte Fortschreibung benutzt <i>dieselbe</i> Formel wie die Kennzahl Runway — Kontostand geteilt durch erwartete Monatskosten. Deshalb trifft sie die Nulllinie genau dort, wo „7,8 Monate“ es sagt.</div>
+      </div>
+    </div>
+
+    <div style="font-size: 12.5px; color: #565C58; line-height: 1.6; padding: 4px 2px;">
+      Zahlen, Namen und Organisationen in den Bildschirmen sind Beispieldaten — sie stehen dort, damit man Dichte und Zeilenlängen beurteilen kann, und sind keine echten Datensätze.
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

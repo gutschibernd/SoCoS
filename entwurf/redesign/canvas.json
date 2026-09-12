@@ -1,0 +1,34 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",      "x": 0,    "y": 0,    "w": 1440, "h": 760,  "title": "Start",              "is_interactive": true },
+    { "file": "Dashboard.dc.html", "x": 1560, "y": 0,    "w": 1440, "h": 900,  "title": "Dashboard",          "is_interactive": true },
+    { "file": "Zeit.dc.html",      "x": 0,    "y": 1120, "w": 1440, "h": 900,  "title": "Zeit",               "is_interactive": true },
+    { "file": "Kontakte.dc.html",  "x": 1560, "y": 1120, "w": 1440, "h": 900,  "title": "Kontakte",           "is_interactive": true },
+    { "file": "Mobil.dc.html",     "x": 0,    "y": 2240, "w": 900,  "h": 1060, "title": "Am Handy" },
+    { "file": "System.dc.html",    "x": 1040, "y": 2240, "w": 1200, "h": 1700, "title": "Warum das so aussieht" }
+  ],
+  "annotations": [
+    {
+      "id": "note-start",
+      "x": 0,
+      "y": -170,
+      "w": 660,
+      "text": "ENTWURF B — „Werkbank“, final\nSeitenleiste, Start ungruppiert oben, Gruppen „Intern“ und „Extern“. Die Uhr sitzt fest am Fuß der Leiste.\nKlickbar: Menü, Uhr, „zuletzt gebucht“ (startet die Uhr links unten), Zeitraum-Umschalter, Personenfilter, Nachtragen, Löschdialog, Pipeline-Filter und Kartenauswahl. Hell/Dunkel über den Regler über jedem Artboard."
+    },
+    {
+      "id": "note-dash",
+      "x": 1560,
+      "y": -130,
+      "w": 620,
+      "text": "Kontextleiste geräumt: Zeitraum steht jetzt über den vier Werten, die er ändert, „Stand eintragen“ an der Kontostand-Karte.\nDie gestrichelte Linie rechnet mit derselben Formel wie die Kennzahl Runway und trifft die Null genau bei 05/2027."
+    },
+    {
+      "id": "note-mobil",
+      "x": 0,
+      "y": 2110,
+      "w": 660,
+      "text": "Links: Start und Zeit am Handy, Fußleiste mit fünf Einträgen, Uhr darüber. Rechts: die gemessenen Kontrastwerte, die Schriftleiter, die Zustände — und unten, was sich gegenüber dem ersten Vorschlag geändert hat."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

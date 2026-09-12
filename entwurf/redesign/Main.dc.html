@@ -1,0 +1,305 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Archivo, "Helvetica Neue", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #0D4E52; text-decoration: none; }
+  a:hover { color: #A2552C; }
+
+  .wurzel {
+    --grund: #FAFAF7; --flaeche: #FFFFFF; --leise: #F3F2EC;
+    --rand: #D2CCBC; --rand-stark: #B0AA99;
+    --text: #171A18; --text-leise: #565C58; --text-schwach: #69706B;
+    --akzent: #A2552C; --akzent-tint: #F8EDE5;
+    --teal: #0D4E52; --teal-tint: #E4EEED;
+    --gut: #3D6B44; --gut-tint: #E7EFE6;
+    --warn: #963D22; --warn-tint: #FAE8E0;
+    --ruh: #8C918C;
+    --leiste: #0B2A2C; --leiste-2: #123A3D; --leiste-3: #1B4A4D;
+    --leiste-text: #E4EDEC; --leiste-leise: #94B3B2; --leiste-still: #6E8F8F;
+  }
+  .wurzel[data-thema="dunkel"] {
+    --grund: #14171A; --flaeche: #1C2124; --leise: #23292C;
+    --rand: #303739; --rand-stark: #4A5255;
+    --text: #ECEEEC; --text-leise: #A9B1AE; --text-schwach: #8C9491;
+    --akzent: #D98C5C; --akzent-tint: #2C2019;
+    --teal: #66B9B6; --teal-tint: #16302F;
+    --gut: #86B37D; --gut-tint: #1B281C;
+    --warn: #DE8A6C; --warn-tint: #31201A;
+    --ruh: #8C9491;
+    --leiste: #0A2224; --leiste-2: #103134; --leiste-3: #17474B;
+    --leiste-text: #DDE9E8; --leiste-leise: #8FADAC; --leiste-still: #6E8F8F;
+  }
+
+  .wurzel { background: var(--grund); color: var(--text); font-size: 14px; line-height: 1.45; }
+  .zahl { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .beschriftung { font-size: 12.5px; font-weight: 600; color: var(--text-leise); }
+  .hinweis { font-size: 12.5px; color: var(--text-schwach); }
+  .karte { background: var(--flaeche); border: 1px solid var(--rand); border-radius: 2px; }
+  .karte > h2 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -0.015em; }
+
+  .rnav { display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px 0 13px; border-radius: 2px; cursor: pointer; font-size: 13.5px; font-weight: 500; color: var(--leiste-leise); position: relative; }
+  .rnav:hover { background: var(--leiste-2); color: #FFFFFF; }
+  .gruppe { font-size: 10.5px; font-weight: 600; color: var(--leiste-still); letter-spacing: 0.07em; text-transform: uppercase; padding: 16px 13px 7px; }
+
+  .knopf { border: 0; border-radius: 2px; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; height: 34px; white-space: nowrap; }
+  .knopf-voll { background: var(--akzent); color: #FFFFFF; }
+  .knopf-voll:hover { filter: brightness(1.08); }
+  .knopf-still { background: transparent; color: var(--text); border: 1px solid var(--rand-stark); }
+  .knopf-still:hover { border-color: var(--akzent); color: var(--akzent); }
+  .feld { height: 34px; border: 1px solid var(--rand-stark); border-radius: 2px; background: var(--flaeche); color: var(--text); font-family: inherit; font-size: 13.5px; padding: 0 11px; }
+
+  /* Eine Zeile „zuletzt gebucht“. Der ganze Streifen ist der Knopf — nicht
+     ein kleines Dreieck darin: Die Uhr zu starten ist der häufigste Griff
+     des Tages, und er darf nicht zielen müssen. */
+  .letzte { display: flex; align-items: center; gap: 12px; padding: 9px 11px; border: 1px solid var(--rand); border-radius: 2px; cursor: pointer; background: var(--flaeche); }
+  .letzte:hover { border-color: var(--akzent); background: var(--akzent-tint); }
+  .kachel { display: flex; flex-direction: column; gap: 7px; padding: 15px 16px; border: 1px solid var(--rand); border-radius: 2px; background: var(--flaeche); cursor: pointer; text-align: left; }
+  .kachel:hover { border-color: var(--akzent); }
+  svg { display: block; }
+</style>
+</helmet>
+
+<div class="wurzel" data-thema="{{ thema }}" style="min-height: 760px; display: flex;">
+
+  <aside style="width: 232px; flex: 0 0 232px; background: var(--leiste); display: flex; flex-direction: column; padding: 14px 10px 12px;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px; height: 36px; margin-bottom: 14px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E4EDEC" stroke-width="2" stroke-linecap="square"><path d="M4 6h16M4 12h10M4 18h16"></path><circle cx="18" cy="12" r="2.5"></circle></svg>
+      <div style="font-size: 16px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.03em;">SoCoS</div>
+      <div style="margin-left: auto; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94B3B2" stroke-width="2" stroke-linecap="square"><rect x="3" y="4" width="18" height="16"></rect><path d="M9 4v16"></path></svg>
+      </div>
+    </div>
+
+    <!-- Start steht ungruppiert ganz oben: Sie ist keine der beiden Welten,
+         sie ist der Weg hinein. Heute kommt man nur über das Logo hin. -->
+    <sc-for list="{{ navStart }}" as="n" hint-placeholder-count="1">
+      <div class="rnav" onClick="{{ n.waehlen }}" style="background: {{ n.bg }}; color: {{ n.fg }};">
+        <div style="position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 0 2px 2px 0; background: {{ n.kante }};"></div>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="square"><path d="{{ n.pfad }}"></path></svg>{{ n.titel }}
+      </div>
+    </sc-for>
+
+    <div class="gruppe">Intern</div>
+    <sc-for list="{{ navIntern }}" as="n" hint-placeholder-count="3">
+      <div class="rnav" onClick="{{ n.waehlen }}" style="background: {{ n.bg }}; color: {{ n.fg }};">
+        <div style="position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 0 2px 2px 0; background: {{ n.kante }};"></div>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="square"><path d="{{ n.pfad }}"></path></svg>{{ n.titel }}
+      </div>
+    </sc-for>
+
+    <div class="gruppe">Extern</div>
+    <sc-for list="{{ navExtern }}" as="n" hint-placeholder-count="2">
+      <div class="rnav" onClick="{{ n.waehlen }}" style="background: {{ n.bg }}; color: {{ n.fg }};">
+        <div style="position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 0 2px 2px 0; background: {{ n.kante }};"></div>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="square"><path d="{{ n.pfad }}"></path></svg>{{ n.titel }}
+      </div>
+    </sc-for>
+
+    <div style="margin-top: auto;"></div>
+
+    <div style="border-top: 1px solid var(--leiste-3); padding-top: 11px; margin-bottom: 10px;">
+      <div onClick="{{ uhrUmschalten }}" style="background: {{ uhrGrund }}; border: 1px solid var(--leiste-3); border-radius: 2px; padding: 10px 11px; cursor: pointer;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: {{ uhrPunkt }}; flex: 0 0 7px;"></div>
+          <div class="zahl" style="font-size: 17px; font-weight: 500; color: #FFFFFF;">{{ uhrZeit }}</div>
+        </div>
+        <div style="font-size: 12px; color: var(--leiste-leise); margin-top: 5px; line-height: 1.35;">{{ uhrWo }}</div>
+        <div style="height: 30px; border-radius: 2px; background: {{ uhrKnopfGrund }}; border: 1px solid {{ uhrKnopfRand }}; color: {{ uhrKnopfText }}; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; margin-top: 9px;">{{ uhrKnopf }}</div>
+      </div>
+    </div>
+
+    <div class="rnav" style="height: 40px;">
+      <div class="zahl" style="width: 24px; height: 24px; border-radius: 2px; background: #A2552C; color: #FFF; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: 0 0 24px;">BG</div>
+      <div>
+        <div style="font-size: 13px; color: var(--leiste-text); font-weight: 500;">Bernd G.</div>
+        <div style="font-size: 11px; color: var(--leiste-still);">Administrator</div>
+      </div>
+      <div style="margin-left: auto;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94B3B2" stroke-width="2"><circle cx="12" cy="12" r="3.2"></circle><path d="M12 3v2.5M12 18.5V21M21 12h-2.5M5.5 12H3M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8M18.4 18.4l-1.8-1.8M7.4 7.4L5.6 5.6"></path></svg>
+      </div>
+    </div>
+  </aside>
+
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+
+    <!-- Die Kontextleiste trägt nur, wo man ist. Zeitraum und „Stand
+         eintragen“ standen hier und gehören nicht hierher: der eine ist ein
+         Filter und gehört über die Zahlen, die er ändert, der andere eine
+         seltene Handlung an einer einzelnen Karte. -->
+    <div style="height: 52px; border-bottom: 1px solid var(--rand); background: var(--flaeche); display: flex; align-items: center; gap: 12px; padding: 0 24px; flex: 0 0 52px;">
+      <div style="font-size: 15px; font-weight: 600; letter-spacing: -0.02em;">Hallo Bernd</div>
+      <div style="width: 1px; height: 16px; background: var(--rand);"></div>
+      <div class="hinweis">Womit geht's los?</div>
+    </div>
+
+    <main style="padding: 20px 24px 26px; display: flex; flex-direction: column; gap: 18px; max-width: 1320px;">
+
+      <div class="karte" style="padding: 0; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);">
+
+        <div style="padding: 16px 20px; border-right: 1px solid var(--rand);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <h2>Zeit buchen</h2>
+            <span style="width: 15px; height: 15px; border: 1px solid var(--rand-stark); border-radius: 50%; color: var(--text-schwach); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; cursor: help;">?</span>
+          </div>
+          <div class="hinweis" style="margin-bottom: 12px;">{{ buchenSatz }}</div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <sc-for list="{{ letzte }}" as="p" hint-placeholder-count="4">
+              <div class="letzte" onClick="{{ p.starten }}" style="border-color: {{ p.rand }}; background: {{ p.grund }};">
+                <div style="width: 26px; height: 26px; border-radius: 2px; background: {{ p.iconGrund }}; display: flex; align-items: center; justify-content: center; flex: 0 0 26px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="{{ p.iconFarbe }}" stroke="none"><path d="M7 4l13 8-13 8V4z"></path></svg>
+                </div>
+                <div style="min-width: 0; flex: 1;">
+                  <div style="font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.paket }}</div>
+                  <div class="hinweis" style="font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.projekt }} · {{ p.wann }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="padding: 16px 20px;">
+          <div class="beschriftung" style="margin-bottom: 12px;">Anderes Arbeitspaket</div>
+          <select class="feld" style="width: 100%;">
+            <option>Wählen …</option>
+            <optgroup label="Zulassung MDR">
+              <option>Regulatorik · Risikoanalyse</option>
+              <option>Regulatorik · Audit-Vorbereitung</option>
+            </optgroup>
+            <optgroup label="Prototyp v3">
+              <option>Hardware · Serienreife</option>
+            </optgroup>
+          </select>
+          <div class="knopf knopf-voll" style="width: 100%; justify-content: center; margin-top: 9px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 4l13 8-13 8V4z"></path></svg>
+            Uhr starten
+          </div>
+          <div style="height: 1px; background: var(--rand); margin: 15px -20px 13px;"></div>
+          <div class="hinweis" style="line-height: 1.55;">Läuft schon eine Buchung, wird sie beim Start der neuen beendet — ohne Notiz. Wer eine Notiz mitgeben will, macht den Clock-out links unten.</div>
+        </div>
+      </div>
+
+      <!-- Die Kacheln bleiben, aber sie sind keine zweite Navigation: Es sind
+           die sechs Dinge, die man *anlegt*. Das Menü links führt auf Seiten,
+           diese Knöpfe führen auf einen leeren Datensatz. -->
+      <div>
+        <div class="beschriftung" style="margin-bottom: 9px;">Etwas anlegen oder nachtragen</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+
+          <div class="kachel">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--akzent)" stroke-width="1.9" stroke-linecap="square"><path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3.5 2"></path></svg>
+            <div style="font-size: 13.5px; font-weight: 600;">Zeit nachtragen</div>
+            <div class="hinweis" style="line-height: 1.5;">Eine Buchung von Hand eintragen oder eine bestehende korrigieren.</div>
+          </div>
+
+          <div class="kachel">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--akzent)" stroke-width="1.9" stroke-linecap="square"><path d="M4 20V7l8-4 8 4v13M4 20h16M9 20v-5h6v5M8 10h2M14 10h2"></path></svg>
+            <div style="font-size: 13.5px; font-weight: 600;">Organisation erfassen</div>
+            <div class="hinweis" style="line-height: 1.5;">Neue Organisation anlegen — die Personen hängen darunter.</div>
+          </div>
+
+          <div class="kachel">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--akzent)" stroke-width="1.9" stroke-linecap="square"><path d="M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M17 8h4M19 6v4"></path></svg>
+            <div style="font-size: 13.5px; font-weight: 600;">Person ohne Organisation</div>
+            <div class="hinweis" style="line-height: 1.5;">Wen du kennst, aber noch nirgends einsortiert hast.</div>
+          </div>
+
+          <div class="kachel">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--akzent)" stroke-width="1.9" stroke-linecap="square"><path d="M3 5h18v16H3V5zM3 10h18M8 3v4M16 3v4M8 15h3"></path></svg>
+            <div style="font-size: 13.5px; font-weight: 600;">Event anlegen</div>
+            <div class="hinweis" style="line-height: 1.5;">Tagung eintragen und die Hitlist dazu aufbauen.</div>
+          </div>
+
+          <div class="kachel">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--akzent)" stroke-width="1.9" stroke-linecap="square"><path d="M4 5h6l2 3h8v11H4V5z"></path></svg>
+            <div style="font-size: 13.5px; font-weight: 600;">Projekt &amp; Pakete</div>
+            <div class="hinweis" style="line-height: 1.5;">Bereiche, Arbeitspakete, Stufen — der ganze Baum.</div>
+          </div>
+
+          <div class="kachel">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--akzent)" stroke-width="1.9" stroke-linecap="square"><path d="M4 13h6V4H4v9zM14 20h6V4h-6v16zM4 20h6v-4H4v4z"></path></svg>
+            <div style="font-size: 13.5px; font-weight: 600;">Zahlen &amp; Runway</div>
+            <div class="hinweis" style="line-height: 1.5;">Woche, Geld, Fortschritt auf einen Blick.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "thema": {"editor": "enum", "options": ["hell", "dunkel"], "default": "hell", "section": "Entwurf B"}
+}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const aktiv = s.aktiv || 'Start';
+    const laufend = s.laufend !== undefined ? s.laufend : null;
+
+    const bauen = (titel, pfad) => ({
+      titel: titel,
+      pfad: pfad,
+      bg: titel === aktiv ? 'var(--leiste-2)' : 'transparent',
+      fg: titel === aktiv ? '#FFFFFF' : 'var(--leiste-leise)',
+      kante: titel === aktiv ? '#D98C5C' : 'transparent',
+      waehlen: () => this.setState({ aktiv: titel })
+    });
+
+    const pakete = [
+      { paket: 'Klinische Bewertung', projekt: 'Zulassung MDR', wann: 'gestern' },
+      { paket: 'Gehäuse-Revision', projekt: 'Prototyp v3', wann: 'vorgestern' },
+      { paket: 'Technische Doku', projekt: 'Zulassung MDR', wann: 'vor 3 Tagen' },
+      { paket: 'Antragstext', projekt: 'Förderantrag FFG', wann: 'vor 6 Tagen' }
+    ];
+
+    return {
+      thema: this.props.thema || 'hell',
+      navStart: [bauen('Start', 'M4 11l8-7 8 7v9H4v-9zM9.5 20v-6h5v6')],
+      navIntern: [
+        bauen('Dashboard', 'M4 13h6V4H4v9zM14 20h6V4h-6v16zM4 20h6v-4H4v4z'),
+        bauen('Projekt', 'M4 5h6l2 3h8v11H4V5z'),
+        bauen('Zeit', 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3.5 2')
+      ],
+      navExtern: [
+        bauen('Kontakte', 'M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M17 8h4M19 6v4'),
+        bauen('Events', 'M3 5h18v16H3V5zM3 10h18M8 3v4M16 3v4M8 15h3')
+      ],
+      buchenSatz: laufend
+        ? 'Es läuft „' + laufend + '“. Ein Klick hier beendet diese Buchung und startet die neue.'
+        : 'Zuletzt gebucht — ein Klick startet die Uhr.',
+      letzte: pakete.map((p) => ({
+        paket: p.paket,
+        projekt: p.projekt,
+        wann: p.wann,
+        rand: p.paket === laufend ? 'var(--akzent)' : 'var(--rand)',
+        grund: p.paket === laufend ? 'var(--akzent-tint)' : 'var(--flaeche)',
+        iconGrund: p.paket === laufend ? 'var(--akzent)' : 'var(--leise)',
+        iconFarbe: p.paket === laufend ? '#FFFFFF' : 'var(--text-leise)',
+        starten: () => this.setState({ laufend: p.paket === laufend ? null : p.paket })
+      })),
+      uhrZeit: laufend ? '00:00:04' : '00:00:00',
+      uhrWo: laufend ? laufend : 'Keine Buchung läuft',
+      uhrGrund: laufend ? 'var(--leiste-2)' : 'transparent',
+      uhrPunkt: laufend ? '#86B37D' : '#6E8F8F',
+      uhrKnopf: laufend ? 'Clock-out' : 'Paket wählen',
+      uhrKnopfGrund: laufend ? '#D98C5C' : 'transparent',
+      uhrKnopfRand: laufend ? '#D98C5C' : 'var(--leiste-3)',
+      uhrKnopfText: laufend ? '#2A1A10' : '#94B3B2',
+      uhrUmschalten: () => this.setState({ laufend: laufend ? null : 'Klinische Bewertung' })
+    };
+  }
+}
+</script>
+</body>
+</html>

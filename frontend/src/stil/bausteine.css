@@ -46,8 +46,14 @@
   white-space: nowrap; color: var(--kopf-text-leise);
   min-height: var(--griff); display: flex; align-items: center; gap: 8px;
 }
-.navigation a:hover { background: var(--marke); color: var(--kopf-text); }
-.navigation a[aria-current="page"] { background: var(--kopf-aktiv); color: var(--marke-dunkel); }
+.navigation a:hover { background: var(--kopf-aktiv); color: var(--kopf-text); }
+/* Vorher ein cremefarbener Block auf Dunkelgrün — der hellste Fleck der
+   ganzen Seite saß dort, wo man nicht hinsieht. Jetzt ein ruhig aufgehellter
+   Block mit einer Kupferkante unten: Er sagt dasselbe und schreit nicht. */
+.navigation a[aria-current="page"] {
+  background: var(--kopf-aktiv); color: var(--kopf-aktiv-text);
+  box-shadow: inset 0 -2px 0 var(--kopf-kante);
+}
 
 .kopf-rechts { margin-left: auto; display: flex; align-items: center; gap: 14px; min-width: 0; }
 
@@ -56,7 +62,7 @@
 .titelzeile {
   display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
 }
-.titelzeile h1 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em; }
+.titelzeile h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.03em; }
 
 /* Der Zurück-Knopf steht links vor der Überschrift und ist still: Er ist auf
    jeder Seite da und darf deshalb nicht um Aufmerksamkeit ringen. Die vollen
@@ -74,32 +80,77 @@
 .zurueck:hover { border-color: var(--marke-rand); color: var(--marke); }
 .titelzeile .unter { font-size: 14px; color: var(--text-leise); }
 
+/* --- Die Beschriftung --------------------------------------------------- */
+/*
+ * **Ein** Ort für den Ton, der über einer Karte, einer Tabellenspalte, einem
+ * Bereich oder einer Kennzahl steht.
+ *
+ * Vorher stand dieselbe Deklaration elfmal in dieser Datei — jedesmal
+ * `11px / 0.1em gesperrt / VERSALIEN`. Elf Kopien heißt: Wer den Ton ändert,
+ * ändert ihn an einer Stelle und übersieht zehn, und beim nächsten neuen
+ * Baustein kommt die zwölfte dazu.
+ *
+ * Und die Werte selbst waren das Problem, das sich am deutlichsten zeigt:
+ * Bei 11 px ist jede Kontrastreserve aufgebraucht, und Versalien nehmen der
+ * Wortform genau das, woran man sie ohne Lesen erkennt. Jetzt 12,5 px in
+ * gemischter Schreibung, ungesperrt, im mittleren statt im schwächsten Grau.
+ *
+ * Eine einzige Stelle behält Versalien: die Gruppenüberschrift der
+ * Seitenleiste (ab Etappe 2). Zwei Wörter, nie Fließtext.
+ */
+.karte > h2,
+.kennzahl .beschriftung,
+.tabelle th,
+.sicherung-teil h3,
+.klapptitel,
+.start-beschriftung,
+.bereich h4,
+.summenzeile .beschriftung,
+.stufen-kopf,
+.beschriftung-klein,
+.tabelle td::before {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-leise);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 /* --- Karten und Raster --------------------------------------------------- */
 
 .karte {
   background: var(--flaeche); border: 1px solid var(--rand);
-  border-radius: var(--kante); padding: 15px 17px;
+  border-radius: var(--kante); padding: 18px 20px;
 }
 .karte > h2 {
-  margin: 0 0 12px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600;
+  margin: 0 0 12px;
 }
 
-.raster { display: grid; gap: 12px; }
+.raster { display: grid; gap: 16px; }
 .raster-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .raster-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .raster-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.spalte { display: flex; flex-direction: column; gap: 12px; }
+.spalte { display: flex; flex-direction: column; gap: 16px; }
 
-.kennzahl { border-top: 3px solid var(--marke); }
-.kennzahl .beschriftung {
-  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600;
-}
+/*
+ * Keine farbige Oberkante mehr. Vier Kennzahlen trugen vier verschiedene
+ * Farben — Grün, Kupfer, Grün, Grau —, und keine davon bedeutete etwas. Das
+ * ist Dekoration, die wie Bedeutung aussieht: Wer einmal gelernt hat, dass
+ * die Farbe dort nichts sagt, sieht sie auch dann nicht mehr an, wenn eine
+ * Karte sie wirklich einmal braucht.
+ *
+ * Was Aufmerksamkeit verlangt, bekommt weiter eine Kante — aber dann eine
+ * linke, dreifache, in --warnung, und dann steht auch ein Satz dabei.
+ */
 .kennzahl .wert {
-  font-family: var(--schrift-zahl); font-size: 26px; margin-top: 7px; letter-spacing: -0.02em;
+  font-family: var(--schrift-zahl); font-size: 27px; font-weight: 500;
+  margin-top: 7px; letter-spacing: -0.04em;
+  /* Ziffern gleicher Breite: Zahlen, die untereinander stehen, müssen auch
+     untereinander stehen — sonst wandert die Tausenderstelle von Zeile zu
+     Zeile, und der Vergleich zweier Beträge wird zur Suchaufgabe. */
+  font-variant-numeric: tabular-nums;
 }
-.kennzahl .hinweis { font-size: 13px; color: var(--text-leise); margin-top: 4px; }
+.kennzahl .hinweis { font-size: 12.5px; color: var(--text-sehr-leise); margin-top: 5px; }
 
 /* --- Knöpfe -------------------------------------------------------------- */
 
@@ -109,13 +160,30 @@
   cursor: pointer; white-space: nowrap;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
 }
-.knopf { background: var(--marke); color: var(--auf-marke); border: 1px solid var(--marke); }
-.knopf:hover { filter: brightness(0.93); }
+/*
+ * Ein Knopf hat vier Zustände, nicht zwei. Vorher gab es `brightness(0.93)`
+ * beim Überfahren und `opacity: .5` für stillgelegt — kein Gedrückt, und
+ * „stillgelegt“ als halbdurchsichtiger Text, der dabei auch den Kontrast
+ * halbiert. Das ist der Punkt, an dem sich eine Oberfläche tot anfühlt.
+ *
+ * Das Kupfer führt hier, nicht das Grün: Es gibt genau **einen** Ton, der
+ * „das ist die Handlung“ heißt. Das Grün bleibt für Verweise und für den
+ * Zustand „läuft“.
+ */
+.knopf { background: var(--akzent); color: var(--auf-marke); border: 1px solid var(--akzent); }
+.knopf:hover { filter: brightness(1.08); }
+.knopf:active { filter: brightness(0.9); box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.25); }
 .knopf-still {
-  background: var(--flaeche); color: var(--marke); border: 1px solid var(--rand-stark);
+  background: var(--flaeche); color: var(--text); border: 1px solid var(--rand-stark);
 }
-.knopf-still:hover { border-color: var(--marke-rand); }
-.knopf:disabled, .knopf-still:disabled { opacity: 0.5; cursor: default; }
+.knopf-still:hover { border-color: var(--akzent); color: var(--akzent); }
+.knopf-still:active { background: var(--flaeche-leise); }
+/* Stillgelegt ohne Transparenz: Ein ausgegrauter Knopf muss lesbar bleiben —
+   sonst weiß man nicht einmal, was man nicht darf. */
+.knopf:disabled, .knopf-still:disabled {
+  background: var(--flaeche-leise); color: var(--text-sehr-leise);
+  border-color: var(--rand); filter: none; box-shadow: none; cursor: default;
+}
 
 /* --- Zeichen ------------------------------------------------------------- */
 /*
@@ -176,12 +244,14 @@
 
 .tabelle { width: 100%; border-collapse: collapse; }
 .tabelle th {
-  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600; padding: 8px 10px;
-  border-bottom: 1px solid var(--rand);
+  text-align: left; padding: 0 12px 9px;
+  border-bottom: 1px solid var(--rand-stark);
 }
-.tabelle td { padding: 11px 10px; border-bottom: 1px solid var(--flaeche-leise); font-size: 14px; }
-.tabelle tr:last-child td { border-bottom: 0; }
+/* Die Trennlinie lag in --flaeche-leise und kam auf Weiß auf 1,05:1 — sie
+   war schlicht nicht da. Jetzt --rand, derselbe Ton wie jede andere Kante. */
+.tabelle td { padding: 11px 12px; border-bottom: 1px solid var(--rand); font-size: 14px; }
+.tabelle tbody tr:last-child td { border-bottom: 0; }
+.tabelle tbody tr:hover td { background: var(--flaeche-leise); }
 
 /* --- Leerstelle ---------------------------------------------------------- */
 /*
@@ -241,8 +311,7 @@
    ersetzt; sie sollen nicht wie ein Knopfpaar nebeneinander wirken. */
 .sicherung-teil { border-top: 1px solid var(--rand); padding-top: 14px; margin-top: 14px; }
 .sicherung-teil h3 {
-  margin: 0 0 10px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600;
+  margin: 0 0 10px;
 }
 .sicherung-teil > .knopf { display: inline-flex; }
 .sicherung-hinweis { margin: 10px 0 14px; font-size: 13px; color: var(--text-leise); }
@@ -277,12 +346,16 @@
   border: 1px solid var(--kopf-rand); border-radius: var(--kante);
   min-width: 0;
 }
-.uhr-chip[data-laeuft="ja"] { background: var(--marke); }
+.uhr-chip[data-laeuft="ja"] { background: var(--kopf-aktiv); }
 .uhr-chip .punkt {
   width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px;
   background: var(--kopf-text-leise);
 }
-.uhr-chip[data-laeuft="ja"] .punkt { background: var(--kopf-aktiv); }
+/* Der Punkt lag in --kopf-aktiv. Solange das ein cremefarbener Ton war, sah
+   man ihn; seit die aktive Fläche selbst dunkelgrün ist, wäre er unsichtbar
+   auf dem gleichfarbigen Chip. „Läuft“ ist ohnehin ein Zustand, und dafür
+   gibt es --gut. */
+.uhr-chip[data-laeuft="ja"] .punkt { background: var(--gut); }
 .uhr-chip .zahl { font-size: 15px; color: #fff; white-space: nowrap; flex: 0 0 auto; }
 /* Der einzige Teil der Kopfleiste, der nachgeben darf: `flex: 0 1 auto` mit
    `min-width: 0`. Wird der Platz eng, wird der Pakettitel kürzer statt die
@@ -299,7 +372,9 @@
   background: transparent; color: var(--kopf-text);
   font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
-.uhr-knopf:hover { background: var(--marke-dunkel); }
+/* Kein --marke-dunkel: Das ist im dunklen Thema ein *heller* Ton und ergäbe
+   auf der Leiste Hell auf Hell. Die Leistenfarben heißen --kopf-*. */
+.uhr-knopf:hover { background: var(--kopf-rand); }
 
 .profil {
   display: flex; align-items: center; gap: 9px; flex: 0 0 auto;
@@ -311,7 +386,7 @@
 .profil i {
   width: 27px; height: 27px; border-radius: var(--kante); flex: 0 0 auto;
   display: grid; place-items: center;
-  font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-dunkel);
+  font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
 }
 .profil span { font-size: 14px; color: var(--kopf-text); white-space: nowrap; }
 
@@ -331,7 +406,7 @@
    Es führt auf eine Seite, also gehört ein Weg dahinter. Unterstrichen wäre es
    das einzige unterstrichene Zeichen in der Leiste. */
 a.kopf-knopf { text-decoration: none; }
-.kopf-knopf[aria-current="page"] { background: var(--kopf-aktiv); color: var(--marke-dunkel); }
+.kopf-knopf[aria-current="page"] { background: var(--kopf-aktiv); color: var(--kopf-aktiv-text); }
 
 /* Das Formular ist nur die Hülle um den Knopf und darf im Flex-Fluss der
    Kopfleiste nichts eigenes beitragen. */
@@ -376,7 +451,7 @@ a.kopf-knopf { text-decoration: none; }
    Markenfläche wie in der Kontaktliste. */
 .kontozeile .kuerzel {
   width: 44px; height: 44px; display: grid; place-items: center;
-  font-size: 14px; color: var(--marke-dunkel);
+  font-size: 14px; color: var(--marke-tiefer);
 }
 
 /* --- Karte zum Auf- und Zuklappen ---------------------------------------- */
@@ -391,10 +466,6 @@ a.kopf-knopf { text-decoration: none; }
 }
 .klappkarte > summary::-webkit-details-marker { display: none; }
 .klappkarte > summary:hover .klapptitel { color: var(--marke); }
-.klapptitel {
-  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600;
-}
 /* Dasselbe Zeichen wie beim Zurück, nur nach unten gedreht, wenn offen. */
 .zeiger-klapp { color: var(--text-sehr-leise); transition: transform 0.15s; }
 .klappkarte[open] > summary .zeiger-klapp { transform: rotate(90deg); }
@@ -425,8 +496,7 @@ a.kopf-knopf { text-decoration: none; }
 .start-buchen { border-top: 3px solid var(--akzent); }
 .start-laeuft { margin: 0 0 12px; font-size: 14px; color: var(--text-leise); }
 .start-beschriftung {
-  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600; margin-bottom: 8px;
+  margin-bottom: 8px;
 }
 .start-zuletzt { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .start-zuletzt > button {
@@ -453,7 +523,7 @@ a.kopf-knopf { text-decoration: none; }
 .personen i {
   width: 28px; height: 28px; flex: 0 0 28px; border-radius: var(--kante);
   display: grid; place-items: center;
-  font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-dunkel);
+  font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
 }
 .personen .name { font-weight: 500; }
 .personen .tun {
@@ -511,8 +581,7 @@ a.kopf-knopf { text-decoration: none; }
 
 .bereich { margin-bottom: 18px; }
 .bereich h4 {
-  margin: 0 0 9px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600;
+  margin: 0 0 9px;
   display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
 }
 .bereich h4 .art {
@@ -774,10 +843,6 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
   display: flex; align-items: flex-end; justify-content: space-between;
   gap: 14px; flex-wrap: wrap; margin-top: 14px;
 }
-.summenzeile .beschriftung {
-  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600;
-}
 .summenzeile .wert { font-size: 24px; margin-top: 4px; }
 .summenzeile .nebenwert { font-size: 14px; color: var(--text-leise); font-family: var(--schrift); }
 /* Darf umbrechen. Mit flex:0 0 auto stünden die drei Knöpfe am Handy in einer
@@ -819,8 +884,6 @@ a.mini { text-decoration: none; }
 
 .stufen-kopf {
   display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
-  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600;
 }
 
 .stufen-bearbeiten {
@@ -871,8 +934,7 @@ a.mini { text-decoration: none; }
 
 .feld-klein { min-height: 34px; padding: 5px 8px; font-size: 13px; margin-top: 7px; }
 .beschriftung-klein {
-  display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--text-sehr-leise); font-weight: 600; margin-bottom: 5px;
+  display: block; margin-bottom: 5px;
 }
 .verlauf-fuss { display: block; margin-top: 4px; font-size: 11px; color: var(--text-sehr-leise); }
 
@@ -932,8 +994,7 @@ a.mini { text-decoration: none; }
   }
   .tabelle td::before {
     content: attr(data-spalte);
-    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--text-sehr-leise); font-weight: 600; text-align: left; flex: 0 0 auto;
+    text-align: left; flex: 0 0 auto;
   }
 
   .raster-4, .raster-3, .raster-2, .kacheln { grid-template-columns: 1fr; }

@@ -14,9 +14,8 @@
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
 <link rel="alternate icon" href="/static/favicon.ico" sizes="48x48 32x32 16x16" />
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<!-- Die Schriften liegen lokal, siehe statisch/schriften.css. -->
+<link rel="stylesheet" href="/static/schriften.css" />
 <style>
 /*
  * Zweite Kopie der Palette aus frontend/src/stil/farben.css.
@@ -27,44 +26,46 @@
  */
 :root {
   color-scheme: light;
-  --grund: #EFEDE6;
-  --flaeche: #FFFFFF;
-  --rand: #DFDBD1;
-  --rand-stark: #C9C4B7;
-  --text: #16272B;
-  --text-leise: #5A6668;
-  --marke: #14595F;
-  --marke-dunkel: #0F4448;
-  --marke-rand: #A8C6C4;
-  --auf-marke: #FFFFFF;
+  --grund: #fafaf7;
+  --flaeche: #ffffff;
+  --rand: #d2ccbc;
+  --rand-stark: #b0aa99;
+  --text: #171a18;
+  --text-leise: #565c58;
+  --marke: #0d4e52;
+  --marke-dunkel: #0a3e41;
+  --marke-rand: #8fb6b4;
+  --akzent: #a2552c;
+  --auf-marke: #ffffff;
   /* Die Wortmarke. Hier steht sie groß und zweifarbig; die Kopfleiste der
      Anwendung setzt dieselbe Marke klein und einfarbig. */
-  --wortmarke: #0F4448;
-  --wortmarke-o: #8A5638;
-  --warnung: #9C4229;
-  --warnung-hell: #F7E6DF;
+  --wortmarke: #0d4e52;
+  --wortmarke-o: #a2552c;
+  --warnung: #963d22;
+  --warnung-hell: #fae8e0;
   --kante: 2px;
   --griff: 44px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --grund: #12191A;
-    --flaeche: #1A2325;
-    --rand: #2C393B;
-    --rand-stark: #3D4D50;
-    --text: #E6E9E6;
-    --text-leise: #9AA8AA;
-    --marke: #5EA8A8;
-    --marke-dunkel: #0F4448;
-    --marke-rand: #3A6B6C;
-    --auf-marke: #0B2224;
-    /* Dunkel trägt das Grün der Wortmarke nicht — auf #1A2325 kommt #0F4448
-       auf 1,2:1 und ist schlicht nicht da. Die Marke steht dann in Textfarbe. */
-    --wortmarke: #E6E9E6;
-    --wortmarke-o: #C88A63;
-    --warnung: #D98A6D;
-    --warnung-hell: #33211C;
+    --grund: #14171a;
+    --flaeche: #1c2124;
+    --rand: #303739;
+    --rand-stark: #4a5255;
+    --text: #eceeec;
+    --text-leise: #a9b1ae;
+    --marke: #66b9b6;
+    --marke-dunkel: #8fd0cd;
+    --marke-rand: #3a6361;
+    --akzent: #d98c5c;
+    --auf-marke: #07201f;
+    /* Dunkel trägt das Grün der Wortmarke nicht — auf #1C2124 käme #0D4E52
+       auf 1,2:1 und wäre schlicht nicht da. Die Marke steht dann in Textfarbe. */
+    --wortmarke: #eceeec;
+    --wortmarke-o: #d98c5c;
+    --warnung: #de8a6c;
+    --warnung-hell: #31201a;
   }
 }
 * { box-sizing: border-box; }
@@ -75,7 +76,7 @@ body {
   place-items: center;
   background: var(--grund);
   color: var(--text);
-  font-family: Figtree, system-ui, sans-serif;
+  font-family: Archivo, "Helvetica Neue", system-ui, sans-serif;
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
   padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
@@ -127,16 +128,17 @@ input[type=email], input[type=text], input[type=password] {
   border: 1px solid var(--rand-stark);
   border-radius: var(--kante);
 }
-input:focus-visible { outline: 2px solid var(--marke-rand); outline-offset: 1px; }
+input:focus-visible { outline: 2px solid var(--akzent); outline-offset: 1px; }
 button {
   width: 100%;
   min-height: var(--griff);
   font: inherit; font-size: 16px; font-weight: 600;
-  color: var(--auf-marke); background: var(--marke);
+  color: var(--auf-marke); background: var(--akzent);
   border: 0; border-radius: var(--kante);
   cursor: pointer;
 }
-button:hover { filter: brightness(0.92); }
+button:hover { filter: brightness(1.08); }
+button:active { filter: brightness(0.9); box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.25); }
 .fehler {
   background: var(--warnung-hell);
   color: var(--warnung);
@@ -220,7 +222,7 @@ button:hover { filter: brightness(0.92); }
   content: "";
   position: absolute; left: 0; right: 0; bottom: 16px;
   height: 2px;
-  background: var(--marke);
+  background: var(--akzent);
   transform: scaleX(0);
   transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
