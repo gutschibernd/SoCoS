@@ -1,6 +1,9 @@
+import { useState } from "react";
+
 import { useDashboard, type Ich } from "../basis/daten";
 import type { Seite } from "../basis/router";
-import { alsDauer } from "../basis/zeit";
+import { alsDauer, heuteAlsDatum } from "../basis/zeit";
+import { Kontostandlinie } from "../bausteine/Kontostandlinie";
 import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
@@ -28,8 +31,39 @@ function zahl(wert: string | null) {
   return wert === null ? "—" : ZAHL1.format(Number(wert));
 }
 
+/**
+ * Die drei Zeiträume des Dashboards.
+ *
+ * Sie stehen ausdrücklich im Aufruf und nirgends still: Was gewählt ist, steht
+ * als Datum daneben, und die Kennzahl darunter heißt dann „Monat Team" statt
+ * „Woche Team". Eine Zahl, die plausibel aussieht und einen anderen Zeitraum
+ * meint, ist die schlimmere Sorte Fehler.
+ *
+ * „woche" schickt gar nichts mit — ohne Angabe nimmt der Server die laufende
+ * Woche und schreibt sie in die Antwort. Die Grenzen hier noch einmal
+ * auszurechnen hieße, dieselbe Regel an zwei Stellen zu haben.
+ */
+const SPANNEN = ["woche", "monat", "jahr"] as const;
+type Spanne = (typeof SPANNEN)[number];
+
+const SPANNENTEXT: Record<Spanne, { knopf: string; kennzahl: string; dazu: string }> = {
+  woche: { knopf: "Diese Woche", kennzahl: "Woche Team", dazu: "diese Woche" },
+  monat: { knopf: "Dieser Monat", kennzahl: "Monat Team", dazu: "diesen Monat" },
+  jahr: { knopf: "Dieses Jahr", kennzahl: "Jahr Team", dazu: "dieses Jahr" },
+};
+
+function spannenParameter(spanne: Spanne, heute = new Date()): Record<string, string> {
+  if (spanne === "woche") return {};
+  const jahr = heute.getFullYear();
+  const von = spanne === "monat" ? new Date(jahr, heute.getMonth(), 1) : new Date(jahr, 0, 1);
+  const bis =
+    spanne === "monat" ? new Date(jahr, heute.getMonth() + 1, 0) : new Date(jahr, 11, 31);
+  return { von: heuteAlsDatum(von), bis: heuteAlsDatum(bis) };
+}
+
 export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) => void }) {
-  const abfrage = useDashboard();
+  const [spanne, setSpanne] = useState<Spanne>("woche");
+  const abfrage = useDashboard(spannenParameter(spanne));
   if (!abfrage.data) return <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />;
   const d = abfrage.data;
 
@@ -40,7 +74,7 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
   return (
     <div className="spalte">
       {d.offene_entwuerfe.length > 0 && (
-        <div className="karte" style={{ borderTop: "3px solid var(--warnung)" }}>
+        <div className="karte karte-achtung">
           <h2>Bitte bestätigen</h2>
           <p style={{ margin: "0 0 10px", fontSize: 14 }}>
             {d.offene_entwuerfe.length === 1 ? "Eine Buchung wurde" : `${d.offene_entwuerfe.length} Buchungen wurden`}{" "}
@@ -56,6 +90,32 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
         </div>
       )}
 
+      {/*
+        Der Zeitraum steht hier und nicht in der Kontextleiste über der Seite:
+        Er ändert die vier Werte darunter und sonst nichts, und ein Filter
+        gehört über das, was er filtert. Die gewählte Spanne steht ausgeschrieben
+        daneben — geraten werden muss nichts.
+      */}
+      <div className="zeitraumleiste">
+        <span className="beschriftung">Zeitraum</span>
+        <div className="spannenwahl">
+          {SPANNEN.map((s) => (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={spanne === s}
+              onClick={() => setSpanne(s)}
+            >
+              {SPANNENTEXT[s].knopf}
+            </button>
+          ))}
+        </div>
+        <span className="zahl spanne-datum">
+          {DATUM.format(new Date(d.zeitraum.von))} – {DATUM.format(new Date(d.zeitraum.bis))}
+        </span>
+        <span className="dazu spanne-hinweis">Gilt für die vier Werte darunter.</span>
+      </div>
+
       <div className="raster raster-4">
         <div className="karte kennzahl">
           <div className="beschriftung">Kontostand</div>
@@ -69,7 +129,7 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
           </div>
         </div>
 
-        <div className="karte kennzahl" style={{ borderTopColor: "var(--akzent)" }}>
+        <div className="karte kennzahl">
           <div className="beschriftung">
             Kosten / Monat <Hilfe text="Erwartete Kosten. Sobald drei Monate erfasst sind, ist es deren Durchschnitt — sonst der Fixkostenbetrag." />
           </div>
@@ -77,7 +137,7 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
           <div className="hinweis">{d.finanzen.prognose_grundlage}</div>
         </div>
 
-        <div className="karte kennzahl" style={{ borderTopColor: "var(--gut)" }}>
+        <div className="karte kennzahl">
           <div className="beschriftung">Runway</div>
           <div className="wert">
             {d.finanzen.runway_monate ? `${zahl(d.finanzen.runway_monate)} Mon.` : "—"}
@@ -89,11 +149,11 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
           </div>
         </div>
 
-        <div className="karte kennzahl" style={{ borderTopColor: "var(--text-sehr-leise)" }}>
-          <div className="beschriftung">Woche Team</div>
+        <div className="karte kennzahl">
+          <div className="beschriftung">{SPANNENTEXT[spanne].kennzahl}</div>
           <div className="wert">{alsDauer(d.team_sekunden)}</div>
           <div className="hinweis">
-            {DATUM.format(new Date(d.zeitraum.von))} – {DATUM.format(new Date(d.zeitraum.bis))}
+            {d.team.length === 1 ? "eine Person" : `${d.team.length} Personen`}
           </div>
         </div>
       </div>
@@ -118,10 +178,10 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
         </div>
 
         <div className="karte">
-          <h2>Stunden pro Person · diese Woche</h2>
+          <h2>Stunden pro Person · {SPANNENTEXT[spanne].dazu}</h2>
           {gesamtWoche === 0 ? (
             <Leerstelle
-              was="Diese Woche noch keine Zeit gebucht"
+              was={`Noch keine Zeit gebucht (${SPANNENTEXT[spanne].dazu})`}
               satz="Die Uhr startet auf einem Arbeitspaket."
               aktion={{ text: "Zu den Projekten", tun: () => wechseln("projekt") }}
             />
@@ -147,7 +207,7 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
       </div>
 
       <div className="karte">
-        <h2>Verteilung auf Projekte · diese Woche</h2>
+        <h2>Verteilung auf Projekte · {SPANNENTEXT[spanne].dazu}</h2>
         {gesamtProjekte === 0 ? (
           <Leerstelle
             was="Noch keine Zeit auf Projekten"
@@ -187,7 +247,15 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
       {ich.darf.finanzen_eintragen && <Finanzeingabe />}
 
       <div className="karte">
-        <h2>Kontostand-Verlauf</h2>
+        <div className="kartenkopf">
+          <h2>Kontostand</h2>
+          {d.kontostand_verlauf.length > 1 && (
+            <div className="linie-legende">
+              <span className="legende-erfasst">erfasst</span>
+              <span className="legende-prognose">fortgeschrieben</span>
+            </div>
+          )}
+        </div>
         {d.kontostand_verlauf.length === 0 ? (
           <Leerstelle
             was="Noch kein Kontostand erfasst"
@@ -198,24 +266,42 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
             }
           />
         ) : (
-          <table className="tabelle">
-            <thead>
-              <tr>
-                <th>Stichtag</th>
-                <th>Kontostand</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...d.kontostand_verlauf].reverse().map((k) => (
-                <tr key={k.id}>
-                  <td data-spalte="Stichtag">{DATUM.format(new Date(k.datum))}</td>
-                  <td data-spalte="Kontostand" className="zahl">
-                    {euro(k.betrag)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <Kontostandlinie
+              verlauf={d.kontostand_verlauf}
+              monatskosten={d.finanzen.erwartete_monatskosten}
+            />
+
+            {/*
+              Die Linie zeigt den Verlauf, die Liste die genauen Beträge. Sie
+              steht zugeklappt darunter, statt daneben zu liegen: Gebraucht wird
+              sie, wenn jemand einen einzelnen Stichtag nachschlägt — und das
+              ist nicht der Grund, warum man auf das Dashboard geht.
+            */}
+            <details className="stichtage">
+              <summary className="klapptitel">
+                Alle Stichtage ({d.kontostand_verlauf.length})
+              </summary>
+              <table className="tabelle">
+                <thead>
+                  <tr>
+                    <th>Stichtag</th>
+                    <th>Kontostand</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...d.kontostand_verlauf].reverse().map((k) => (
+                    <tr key={k.id}>
+                      <td data-spalte="Stichtag">{DATUM.format(new Date(k.datum))}</td>
+                      <td data-spalte="Kontostand" className="zahl">
+                        {euro(k.betrag)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          </>
         )}
       </div>
     </div>

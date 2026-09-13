@@ -76,7 +76,7 @@ export function Zeit({ ich }: { ich: Ich }) {
   return (
     <div className="spalte">
       {entwuerfe.length > 0 && (
-        <div className="karte" style={{ borderTop: "3px solid var(--warnung)" }}>
+        <div className="karte karte-achtung">
           <h2>
             Bitte bestätigen
             <Hilfe text="Diese Buchungen liefen über das Tagesende hinaus, weil der Clock-out fehlte. Sie wurden dort abgeschnitten und zählen in keiner Summe und in keinem Zeitnachweis mit, bis du das Ende bestätigst." />

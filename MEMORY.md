@@ -126,11 +126,60 @@ bleiben. Das sieht man erst am Gerät.
 Die alte Medienabfrage für 721–1279 px ist ersatzlos weg: Sie löste, dass die
 Kopfzeile ihre eine Zeile sprengte. Es gibt keine Kopfzeile mehr.
 
+### Etappe 3: Zeitraum, Linie, Farbwerte raus (2026-09-12)
+
+**Der Zeitraum steht über den Zahlen, die er ändert** — nicht in der
+Kontextleiste. Ein Filter oben in der Ecke sähe aus, als gälte er für die ganze
+Seite; er gilt für vier Werte, und das steht jetzt daneben. Drei Spannen:
+Woche · Monat · Jahr. „Woche" schickt **gar nichts** mit — ohne Angabe nimmt der
+Server die laufende Woche und schreibt sie in die Antwort. Die Grenzen hier noch
+einmal auszurechnen hieße, dieselbe Regel an zwei Stellen zu haben.
+
+Der Endpunkt konnte `?von=&bis=` schon; am Server war nichts zu ändern. Die
+Beschriftung der vierten Kennzahl wechselt mit („Woche Team" → „Jahr Team"), und
+die beiden Karten heißen nicht mehr fest „· diese Woche". Eine Zahl, die
+plausibel aussieht und einen anderen Zeitraum meint, ist die schlimmere Sorte
+Fehler.
+
+**Der Kontostand ist eine Linie** (`bausteine/Kontostandlinie.tsx`), selbst
+gezeichnet, kein Diagrammpaket — dieselbe Begründung wie bei den Zeichen. Die
+Tabelle mit den genauen Beträgen steht zugeklappt darunter; gebraucht wird sie,
+wenn jemand einen einzelnen Stichtag nachschlägt, und das ist nicht der Grund,
+warum man aufs Dashboard geht.
+
+**Gerechnet wird in `basis/finanzen.ts`, nicht in der Komponente.** Was rechnet,
+wird getestet (acht Fälle: Ordnung, Kappung bei null, glatte Teilung,
+Jahreswechsel, fehlende Kosten, leeres Konto). Die Fortschreibung benutzt
+dieselbe Formel wie der Runway — deshalb trifft die gestrichelte Linie die Null
+genau dort, wo die Kennzahl es sagt.
+
+**Zwei Fallen im SVG**, beide im Baustein kommentiert:
+
+- `preserveAspectRatio="none"` zieht die Linienstärke waagrecht mit — an flachen
+  Stellen wäre die Linie dünner als an steilen. Dagegen hilft
+  `vector-effect: non-scaling-stroke`.
+- Aus demselben Grund gibt es **keine Kreise**: Ein Punkt würde zur Ellipse. Der
+  Übergang von „erfasst" zu „fortgeschrieben" ist eine senkrechte Marke.
+- Die Beschriftung steht als HTML daneben, nicht im SVG — Text würde mitverzerrt.
+
+**Die Farbwerte sind aus den Ansichten heraus.** Der `3px`-Strich oben stand
+zweimal als `style={{ borderTop: "3px solid var(--warnung)" }}` in `Dashboard.tsx`
+und `Zeit.tsx`; jetzt ist es die Klasse `.karte-achtung` mit Kante **links** und
+getönter Fläche. Oben war derselbe Strich auch auf den vier Kennzahlen, wo er
+nichts bedeutete — und was überall ist, sieht niemand mehr. `projekt.farbe` und
+`person.farbe` bleiben inline: Das sind Daten, keine Palettenwerte.
+
+**Vier Kennzahlen werden unter 1200 px zwei mal zwei.** Neben der Leiste bleiben
+darunter keine 190 px je Karte übrig, und „142.860 €" brach in der Ziffernschrift
+auf zwei Zeilen — ein Betrag, der umbricht, liest sich als zwei Zahlen. Zwei mal
+zwei statt kleinerer Schrift: Die Zahl ist das, wofür die Karte da ist.
+
 ### Was noch offen ist
 
-Etappe 3: Zeitraum-Leiste über den Kennzahlen, Kontostand als Liniendiagramm,
-Tabellen-Feinschliff, und die `style={{ borderTop… }}`-Reste in `Dashboard.tsx`
-und `Zeit.tsx`.
+Der Augenschein in der laufenden Anwendung. Geprüft ist bisher die Anmeldeseite
+(hell und dunkel, 375 und 1280) und ein Prüfgerüst aus dem gebauten CSS mit dem
+echten Markup — Geometrie und Kontraste sind **gemessen**, nicht geschätzt. Die
+acht Ansichten mit echten Daten hat noch niemand gesehen.
 
 In `Dashboard.tsx` und `Zeit.tsx` stehen noch `style={{ borderTop… }}`-Angaben
 mit Farbwerten — sie verstoßen gegen „kein Farbwert in einer Komponente" und

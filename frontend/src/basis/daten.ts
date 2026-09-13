@@ -70,6 +70,8 @@ export type Buchung = {
   laeuft: boolean;
 };
 
+export type Kontostand = { id: number; datum: string; betrag: string };
+
 export type Dashboard = {
   zeitraum: { von: string; bis: string };
   finanzen: {
@@ -80,7 +82,7 @@ export type Dashboard = {
     prognose_grundlage: string;
     runway_monate: string | null;
   };
-  kontostand_verlauf: { id: number; datum: string; betrag: string }[];
+  kontostand_verlauf: Kontostand[];
   team: {
     id: number;
     name: string;
@@ -180,8 +182,19 @@ export type Event = {
 
 export const useIch = () => useQuery({ queryKey: ["ich"], queryFn: () => hole<Ich>("/ich/") });
 
-export const useDashboard = () =>
-  useQuery({ queryKey: ["dashboard"], queryFn: () => hole<Dashboard>("/dashboard/") });
+/**
+ * Der Zeitraum steht als `?von=&bis=` im Aufruf, nicht in einem stillen Filter.
+ * Ohne Angabe nimmt der Server die laufende Woche und schreibt sie als
+ * `zeitraum` in die Antwort — worauf sich die Zahlen beziehen, muss niemand
+ * raten.
+ */
+export const useDashboard = (parameter: Record<string, string> = {}) => {
+  const frage = new URLSearchParams(parameter).toString();
+  return useQuery({
+    queryKey: ["dashboard", parameter],
+    queryFn: () => hole<Dashboard>(`/dashboard/${frage ? `?${frage}` : ""}`),
+  });
+};
 
 export const useProjekte = () =>
   useQuery({ queryKey: ["projekte"], queryFn: () => hole<Projekt[]>("/projekte/") });

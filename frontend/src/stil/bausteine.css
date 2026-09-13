@@ -161,6 +161,18 @@
   margin: 0 0 12px;
 }
 
+/*
+ * Eine Karte, die etwas von einem will. Sie trägt eine kräftige Kante *links*
+ * und nicht einen 3-px-Strich oben: Oben saß derselbe Strich auch auf den vier
+ * Kennzahlen, wo er nichts bedeutete — und was überall ist, sieht niemand mehr.
+ *
+ * Sie steht hier und nicht als style={{ borderTop: … }} in Dashboard.tsx und
+ * Zeit.tsx. Dort stand sie zweimal, mit zwei Gelegenheiten, verschieden zu
+ * werden.
+ */
+.karte-achtung { border-left: 3px solid var(--warnung); background: var(--warnung-hell); }
+.karte-achtung > h2 { color: var(--text); }
+
 .raster { display: grid; gap: 16px; }
 .raster-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .raster-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -179,13 +191,123 @@
  */
 .kennzahl .wert {
   font-family: var(--schrift-zahl); font-size: 27px; font-weight: 500;
-  margin-top: 7px; letter-spacing: -0.04em;
+  margin-top: 7px; letter-spacing: -0.04em; white-space: nowrap;
   /* Ziffern gleicher Breite: Zahlen, die untereinander stehen, müssen auch
      untereinander stehen — sonst wandert die Tausenderstelle von Zeile zu
      Zeile, und der Vergleich zweier Beträge wird zur Suchaufgabe. */
   font-variant-numeric: tabular-nums;
 }
 .kennzahl .hinweis { font-size: 12.5px; color: var(--text-sehr-leise); margin-top: 5px; }
+
+/* --- Zeitraumwahl --------------------------------------------------------- */
+/*
+ * Sie steht über den Zahlen, die sie ändert — nicht in der Kontextleiste der
+ * Seite. Ein Filter gehört über das, was er filtert; oben in der Ecke sähe er
+ * aus, als gälte er für die ganze Seite.
+ */
+.zeitraumleiste {
+  display: flex; align-items: center; gap: 11px; flex-wrap: wrap;
+  padding: 0 2px;
+}
+.spannenwahl {
+  display: flex;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  overflow: hidden;
+}
+.spannenwahl button {
+  min-height: 32px; padding: 0 13px;
+  border: 0; border-left: 1px solid var(--rand-stark);
+  background: var(--flaeche); color: var(--text-leise);
+  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap;
+}
+.spannenwahl button:first-child { border-left: 0; }
+.spannenwahl button:hover { color: var(--akzent); }
+/* `aria-pressed` und keine eigene Klasse: Der Zustand steht damit einmal da —
+   für das Auge und für den Screenreader. Zwei Quellen liefen auseinander. */
+.spannenwahl button[aria-pressed="true"] { background: var(--akzent); color: var(--auf-marke); }
+.spanne-datum { font-size: 12.5px; color: var(--text-leise); }
+.spanne-hinweis { margin-left: auto; }
+
+/* --- Kopfzeile einer Karte mit Beiwerk ----------------------------------- */
+/* Überschrift links, Legende oder Knopf rechts — statt beides in eine Zeile zu
+   zwingen, die bei 375 px zerbricht. */
+.kartenkopf {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.kartenkopf > h2 { margin: 0; }
+
+/* --- Kontostand als Linie ------------------------------------------------ */
+/*
+ * Selbst gezeichnet, kein Diagrammpaket — dieselbe Begründung wie bei den
+ * Zeichen. Warum `preserveAspectRatio="none"` und keine Kreise: siehe
+ * bausteine/Kontostandlinie.tsx.
+ */
+.kontostandlinie svg {
+  display: block; width: 100%; height: 170px;
+  overflow: visible;
+}
+.kontostandlinie path {
+  fill: none;
+  /* Ohne das zöge die Verzerrung die Linienstärke waagrecht mit: An flachen
+     Stellen wäre die Linie dünner als an steilen. */
+  vector-effect: non-scaling-stroke;
+}
+.linie-flaeche { fill: var(--marke-hell); stroke: none; }
+.linie-null { stroke: var(--rand-stark); stroke-width: 1; }
+.linie-heute { stroke: var(--rand-stark); stroke-width: 1; stroke-dasharray: 3 3; }
+.linie-erfasst { stroke: var(--marke); stroke-width: 2; stroke-linejoin: round; }
+.linie-prognose {
+  stroke: var(--akzent); stroke-width: 2; stroke-linejoin: round;
+  stroke-dasharray: 5 4;
+}
+
+.linie-legende { display: flex; gap: 16px; margin-left: auto; }
+.linie-legende span {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: var(--text-sehr-leise);
+}
+.linie-legende span::before {
+  content: ""; width: 18px; height: 0; flex: 0 0 18px;
+  border-top: 2px solid currentColor;
+}
+.legende-erfasst::before { color: var(--marke); }
+.legende-prognose::before { color: var(--akzent); border-top-style: dashed !important; }
+
+/* Die Beschriftung teilt sich in zwei Abschnitte, deren Breiten dem Bild
+   entsprechen: links das Erfasste bis heute, rechts die Fortschreibung. Die
+   Spaltenbreite kommt als style aus der Komponente — sie hängt an den Daten
+   und kann hier nicht stehen. */
+.linie-fuss { display: grid; margin-top: 8px; }
+.linie-abschnitt {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding-top: 7px; min-width: 0;
+}
+.linie-abschnitt-erfasst { border-top: 1px solid var(--rand); }
+.linie-abschnitt-prognose { border-top: 1px solid var(--akzent); }
+.linie-abschnitt .rechts { text-align: right; }
+.linie-abschnitt span { min-width: 0; }
+.linie-abschnitt b {
+  display: block; font-size: 11px; font-weight: 600; color: var(--text-leise);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.linie-abschnitt-erfasst .rechts b { color: var(--marke); }
+.linie-abschnitt-prognose b { color: var(--akzent); }
+.linie-abschnitt em {
+  display: block; font-size: 11px; font-style: normal; color: var(--text-sehr-leise);
+  white-space: nowrap;
+}
+.linie-einzeln { margin: 0; font-size: 14px; color: var(--text-leise); line-height: 1.55; }
+
+.stichtage { margin-top: 16px; border-top: 1px solid var(--rand); padding-top: 12px; }
+.stichtage > summary { cursor: pointer; list-style: none; min-height: 32px; display: flex; align-items: center; }
+.stichtage > summary::-webkit-details-marker { display: none; }
+.stichtage > summary:hover .klapptitel, .stichtage > summary:hover { color: var(--akzent); }
+.stichtage > summary::before {
+  content: "▸"; margin-right: 8px; color: var(--text-sehr-leise); font-size: 11px;
+}
+.stichtage[open] > summary::before { content: "▾"; }
+.stichtage .tabelle { margin-top: 8px; }
 
 /* --- Knöpfe -------------------------------------------------------------- */
 
@@ -1001,6 +1123,22 @@ a.mini { text-decoration: none; }
 }
 .verlauf-fuss { display: block; margin-top: 4px; font-size: 11px; color: var(--text-sehr-leise); }
 
+
+/* ==========================================================================
+   Schmaler Rechner (bis 1200 px): vier Kennzahlen werden zwei mal zwei
+   ==========================================================================
+
+   Neben einer 232 px breiten Leiste bleiben unter 1200 px keine 190 px je
+   Kennzahl übrig, und „142.860 €" in der Ziffernschrift bricht dann auf zwei
+   Zeilen. Ein Betrag, der umbricht, liest sich als zwei Zahlen.
+
+   Zwei mal zwei statt kleinerer Schrift: Die Zahl ist das, wofür die Karte da
+   ist — sie soll nicht als erstes nachgeben.
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+  .raster-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* ==========================================================================
    Handy und schmales Tablet (bis 900 px): aus der Leiste wird eine Schublade

@@ -272,7 +272,7 @@ function ProjektKarte({
   }
 
   return (
-    <div className="karte" style={{ borderTop: `3px solid ${projekt.farbe}` }}>
+    <div className="karte" style={{ borderLeft: `3px solid ${projekt.farbe}` }}>
       <div className="projekt-kopf">
         <div style={{ minWidth: 200 }}>
           <h3>
