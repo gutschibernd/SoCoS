@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { hole } from "../basis/api";
 import { useNeuLaden } from "../basis/daten";
-import { Hilfe } from "./Hilfe";
 
 /**
  * Kontostand, Fixkosten und Monatskosten eintragen — nur für den Admin.
@@ -16,14 +15,13 @@ const MONAT = () => new Date().toISOString().slice(0, 7);
 
 type Art = "kontostand" | "fixkosten" | "monatskosten";
 
-const ARTEN: { art: Art; titel: string; pfad: string; datumsfeld: string; typ: string; hilfe: string }[] = [
+const ARTEN: { art: Art; titel: string; pfad: string; datumsfeld: string; typ: string }[] = [
   {
     art: "kontostand",
     titel: "Kontostand",
     pfad: "/kontostaende/",
     datumsfeld: "datum",
     typ: "date",
-    hilfe: "Ein Stichtagswert. Trag ihn einmal im Monat ein — daraus entstehen Verlauf und Runway.",
   },
   {
     art: "fixkosten",
@@ -31,7 +29,6 @@ const ARTEN: { art: Art; titel: string; pfad: string; datumsfeld: string; typ: s
     pfad: "/fixkosten/",
     datumsfeld: "gueltig_ab",
     typ: "date",
-    hilfe: "Der wiederkehrende Betrag. Gilt ab dem Datum bis zum nächsten Eintrag — alte Werte bleiben stehen, damit der Verlauf stimmt.",
   },
   {
     art: "monatskosten",
@@ -39,7 +36,6 @@ const ARTEN: { art: Art; titel: string; pfad: string; datumsfeld: string; typ: s
     pfad: "/monatskosten/",
     datumsfeld: "monat",
     typ: "month",
-    hilfe: "Was in dem Monat wirklich weg war, inklusive Einmaligem. Ab drei erfassten Monaten rechnet der Runway mit deren Durchschnitt statt mit den Fixkosten.",
   },
 ];
 
@@ -92,7 +88,6 @@ export function Finanzeingabe() {
     <div className="karte">
       <h2>
         Finanzen eintragen
-        <Hilfe text={gewaehlt.hilfe} />
       </h2>
       <div className="feld-reihe">
         <select className="feld" value={art} onChange={(e) => artWechseln(e.target.value as Art)} aria-label="Was eintragen">

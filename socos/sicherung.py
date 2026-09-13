@@ -29,6 +29,7 @@ MODELLE_IM_ARCHIV = [
     "socos.Kontostand",
     "socos.Fixkosten",
     "socos.Monatskosten",
+    "socos.Rueckmeldung",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
@@ -56,6 +57,7 @@ LOESCHREIHENFOLGE = [
     "socos.Kontostand",
     "socos.Fixkosten",
     "socos.Monatskosten",
+    "socos.Rueckmeldung",
     "socos.Protokolleintrag",
     "socos.Nutzer",
     "auth.Group",

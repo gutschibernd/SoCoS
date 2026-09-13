@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import { hole } from "../basis/api";
 import { Zustand } from "../basis/Zustand";
-import { Hilfe } from "./Hilfe";
 import { Leerstelle } from "./Leerstelle";
 
 type Eintrag = {
@@ -53,10 +52,7 @@ export function Protokoll() {
 
   return (
     <div className="karte">
-      <h2>
-        Änderungsprotokoll
-        <Hilfe text="Wer, wann, was, alt → neu. Wird bei jeder Änderung geschrieben und nie verändert. Auch das Entfernen steht hier — gelöscht wird nur weich, ein Admin kann es zurückholen." />
-      </h2>
+      <h2>Änderungsprotokoll</h2>
 
       {abfrage.data.length === 0 ? (
         <Leerstelle was="Noch keine Einträge" satz="Sobald etwas angelegt oder geändert wird, steht es hier." />

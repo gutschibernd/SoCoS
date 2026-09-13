@@ -83,6 +83,23 @@ def darf_fremde_zeiten_aendern(nutzer):
     return darf_bearbeiten(nutzer)
 
 
+def darf_melden(nutzer):
+    """
+    Einen Wunsch oder einen Fehler eintragen darf **jeder Angemeldete** — auch
+    ein Leser.
+
+    Das ist die einzige Stelle, an der ein Leser schreibt, und sie ist mit
+    Absicht so: Wem ein Fehler auffällt, der soll ihn melden können. Was dabei
+    entsteht, ist keine Fachinformation, sondern ein Zettel an uns.
+    """
+    return rolle(nutzer) is not None
+
+
+def darf_rueckmeldung_verwalten(nutzer):
+    """Den Stand setzen, antworten, eine Version eintragen. Nur der Admin."""
+    return ist_admin(nutzer)
+
+
 def darf_stammdaten_sehen(nutzer, anderer):
     """
     Adresse und Geburtsdatum sieht nur man selbst und der Admin. Name, Funktion,
@@ -120,3 +137,25 @@ class SocosBerechtigung(BasePermission):
             return ist_admin(nutzer)
 
         return darf_bearbeiten(nutzer)
+
+
+class RueckmeldungsBerechtigung(BasePermission):
+    """
+    Die Ausnahme von der Regel oben — und deshalb steht sie hier, nicht im
+    ViewSet.
+
+    Sehen darf jeder Angemeldete, **anlegen auch**: Ein Leser, dem ein Fehler
+    auffällt, soll ihn melden können. Ändern und Entfernen entscheidet das
+    ViewSet feiner (eigener Eintrag vs. Stand), weil dafür das Objekt und die
+    geschickten Felder bekannt sein müssen — siehe `RueckmeldungViewSet`.
+    """
+
+    def has_permission(self, request, view):
+        nutzer = request.user
+        if not nutzer or not nutzer.is_authenticated:
+            return False
+        if request.method in SAFE_METHODS or request.method == "POST":
+            return darf_melden(nutzer)
+        if request.method == "DELETE":
+            return darf_loeschen(nutzer)
+        return darf_melden(nutzer)

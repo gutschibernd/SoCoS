@@ -5,12 +5,15 @@ import { Zustand } from "./basis/Zustand";
 import { Zeichen } from "./bausteine/Zeichen";
 import { Seitenleiste } from "./bausteine/Seitenleiste";
 import { Meldungen } from "./bausteine/Meldungen";
+import { Neuigkeiten } from "./bausteine/Neuigkeiten";
 import { Dashboard } from "./ansichten/Dashboard";
+import { Doku } from "./ansichten/Doku";
 import { Einstellungen } from "./ansichten/Einstellungen";
 import { Events } from "./ansichten/Events";
 import { Kontakte } from "./ansichten/Kontakte";
 import { Profil } from "./ansichten/Profil";
 import { Projekt } from "./ansichten/Projekt";
+import { Rueckmeldungen } from "./ansichten/Rueckmeldungen";
 import { Start } from "./ansichten/Start";
 import { Zeit } from "./ansichten/Zeit";
 
@@ -26,6 +29,8 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   events: { titel: "Events", unter: "Tagungen, Hitlist, wen wir getroffen haben" },
   profil: { titel: "Profil", unter: "Deine Stammdaten" },
   einstellungen: { titel: "Einstellungen", unter: "Konten, Protokoll, Sicherung" },
+  doku: { titel: "Doku", unter: "Wie SoCoS gemeint ist — kurz" },
+  rueckmeldungen: { titel: "Wünsche & Fehler", unter: "Was fehlt, was stört, was erledigt ist" },
 };
 
 /* Die einzige Unterseite bekommt ihre eigene Zeile, statt sie aus dem Namen
@@ -58,6 +63,13 @@ export function App() {
     <div className="geruest">
       <Seitenleiste ich={ich.data} seite={ort.seite} wechseln={wechseln} />
       <Meldungen />
+
+      {/* Was sich geändert hat — einmal je Änderung, gleich nach der
+          Anmeldung. Die Liste kommt aus /api/ich/ und ist leer, sobald sie
+          bestätigt wurde; es gibt hier nichts zu merken. */}
+      {ich.data.neuigkeiten.length > 0 && (
+        <Neuigkeiten punkte={ich.data.neuigkeiten} wechseln={wechseln} />
+      )}
       <div className="inhalt">
         {/*
           Die Kontextleiste trägt, wo man ist — und sonst nichts. Zeitraum und
@@ -108,6 +120,8 @@ export function App() {
           {ort.seite === "einstellungen" && (
             <Einstellungen ich={ich.data} unter={ort.unter} wechseln={wechseln} />
           )}
+          {ort.seite === "doku" && <Doku unter={ort.unter} wechseln={wechseln} />}
+          {ort.seite === "rueckmeldungen" && <Rueckmeldungen ich={ich.data} />}
         </main>
       </div>
     </div>

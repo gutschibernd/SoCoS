@@ -4,7 +4,6 @@ import { useDashboard, type Ich } from "../basis/daten";
 import type { Seite } from "../basis/router";
 import { alsDauer, heuteAlsDatum } from "../basis/zeit";
 import { Kontostandlinie } from "../bausteine/Kontostandlinie";
-import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Zustand } from "../basis/Zustand";
@@ -130,9 +129,7 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
         </div>
 
         <div className="karte kennzahl">
-          <div className="beschriftung">
-            Kosten / Monat <Hilfe text="Erwartete Kosten. Sobald drei Monate erfasst sind, ist es deren Durchschnitt — sonst der Fixkostenbetrag." />
-          </div>
+          <div className="beschriftung">Kosten / Monat</div>
           <div className="wert">{euro(d.finanzen.erwartete_monatskosten)}</div>
           <div className="hinweis">{d.finanzen.prognose_grundlage}</div>
         </div>

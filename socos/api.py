@@ -19,7 +19,7 @@ from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
-from socos import berechtigung, serializer as ser, sicherung
+from socos import aenderungen, berechtigung, serializer as ser, sicherung
 from socos.models import (
     Arbeitspaket,
     Bereich,
@@ -33,6 +33,7 @@ from socos.models import (
     Organisation,
     Projekt,
     Protokolleintrag,
+    Rueckmeldung,
     Unteraufgabe,
     STUFENVORLAGEN,
     Verlaufseintrag,
@@ -453,6 +454,30 @@ class NutzerViewSet(SocosViewSet):
         return Response(self.get_serializer(nutzer).data)
 
 
+class RueckmeldungViewSet(SocosViewSet):
+    """
+    Wünsche und Fehlermeldungen.
+
+    **Anlegen darf jeder Angemeldete** — auch ein Leser; deshalb eine eigene
+    Berechtigungsklasse statt der gemeinsamen. Was darüber hinaus gilt, ist
+    feldweise und steht im Serializer: Stand, Antwort und Version setzt nur ein
+    Admin, seinen eigenen Text schärft der Melder selbst nach.
+    """
+
+    serializer_class = ser.RueckmeldungSerializer
+    queryset = Rueckmeldung.objects.select_related("melder")
+    permission_classes = [berechtigung.RueckmeldungsBerechtigung]
+
+    def perform_update(self, serializer):
+        # Fremde Einträge fasst nur ein Admin an. Ohne das könnte jeder den
+        # Text einer fremden Meldung umschreiben — die Felder, die den Stand
+        # betreffen, sind im Serializer schon abgesichert, der Text nicht.
+        eigener = serializer.instance.melder_id == self.request.user.pk
+        if not eigener and not berechtigung.darf_rueckmeldung_verwalten(self.request.user):
+            raise PermissionDenied("Fremde Meldungen ändert ein Admin.")
+        serializer.save()
+
+
 class ProtokollViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Nur lesen. Ein Änderungsprotokoll, das man ändern kann, beantwortet die
@@ -494,15 +519,41 @@ def ich(request):
             "farbe": nutzer.farbe,
             "funktion": nutzer.funktion,
             "rolle": berechtigung.rolle(nutzer),
+            # Was dieser Nutzer noch nicht gesehen hat — eine Seite je Punkt.
+            # Steht hier und nicht hinter einem eigenen Abruf: Das Fenster soll
+            # aufgehen, sobald die Oberfläche steht, nicht eine Anfrage später.
+            "neuigkeiten": aenderungen.punkte_seit(nutzer.neuigkeiten_bis),
             "darf": {
                 "bearbeiten": berechtigung.darf_bearbeiten(nutzer),
                 "loeschen": berechtigung.darf_loeschen(nutzer),
                 "finanzen_eintragen": berechtigung.darf_finanzen_eintragen(nutzer),
                 "nutzer_verwalten": berechtigung.darf_nutzer_verwalten(nutzer),
                 "sichern": berechtigung.darf_sichern(nutzer),
+                "rueckmeldungen_verwalten": berechtigung.darf_rueckmeldung_verwalten(nutzer),
             },
         }
     )
+
+
+@api_view(["GET"])
+def aenderungsliste(request):
+    """Alle Versionen für die Rubrik „Änderungen" in der Doku."""
+    return Response({"neueste": aenderungen.NEUESTE, "versionen": aenderungen.VERSIONEN})
+
+
+@api_view(["POST"])
+def neuigkeiten_gesehen(request):
+    """
+    „Verstanden" im Neuigkeitenfenster.
+
+    Gesetzt wird die **neueste** Version, nicht die zuletzt angezeigte: Wer das
+    Fenster nach der ersten Seite schließt, soll es beim nächsten Anmelden nicht
+    wieder vorfinden. Was er übersprungen hat, steht in der Doku.
+    """
+    nutzer = request.user
+    nutzer.neuigkeiten_bis = aenderungen.NEUESTE
+    nutzer.save(update_fields=["neuigkeiten_bis"])
+    return Response({"neuigkeiten_bis": nutzer.neuigkeiten_bis})
 
 
 @api_view(["GET"])

@@ -43,6 +43,19 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[] }[] = [
       { seite: "events", titel: "Events", zeichen: "event" },
     ],
   },
+  /*
+    Die dritte Gruppe handelt nicht von der Arbeit, sondern vom Werkzeug —
+    deshalb steht sie unten und heißt „Software". Hier stand bis dahin nichts:
+    Erklärungen hingen als Fragezeichen neben einzelnen Beschriftungen, und
+    was jemandem auffiel, blieb ein Zuruf über den Tisch.
+  */
+  {
+    titel: "Software",
+    eintraege: [
+      { seite: "doku", titel: "Doku", zeichen: "buch" },
+      { seite: "rueckmeldungen", titel: "Wünsche & Fehler", zeichen: "sprechblase" },
+    ],
+  },
 ];
 
 const ALLE = GRUPPEN.flatMap((g) => g.eintraege);

@@ -21,10 +21,13 @@ router.register("fixkosten", api.FixkostenViewSet, basename="fixkosten")
 router.register("monatskosten", api.MonatskostenViewSet, basename="monatskosten")
 router.register("nutzer", api.NutzerViewSet, basename="nutzer")
 router.register("protokoll", api.ProtokollViewSet, basename="protokoll")
+router.register("rueckmeldungen", api.RueckmeldungViewSet, basename="rueckmeldung")
 
 urlpatterns = [
     path("ich/", api.ich, name="ich"),
     path("dashboard/", api.dashboard, name="dashboard"),
+    path("aenderungen/", api.aenderungsliste, name="aenderungen"),
+    path("neuigkeiten/gesehen/", api.neuigkeiten_gesehen, name="neuigkeiten-gesehen"),
     path("zeitnachweis/", api.zeitnachweis, name="zeitnachweis"),
     # Zwei Pfade und nicht ein GET/POST-Paar: Das Einspielen ersetzt den
     # gesamten Bestand. Dass es einen eigenen, aussprechbaren Pfad hat, ist an

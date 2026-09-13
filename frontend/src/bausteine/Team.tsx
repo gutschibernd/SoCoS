@@ -1,7 +1,6 @@
 import { hole } from "../basis/api";
 import { useNeuLaden, useTeam, type Ich } from "../basis/daten";
 import { melden } from "../basis/meldungen";
-import { Hilfe } from "./Hilfe";
 
 const ROLLEN = [
   { wert: "admin", text: "Admin — darf alles" },
@@ -38,10 +37,7 @@ export function Team({ ich }: { ich: Ich }) {
 
   return (
     <div className="karte">
-      <h2>
-        Team
-        <Hilfe text="Konten legt ein Administrator an der Kommandozeile an (nutzer_anlegen), das Passwort setzt nutzer_passwort interaktiv. Im Browser gibt es kein Anlegeformular — sonst landete irgendwann ein Passwort im Browserverlauf." />
-      </h2>
+      <h2>Team</h2>
 
       <table className="tabelle">
         <thead>

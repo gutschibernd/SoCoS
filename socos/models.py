@@ -28,14 +28,33 @@ class NutzerVerwaltung(BaseUserManager):
     def create_user(self, email, name="", **felder):
         if not email:
             raise ValueError("Ein Konto braucht eine E-Mail-Adresse.")
+        felder.setdefault("neuigkeiten_bis", self._neueste_version())
         nutzer = self.model(email=self.normalize_email(email), name=name, **felder)
         nutzer.set_unusable_password()
         nutzer.save(using=self._db)
         return nutzer
 
+    @staticmethod
+    def _neueste_version():
+        """
+        Ein neues Konto startet auf dem aktuellen Stand der Änderungen.
+
+        Sonst liefe jemand, der heute dazukommt, beim ersten Anmelden durch die
+        Neuigkeiten der Monate davor — für ihn ist nichts davon neu, es ist
+        einfach die Anwendung. Was er braucht, ist die Doku.
+
+        Der Import steht hier drin und nicht oben: Der Manager läuft in
+        Migrationen (`use_in_migrations`), und ein Modul auf Modulebene, das es
+        in einer alten Migration noch nicht gab, wäre dort eine Zeitbombe.
+        """
+        from socos import aenderungen
+
+        return aenderungen.NEUESTE
+
     def create_superuser(self, email, name="", password=None, **felder):
         felder.setdefault("is_staff", True)
         felder.setdefault("is_superuser", True)
+        felder.setdefault("neuigkeiten_bis", self._neueste_version())
         nutzer = self.model(email=self.normalize_email(email), name=name, **felder)
         if password:
             nutzer.set_password(password)
@@ -71,6 +90,13 @@ class Nutzer(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField("aktiv", default=True)
     is_staff = models.BooleanField("Admin-Zugang", default=False)
     beigetreten_am = models.DateTimeField("beigetreten am", default=timezone.now)
+
+    # Bis zu welcher Version die Neuigkeiten gesehen wurden (siehe
+    # socos/aenderungen.py). Eine Zeichenkette und kein Zeitstempel: Verglichen
+    # wird mit der Version, nicht mit dem Moment des Ansehens — sonst
+    # entschiede die Uhr des Servers darüber, ob jemand eine Änderung schon
+    # kennt, die vor seinem letzten Besuch veröffentlicht wurde.
+    neuigkeiten_bis = models.CharField("Neuigkeiten gesehen bis", max_length=20, blank=True)
 
     objects = NutzerVerwaltung()
 
@@ -936,3 +962,79 @@ class Monatskosten(Basismodell):
         if self.monat:
             self.monat = self.monat.replace(day=1)
         super().save(*args, **kwargs)
+
+
+# --- Wünsche und Fehlermeldungen --------------------------------------------
+
+
+class Rueckmeldungsart(models.TextChoices):
+    WUNSCH = "wunsch", "Wunsch"
+    FEHLER = "fehler", "Fehler"
+
+
+class Rueckmeldungsstand(models.TextChoices):
+    """
+    Der Weg einer Rückmeldung. Bewusst kurz: fünf Stände, und jeder sagt einem
+    Melder etwas anderes darüber, ob er noch etwas tun muss.
+
+    „abgelehnt" steht neben „erledigt", weil beides ein Ende ist. Ein Wunsch,
+    der nicht kommt, muss das sagen dürfen — sonst steht er für immer auf
+    „neu", und niemand traut der Liste mehr.
+    """
+
+    NEU = "neu", "neu"
+    ANGENOMMEN = "angenommen", "angenommen"
+    IN_ARBEIT = "in_arbeit", "in Arbeit"
+    ERLEDIGT = "erledigt", "erledigt"
+    ABGELEHNT = "abgelehnt", "abgelehnt"
+
+
+class Rueckmeldung(Basismodell):
+    """
+    Ein Wunsch oder ein Fehler, gemeldet aus der Anwendung heraus.
+
+    **Melden darf jeder, den Stand setzt nur ein Admin** — durchgesetzt in
+    `socos/berechtigung.py`, nicht hier. Hier steht nur, was eine Rückmeldung
+    ist.
+
+    `erledigt_in` trägt die Version aus `socos/aenderungen.py`, in der die Sache
+    drin ist. **Warum eine Zeichenkette und kein Verweis:** Die Versionen stehen
+    im Quelltext, nicht in der Datenbank — ein Fremdschlüssel bräuchte eine
+    zweite Liste daneben, und die liefe beim nächsten Eintrag auseinander. Wer
+    hier eine Version liest, findet sie in der Doku unter „Änderungen" wieder.
+    """
+
+    art = models.CharField(
+        "Art", max_length=10, choices=Rueckmeldungsart.choices, default=Rueckmeldungsart.WUNSCH
+    )
+    titel = models.CharField("Titel", max_length=200)
+    text = models.TextField("Beschreibung", blank=True)
+
+    melder = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Gemeldet von",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rueckmeldungen",
+    )
+
+    stand = models.CharField(
+        "Stand", max_length=12, choices=Rueckmeldungsstand.choices,
+        default=Rueckmeldungsstand.NEU, db_index=True,
+    )
+    # Die Antwort des Admins — warum abgelehnt, was stattdessen, ab wann.
+    # Ein Feld und kein Kommentarfaden: Bei drei Nutzern ist die Rückfrage ein
+    # Zuruf über den Tisch, und ein Faden wäre eine zweite Anwendung im Fenster.
+    antwort = models.TextField("Antwort", blank=True)
+    erledigt_in = models.CharField("Erledigt in Version", max_length=20, blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Rückmeldung"
+        verbose_name_plural = "Wünsche und Fehler"
+        # Offenes zuerst wäre eine Sortierung mit eingebauter Meinung; die
+        # Ansicht gruppiert selbst. Hier gilt: das Neueste oben.
+        ordering = ["-erstellt_am", "-id"]
+
+    def __str__(self):
+        return f"{self.get_art_display()}: {self.titel}"

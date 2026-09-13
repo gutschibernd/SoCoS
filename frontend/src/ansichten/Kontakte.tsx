@@ -55,7 +55,6 @@ import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
-import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
@@ -105,13 +104,11 @@ function Sortierkopf({
   nach,
   sortierung,
   sortieren,
-  children,
 }: {
   titel: string;
   nach: Sortierung["nach"];
   sortierung: Sortierung;
   sortieren: (nach: Sortierung["nach"]) => void;
-  children?: React.ReactNode;
 }) {
   const aktiv = sortierung.nach === nach;
   return (
@@ -123,7 +120,6 @@ function Sortierkopf({
           klasse={aktiv ? "sortierpfeil" : "sortierpfeil still"}
         />
       </button>
-      {children}
     </th>
   );
 }
@@ -401,7 +397,6 @@ function Uebersicht({
             <option value="ihnen">Wir warten</option>
             <option value="nichts">Nichts offen</option>
           </select>
-          <Hilfe text="„Warten auf uns“ heißt: wir schulden etwas. „Wir warten“ heißt: der Ball liegt bei den anderen. „Nichts offen“ heißt: der Kontakt läuft, aber gerade steht nichts an. Der Ball hängt an den Personen — eine Organisation passt, wenn eine ihrer Personen passt." />
 
           {/*
             Dasselbe wie ein Klick auf den Spaltenkopf, nur am Handy: Dort wird
@@ -447,9 +442,7 @@ function Uebersicht({
                 <Sortierkopf titel="Organisation" nach="name" sortierung={sortierung} sortieren={sortieren} />
                 <th>Typ</th>
                 <th>Stufe</th>
-                <Sortierkopf titel="Prio" nach="prioritaet" sortierung={sortierung} sortieren={sortieren}>
-                  <Hilfe text="Wie viel für uns drinsteckt — das Verwertungspotential. Nicht dasselbe wie die Stufe: Die sagt, wie nah wir uns sind. Eine Förderstelle, mit der wir noch nie geredet haben, kann das Wichtigste auf der Liste sein." />
-                </Sortierkopf>
+                <Sortierkopf titel="Prio" nach="prioritaet" sortierung={sortierung} sortieren={sortieren} />
                 <th>Personen</th>
                 <th>Am Zug</th>
                 <th>Zuletzt</th>
@@ -658,7 +651,6 @@ function Organisationsseite({
                     </option>
                   ))}
                 </select>
-                <Hilfe text="Wie weit die Beziehung ist, nicht was gerade läuft. Erstkontakt: einmal gesprochen. Kennengelernt: wir wissen, wer dort was macht. Im Austausch: es meldet sich auch jemand von dort. Angebahnt: eine Zusammenarbeit ist konkret unterwegs — ein Antrag, ein Termin, ein Vertrag. Partner: die Zusammenarbeit läuft." />
               </>
             ) : (
               <Naehe stufe={org.stufe} />
@@ -1132,10 +1124,7 @@ function Verlaufskarte({
 
   return (
     <div className="karte">
-      <h2>
-        Verlauf
-        <Hilfe text="Gespräche mit den Personen und Post an das Haus stehen in einem Faden — sonst sieht man den Verlauf nur halb. Wer angesprochen war, steht unter jedem Eintrag." />
-      </h2>
+      <h2>Verlauf</h2>
 
       {ich.darf.bearbeiten && (
         <div className="nachbuchen">

@@ -21,7 +21,6 @@ import {
 import type { Seite } from "../basis/router";
 import { BUCHBAR, letztePakete } from "../basis/start";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
-import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen, type ZeichenName } from "../bausteine/Zeichen";
 
@@ -158,10 +157,7 @@ function Buchen({
 
   return (
     <div className="karte start-buchen">
-      <h2>
-        Zeit buchen
-        <Hilfe text="Läuft schon eine Buchung, wird sie beim Start der neuen beendet — ohne Notiz. Wer eine Notiz mitgeben will, macht den Clock-out oben in der Kopfleiste." />
-      </h2>
+      <h2>Zeit buchen</h2>
 
       {buchung && (
         <p className="start-laeuft">

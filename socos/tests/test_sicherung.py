@@ -388,3 +388,36 @@ def test_fremde_datei_laesst_den_bestand_stehen(client, tmp_path, medien, admin_
     assert antwort.status_code == 400
     assert Projekt.objects.filter(titel="Bleibt").exists()
     assert Nutzer.objects.filter(email="admin@example.invalid").exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_rueckmeldung_wandert_mit_stand_und_melder_mit(tmp_path, medien, bearbeiter):
+    """
+    Eine Rückmeldung ist eine Zusage an den, der sie geschrieben hat.
+
+    Geprüft wird nicht nur, dass die Zeile wiederkommt, sondern auch der Stand
+    und der Melder: Ein Archiv, das Wünsche zurückholt und sie alle wieder auf
+    „neu" stellt, sähe vollständig aus — und die Liste wäre trotzdem falsch.
+    """
+    from socos.models import Rueckmeldung, Rueckmeldungsart, Rueckmeldungsstand
+
+    Rueckmeldung.objects.create(
+        art=Rueckmeldungsart.FEHLER,
+        titel="Zeitraum springt zurück",
+        text="Nach dem Speichern steht wieder der laufende Monat da.",
+        melder=bearbeiter,
+        stand=Rueckmeldungsstand.ERLEDIGT,
+        erledigt_in="2026-09-13",
+    )
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    Rueckmeldung.alle_objekte.all().hart_loeschen()
+    assert not Rueckmeldung.objects.exists()
+
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    wieder_da = Rueckmeldung.objects.get(titel="Zeitraum springt zurück")
+    assert wieder_da.stand == Rueckmeldungsstand.ERLEDIGT
+    assert wieder_da.erledigt_in == "2026-09-13"
+    assert wieder_da.melder.email == bearbeiter.email

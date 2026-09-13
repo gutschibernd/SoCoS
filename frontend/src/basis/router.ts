@@ -1,7 +1,7 @@
 /**
  * Ein sehr kleiner Router.
  *
- * Kein react-router: Es gibt acht Seiten und eine Ebene darunter. Ein
+ * Kein react-router: Es gibt zehn Seiten und eine Ebene darunter. Ein
  * Rahmenwerk brächte hier mehr Begriffe mit, als die Anwendung Wege hat.
  *
  * „start" ist die Wurzel und zugleich der Rückfall für einen Pfad, den es
@@ -28,6 +28,8 @@ export const SEITEN = [
   "events",
   "profil",
   "einstellungen",
+  "doku",
+  "rueckmeldungen",
 ] as const;
 export type Seite = (typeof SEITEN)[number];
 
@@ -41,6 +43,22 @@ export type Seite = (typeof SEITEN)[number];
  */
 export const RUBRIKEN = ["konten", "protokoll", "sicherung"] as const;
 export type Rubrik = (typeof RUBRIKEN)[number];
+
+/**
+ * Die Rubriken der Doku. Wie die der Einstellungen im Weg und nicht im Zustand:
+ * „Schick mir den Link zur Zeiterfassung" soll ein Link sein können.
+ */
+export const DOKUTEILE = [
+  "ueberblick",
+  "zeit",
+  "projekt",
+  "kontakte",
+  "events",
+  "geld",
+  "rechte",
+  "aenderungen",
+] as const;
+export type Dokuteil = (typeof DOKUTEILE)[number];
 
 /**
  * Die Teile des Profils — dieselbe Bauart wie die Rubriken der Einstellungen,
@@ -68,6 +86,7 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   events: (unter) => /^\d+$/.test(unter),
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
   profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),
+  doku: (unter) => (DOKUTEILE as readonly string[]).includes(unter),
 };
 
 export type Ort = { seite: Seite; unter: string | null };

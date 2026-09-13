@@ -8,6 +8,7 @@
 | Wie läuft das am Server — Abbild, Stacks, Deploy? | [betrieb/LIESMICH.md](betrieb/LIESMICH.md) |
 | Welche Maschine, welches Netz, welche Zugänge? | [SERVER.md](SERVER.md) |
 | Warum ist etwas so entschieden? Was ist offen? | [MEMORY.md](MEMORY.md) |
+| Was hat sich für die Nutzer zuletzt geändert? | [socos/aenderungen.py](socos/aenderungen.py) |
 | Wie arbeite ich hier — Regeln, Fallen, Ports | dieses Dokument |
 
 ## Sprache
@@ -146,8 +147,12 @@ im Ernstfall, unter Zeitdruck, wenn das Original schon weg ist.
   Feld vergessen.
 - **Was der Finger trifft, ist mindestens 44 px hoch**, Eingabefelder 16 px (darunter
   zoomt iOS beim Hineintippen), Ränder achten auf `env(safe-area-*)`.
-- **Keine erklärenden Absätze in der Seite, sondern ein `?` daneben**, das am Rechner
-  beim Überfahren und am Handy beim Antippen aufgeht.
+- **Keine erklärenden Absätze in der Seite.** Das `?` daneben, das es dafür einmal
+  gab, ist weg: Es war die richtige Form für „was heißt dieses Feld" und die falsche
+  für „wie arbeite ich damit" — wer die Frage stellt, bevor er auf der Seite steht,
+  findet die Antwort dort nicht, und wer sie zweimal gelesen hat, überfährt sie nie
+  wieder. Erklärungen stehen unter **Software · Doku** (`ansichten/Doku.tsx`), und wer
+  ein Feld einführt, das Erklärung braucht, schreibt sie **dort** hin.
 - **Vor jedem Löschen eine Nachfrage, die den Namen nennt und den milderen Weg
   vorschlägt** (beenden, stilllegen, als abgeschlossen führen). Kein `window.confirm`.
 - **Eine leere Liste ist kein Fehler**, sondern eine Leerstelle mit einem Satz dazu,
@@ -186,6 +191,45 @@ liegen. Die Zahlen stehen als Kommentar in `farben.css`.
 **Ein Ton, der auf der Leiste steht, heißt `--kopf-*`.** `--marke-dunkel` und
 `--auf-marke` kippen zwischen hell und dunkel, die Leiste nicht — wer dort einen
 Markenton benutzt, bekommt im dunklen Thema Hell auf Hell.
+
+## Änderungen werden protokolliert — in `socos/aenderungen.py`
+
+**Wer etwas ändert, das man in der Oberfläche merkt, trägt es dort ein — im selben
+Commit.** Auch Kleinigkeiten: ein umbenannter Knopf, ein Feld, das dazukommt, eine
+Liste, die anders sortiert. Genau die fallen sonst niemandem auf außer dem, der sie
+am nächsten Tag sucht.
+
+Ein Eintrag ist **kein Commit-Text**. Er sagt einem Nutzer, was er jetzt anders machen
+kann — nicht, welche Datei angefasst wurde:
+
+```python
+{
+    "version": "2026-09-14",          # das Datum, JJJJ-MM-TT
+    "titel": "Kurz, worum es ging",
+    "punkte": [
+        {"titel": "Eine Sache", "text": "Zwei Sätze, was sich ändert.", "wo": "zeit"},
+    ],
+},
+```
+
+- **Die Version ist das Datum.** Sie sortiert sich damit selbst und beantwortet
+  nebenbei „seit wann"; ein hochgezählter Zähler täte das nicht.
+- **Zwei Änderungen an einem Tag bekommen einen Eintrag mit zwei Punkten**, keine
+  zweite Version. Die Liste steht **neueste zuerst**.
+- `wo` ist der Weg, den der Knopf „Ansehen" öffnet (`"doku/aenderungen"`, `"zeit"`, …)
+  — freiwillig.
+- **Eine Seite je Punkt**: Das Fenster nach der Anmeldung blättert sie einzeln durch.
+  Drei Absätze hintereinander liest niemand zu Ende.
+
+Aus dieser einen Liste leben beide Seiten — das Fenster, das jeder **einmal** nach
+der Anmeldung sieht (`Nutzer.neuigkeiten_bis` merkt sich, bis wohin), und die Rubrik
+„Änderungen" in der Doku. Eine zweite Liste daneben liefe auseinander, und auffallen
+würde es nicht: Gelesen wird immer nur die, die gerade aufgeht.
+
+Was jemandem an der Software auffällt, steht **nicht** hier, sondern unter
+**Software · Wünsche & Fehler** in der Anwendung. Wird so ein Eintrag erledigt, trägt
+der Admin dort die Version ein, die auch in `aenderungen.py` steht — das ist die
+Klammer zwischen „gemeldet" und „drin".
 
 ## Tests
 

@@ -7,6 +7,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { hole } from "./api";
 
+/**
+ * Eine Seite im Fenster, das nach der Anmeldung aufgeht. Der Inhalt kommt aus
+ * `socos/aenderungen.py` — es gibt keine zweite Liste im Frontend.
+ */
+export type Neuigkeit = {
+  version: string;
+  titel: string;
+  text: string;
+  /** Wohin der Knopf „Ansehen" führt — ein Weg wie „doku/aenderungen". Optional. */
+  wo?: string;
+};
+
 export type Ich = {
   id: number;
   name: string;
@@ -21,7 +33,34 @@ export type Ich = {
     finanzen_eintragen: boolean;
     nutzer_verwalten: boolean;
     sichern: boolean;
+    /** Stand, Antwort und Version an einer Rückmeldung setzen. */
+    rueckmeldungen_verwalten: boolean;
   };
+  /** Was dieser Nutzer noch nicht gesehen hat. Leer heißt: nichts Neues. */
+  neuigkeiten: Neuigkeit[];
+};
+
+export type Aenderungsversion = {
+  version: string;
+  titel: string;
+  punkte: { titel: string; text: string; wo?: string }[];
+};
+
+export type Rueckmeldung = {
+  id: number;
+  art: "wunsch" | "fehler";
+  titel: string;
+  text: string;
+  stand: "neu" | "angenommen" | "in_arbeit" | "erledigt" | "abgelehnt";
+  antwort: string;
+  /** In welcher Version es drin ist — leer, solange nichts erledigt ist. */
+  erledigt_in: string;
+  melder: number | null;
+  melder_name: string;
+  melder_initialen: string;
+  melder_farbe: string;
+  erstellt_am: string;
+  geaendert_am: string;
 };
 
 export type Stufe = { name: string; monate: number };
@@ -196,6 +235,21 @@ export const useDashboard = (parameter: Record<string, string> = {}) => {
   });
 };
 
+export const useAenderungen = () =>
+  useQuery({
+    queryKey: ["aenderungen"],
+    queryFn: () =>
+      hole<{ neueste: string; versionen: Aenderungsversion[] }>("/aenderungen/"),
+    // Die Liste steht im Quelltext und ändert sich nur mit einem Deploy.
+    staleTime: Infinity,
+  });
+
+export const useRueckmeldungen = () =>
+  useQuery({
+    queryKey: ["rueckmeldungen"],
+    queryFn: () => hole<Rueckmeldung[]>("/rueckmeldungen/"),
+  });
+
 export const useProjekte = () =>
   useQuery({ queryKey: ["projekte"], queryFn: () => hole<Projekt[]>("/projekte/") });
 
@@ -250,7 +304,7 @@ export function useNeuLaden() {
   return () => {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
-      "events", "team", "ich", "protokoll",
+      "events", "team", "ich", "protokoll", "rueckmeldungen",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

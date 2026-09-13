@@ -7,6 +7,85 @@ betrifft.
 
 ---
 
+## 2026-09-13 — Das Fragezeichen ist weg: Doku, Neuigkeiten, Wünsche & Fehler
+
+### Warum
+
+Die Erklärungen hingen als `?` neben einzelnen Beschriftungen — zwölf Stück, verteilt
+über acht Dateien. Das ist die richtige Form für „was heißt dieses Feld" und die
+falsche für „wie arbeite ich damit": Wer die Frage stellt, bevor er auf der Seite
+steht, findet die Antwort dort nicht, und wer sie zweimal gelesen hat, überfährt sie
+nie wieder. Dazu kam: Was jemandem an der Software auffiel, blieb ein Zuruf über den
+Tisch, und was sich geändert hatte, merkte man daran, dass ein Knopf woanders war.
+
+Drei Dinge, eine Gruppe in der Leiste: **Software · Doku** und **Software · Wünsche
+& Fehler**, dazu ein Fenster nach der Anmeldung.
+
+### Die Änderungsliste steht im Quelltext, nicht in der Datenbank
+
+`socos/aenderungen.py` ist die **einzige** Liste. Aus ihr leben beide Seiten: das
+Fenster, das jeder einmal je Änderung sieht, und die Rubrik „Änderungen" in der Doku.
+
+**Warum nicht als Modell:** Ein Eintrag gehört zu einem Deploy, nicht zu einem
+Bestand. Er entsteht im selben Commit wie die Änderung, wandert mit ihr auf den
+Server und ist auf einer frisch aufgesetzten Datenbank sofort da. Als Tabelle müsste
+ihn jemand nach dem Deploy von Hand nachtragen — und genau das passiert beim dritten
+Mal nicht mehr.
+
+**Die Version ist das Datum** (`JJJJ-MM-TT`). Sie sortiert sich selbst, beantwortet
+nebenbei „seit wann", und der Vergleich „was ist für diesen Nutzer neu" ist ein
+Zeichenkettenvergleich. Zwei Änderungen an einem Tag bekommen **einen** Eintrag mit
+zwei Punkten.
+
+### Warum `neuigkeiten_bis` eine Version ist und kein Zeitstempel
+
+`Nutzer.neuigkeiten_bis` merkt sich die zuletzt bestätigte **Version**, nicht den
+Moment des Ansehens. Mit einem Zeitstempel entschiede die Uhr darüber, ob jemand eine
+Änderung kennt, die vor seinem letzten Besuch veröffentlicht wurde — und nach einer
+Zeitumstellung oder einem Restore wäre die Antwort eine andere.
+
+Bestätigt wird immer bis `NEUESTE`, auch wenn jemand nach der ersten Seite schließt:
+Sonst stünde das Fenster beim nächsten Anmelden wieder da, und die Zusage „einmal und
+nie wieder" wäre keine. Was jemand überspringt, steht in der Doku.
+
+**Neue Konten starten auf `NEUESTE`** (`NutzerVerwaltung.create_user`). Wer heute
+dazukommt, braucht keine Führung durch die Änderungen der Monate davor — für ihn ist
+nichts davon neu, es ist einfach die Anwendung.
+
+### Wünsche & Fehler: die einzige Stelle, an der ein Leser schreibt
+
+`Rueckmeldung` (Art · Titel · Text · Melder · Stand · Antwort · `erledigt_in`).
+
+- **Melden darf jede Rolle** — `berechtigung.darf_melden` gilt für alle drei, auch für
+  den Leser. Wem ein Fehler auffällt, der soll ihn melden können; was dabei entsteht,
+  ist keine Fachinformation, sondern ein Zettel an uns. Dafür gibt es eine eigene
+  Berechtigungsklasse (`RueckmeldungsBerechtigung`), weil die gemeinsame beim
+  Schreiben `darf_bearbeiten` verlangt.
+- **Stand, Antwort und Version setzt nur ein Admin.** Die Prüfung sitzt im
+  Serializer und ist **feldweise** (`ADMINFELDER`): Ein Melder darf seinen eigenen
+  Text nachschärfen, aber nicht nebenbei auf „erledigt" setzen. Fremde Texte fasst
+  nur ein Admin an — das prüft das ViewSet, weil es dafür das Objekt braucht.
+- **`erledigt_in` ist eine Zeichenkette, kein Verweis.** Die Versionen stehen im
+  Quelltext; ein Fremdschlüssel bräuchte eine zweite Liste in der Datenbank daneben.
+  Die Ansicht bündelt Erledigtes **nach dieser Version** — „was kam mit dem letzten
+  Update?" ist die Frage, die dort gestellt wird.
+- Abgelehntes zählt **nicht** zu den offenen Punkten. Ein Wunsch, der nicht kommt,
+  muss das sagen dürfen, sonst steht er für immer auf „neu" und niemand traut der
+  Liste mehr.
+
+### Kleinigkeiten, die Zeit gekostet hätten
+
+- **`.meldung` war schon vergeben** — das ist der kurze Hinweis, der oben rechts
+  aufgeht. Die Liste der Wünsche heißt im Stil deshalb `.zettel`.
+- Das Fenster nach der Anmeldung ist **eine Seite je Punkt**. Drei Absätze
+  hintereinander liest niemand zu Ende; die Punkte darunter sagen ohne Lesen, wie
+  viel noch kommt.
+- Ob jemand Rückmeldungen verwalten darf, kommt aus `/api/ich/`
+  (`darf.rueckmeldungen_verwalten`) und **nicht** aus `ich.rolle === "admin"` im
+  Frontend. Sonst stünde eine Schwelle an einer zweiten Stelle.
+
+---
+
 ## 2026-09-12 — Neue visuelle Sprache: Entwurf „Werkbank" (Etappe 1 von 3)
 
 ### Warum überhaupt

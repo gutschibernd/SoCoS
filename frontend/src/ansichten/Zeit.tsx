@@ -12,7 +12,6 @@ import {
 } from "../basis/daten";
 import { Zustand } from "../basis/Zustand";
 import { alsDauer, alsStunden } from "../basis/zeit";
-import { Hilfe } from "../bausteine/Hilfe";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
@@ -77,10 +76,7 @@ export function Zeit({ ich }: { ich: Ich }) {
     <div className="spalte">
       {entwuerfe.length > 0 && (
         <div className="karte karte-achtung">
-          <h2>
-            Bitte bestätigen
-            <Hilfe text="Diese Buchungen liefen über das Tagesende hinaus, weil der Clock-out fehlte. Sie wurden dort abgeschnitten und zählen in keiner Summe und in keinem Zeitnachweis mit, bis du das Ende bestätigst." />
-          </h2>
+          <h2>Bitte bestätigen</h2>
           {entwuerfe.map((b) => (
             <EntwurfZeile key={b.id} buchung={b} neuLaden={neuLaden} />
           ))}
@@ -108,7 +104,6 @@ export function Zeit({ ich }: { ich: Ich }) {
           <label className="schalter">
             <input type="checkbox" checked={alleMonate} onChange={(e) => setAlleMonate(e.target.checked)} />
             Alle Monate
-            <Hilfe text="Ohne Zeitraum kommt alles. Es gibt keinen stillen Filter auf den laufenden Monat — Zahlen, die plausibel aussehen und einen anderen Zeitraum meinen, sind die schlimmere Sorte Fehler." />
           </label>
         </div>
 

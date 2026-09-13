@@ -426,28 +426,179 @@
 .zustand-titel { font-size: 16px; font-weight: 600; color: var(--text); }
 .zustand-satz { margin: 8px 0 16px; font-size: 14px; }
 
-/* --- Hilfe-Zeichen ------------------------------------------------------- */
+/* --- Doku ----------------------------------------------------------------- */
 /*
- * Keine erklärenden Absätze in der Seite: Ein Absatz mitten in der Seite wird
- * ab dem dritten Öffnen nicht mehr gelesen, muss aber jedesmal überblättert
- * werden und kostet am Handy den halben Bildschirm.
+ * Fünf Formen, mehr nicht: Karte mit Siegel und Vorspann, Begriffskacheln,
+ * nummerierte Schritte, Baum, Merksatz.
+ *
+ * Sie lösen die Fragezeichen ab, die bis hierher neben einzelnen
+ * Beschriftungen standen. Ein `?` ist die richtige Form für „was heißt dieses
+ * Feld" und die falsche für „wie arbeite ich damit": Wer die Frage stellt,
+ * bevor er auf der Seite steht, findet die Antwort dort nicht.
  */
 
-.hilfe { position: relative; display: inline-block; }
-.hilfe > button {
-  width: 18px; height: 18px; padding: 0; line-height: 1;
-  border: 1px solid var(--rand-stark); border-radius: 50%;
-  background: var(--flaeche); color: var(--text-sehr-leise);
-  font-size: 11px; font-weight: 700; cursor: pointer;
+.doku-karte { padding: 20px 22px; }
+.doku-kopf { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+.doku-kopf h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+
+/* Das Siegel ist die einzige Fläche in der Doku, die Farbe trägt — ein Ton,
+   damit die Rubriken ein Bild bekommen, ohne dass Farbe Bedeutung vortäuscht. */
+.doku-siegel {
+  flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center;
+  border: 1px solid var(--marke-rand); border-radius: var(--kante);
+  background: var(--marke-hell); color: var(--marke);
 }
-.hilfe > button:hover { border-color: var(--marke-rand); color: var(--marke); }
-.hilfe-text {
-  position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; width: 260px;
-  background: var(--flaeche); border: 1px solid var(--rand-stark);
-  border-radius: var(--kante); padding: 11px 13px;
-  font-size: 13px; line-height: 1.5; color: var(--text); font-weight: 400;
-  text-transform: none; letter-spacing: normal;
+.doku-siegel .zeichen { width: 18px; height: 18px; }
+
+.doku-vorspann { margin: 5px 0 0; font-size: 14px; line-height: 1.55; color: var(--text-leise); }
+.doku-text { margin: 0 0 12px; font-size: 14px; line-height: 1.6; }
+.doku-text code {
+  font-family: var(--schrift-zahl); font-size: 12.5px;
+  background: var(--flaeche-leise); padding: 1px 5px; border-radius: var(--kante);
 }
+
+/* Begriffskacheln. Auto-fill statt fester Spaltenzahl: Dieselbe Regel trägt
+   die Seitenleisten-Breite am Rechner und die eine Spalte am Handy — eine
+   zweite Ansicht dafür würde beim nächsten Begriff vergessen. */
+.doku-begriffe {
+  margin: 0; display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+.doku-begriff {
+  border: 1px solid var(--rand); border-radius: var(--kante);
+  background: var(--flaeche-leise); padding: 11px 13px;
+}
+.doku-begriff dt { font-size: 13px; font-weight: 700; color: var(--text); }
+.doku-begriff dd {
+  margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--text-leise);
+}
+
+/* Nummerierte Schritte. Die Ziffer steht als Zähler in einem eigenen Kreis und
+   nicht als list-style: Der Browser setzt sie sonst außerhalb der Karte, und
+   am Handy wird sie abgeschnitten. */
+.doku-schritte { counter-reset: schritt; list-style: none; margin: 0 0 14px; padding: 0; }
+.doku-schritte li {
+  counter-increment: schritt; position: relative; padding: 0 0 0 34px;
+  margin-bottom: 11px; font-size: 14px; line-height: 1.55; color: var(--text-leise);
+}
+.doku-schritte li:last-child { margin-bottom: 0; }
+.doku-schritte li b { color: var(--text); }
+.doku-schritte li::before {
+  content: counter(schritt); position: absolute; left: 0; top: 0;
+  width: 22px; height: 22px; display: grid; place-items: center;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-leise);
+}
+
+/* Der Baum der vier Ebenen. Die Einrückung trägt eine Haarlinie — dasselbe
+   Mittel wie überall sonst: Trennung durch Linien, keine Schatten. */
+.doku-baum, .doku-baum ul { list-style: none; margin: 0; padding: 0; }
+.doku-baum ul { margin-left: 11px; padding-left: 16px; border-left: 1px solid var(--rand); }
+.doku-baum li { padding: 8px 0 0; }
+.doku-baum b { display: block; font-size: 14px; color: var(--text); }
+.doku-baum em { font-style: normal; font-size: 13px; color: var(--text-leise); }
+
+/* Der Merksatz — kupferne Kante links, wie die Karte, die etwas von einem will.
+   Kein eigener Farbton: Es gibt genau einen Ton für „hier schauen". */
+.doku-merke {
+  margin: 14px 0 0; padding: 10px 0 10px 13px;
+  border-left: 3px solid var(--akzent);
+  font-size: 13.5px; line-height: 1.55; color: var(--text-leise);
+}
+
+.doku-wege { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.doku-weg {
+  display: flex; gap: 11px; align-items: flex-start; text-align: left;
+  min-height: var(--griff); padding: 11px 13px; cursor: pointer;
+  border: 1px solid var(--rand); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text); font: inherit;
+}
+.doku-weg:hover { border-color: var(--marke-rand); background: var(--flaeche-leise); }
+.doku-weg > .zeichen { width: 18px; height: 18px; margin-top: 1px; color: var(--marke); }
+.doku-weg b { display: block; font-size: 14px; }
+.doku-weg em { font-style: normal; font-size: 12.5px; color: var(--text-leise); }
+
+.doku-tabelle { margin-bottom: 4px; }
+
+/* Die Änderungsliste. Jede Version ein Abschnitt mit ihrem Datum als Zahl —
+   in der Monospace, wie jede Zahl in dieser Anwendung. */
+.doku-version { border-top: 1px solid var(--rand); padding-top: 14px; margin-top: 14px; }
+.doku-version:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+.doku-version-kopf { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.doku-version-kopf h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.doku-version-kopf .zahl { font-size: 12.5px; color: var(--text-sehr-leise); }
+.doku-punkte { list-style: none; margin: 10px 0 0; padding: 0; }
+.doku-punkte li {
+  padding: 9px 0 9px 14px; border-left: 2px solid var(--marke-rand); margin-bottom: 6px;
+}
+.doku-punkte b { display: block; font-size: 14px; }
+.doku-punkte span { font-size: 13px; line-height: 1.55; color: var(--text-leise); }
+
+/* --- Wünsche und Fehler --------------------------------------------------- */
+/*
+ * „zettel" und nicht „meldung": `.meldung` ist der kurze Hinweis, der oben
+ * rechts aufgeht. Zwei Bedeutungen an einem Klassennamen laufen beim nächsten
+ * Anfassen auseinander.
+ */
+
+.zettel-arten { display: flex; gap: 8px; margin-bottom: 14px; }
+.zettel-arten > button[aria-pressed="true"] {
+  border-color: var(--akzent); color: var(--akzent); background: var(--akzent-hell);
+}
+
+.zettelliste { list-style: none; margin: 0; padding: 0; }
+.zettel {
+  border-top: 1px solid var(--rand); padding: 14px 0;
+}
+.zettel:first-child { border-top: 0; padding-top: 4px; }
+.zettel:last-child { padding-bottom: 0; }
+
+.zettel-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.zettel-titel { font-size: 14.5px; flex: 1 1 220px; }
+/* Fehler und Wunsch unterscheiden sich am Wort, nicht an einer Farbe: Rot für
+   „Fehler" wäre eine Bewertung, und gemeldet wird hier auch Kleinkram. */
+.zettel-art {
+  padding: 2px 8px; border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  font-size: 11.5px; font-weight: 600; color: var(--text-leise);
+}
+.zettel[data-art="fehler"] .zettel-art { border-color: var(--warnung); color: var(--warnung); }
+
+.zettel-text {
+  margin: 8px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--text-leise);
+  white-space: pre-wrap;
+}
+.zettel-fuss {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 9px; font-size: 12.5px; color: var(--text-sehr-leise);
+}
+.zettel-fuss > span { flex: 1 1 auto; }
+.zettel-antwort {
+  margin: 10px 0 0; padding: 9px 12px; border-left: 3px solid var(--marke-rand);
+  background: var(--flaeche-leise); font-size: 13.5px; line-height: 1.55;
+}
+.zettel-werkzeug {
+  margin-top: 11px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  border: 1px solid var(--rand); border-radius: var(--kante); background: var(--flaeche-leise);
+}
+
+/* --- Was ist neu ---------------------------------------------------------- */
+/*
+ * Das Fenster nach der Anmeldung. Eine Sache je Seite: Drei Punkte als Absätze
+ * hintereinander liest niemand zu Ende.
+ */
+
+.neuigkeiten { max-width: 480px; }
+.neuigkeiten-kopf { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
+.neuigkeiten-kopf > div { display: flex; flex-direction: column; }
+.neuigkeiten-version { font-size: 12.5px; color: var(--text-sehr-leise); }
+.neuigkeiten h2 { margin-bottom: 8px; }
+
+/* Die Punkte sagen ohne Lesen, wie viel noch kommt. */
+.neuigkeiten-punkte { display: flex; gap: 6px; margin: 0 0 16px; }
+.neuigkeiten-punkte > i {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--rand-stark);
+}
+.neuigkeiten-punkte > i[data-hier="ja"] { background: var(--akzent); }
 
 /* --- Dialog -------------------------------------------------------------- */
 
@@ -1264,7 +1415,7 @@ a.mini { text-decoration: none; }
     text-align: left; flex: 0 0 auto;
   }
 
-  .raster-4, .raster-3, .raster-2, .kacheln { grid-template-columns: 1fr; }
+  .raster-4, .raster-3, .raster-2, .kacheln, .doku-wege { grid-template-columns: 1fr; }
   .seite { padding: 14px 14px 40px; }
 
   /* Jeder Text, den man antippen kann, ist ein Fingerziel — auch einer, der
@@ -1317,6 +1468,10 @@ a.mini { text-decoration: none; }
      mit 170 px nebeneinander über den Rand zu laufen. */
   .datumsfeld { flex: 1 1 calc(50% - 4px); width: auto; }
   .stand-wahl, .prio-wahl { font-size: 15px; }
+
+  /* Der Baum rückt am Handy weniger weit ein: Vier Ebenen mal 27 px sind bei
+     375 px die halbe Breite, und die unterste Zeile bräche dann Wort für Wort. */
+  .doku-baum ul { margin-left: 6px; padding-left: 11px; }
 }
 
 /* --- Meldungen ----------------------------------------------------------- */

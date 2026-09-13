@@ -21,6 +21,7 @@ from socos.models import (
     Organisation,
     Projekt,
     Protokolleintrag,
+    Rueckmeldung,
     Unteraufgabe,
     Verlaufseintrag,
     Zeitbuchung,
@@ -427,3 +428,53 @@ class ProtokollSerializer(serializers.ModelSerializer):
             "id", "zeitpunkt", "nutzer_text", "modell", "objekt_id",
             "objekt_text", "aktion", "aenderungen",
         ]
+
+
+# --- Wünsche und Fehler -----------------------------------------------------
+
+
+class RueckmeldungSerializer(serializers.ModelSerializer):
+    """
+    Melden darf jeder; Stand, Antwort und Version setzt nur ein Admin.
+
+    Die Prüfung steht **hier** und nicht nur im ViewSet, weil sie feldweise ist:
+    Ein Melder darf seinen eigenen Eintrag noch nachschärfen, aber nicht
+    nebenbei auf „erledigt" setzen. Wer was darf, kommt aus
+    `socos/berechtigung.py` — hier steht nur, auf welche Felder es sich bezieht.
+    """
+
+    #: Was nur ein Admin schreiben darf. Als Liste und nicht dreimal in einer
+    #: Bedingung: Beim vierten Feld wird die Bedingung vergessen.
+    ADMINFELDER = ("stand", "antwort", "erledigt_in")
+
+    melder_name = serializers.CharField(source="melder.name", read_only=True, default="")
+    melder_initialen = serializers.CharField(
+        source="melder.initialen", read_only=True, default=""
+    )
+    melder_farbe = serializers.CharField(source="melder.farbe", read_only=True, default="")
+
+    class Meta:
+        model = Rueckmeldung
+        fields = [
+            "id", "art", "titel", "text", "stand", "antwort", "erledigt_in",
+            "melder", "melder_name", "melder_initialen", "melder_farbe",
+            "erstellt_am", "geaendert_am",
+        ]
+        # Der Melder ist, wer schickt — nicht, wen das Formular mitschickt.
+        read_only_fields = ["id", "melder", "erstellt_am", "geaendert_am"]
+
+    def _nutzer(self):
+        anfrage = self.context.get("request")
+        return anfrage.user if anfrage else None
+
+    def validate(self, daten):
+        gesetzt = [f for f in self.ADMINFELDER if f in daten]
+        if gesetzt and not berechtigung.darf_rueckmeldung_verwalten(self._nutzer()):
+            raise serializers.ValidationError(
+                {gesetzt[0]: "Den Stand einer Rückmeldung setzt ein Admin."}
+            )
+        return daten
+
+    def create(self, daten):
+        daten["melder"] = self._nutzer()
+        return super().create(daten)

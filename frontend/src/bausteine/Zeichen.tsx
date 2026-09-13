@@ -39,7 +39,9 @@ export type ZeichenName =
   | "hoerer"
   | "fahne"
   | "zuhause"
-  | "mehr";
+  | "mehr"
+  | "buch"
+  | "sprechblase";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -95,6 +97,14 @@ const PFADE: Record<ZeichenName, string> = {
   /* Nur am Handy: der fünfte Platz in der Fußleiste, hinter dem steht, was
      dort nicht mehr hinpasst. */
   mehr: "M4 6.5h16M4 12h16M4 17.5h16",
+  /* Ein aufgeschlagenes Buch, zwei Seiten am Falz. Kein „i" im Kreis: Das
+     stand bis hierher als Fragezeichen neben jeder Beschriftung und heißt
+     „eine Erklärung an dieser Stelle" — hier geht es zu allen. */
+  buch: "M12 7.5v12M12 7.5C12 6.4 10.2 5 7.5 5H4v12h3.5c2.7 0 4.5 1.4 4.5 2.5M12 7.5C12 6.4 13.8 5 16.5 5H20v12h-3.5c-2.7 0-4.5 1.4-4.5 2.5",
+  /* Eine Sprechblase mit Zipfel nach links unten — „jemand sagt etwas". Der
+     Zipfel sitzt am Rand und nicht in der Mitte: mittig wird er bei 18 px zu
+     einem Zacken, den man für einen Fehler im Strich hält. */
+  sprechblase: "M4 5h16v11H9l-4 4v-4H4z",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

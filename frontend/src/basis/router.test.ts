@@ -62,6 +62,21 @@ describe("ausPfad", () => {
     expect(ausPfad("/profil/gehalt")).toEqual({ seite: "profil", unter: null });
   });
 
+  // Die Rubrik der Doku ist ein Weg und kein Zustand: „Schick mir den Link zur
+  // Zeiterfassung" soll ein Link sein können.
+  it("liest die Rubrik der Doku", () => {
+    expect(ausPfad("/doku")).toEqual({ seite: "doku", unter: null });
+    expect(ausPfad("/doku/aenderungen")).toEqual({ seite: "doku", unter: "aenderungen" });
+    expect(ausPfad("/doku/erfunden")).toEqual({ seite: "doku", unter: null });
+  });
+
+  // „Wünsche & Fehler" hat keine zweite Ebene — eine erfundene wird verworfen,
+  // die Seite bleibt.
+  it("liest die Wünsche und Fehler", () => {
+    expect(ausPfad("/rueckmeldungen")).toEqual({ seite: "rueckmeldungen", unter: null });
+    expect(ausPfad("/rueckmeldungen/7")).toEqual({ seite: "rueckmeldungen", unter: null });
+  });
+
   it("übergeht doppelte Schrägstriche", () => {
     expect(ausPfad("//kontakte//12")).toEqual({ seite: "kontakte", unter: "12" });
   });

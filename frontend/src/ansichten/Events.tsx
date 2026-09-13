@@ -57,7 +57,6 @@ import type { Seite } from "../basis/router";
 import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Feldtext } from "../bausteine/Feldtext";
-import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
@@ -251,7 +250,6 @@ function Uebersicht({
             onChange={(e) => setSuche(e.target.value)}
             aria-label="Suchen"
           />
-          <Hilfe text="Die Suche geht auch über die Hitlist: Wer den Namen einer Förderstelle eingibt, findet das Event, auf dem er sie treffen wollte." />
         </div>
       </div>
 
@@ -652,11 +650,6 @@ function Hitlistkarte({
         <Zeichen name="zeiger" klasse="zeiger-klapp" />
         <span className="klapptitel">Hitlist</span>
         <Standzahlen zahlen={zaehlung(event.ziele)} />
-        {/* Ein Klick im `?` darf die Karte nicht auf- und zuklappen — das tut
-            in einem <summary> sonst jeder Klick. */}
-        <span onClick={(e) => e.preventDefault()}>
-          <Hilfe text="Wen wollen wir hier ansprechen? Jede Zeile zeigt auf eine Organisation oder auf eine Person aus den Kontakten — nie auf einen frei getippten Namen. Wen man tatsächlich getroffen hat, steht oben im Verlauf; dafür muss hier niemand stehen." />
-        </span>
       </summary>
 
       {ich.darf.bearbeiten && (
@@ -871,10 +864,7 @@ function Verlaufskarte({
 
   return (
     <div className="karte">
-      <h2>
-        Verlauf
-        <Hilfe text="Was hier notiert wird, steht auch beim Kontakt — es ist derselbe Eintrag. Angeboten wird jeder Kontakt, nicht nur die Hitlist: Wen man trifft, entscheidet der Gang über den Flur. Wer noch gar nicht in den Kontakten steht, wird hier gleich angelegt." />
-      </h2>
+      <h2>Verlauf</h2>
 
       {ich.darf.bearbeiten && (
         <div className="nachbuchen">

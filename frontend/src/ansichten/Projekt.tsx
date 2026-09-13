@@ -13,7 +13,6 @@ import {
 import { alsPfad, type Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { alsDauer } from "../basis/zeit";
-import { Hilfe } from "../bausteine/Hilfe";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Feldtext } from "../bausteine/Feldtext";
@@ -559,7 +558,6 @@ function Stufenbearbeitung({ paket, neuLaden }: { paket: Paket; neuLaden: () => 
             </option>
           ))}
         </select>
-        <Hilfe text="Eine Vorlage ersetzt die ganze Leiste und setzt den Stand auf null — „Stufe 3“ heißt in einer anderen Leiste etwas anderes." />
       </div>
 
       <ul className="stufen-liste">
@@ -770,7 +768,6 @@ function PaketZeile({
         <div className="paket-tiefe">
           <div className="stufen-kopf">
             <span>Stufen</span>
-            <Hilfe text="Der Fortschritt rechnet über die Monate, nicht über die Anzahl: „Umsetzung“ mit drei Monaten neben „Konzept“ mit einem ist die Hälfte des Weges, nicht ein Viertel. Ein Klick setzt den Stand, ein zweiter auf dieselbe Stufe nimmt ihn zurück." />
           </div>
           <div className="stufen">
             {paket.stufen.map((stufe, i) => (
