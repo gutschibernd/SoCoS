@@ -24,6 +24,17 @@ VERSIONEN = [
         "titel": "Doku, Neuigkeiten, Wünsche & Fehler",
         "punkte": [
             {
+                "titel": "Das Zeichen von SoCoS ist neu",
+                "text": (
+                    "Die vier Balken stehen jetzt auf dunklem Grund mit "
+                    "gestreuten Farbsplittern und haben ringsum Luft — am "
+                    "iPhone hat der Homescreen dem obersten Balken bisher die "
+                    "Enden abgeschnitten. Wer SoCoS schon auf dem Homescreen "
+                    "liegen hat, muss die Kachel einmal löschen und neu "
+                    "ablegen; das alte Bild bleibt sonst liegen."
+                ),
+            },
+            {
                 "titel": "Die Fragezeichen sind weg",
                 "text": (
                     "Die kleinen ?-Zeichen neben den Beschriftungen gibt es nicht "

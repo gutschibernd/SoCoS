@@ -7,6 +7,55 @@ betrifft.
 
 ---
 
+## 2026-09-13 — Das Zeichen bekommt einen Rand und einen Untergrund
+
+### Warum
+
+Am iPhone sah das Signet auf dem Homescreen schlecht aus. Der Befund war kein
+Farbproblem: Der oberste Balken stand bei `y = 4` und lief von `x = 12` bis
+`52`. iOS rundet die Kachel mit rund 22 % der Kante und beschneidet sie
+zusätzlich als Superellipse — genau dort verlor der breiteste Balken beide
+Enden, und weil die Treppe bündig links steht, kippte das Zeichen zusätzlich
+nach links.
+
+### Was jetzt gilt
+
+**Die Treppe hat ringsum Luft.** Der Abstand zwischen den Balken geht von 8 auf
+4, die Treppe wird damit 44 statt 56 hoch und sitzt bei y 12..56, x 12..52.
+
+**Oben 12, unten 8 — und das ist keine Schlamperei.** Auf einem Raster von 4
+ist der Schritt von Balken zu Balken zwangsläufig 12, die Treppe also 44 hoch;
+die übrigen 20 Einheiten teilen sich nur in 12/8 oder 8/12. Der breiteste
+Balken steht oben und läuft als einziger in die Rundung — er bekommt den
+größeren Rand. 10/10 ist auf diesem Raster nicht erreichbar, und ein krummer
+Wert wäre der teurere Fehler (siehe unten).
+
+**Der Untergrund ist „Terrazzo":** `#072B2D` mit 26 gestreuten Quadraten aus der
+Palette. Sie stehen als **feste Liste** in `socos/marke.py`, nicht als Zufall
+zur Laufzeit — sonst sähe jeder Lauf von `manage.py symbole` anders aus, und
+der Unterschied fiele erst im Reiter neben einem alten Lesezeichen auf. Die
+Deckung der Entwürfe ist in die Farbwerte gerechnet, weil PIL und ein Browser
+sonst zweimal dieselbe Mischung treffen müssten und es nicht täten.
+
+**Kein Splitter liegt im Feld der Balken** (`SCHUTZHOF`, x 10..54, y 10..58).
+Ohne diesen Hof wäre das Zeichen bei 16 px ein gesprenkeltes Quadrat statt
+vier Balken.
+
+### Zwei Fallen
+
+**`x = 14` war die erste Fassung — und falsch.** 14 ist nicht durch 4 teilbar;
+bei 16 px hätte jede linke Balkenkante auf einem halben Pixel gelegen. Genau
+der Fehler von 2026-09-08, im zweiten Anlauf wiedergekommen. Gefangen hat ihn
+`socos/tests/test_marke.py`, der neu dazu ist und beides prüft: dass alle Maße
+durch 4 teilbar sind und dass kein Balken in den Rand von 8 läuft.
+
+**Der PDF-Kopf zeichnete nur `BALKEN`.** Mit einem Untergrund wären daraus
+zwei Zeichen geworden, und das zweite wäre erst auf einem Blatt aufgefallen,
+das schon verschickt ist. SVG, PIL und `services/zeitnachweis.py` gehen jetzt
+alle durch `marke.flaechen()`.
+
+---
+
 ## 2026-09-13 — Das Fragezeichen ist weg: Doku, Neuigkeiten, Wünsche & Fehler
 
 ### Warum
@@ -1397,7 +1446,9 @@ gegeben.
 Rastereinheit (von 64) genau ein Viertelpixel. Die erste Fassung — Balkenhöhe
 7, Abstand 5, Rand 10 — lag auf 1,75 Pixeln je Balken; im Reiter wurde daraus
 ein grauer Verlauf statt vier Balken. Mit Höhe 8, Abstand 8, Rand 4 fällt jede
-Kante auf eine ganze Pixelgrenze.
+Kante auf eine ganze Pixelgrenze. *(Abstand und Rand sind am 2026-09-13 wieder
+gefallen — siehe den Eintrag „Das Zeichen bekommt einen Rand" oben. Die Regel
+„durch 4 teilbar" hat dabei zum zweiten Mal einen Fehler gefangen.)*
 
 **`/favicon.svg` an der Wurzel käme nie an.** Die letzte Route in
 `konfiguration/urls.py` fängt alles ab, was nicht `api/`, `admin/`, `static/`

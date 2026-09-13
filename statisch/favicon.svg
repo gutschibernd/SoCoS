@@ -1,8 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <!-- SoCoS. Erzeugt aus socos/marke.py — dort ändern, nicht hier. -->
-  <rect width="64" height="64" fill="#0F4448"/>
-  <rect x="12" y="4" width="40" height="8" fill="#FFFFFF"/>
-  <rect x="12" y="20" width="32" height="8" fill="#FFFFFF"/>
+  <rect width="64" height="64" fill="#072B2D"/>
+  <rect x="4" y="52" width="4" height="4" fill="#2D6464"/>
+  <rect x="58" y="32" width="4" height="4" fill="#0B3133"/>
+  <rect x="4" y="34" width="4" height="4" fill="#423B2D"/>
+  <rect x="60" y="14" width="4" height="4" fill="#559F9D"/>
+  <rect x="2" y="14" width="8" height="8" fill="#0B4144"/>
+  <rect x="6" y="36" width="4" height="4" fill="#478A89"/>
+  <rect x="36" y="2" width="4" height="4" fill="#326B6B"/>
+  <rect x="4" y="36" width="4" height="4" fill="#133E41"/>
+  <rect x="58" y="30" width="4" height="4" fill="#403B2D"/>
+  <rect x="60" y="16" width="4" height="4" fill="#73482C"/>
+  <rect x="2" y="46" width="4" height="4" fill="#144042"/>
+  <rect x="56" y="42" width="8" height="8" fill="#0E3639"/>
+  <rect x="30" y="2" width="4" height="4" fill="#0F3639"/>
+  <rect x="56" y="8" width="8" height="8" fill="#804C2C"/>
+  <rect x="2" y="12" width="8" height="8" fill="#0C484C"/>
+  <rect x="0" y="36" width="4" height="4" fill="#0E3437"/>
+  <rect x="54" y="12" width="4" height="4" fill="#3A7877"/>
+  <rect x="54" y="30" width="4" height="4" fill="#62442C"/>
+  <rect x="32" y="0" width="4" height="4" fill="#10373A"/>
+  <rect x="0" y="50" width="4" height="4" fill="#133D40"/>
+  <rect x="6" y="14" width="4" height="4" fill="#4D3E2D"/>
+  <rect x="30" y="58" width="4" height="4" fill="#164245"/>
+  <rect x="58" y="24" width="4" height="4" fill="#0D3436"/>
+  <rect x="8" y="0" width="4" height="4" fill="#0E3537"/>
+  <rect x="0" y="0" width="4" height="4" fill="#0B4044"/>
+  <rect x="0" y="16" width="4" height="4" fill="#0C3235"/>
+  <rect x="12" y="12" width="40" height="8" fill="#FFFFFF"/>
+  <rect x="12" y="24" width="32" height="8" fill="#FFFFFF"/>
   <rect x="12" y="36" width="24" height="8" fill="#C88A63"/>
-  <rect x="12" y="52" width="16" height="8" fill="#FFFFFF"/>
+  <rect x="12" y="48" width="16" height="8" fill="#FFFFFF"/>
 </svg>

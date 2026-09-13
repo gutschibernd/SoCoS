@@ -79,12 +79,12 @@ def monatstitel(monat):
 def _signet(leinwand, x, y, kante):
     """Das Signet der Marke, gerechnet aus socos/marke.py.
 
-    `y` ist die Unterkante. Die Balken sind dort von oben beschrieben, wie im
+    `y` ist die Unterkante. Die Flächen sind dort von oben beschrieben, wie im
     SVG; reportlab zählt von unten — daher die Spiegelung."""
     f = kante / marke.RASTER
     leinwand.setFillColor(colors.HexColor(marke.GRUND))
     leinwand.rect(x, y, kante, kante, stroke=0, fill=1)
-    for bx, by, bbreite, bhoehe, farbe in marke.BALKEN:
+    for bx, by, bbreite, bhoehe, farbe in marke.flaechen():
         leinwand.setFillColor(colors.HexColor(farbe))
         leinwand.rect(
             x + bx * f,
