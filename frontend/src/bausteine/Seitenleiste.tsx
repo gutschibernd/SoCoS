@@ -36,6 +36,7 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[] }[] = [
       { seite: "dashboard", titel: "Dashboard", zeichen: "dashboard" },
       { seite: "projekt", titel: "Projekt", zeichen: "projekt" },
       { seite: "zeit", titel: "Zeit", zeichen: "zeit" },
+      { seite: "aufgaben", titel: "Aufgaben", zeichen: "aufgaben" },
     ],
   },
   {

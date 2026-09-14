@@ -1282,6 +1282,105 @@ a.mini { text-decoration: none; }
 }
 .verlauf-fuss { display: block; margin-top: 4px; font-size: 11px; color: var(--text-sehr-leise); }
 
+/* --- Die Aufgabentafel ---------------------------------------------------- */
+/*
+ * Spalten nebeneinander, jede eine Karte. Kein Raster mit fester Spaltenzahl:
+ * Wie viele Spalten es gibt, hängt daran, wie viele Leute es gibt und wie
+ * viele davon zugeklappt sind — ein `repeat(4, …)` wäre bei dreien falsch und
+ * bei fünfen zu eng.
+ *
+ * `align-items: flex-start`, damit eine Spalte mit zwei Zeilen nicht auf die
+ * Höhe der Spalte mit zwanzig gezogen wird.
+ */
+.tafel { display: flex; gap: 16px; align-items: flex-start; }
+.tafel-spalte { flex: 1 1 0; min-width: 0; padding: 14px 16px; }
+
+/* Die zugeklappte Spalte: ein schmaler Streifen am rechten Rand, der sich mit
+   einem Tipp wieder öffnet. Beschriftet, nicht nur ein Kürzel — wer die Tafel
+   zum ersten Mal sieht, soll nicht raten, was hinter dem Streifen liegt. */
+.tafel-streifen {
+  flex: 0 0 52px; align-self: stretch;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 14px 6px;
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: var(--kante); cursor: pointer;
+  font: inherit; color: var(--text-leise);
+}
+.tafel-streifen:hover { border-color: var(--akzent); color: var(--akzent); }
+/* Der Name steht aufrecht gestellt — quer gelesen braucht der Streifen sonst
+   die Breite einer halben Spalte. */
+.tafel-streifen-name {
+  writing-mode: vertical-rl; font-size: 12.5px; font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tafel-kopf { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.tafel-kopf h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.tafel-zahl {
+  font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-sehr-leise);
+}
+.tafel-klappen { margin-left: auto; min-width: 32px; justify-content: center; }
+.tafel-klappen .zeichen { width: 14px; height: 14px; }
+
+.tafel-neu { display: flex; gap: 6px; margin-bottom: 10px; }
+.tafel-neu .feld { flex: 1 1 auto; min-width: 0; margin-top: 0; }
+.tafel-neu .mini { flex: 0 0 auto; min-width: 38px; justify-content: center; }
+
+.aufgabenliste { list-style: none; margin: 0; padding: 0; }
+.aufgabe {
+  display: flex; align-items: flex-start; gap: 6px;
+  border-bottom: 1px solid var(--flaeche-leise);
+}
+.aufgabe:last-child { border-bottom: 0; }
+
+/* Der Prioritätsknopf trägt sein Wort selbst — eine Farbe allein müsste man
+   lernen, und wer die Tafel zu zweit benutzt, lernt sie verschieden. */
+.aufgabe-prio {
+  flex: 0 0 auto; border: 1px solid transparent; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 600;
+  /* Volle Griffhöhe wie alles andere in der Zeile: Ein 30 px hoher Chip in
+     einer 44 px hohen Zeile sieht getroffen aus und ist es am Daumen nicht. */
+  min-height: var(--griff); padding: 3px 7px;
+}
+.aufgabe-prio:hover:not(:disabled) { border-color: var(--rand-stark); }
+.aufgabe-prio:disabled { cursor: default; }
+
+/* Der Text: `Feldtext`, also im Ruhezustand ein Knopf, der aussieht wie Text.
+   Er **bricht um** — in einer Spalte von 280 px wäre eine Zeile, die nach 30
+   Zeichen endet, keine Aufgabe mehr, sondern ein Rätsel. Griffhöhe auch hier:
+   Was man antippt, ist 44 px hoch, auch wenn nur eine Zeile darin steht. */
+.aufgabe-text {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; min-height: var(--griff);
+  font-size: 14.5px; line-height: 1.4; text-align: left;
+  overflow-wrap: anywhere;
+}
+/* Aufgeklappt ist es ein gewöhnliches Feld — es darf nur nicht die Breite des
+   Prioritätsknopfes an sich reißen. */
+.aufgabe > .feld { flex: 1 1 auto; min-width: 0; margin-top: 0; padding: 6px 8px; }
+.aufgabe[data-erledigt="ja"] .aufgabe-text {
+  text-decoration: line-through; color: var(--text-sehr-leise);
+}
+
+.aufgabe-haken {
+  flex: 0 0 auto; min-width: 36px; min-height: var(--griff);
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--rand); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text-sehr-leise); cursor: pointer;
+}
+.aufgabe-haken:hover:not(:disabled) { border-color: var(--gut); color: var(--gut); }
+.aufgabe-haken:disabled { opacity: 0.4; cursor: default; }
+.aufgabe-haken .zeichen { width: 15px; height: 15px; }
+.aufgabe[data-erledigt="ja"] .aufgabe-haken {
+  background: var(--gut-hell); border-color: var(--gut-hell); color: var(--gut);
+}
+
+.tafel-erledigt { border-top: 1px solid var(--rand); padding-top: 10px; margin-top: 10px; }
+.tafel-erledigt > summary .klapptitel { font-size: 11px; }
+.tafel-erledigt .aufgabenliste { margin-top: 4px; }
+/* In einer Spalte ist die Leerstelle ein Satz, keine halbe Seite. */
+.tafel-spalte .leerstelle { padding: 14px 4px; }
+
 
 /* ==========================================================================
    Schmaler Rechner (bis 1200 px): vier Kennzahlen werden zwei mal zwei
@@ -1387,6 +1486,20 @@ a.mini { text-decoration: none; }
     background: var(--kopf-kante);
   }
 
+  /* Die Tafel steht am Handy untereinander. Der zugeklappte Streifen wird zur
+     Zeile — quer gestellt wäre er hier ein Strich über die halbe Höhe. */
+  .tafel { flex-direction: column; align-items: stretch; gap: 12px; }
+  .tafel-streifen {
+    flex: 0 0 auto; align-self: stretch;
+    flex-direction: row; justify-content: flex-start; gap: 10px;
+    min-height: var(--griff); padding: 8px 12px;
+  }
+  .tafel-streifen-name { writing-mode: horizontal-tb; }
+  .tafel-streifen .tafel-zahl { margin-left: auto; }
+  /* Zugeklappt wird am Handy nach oben und nicht zur Seite — der Pfeil zeigt
+     deshalb dorthin, wohin die Spalte verschwindet. */
+  .tafel-klappen .zeichen { transform: rotate(-90deg); }
+
   /* Platz für Uhr und Fußleiste am Fuß der Seite. Ohne das liegt die letzte
      Tabellenzeile unter der Leiste und ist nicht erreichbar. */
   .seite { padding: 16px 16px calc(140px + env(safe-area-inset-bottom)); }
@@ -1429,7 +1542,12 @@ a.mini { text-decoration: none; }
   }
 
   .raster-4, .raster-3, .raster-2, .kacheln, .doku-wege { grid-template-columns: 1fr; }
-  .seite { padding: 14px 14px 40px; }
+  /* Unten **dieselben 140 px wie im 900er Block** und nicht 40. Hier stand
+     genau der Fehler, vor dem die Überschrift dieses Blocks warnt: Die Regel
+     weiter unten gewinnt bei gleicher Spezifität, und damit lag das Ende
+     jeder Seite hinter der Uhr und der Fußleiste — erreichbar war es nicht
+     mehr, und im Stylesheet sah beides richtig aus. */
+  .seite { padding: 14px 14px calc(140px + env(safe-area-inset-bottom)); }
 
   /* Jeder Text, den man antippen kann, ist ein Fingerziel — auch einer, der
      wie Fließtext aussieht. Am Rechner bleibt er kompakt, dort trifft die

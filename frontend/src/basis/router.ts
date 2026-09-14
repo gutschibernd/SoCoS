@@ -24,6 +24,7 @@ export const SEITEN = [
   "dashboard",
   "projekt",
   "zeit",
+  "aufgaben",
   "kontakte",
   "events",
   "profil",
@@ -51,6 +52,7 @@ export type Rubrik = (typeof RUBRIKEN)[number];
 export const DOKUTEILE = [
   "ueberblick",
   "zeit",
+  "aufgaben",
   "projekt",
   "kontakte",
   "events",

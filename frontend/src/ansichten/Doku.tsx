@@ -26,6 +26,7 @@ import { Zustand } from "../basis/Zustand";
 const TEILE: { teil: Dokuteil; titel: string }[] = [
   { teil: "ueberblick", titel: "Überblick" },
   { teil: "zeit", titel: "Zeit buchen" },
+  { teil: "aufgaben", titel: "Aufgaben" },
   { teil: "projekt", titel: "Projekt & Fortschritt" },
   { teil: "kontakte", titel: "Kontakte" },
   { teil: "events", titel: "Events" },
@@ -66,6 +67,7 @@ export function Doku({
       <div className="spalte">
         {gewaehlt === "ueberblick" && <Ueberblick wechseln={wechseln} />}
         {gewaehlt === "zeit" && <ZeitDoku />}
+        {gewaehlt === "aufgaben" && <AufgabenDoku />}
         {gewaehlt === "projekt" && <ProjektDoku />}
         {gewaehlt === "kontakte" && <KontakteDoku />}
         {gewaehlt === "events" && <EventsDoku />}
@@ -207,6 +209,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "dashboard" as const, zeichen: "dashboard" as const, titel: "Dashboard", text: "Woche, Geld, Fortschritt auf einen Blick." },
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, die Stufen." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
+            { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, je Person." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
           ].map((w) => (
@@ -296,6 +299,69 @@ function ZeitDoku() {
             {
               begriff: "Zeitnachweis",
               text: "Ein Monat als PDF — für eine Person oder fürs ganze Team. Entwürfe bleiben draußen.",
+            },
+          ]}
+        />
+      </Abschnitt>
+    </>
+  );
+}
+
+function AufgabenDoku() {
+  return (
+    <>
+      <Abschnitt
+        zeichen="aufgaben"
+        titel="Eine Tafel, drei Griffe"
+        vorspann="Spalten nebeneinander: „Allgemein“ für das, was niemandem bestimmt gehört, und eine je Person. Alle sehen alles, und jeder darf in jede Spalte schreiben — das ist der Zweck."
+      >
+        <Schritte
+          schritte={[
+            "Oben in die Zeile schreiben und Enter drücken. Fertig — es gibt kein Formular und keinen „Speichern“-Knopf.",
+            "Auf die Priorität tippen dreht sie weiter: Mittel → Hoch → Gering → Mittel. Die Liste ordnet sich sofort neu.",
+            "Der Haken rechts legt die Zeile ins Erledigte am Fuß der Spalte. Ein zweiter Tipp dort holt sie zurück.",
+          ]}
+        />
+        <p className="doku-text">
+          Den Text ändert man, indem man hineintippt und woanders hinklickt — die Zeile
+          <b> ist</b> das Eingabefeld.
+        </p>
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="mehr"
+        titel="Spalten, die man selten braucht"
+        vorspann="Jede Spalte lässt sich zu einem schmalen Streifen am rechten Rand zusammenklappen."
+      >
+        <p className="doku-text">
+          Das merkt sich <b>der Browser, nicht das Konto</b>: Wer am eigenen Rechner eine
+          Spalte zuklappt, klappt sie nicht für die anderen zu. An einem anderen Gerät
+          steht sie wieder offen.
+        </p>
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="achtung"
+        titel="Was die Tafel bewusst nicht kann"
+        vorspann="Sie ist ein Zettel am Bildschirmrand, keine zweite Projektansicht."
+      >
+        <Begriffe
+          paare={[
+            {
+              begriff: "Kein Datum",
+              text: "Kein „fällig am“. Was dringend ist, steht auf Hoch und damit oben.",
+            },
+            {
+              begriff: "Kein Arbeitspaket",
+              text: "Eine Aufgabe hängt an keinem Paket. Projektarbeit steht unter Projekt — sonst stünde sie an zwei Orten verschieden.",
+            },
+            {
+              begriff: "Kein Verschieben",
+              text: "Eine Zeile wandert nicht in eine andere Spalte. Abhaken und drüben neu schreiben dauert zwei Sekunden.",
+            },
+            {
+              begriff: "Kein Wer-war-das",
+              text: "Es gibt kein Feld dafür. Wer eine Zeile angelegt oder geändert hat, steht ohnehin im Änderungsprotokoll.",
             },
           ]}
         />

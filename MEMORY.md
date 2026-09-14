@@ -7,6 +7,67 @@ betrifft.
 
 ---
 
+## 2026-09-14 — Die Aufgabentafel (`Aufgabe`, Migration 0014)
+
+### Warum überhaupt ein eigenes Modell
+
+Gesucht war „eine stumpfe Liste": allgemeine Punkte, dazu je Person eine Spalte,
+alle sehen alles. Der naheliegende Weg wäre gewesen, das an die vorhandene
+`Unteraufgabe` zu hängen — **genau den nicht:** Die hängt an einem Arbeitspaket
+und ist Projektarbeit. Ein „ohne Paket" daneben hieße, dass dieselbe Tabelle zwei
+Dinge bedeutet, und jede Projektauswertung müsste ab da beide auseinanderhalten.
+
+### `person = NULL` heißt „Allgemein"
+
+Kein zweites Feld `ist_allgemein` daneben. Zwei Zustände für dieselbe Auskunft
+können sich widersprechen, und dann entscheidet die Reihenfolge im Code, welcher
+gilt.
+
+`on_delete=SET_NULL` und nicht PROTECT: Nutzer werden nicht gelöscht, sondern
+stillgelegt (`is_active`) — der Fall tritt also praktisch nie ein. Tritt er doch
+ein (Einspielen einer Sicherung), ist eine Aufgabe ohne Person immer noch eine
+lesbare Zeile, während PROTECT das Leeren blockieren würde.
+
+### Drei Prioritätsstufen, kein „offen"
+
+Die Organisation hat vier (`Prioritaet`, mit „noch nicht eingeschätzt"). Die
+Aufgabe hat drei, weil die Priorität hier **mit einem Tipp weitergedreht** wird:
+Ein Rundlauf über vier Werte ist einer zu viel, um ihn im Vorbeigehen zu treffen.
+Wer eine Aufgabe aufschreibt, hat sie außerdem schon eingeschätzt — im Zweifel
+als „mittel", und das ist die Vorgabe.
+
+### Sortiert wird im Frontend (`basis/aufgaben.ts`)
+
+In der Datenbank stünden „gering", „hoch", „mittel" alphabetisch — also genau
+falsch. Ein `ORDER BY CASE` wäre ein zweiter Ort für den Rang der Stufen; er
+liefe beim nächsten Anfassen gegen `PRIORITAETEN` auseinander, und auffallen
+würde es niemandem.
+
+Innerhalb einer Stufe steht **das Neueste oben**, nicht das Älteste: Das
+Schreibfeld steht oben, und eine gerade eingetippte Zeile, die unten anklebt,
+tippt man im Zweifel ein zweites Mal.
+
+### Zugeklappte Spalten stehen im Browser, nicht am Server
+
+`localStorage` unter `socos.aufgaben.zugeklappt`. Es ist keine Auskunft über die
+Aufgaben, sondern darüber, wie einer von dreien gerade sitzt. Am Server wäre es
+eine Einstellung, die alle drei teilen — und dann klappt einer dem anderen die
+Spalte zu. Der Preis: An einem zweiten Gerät steht die Tafel wieder offen. Das
+ist der billigere Fehler.
+
+### Was die Tafel bewusst nicht hat
+
+Kein Fälligkeitsdatum, keine Beschreibung, kein Verweis auf ein Arbeitspaket,
+kein Verschieben zwischen Spalten, kein Feld „erledigt von". Das Letzte braucht
+sie nicht: Das Änderungsprotokoll hängt an jedem Fachmodell und damit auch hier
+(`test_aufgaben.py` prüft genau das).
+
+Weiches Löschen gibt es wie überall, aber **keinen Knopf dafür in der Tafel** —
+abgehakt wird mit dem Haken, und das genügt für einen Vertipper. Entfernen ist
+Adminsache und geht über die API.
+
+---
+
 ## 2026-09-14 — Die Uhr darf ohne Paket starten (Auffangpaket „Overhead")
 
 ### Warum

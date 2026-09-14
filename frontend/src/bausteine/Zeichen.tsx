@@ -19,6 +19,7 @@ export type ZeichenName =
   | "dashboard"
   | "projekt"
   | "zeit"
+  | "aufgaben"
   | "kontakte"
   | "event"
   | "plus"
@@ -55,6 +56,10 @@ const PFADE: Record<ZeichenName, string> = {
   dashboard: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
   projekt: "M4 5h16M4 10h12M4 15h8M4 20h4",
   zeit: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0M12 12V6.5M12 12h4.5",
+  // Zwei Haken und zwei Zeilen daneben — eine abgehakte Liste. Kein Blatt
+  // mit Kästchen: Bei 18 px wird aus dem Kästchen ein Punkt, und aus dem
+  // Haken darin nichts mehr.
+  aufgaben: "M4 7.5l2 2 3.5-3.5M4 16.5l2 2 3.5-3.5M13 8h7M13 17h7",
   kontakte: "M12 4.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7M4.5 20.5c0-4.1 3.4-6.5 7.5-6.5s7.5 2.4 7.5 6.5",
   // Ein Blatt mit Kopfzeile und zwei Reitern — kein Kalender mit Gitter: Bei
   // 18 px zerfällt ein Gitter zu Grau. Die Kopfzeile allein trägt das Bild.

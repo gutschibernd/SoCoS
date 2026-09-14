@@ -1101,3 +1101,74 @@ class Rueckmeldung(Basismodell):
 
     def __str__(self):
         return f"{self.get_art_display()}: {self.titel}"
+
+
+# --- Aufgaben ---------------------------------------------------------------
+
+
+class Aufgabenprioritaet(models.TextChoices):
+    """
+    Drei Stufen, nicht vier: Die Priorität wird hier **mit einem Klick**
+    weitergedreht, und ein Rundlauf über vier Werte ist einer zu viel, um ihn
+    im Vorbeigehen zu treffen.
+
+    Deshalb gibt es hier auch kein „offen" wie bei der Organisation: Wer eine
+    Aufgabe aufschreibt, hat sie schon eingeschätzt — im Zweifel als „mittel",
+    und genau das ist die Vorgabe.
+    """
+
+    HOCH = "hoch", "hoch"
+    MITTEL = "mittel", "mittel"
+    GERING = "gering", "gering"
+
+
+class Aufgabe(Basismodell):
+    """
+    Ein Punkt auf der Tafel unter „Intern · Aufgaben". Eine Zeile Text, eine
+    Priorität, ein Haken — mehr ist es nicht, und mehr soll es nicht werden.
+
+    **Nicht zu verwechseln mit `Unteraufgabe`.** Die hängt an einem
+    Arbeitspaket und beschreibt ein Stück Projektarbeit. Eine `Aufgabe` hängt
+    an niemandem und an nichts: Sie ist der Zettel, der sonst am Bildschirmrand
+    klebt. Es gibt bewusst **keinen** Verweis auf ein Paket — sonst wäre es die
+    dritte Stelle, an der Projektarbeit steht, und die Tafel wäre keine Tafel
+    mehr, sondern eine zweite Projektansicht.
+
+    **`person = None` heißt „Allgemein"** — die Spalte, die niemandem gehört.
+    Ein eigenes Feld „ist_allgemein" daneben wäre ein zweiter Zustand für
+    dieselbe Auskunft, und beide könnten sich widersprechen.
+
+    Fällig-Datum, Beschreibung, Anhänge, wer es abgehakt hat: alles bewusst
+    nicht. Wer wann was geändert hat, steht ohnehin im Änderungsprotokoll —
+    dafür braucht die Tafel kein eigenes Feld.
+    """
+
+    text = models.CharField("Aufgabe", max_length=250)
+    person = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Für",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="aufgaben",
+        help_text="Leer heißt: allgemein, für niemanden bestimmten.",
+    )
+    prioritaet = models.CharField(
+        "Priorität",
+        max_length=8,
+        choices=Aufgabenprioritaet.choices,
+        default=Aufgabenprioritaet.MITTEL,
+    )
+    erledigt = models.BooleanField("erledigt", default=False)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Aufgabe"
+        verbose_name_plural = "Aufgaben"
+        # Das Neueste oben. **Nicht nach Priorität**: In der Datenbank wären
+        # „gering", „hoch", „mittel" alphabetisch sortiert, und das ist genau
+        # die falsche Reihenfolge. Sortiert wird in `basis/aufgaben.ts`, wo
+        # der Rang der Stufen steht und geprüft ist.
+        ordering = ["-erstellt_am", "-id"]
+
+    def __str__(self):
+        return self.text

@@ -17,6 +17,7 @@ from django.core.management import call_command
 from socos import sicherung
 from socos.models import (
     Arbeitspaket,
+    Aufgabe,
     Bereich,
     Bereichsart,
     Event,
@@ -421,3 +422,30 @@ def test_rueckmeldung_wandert_mit_stand_und_melder_mit(tmp_path, medien, bearbei
     assert wieder_da.stand == Rueckmeldungsstand.ERLEDIGT
     assert wieder_da.erledigt_in == "2026-09-13"
     assert wieder_da.melder.email == bearbeiter.email
+
+
+@pytest.mark.django_db(transaction=True)
+def test_die_aufgabentafel_wandert_mit(tmp_path, medien, bearbeiter):
+    """
+    Die Tafel ist das, was am ehesten für „nur ein Zettel" gehalten wird — und
+    genau deshalb der Kandidat, den jemand beim Archiv vergisst. Geprüft wird
+    beides: die Aufgabe **mit** Person und die allgemeine ohne.
+    """
+    Aufgabe.objects.create(
+        person=bearbeiter, text="Vertrag gegenzeichnen", prioritaet="hoch"
+    )
+    Aufgabe.objects.create(text="Kaffee bestellen", erledigt=True)
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+
+    Aufgabe.objects.all().hart_loeschen()
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    meine = Aufgabe.objects.get(text="Vertrag gegenzeichnen")
+    assert meine.person.email == bearbeiter.email
+    assert meine.prioritaet == "hoch"
+
+    allgemein = Aufgabe.objects.get(text="Kaffee bestellen")
+    assert allgemein.person is None
+    assert allgemein.erledigt

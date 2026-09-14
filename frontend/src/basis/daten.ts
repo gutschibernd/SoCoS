@@ -63,6 +63,24 @@ export type Rueckmeldung = {
   geaendert_am: string;
 };
 
+/**
+ * Ein Punkt auf der Tafel unter „Intern · Aufgaben".
+ *
+ * `person: null` heißt **Allgemein** — die Spalte, die niemandem gehört. Kein
+ * zweites Feld daneben, das dasselbe noch einmal sagt und ihm widersprechen
+ * könnte.
+ */
+export type Aufgabe = {
+  id: number;
+  text: string;
+  person: number | null;
+  person_name: string;
+  prioritaet: "hoch" | "mittel" | "gering";
+  erledigt: boolean;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
 export type Stufe = { name: string; monate: number };
 export type Unteraufgabe = { id: number; paket: number; titel: string; erledigt: boolean };
 export type Paket = {
@@ -250,6 +268,17 @@ export const useRueckmeldungen = () =>
     queryFn: () => hole<Rueckmeldung[]>("/rueckmeldungen/"),
   });
 
+/**
+ * Die ganze Tafel — **ohne** `?erledigt=`, also samt Abgehaktem.
+ *
+ * Das Erledigte steht zugeklappt am Fuß jeder Spalte; es ein zweites Mal
+ * abzurufen hieße, zwei Listen im Zwischenspeicher zu halten, die dieselbe
+ * Tafel meinen. Bei drei Leuten und ein paar Dutzend Zeilen ist das die
+ * kleinere Lösung.
+ */
+export const useAufgaben = () =>
+  useQuery({ queryKey: ["aufgaben"], queryFn: () => hole<Aufgabe[]>("/aufgaben/") });
+
 export const useProjekte = () =>
   useQuery({ queryKey: ["projekte"], queryFn: () => hole<Projekt[]>("/projekte/") });
 
@@ -304,7 +333,7 @@ export function useNeuLaden() {
   return () => {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
-      "events", "team", "ich", "protokoll", "rueckmeldungen",
+      "events", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

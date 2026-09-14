@@ -129,6 +129,27 @@ def _bloecke(text, marke):
                     break
 
 
+def _feldtext_elemente(text):
+    """
+    Nur die `<Feldtext …/>` selbst — nicht jedes `speichern={…}` der Datei.
+
+    **Warum die Einschränkung:** Eine Ansicht darf ihren Speicherhelfer an eine
+    eigene Komponente weiterreichen (`speichern={speichern}`), und genau das
+    sah vorher aus wie ein Feldtext ohne Nachladen. Der Helfer, an dem er
+    hängt, lädt sehr wohl neu — gemeint war immer das Element, nicht der Name.
+    """
+    for anfang in re.finditer(r"<Feldtext\b", text):
+        tiefe = 0
+        for i in range(anfang.start(), len(text)):
+            if text[i] == "{":
+                tiefe += 1
+            elif text[i] == "}":
+                tiefe -= 1
+            elif text[i] == ">" and tiefe == 0:
+                yield anfang.start(), text[anfang.start() : i + 1]
+                break
+
+
 def test_jede_feldtext_aenderung_laedt_neu():
     """
     Der Feldtext hat keinen Speichern-Knopf: Was danach dasteht, ist die
@@ -144,13 +165,13 @@ def test_jede_feldtext_aenderung_laedt_neu():
         if datei.name == "Feldtext.tsx" or datei.name.endswith(".test.tsx"):
             continue
         text = datei.read_text()
-        if "<Feldtext" not in text:
-            continue
-        for zeile, block in _bloecke(text, "speichern"):
-            # Entweder direkt nachladen, oder an einen örtlichen `speichern`
-            # weitergeben, der es seinerseits tut.
-            if "neuLaden" not in block and "speichern(" not in block:
-                treffer.append(f"{datei.relative_to(WURZEL)}:{zeile}")
+        for stelle, element in _feldtext_elemente(text):
+            for _, block in _bloecke(element, "speichern"):
+                # Entweder direkt nachladen, oder an einen örtlichen `speichern`
+                # weitergeben, der es seinerseits tut.
+                if "neuLaden" not in block and "speichern(" not in block:
+                    zeile = text[:stelle].count("\n") + 1
+                    treffer.append(f"{datei.relative_to(WURZEL)}:{zeile}")
     assert not treffer, (
         "Ein Feldtext, der speichert, ohne neu zu laden, zeigt danach weiter "
         f"den alten Wert: {treffer}"

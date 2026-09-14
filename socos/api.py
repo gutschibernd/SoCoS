@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from socos import aenderungen, berechtigung, serializer as ser, sicherung
 from socos.models import (
     Arbeitspaket,
+    Aufgabe,
     Bereich,
     Event,
     Eventziel,
@@ -472,6 +473,30 @@ class NutzerViewSet(SocosViewSet):
         nutzer.is_active = True
         nutzer.save(update_fields=["is_active"])
         return Response(self.get_serializer(nutzer).data)
+
+
+class AufgabeViewSet(SocosViewSet):
+    """
+    Die Tafel unter „Intern · Aufgaben".
+
+    Keine eigene Berechtigung: sehen darf jeder, schreiben der Bearbeiter,
+    entfernen der Admin — die gewöhnliche Regel aus `socos/berechtigung.py`.
+    Insbesondere gibt es **keine** Prüfung auf „meine eigene Aufgabe": Die
+    Tafel ist gemeinsam, und sich gegenseitig etwas daraufzuschreiben ist ihr
+    Zweck.
+
+    `?erledigt=nein` lässt das Abgehakte weg. Ohne Angabe kommt alles — es gibt
+    hier so wenig einen stillen Filter wie bei den Zeiträumen.
+    """
+
+    serializer_class = ser.AufgabeSerializer
+    queryset = Aufgabe.objects.select_related("person")
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        if (erledigt := self.request.query_params.get("erledigt")) in ("ja", "nein"):
+            menge = menge.filter(erledigt=erledigt == "ja")
+        return menge
 
 
 class RueckmeldungViewSet(SocosViewSet):

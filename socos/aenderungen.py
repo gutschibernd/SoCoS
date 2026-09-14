@@ -21,8 +21,37 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-14",
-        "titel": "Zeit aufzeichnen, ohne vorher ein Paket zu suchen",
+        "titel": "Die Aufgabentafel — und Zeit ohne Paketsuche",
         "punkte": [
+            {
+                "titel": "Neu: Intern · Aufgaben",
+                "text": (
+                    "Eine gemeinsame Tafel mit einer Spalte „Allgemein“ und "
+                    "einer je Person. Hineinschreiben und Enter drücken, auf "
+                    "die Priorität tippen zum Weiterdrehen, Haken zum "
+                    "Abhaken — sortiert wird nach Priorität. Jeder sieht und "
+                    "ändert alles."
+                ),
+                "wo": "aufgaben",
+            },
+            {
+                "titel": "Am Handy ist das Ende einer Seite wieder erreichbar",
+                "text": (
+                    "Die letzte Zeile jeder langen Liste lag bisher hinter "
+                    "der Uhr und der Fußleiste und ließ sich nicht antippen. "
+                    "Unter jeder Seite steht jetzt genug Platz."
+                ),
+            },
+            {
+                "titel": "Spalten, die du selten brauchst, kannst du zuklappen",
+                "text": (
+                    "Der Pfeil rechts in der Spaltenüberschrift legt sie als "
+                    "schmalen Streifen an den Rand. Das gilt nur für deinen "
+                    "Browser — die anderen sehen die Tafel weiter so, wie sie "
+                    "sie eingerichtet haben."
+                ),
+                "wo": "aufgaben",
+            },
             {
                 "titel": "„Ohne Paket starten“",
                 "text": (

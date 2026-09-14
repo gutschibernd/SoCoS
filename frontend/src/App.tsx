@@ -6,6 +6,7 @@ import { Zeichen } from "./bausteine/Zeichen";
 import { Seitenleiste } from "./bausteine/Seitenleiste";
 import { Meldungen } from "./bausteine/Meldungen";
 import { Neuigkeiten } from "./bausteine/Neuigkeiten";
+import { Aufgaben } from "./ansichten/Aufgaben";
 import { Dashboard } from "./ansichten/Dashboard";
 import { Doku } from "./ansichten/Doku";
 import { Einstellungen } from "./ansichten/Einstellungen";
@@ -25,6 +26,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   dashboard: { titel: "Dashboard", unter: "Woche, Geld, Fortschritt" },
   projekt: { titel: "Projekt", unter: "Bereiche, Arbeitspakete, Stufen" },
   zeit: { titel: "Zeit", unter: "Buchungen und Nachträge" },
+  aufgaben: { titel: "Aufgaben", unter: "Was ansteht — allgemein und je Person" },
   kontakte: { titel: "Kontakte", unter: "Organisationen und Personen" },
   events: { titel: "Events", unter: "Tagungen, Hitlist, wen wir getroffen haben" },
   profil: { titel: "Profil", unter: "Deine Stammdaten" },
@@ -108,6 +110,7 @@ export function App() {
             <Projekt ich={ich.data} bearbeiten={bearbeiten} wechseln={wechseln} />
           )}
           {ort.seite === "zeit" && <Zeit ich={ich.data} />}
+          {ort.seite === "aufgaben" && <Aufgaben ich={ich.data} />}
           {ort.seite === "kontakte" && (
             <Kontakte ich={ich.data} unter={ort.unter} wechseln={wechseln} />
           )}

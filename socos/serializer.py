@@ -10,6 +10,7 @@ from rest_framework import serializers
 from socos import berechtigung
 from socos.models import (
     Arbeitspaket,
+    Aufgabe,
     Bereich,
     Event,
     Eventziel,
@@ -478,3 +479,35 @@ class RueckmeldungSerializer(serializers.ModelSerializer):
     def create(self, daten):
         daten["melder"] = self._nutzer()
         return super().create(daten)
+
+
+class AufgabeSerializer(serializers.ModelSerializer):
+    """
+    Die Tafel. `person = null` heißt „Allgemein" — und ist deshalb ein
+    gewöhnlicher, schreibbarer Wert, kein Sonderfall.
+
+    Anders als beim Melder einer Rückmeldung ist die Person hier **nicht** der
+    Absender: Eine Aufgabe schreibt man dem anderen auf die Tafel, das ist der
+    ganze Zweck. Wer sie angelegt hat, steht im Änderungsprotokoll.
+    """
+
+    person_name = serializers.CharField(source="person.name", read_only=True, default="")
+
+    class Meta:
+        model = Aufgabe
+        fields = [
+            "id", "text", "person", "person_name", "prioritaet", "erledigt",
+            "erstellt_am", "geaendert_am",
+        ]
+        read_only_fields = ["id", "erstellt_am", "geaendert_am"]
+
+    def validate_text(self, text):
+        """
+        Eine leere Zeile ist keine Aufgabe. Geprüft hier und nicht erst in der
+        Ansicht: Ein Enter auf einem leeren Feld darf keinen Zettel erzeugen,
+        den danach niemand mehr findet, weil er nichts anzeigt.
+        """
+        text = text.strip()
+        if not text:
+            raise serializers.ValidationError("Ohne Text ist es keine Aufgabe.")
+        return text
