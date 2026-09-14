@@ -10,6 +10,7 @@ import pytest
 from django.utils import timezone
 
 from socos.models import (
+    AUFFANG_PROJEKT,
     Arbeitspaket,
     Bereich,
     Bereichsart,
@@ -179,6 +180,96 @@ class TestUhr:
             "/api/zeiten/clock_in/", {"paket": paket.pk}, content_type="application/json"
         )
         assert antwort.status_code == 403
+
+
+@pytest.mark.django_db
+class TestZeitOhnePaket:
+    """
+    Der Start ohne Paketwahl. Fachlich entschieden: Es gibt **keine** Buchung
+    ohne Paket — solche Zeit landet auf dem Auffangpaket und wird später
+    umgebucht.
+    """
+
+    def test_clock_in_ohne_paket_landet_auf_overhead(self, client, bearbeiter):
+        client.force_login(bearbeiter)
+        antwort = client.post("/api/zeiten/clock_in/", {}, content_type="application/json")
+        assert antwort.status_code == 201
+        assert antwort.json()["projekt_titel"] == AUFFANG_PROJEKT
+
+        gebucht = Arbeitspaket.objects.get(pk=antwort.json()["paket"])
+        assert gebucht.ist_auffang is True
+
+    def test_der_zweite_start_legt_kein_zweites_overhead_an(self, client, bearbeiter):
+        """
+        Sonst stünden nach einer Woche fünf Projekte „Overhead" im Baum und
+        jede Auswertung teilte dieselbe Zeit auf fünf Töpfe auf.
+        """
+        client.force_login(bearbeiter)
+        erste = client.post("/api/zeiten/clock_in/", {}, content_type="application/json").json()
+        client.post("/api/zeiten/clock_out/", {}, content_type="application/json")
+        zweite = client.post("/api/zeiten/clock_in/", {}, content_type="application/json").json()
+
+        assert erste["paket"] == zweite["paket"]
+        assert Projekt.objects.filter(titel=AUFFANG_PROJEKT).count() == 1
+
+    def test_ein_vorhandenes_overhead_projekt_wird_benutzt(self, client, bearbeiter):
+        """Kein zweites Projekt gleichen Namens daneben."""
+        vorhanden = Projekt.objects.create(titel="Overhead")
+        Bereich.objects.create(projekt=vorhanden, titel="Laufendes", art=Bereichsart.DEV)
+        client.force_login(bearbeiter)
+
+        buchung = client.post("/api/zeiten/clock_in/", {}, content_type="application/json").json()
+        assert buchung["projekt"] == vorhanden.pk
+        assert Projekt.objects.filter(titel__iexact=AUFFANG_PROJEKT).count() == 1
+
+    def test_clock_out_bucht_auf_das_gewaehlte_paket_um(self, client, bearbeiter, paket):
+        """
+        Der Gegenpart zum Start ohne Paket: Beim Aufhören weiß man, woran man
+        gearbeitet hat — beim Anfangen oft noch nicht.
+        """
+        client.force_login(bearbeiter)
+        client.post("/api/zeiten/clock_in/", {}, content_type="application/json")
+        beendet = client.post(
+            "/api/zeiten/clock_out/",
+            {"paket": paket.pk, "notiz": "Doku gelesen"},
+            content_type="application/json",
+        ).json()
+
+        assert beendet["paket"] == paket.pk
+        assert beendet["notiz"] == "Doku gelesen"
+
+    def test_ein_unbekanntes_paket_wird_gemeldet_nicht_still_verworfen(
+        self, client, bearbeiter
+    ):
+        """
+        Sonst bliebe die Buchung auf Overhead stehen, obwohl die Oberfläche ein
+        Paket geschickt hat — und niemand sähe warum.
+        """
+        client.force_login(bearbeiter)
+        client.post("/api/zeiten/clock_in/", {}, content_type="application/json")
+        antwort = client.post(
+            "/api/zeiten/clock_out/", {"paket": 999_999}, content_type="application/json"
+        )
+        assert antwort.status_code == 400
+        assert "paket" in antwort.json()
+
+    def test_eine_bestehende_buchung_laesst_sich_umhaengen(self, client, bearbeiter, paket):
+        """„Das Arbeitspaket ändern" gilt für alle Buchungen, nicht nur für die
+        laufende."""
+        anderes = Arbeitspaket.objects.create(bereich=paket.bereich, titel="MVP")
+        buchung = Zeitbuchung.objects.create(
+            person=bearbeiter,
+            paket=paket,
+            start=timezone.now() - timedelta(hours=2),
+            ende=timezone.now() - timedelta(hours=1),
+        )
+        client.force_login(bearbeiter)
+        antwort = client.patch(
+            f"/api/zeiten/{buchung.pk}/", {"paket": anderes.pk}, content_type="application/json"
+        )
+        assert antwort.status_code == 200
+        buchung.refresh_from_db()
+        assert buchung.paket == anderes
 
 
 @pytest.mark.django_db

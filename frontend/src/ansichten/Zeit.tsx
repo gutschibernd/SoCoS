@@ -3,6 +3,7 @@ import { useState } from "react";
 import { hole } from "../basis/api";
 import {
   useBuchungen,
+  useLaufend,
   useNeuLaden,
   useProjekte,
   useTeam,
@@ -10,7 +11,9 @@ import {
   type Ich,
   type Projekt,
 } from "../basis/daten";
+import { paketgruppen } from "../basis/start";
 import { Zustand } from "../basis/Zustand";
+import { clockIn } from "../basis/uhr";
 import { alsDauer, alsStunden } from "../basis/zeit";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Leerstelle } from "../bausteine/Leerstelle";
@@ -51,6 +54,7 @@ export function Zeit({ ich }: { ich: Ich }) {
   const buchungen = useBuchungen(filter);
   const projekte = useProjekte();
   const team = useTeam();
+  const laufend = useLaufend();
   const neuLaden = useNeuLaden();
 
   const [nachtragen, setNachtragen] = useState(false);
@@ -65,6 +69,11 @@ export function Zeit({ ich }: { ich: Ich }) {
 
   const nachweisPfad = (nurIch: boolean) =>
     `/api/zeitnachweis/?monat=${monat}${nurIch ? `&person=${ich.id}` : ""}`;
+
+  async function ohnePaket() {
+    await clockIn();
+    neuLaden();
+  }
 
   async function entfernen(b: Buchung) {
     await hole(`/zeiten/${b.id}/`, { method: "DELETE" });
@@ -116,6 +125,21 @@ export function Zeit({ ich }: { ich: Ich }) {
             </div>
           </div>
           <div className="feld-reihe nachweis-knoepfe">
+            {/* Nur, solange nichts läuft: Ein Start beendet die laufende
+                Buchung, und ein Knopf, der das nebenbei tut, gehört nicht auf
+                die Seite, auf der man Buchungen nachsieht. Läuft eine, steht
+                der Clock-out ohnehin in der Leiste. */}
+            {ich.darf.bearbeiten && !laufend.data?.laufend && (
+              <button
+                type="button"
+                className="knopf-still"
+                onClick={ohnePaket}
+                title="Die Uhr läuft auf „Overhead“. Beim Clock-out kannst du sie umbuchen."
+              >
+                <Zeichen name="start" />
+                Ohne Paket starten
+              </button>
+            )}
             {ich.darf.bearbeiten && (
               <button type="button" className="knopf-still" onClick={() => setNachtragen((n) => !n)}>
                 <Zeichen name={nachtragen ? "kreuz" : "plus"} />
@@ -154,7 +178,7 @@ export function Zeit({ ich }: { ich: Ich }) {
         {echte.length === 0 ? (
           <Leerstelle
             was={alleMonate ? "Noch keine Buchung" : "In diesem Monat keine Buchung"}
-            satz="Die Uhr startet auf einem Arbeitspaket in der Projektansicht. Vergessene Zeiten trägst du hier nach."
+            satz="Die Uhr startet auf einem Arbeitspaket — oder oben ohne Paket, dann läuft sie auf „Overhead“. Vergessene Zeiten trägst du hier nach."
           />
         ) : (
           <table className="tabelle">
@@ -209,6 +233,7 @@ export function Zeit({ ich }: { ich: Ich }) {
       {bearbeiten && (
         <BuchungAendern
           buchung={bearbeiten}
+          projekte={projekte.data ?? []}
           schliessen={() => setBearbeiten(null)}
           fertig={() => {
             setBearbeiten(null);
@@ -229,19 +254,39 @@ export function Zeit({ ich }: { ich: Ich }) {
   );
 }
 
+/**
+ * Eine Buchung ändern — Zeiten, Notiz **und das Arbeitspaket**.
+ *
+ * Das Paket war hier lange nur Text. Seit die Uhr auch ohne Paketwahl läuft,
+ * ist das Umbuchen kein Sonderfall mehr, sondern der zweite Schritt des
+ * gewöhnlichen Wegs: erst aufzeichnen, dann einsortieren. Und es gilt für
+ * **jede** Buchung, nicht nur für die von Overhead — ein Fehlgriff beim Start
+ * war vorher nur über Löschen und Nachtragen zu beheben.
+ */
 function BuchungAendern({
   buchung,
+  projekte,
   schliessen,
   fertig,
 }: {
   buchung: Buchung;
+  projekte: Projekt[];
   schliessen: () => void;
   fertig: () => void;
 }) {
   const [start, setStart] = useState(() => fuerFeld(buchung.start));
   const [ende, setEnde] = useState(() => (buchung.ende ? fuerFeld(buchung.ende) : ""));
+  const [paket, setPaket] = useState(buchung.paket);
   const [notiz, setNotiz] = useState(buchung.notiz);
   const [fehler, setFehler] = useState("");
+
+  // Das Paket der Buchung muss im Feld stehen bleiben, auch wenn es inzwischen
+  // fertig oder verworfen ist — sonst schöbe das Speichern die Zeit still auf
+  // das erstbeste andere.
+  const gruppen = paketgruppen(projekte, [buchung.paket]);
+  // Dasselbe wie im Notizdialog: Das Projekt steht im Feld nur als
+  // Gruppenkopf und ist zugeklappt nicht zu sehen.
+  const gewaehlt = gruppen.flatMap((g) => g.pakete).find((p) => p.id === paket);
 
   async function speichern() {
     setFehler("");
@@ -252,6 +297,7 @@ function BuchungAendern({
       await hole(`/zeiten/${buchung.id}/`, {
         method: "PATCH",
         body: JSON.stringify({
+          paket,
           start: new Date(start).toISOString(),
           ende: ende ? new Date(ende).toISOString() : null,
           notiz,
@@ -268,10 +314,30 @@ function BuchungAendern({
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <h2>Buchung ändern</h2>
         <p>
-          {buchung.projekt_titel} · {buchung.paket_titel} · {buchung.person_name}
+          {gewaehlt ? `${gewaehlt.projekt} · ${gewaehlt.titel}` : buchung.paket_titel} ·{" "}
+          {buchung.person_name}
           <br />
           Jede Änderung steht mit Zeitpunkt und Person im Änderungsprotokoll.
         </p>
+        {gruppen.length > 0 && (
+          <select
+            className="feld"
+            style={{ marginBottom: 8 }}
+            value={paket}
+            onChange={(e) => setPaket(Number(e.target.value))}
+            aria-label="Arbeitspaket"
+          >
+            {gruppen.map((gruppe) => (
+              <optgroup key={gruppe.projekt} label={gruppe.projekt}>
+                {gruppe.pakete.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.titel}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        )}
         <div className="feld-reihe">
           <input className="feld" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Beginn" />
           <input className="feld" type="datetime-local" value={ende} onChange={(e) => setEnde(e.target.value)} aria-label="Ende" />

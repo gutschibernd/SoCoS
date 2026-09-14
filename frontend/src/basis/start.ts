@@ -64,3 +64,33 @@ export function letztePakete(
   }
   return treffer;
 }
+
+export type Paketgruppe = { projekt: string; pakete: Buchungsziel[] };
+
+/**
+ * Die Pakete für ein Auswahlfeld, nach Projekt gruppiert.
+ *
+ * Drei Felder brauchen dieselbe Liste — der Start auf der Startseite, die
+ * Umbuchung beim Clock-out und das Ändern einer Buchung. Dreimal derselbe
+ * Dreifach-`flatMap` in drei Ansichten wäre dreimal derselbe Filter, und beim
+ * nächsten Status vergisst man zwei davon.
+ *
+ * `auch` nimmt Pakete auf, die sonst herausfielen: Die Buchung, die gerade
+ * geändert wird, hängt vielleicht an einem Paket, das inzwischen fertig ist.
+ * Ohne diese Ausnahme verschwände genau das aus dem Feld — und die Änderung
+ * schöbe die Zeit still auf ein anderes Paket.
+ */
+export function paketgruppen(projekte: Projekt[], auch: number[] = []): Paketgruppe[] {
+  const gruppen: Paketgruppe[] = [];
+  for (const projekt of projekte) {
+    const pakete: Buchungsziel[] = [];
+    for (const bereich of projekt.bereiche) {
+      for (const paket of bereich.pakete) {
+        if (!BUCHBAR.includes(paket.status) && !auch.includes(paket.id)) continue;
+        pakete.push({ id: paket.id, titel: `${bereich.titel} · ${paket.titel}`, projekt: projekt.titel });
+      }
+    }
+    if (pakete.length > 0) gruppen.push({ projekt: projekt.titel, pakete });
+  }
+  return gruppen;
+}

@@ -38,6 +38,7 @@ from socos.models import (
     STUFENVORLAGEN,
     Verlaufseintrag,
     Zeitbuchung,
+    auffangpaket,
     stufenvorlage,
 )
 from socos.services import auswertung, finanzen
@@ -222,21 +223,31 @@ class ZeitbuchungViewSet(SocosViewSet):
         buchung = auswertung.laufende_buchung(request.user)
         return Response({"laufend": self.get_serializer(buchung).data if buchung else None})
 
+    def _paket(self, request):
+        """Das Paket aus der Anfrage — oder None, wenn keines mitkam."""
+        paket_id = request.data.get("paket")
+        if not paket_id:
+            return None
+        paket = Arbeitspaket.objects.filter(pk=paket_id).first()
+        if paket is None:
+            raise ValidationError({"paket": "Dieses Arbeitspaket gibt es nicht."})
+        return paket
+
     @action(detail=False, methods=["post"])
     def clock_in(self, request):
         """
-        Startet die Uhr auf einem Paket.
+        Startet die Uhr — auf einem Paket, oder ohne.
+
+        **Ohne `paket` läuft sie auf dem Auffangpaket** („Overhead"). Zeit soll
+        sich aufzeichnen lassen, bevor man weiß, wohin sie gehört; umgebucht
+        wird beim Clock-out oder später in der Zeitliste. Eine Buchung ohne
+        Paket gibt es dabei nicht — siehe `auffangpaket()`.
 
         Läuft schon eine, wird sie beendet — mit der mitgeschickten Notiz. Das
         Nachfragen erledigt die Oberfläche, nicht der Server: Der Server darf
         nicht davon abhängen, dass jemand einen Dialog beantwortet.
         """
-        paket_id = request.data.get("paket")
-        if not paket_id:
-            raise ValidationError({"paket": "Auf welches Arbeitspaket?"})
-        paket = Arbeitspaket.objects.filter(pk=paket_id).first()
-        if paket is None:
-            raise ValidationError({"paket": "Dieses Arbeitspaket gibt es nicht."})
+        paket = self._paket(request) or auffangpaket()
 
         with transaction.atomic():
             laufend = auswertung.laufende_buchung(request.user)
@@ -251,9 +262,18 @@ class ZeitbuchungViewSet(SocosViewSet):
 
     @action(detail=False, methods=["post"])
     def clock_out(self, request):
+        """
+        Beendet die laufende Buchung.
+
+        Kommt ein `paket` mit, wird die Buchung dorthin umgebucht. Das ist der
+        Gegenpart zum Start ohne Paket: Beim Aufhören weiß man, woran man
+        gearbeitet hat — beim Anfangen oft noch nicht.
+        """
         laufend = auswertung.laufende_buchung(request.user)
         if laufend is None:
             raise ValidationError({"detail": "Es läuft gerade keine Buchung."})
+        if paket := self._paket(request):
+            laufend.paket = paket
         laufend.ende = timezone.now()
         laufend.notiz = request.data.get("notiz", "")
         laufend.save()

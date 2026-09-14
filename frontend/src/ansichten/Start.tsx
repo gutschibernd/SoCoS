@@ -10,7 +10,6 @@
 
 import { useState } from "react";
 
-import { hole } from "../basis/api";
 import {
   useBuchungen,
   useLaufend,
@@ -19,7 +18,8 @@ import {
   type Ich,
 } from "../basis/daten";
 import type { Seite } from "../basis/router";
-import { BUCHBAR, letztePakete } from "../basis/start";
+import { letztePakete, paketgruppen } from "../basis/start";
+import { clockIn } from "../basis/uhr";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen, type ZeichenName } from "../bausteine/Zeichen";
@@ -116,10 +116,11 @@ export function Start({
 /**
  * Die Uhr starten, ohne die Seite zu wechseln.
  *
- * Zwei Wege nebeneinander und nicht einer: Die vier zuletzt gebuchten Pakete
- * decken den Alltag mit einem Klick ab, die Auswahl darunter alles andere.
- * Ohne die Auswahl käme man an ein Paket, auf das noch nie gebucht wurde,
- * überhaupt nicht heran.
+ * Drei Wege nebeneinander und nicht einer: Die vier zuletzt gebuchten Pakete
+ * decken den Alltag mit einem Klick ab, die Auswahl darunter alles andere,
+ * und „Ohne Paket" den Fall, in dem man noch gar nicht weiß, wohin die Zeit
+ * gehört. Ohne die Auswahl käme man an ein Paket, auf das noch nie gebucht
+ * wurde, überhaupt nicht heran.
  */
 function Buchen({
   ich,
@@ -144,8 +145,20 @@ function Buchen({
     if (!id) return setFehler("Wähl zuerst das Arbeitspaket, auf das die Uhr laufen soll.");
     setFehler("");
     try {
-      await hole("/zeiten/clock_in/", { method: "POST", body: JSON.stringify({ paket: id }) });
+      await clockIn(id);
       setPaket("");
+      neuLaden();
+    } catch {
+      setFehler("Das hat nicht geklappt. Läuft die Verbindung noch?");
+    }
+  }
+
+  /* Ohne Paketnummer: Der Server bucht auf „Overhead". Derselbe Weg wie oben,
+     nur ohne Ziel — deshalb auch dieselbe Fehlerzeile. */
+  async function ohnePaket() {
+    setFehler("");
+    try {
+      await clockIn();
       neuLaden();
     } catch {
       setFehler("Das hat nicht geklappt. Läuft die Verbindung noch?");
@@ -154,6 +167,7 @@ function Buchen({
 
   const alle = projekte.data ?? [];
   const zuletzt = letztePakete(meine.data ?? [], alle);
+  const gruppen = paketgruppen(alle);
 
   return (
     <div className="karte start-buchen">
@@ -188,17 +202,13 @@ function Buchen({
           aria-label="Arbeitspaket"
         >
           <option value="">Anderes Arbeitspaket wählen …</option>
-          {alle.map((projekt) => (
-            <optgroup key={projekt.id} label={projekt.titel}>
-              {projekt.bereiche.flatMap((bereich) =>
-                bereich.pakete
-                  .filter((p) => BUCHBAR.includes(p.status))
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {bereich.titel} · {p.titel}
-                    </option>
-                  )),
-              )}
+          {gruppen.map((gruppe) => (
+            <optgroup key={gruppe.projekt} label={gruppe.projekt}>
+              {gruppe.pakete.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.titel}
+                </option>
+              ))}
             </optgroup>
           ))}
         </select>
@@ -207,6 +217,22 @@ function Buchen({
         <button type="button" className="knopf" onClick={() => starten(Number(paket))}>
           <Zeichen name="start" />
           Uhr starten
+        </button>
+      </div>
+
+      {/* Der Knopf für den Fall, dass die Frage „auf welches Paket?" gerade
+          die falsche ist. Still gestaltet und auf eigener Zeile: Er ist der
+          zweite Weg, nicht der erste, und das Auswahlfeld darüber geht ihn
+          nichts an. */}
+      <div className="feld-reihe start-ohne-paket">
+        <button
+          type="button"
+          className="knopf-still"
+          onClick={ohnePaket}
+          title="Die Uhr läuft auf „Overhead“. Beim Clock-out kannst du sie umbuchen."
+        >
+          <Zeichen name="start" />
+          Ohne Paket starten
         </button>
       </div>
 

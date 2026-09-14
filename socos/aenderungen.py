@@ -20,6 +20,40 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-14",
+        "titel": "Zeit aufzeichnen, ohne vorher ein Paket zu suchen",
+        "punkte": [
+            {
+                "titel": "„Ohne Paket starten“",
+                "text": (
+                    "Neben „Paket wählen“ steht jetzt ein zweiter Knopf — in "
+                    "der Leiste unten, auf der Startseite und über der "
+                    "Buchungsliste. Er startet die Uhr sofort; die Zeit läuft "
+                    "so lange auf das Projekt „Overhead“."
+                ),
+                "wo": "zeit",
+            },
+            {
+                "titel": "Umbuchen beim Clock-out",
+                "text": (
+                    "Im Fenster, das nach der Notiz fragt, steht jetzt auch "
+                    "das Arbeitspaket. Wer dort eines wählt, bucht die Zeit "
+                    "dorthin um — wer nichts ändert, lässt sie stehen."
+                ),
+            },
+            {
+                "titel": "Das Paket einer Buchung lässt sich ändern",
+                "text": (
+                    "„Ändern“ in der Buchungsliste öffnet jetzt auch das "
+                    "Arbeitspaket, und zwar für jede Buchung. Ein Fehlgriff "
+                    "beim Start war bisher nur über Entfernen und Nachtragen "
+                    "zu beheben."
+                ),
+                "wo": "zeit",
+            },
+        ],
+    },
+    {
         "version": "2026-09-13",
         "titel": "Doku, Neuigkeiten, Wünsche & Fehler",
         "punkte": [

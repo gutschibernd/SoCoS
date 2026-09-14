@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Projekt } from "./daten";
-import { buchbarePakete, letztePakete } from "./start";
+import { buchbarePakete, letztePakete, paketgruppen } from "./start";
 
 /** Ein Projektbaum mit so wenig Feldern wie möglich — der Rest spielt hier keine Rolle. */
 function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[] {
@@ -102,5 +102,29 @@ describe("letztePakete", () => {
 
   it("gibt bei leerem Verlauf nichts zurück", () => {
     expect(letztePakete([], projekte)).toEqual([]);
+  });
+});
+
+describe("paketgruppen", () => {
+  const projekte = baum([
+    { id: 1, titel: "Modul 3", status: "offen" },
+    { id: 9, titel: "Abgeschlossen", status: "fertig" },
+  ]);
+
+  it("gruppiert nach Projekt und nennt den Bereich mit", () => {
+    expect(paketgruppen(projekte)).toEqual([
+      { projekt: "Zulassung", pakete: [{ id: 1, titel: "Dossier · Modul 3", projekt: "Zulassung" }] },
+    ]);
+  });
+
+  // Sonst verschwände das Paket, an dem die Buchung hängt, aus dem Feld — und
+  // Speichern schöbe die Zeit still auf ein anderes.
+  it("nimmt ein fertiges Paket auf, wenn die Buchung daran hängt", () => {
+    const gruppen = paketgruppen(projekte, [9]);
+    expect(gruppen[0].pakete.map((p) => p.id)).toEqual([1, 9]);
+  });
+
+  it("lässt ein Projekt ohne buchbares Paket weg", () => {
+    expect(paketgruppen(baum([{ id: 9, titel: "Abgeschlossen", status: "fertig" }]))).toEqual([]);
   });
 });

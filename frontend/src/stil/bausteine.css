@@ -693,6 +693,11 @@
 .uhrblock[data-laeuft="ja"] .uhrblock-knopf:hover {
   background: var(--kopf-kante); color: var(--marke-tiefer); filter: brightness(1.08);
 }
+/* Zum Start führen zwei Wege — mit Paket und ohne. In der Leiste stehen sie
+   untereinander: Nebeneinander blieben bei 196 px Breite von beiden
+   Beschriftungen die Hälfte übrig. */
+.uhrblock-knoepfe { display: flex; flex-direction: column; gap: 6px; margin-top: 9px; }
+.uhrblock-knoepfe .uhrblock-knopf { margin-top: 0; }
 
 /* --- Konto am Fuß der Leiste --------------------------------------------- */
 
@@ -847,6 +852,9 @@ a.leiste-knopf { text-decoration: none; }
 .start-zuletzt > button em {
   font-style: normal; font-weight: 400; color: var(--text-leise); font-size: 13px;
 }
+/* Der zweite Weg in den Start — eigene Zeile, damit er nicht wie ein zweiter
+   Knopf zum Auswahlfeld darüber aussieht. */
+.start-ohne-paket { margin-top: 8px; }
 
 /* --- Dashboard ----------------------------------------------------------- */
 
@@ -1350,6 +1358,11 @@ a.mini { text-decoration: none; }
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .uhr-handy .uhrblock-knopf { width: auto; margin-top: 0; flex: 0 0 auto; padding: 0 16px; }
+  .uhr-handy .uhrblock-knoepfe { flex-direction: row; margin-top: 0; flex: 0 0 auto; }
+  /* Läuft nichts, stehen hier zwei Knöpfe — dann ist für „Keine Buchung läuft"
+     kein Platz mehr, und der Satz sagt auch nichts, was die stehende Uhr und
+     der graue Punkt nicht schon sagen. */
+  .uhr-handy .uhrblock[data-laeuft="nein"] .uhrblock-wo { display: none; }
 
   .fussleiste {
     display: flex; position: fixed; z-index: 55;

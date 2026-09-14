@@ -12,6 +12,7 @@ import {
 } from "../basis/daten";
 import { alsPfad, type Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
+import { clockIn } from "../basis/uhr";
 import { alsDauer } from "../basis/zeit";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
@@ -651,7 +652,7 @@ function PaketZeile({
   }
 
   async function uhrStarten() {
-    await hole("/zeiten/clock_in/", { method: "POST", body: JSON.stringify({ paket: paket.id }) });
+    await clockIn(paket.id);
     neuLaden();
   }
 

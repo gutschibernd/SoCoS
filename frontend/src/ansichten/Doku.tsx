@@ -242,6 +242,24 @@ function ZeitDoku() {
       </Abschnitt>
 
       <Abschnitt
+        zeichen="start"
+        titel="„Ohne Paket“ — erst aufzeichnen, dann einsortieren"
+        vorspann="Den Knopf gibt es dreimal: in der Leiste unten, auf der Startseite und über der Buchungsliste. Er startet die Uhr, ohne vorher nach dem Paket zu fragen."
+      >
+        <Schritte
+          schritte={[
+            "„Ohne Paket starten“ drücken. Die Zeit läuft auf das Projekt „Overhead“ — ein ganz normales Projekt im Baum, kein Sonderfall.",
+            "Beim Clock-out steht das Arbeitspaket als Auswahlfeld im selben Fenster wie die Notiz. Wer dort etwas anderes wählt, bucht die Zeit dorthin um.",
+            "Wer nichts ändert, lässt sie auf Overhead stehen. Das ist kein Versehen, sondern die richtige Antwort für alles, was zu keinem Paket gehört.",
+          ]}
+        />
+        <Merke>
+          Eine Buchung ohne Paket gibt es nicht. Sonst gäbe es zwei Arten von Zeit, und
+          jede Summe und jeder Nachweis müsste beide kennen.
+        </Merke>
+      </Abschnitt>
+
+      <Abschnitt
         zeichen="achtung"
         titel="Entwürfe: die vergessenen Clock-outs"
         vorspann="Eine Buchung, die über das Tagesende hinauslief, wird dort abgeschnitten und als Entwurf geführt."
@@ -266,6 +284,10 @@ function ZeitDoku() {
             {
               begriff: "Zeitraum",
               text: "„Von“ und „bis“ stehen über den Zahlen. Ohne Angabe kommt alles — es gibt keinen Filter auf den laufenden Monat.",
+            },
+            {
+              begriff: "Arbeitspaket ändern",
+              text: "„Ändern“ an einer Buchung öffnet auch das Arbeitspaket — für jede Buchung, nicht nur für die von Overhead. Ein Fehlgriff beim Start ist damit eine Auswahl und kein Löschen.",
             },
             {
               begriff: "Fremde Buchungen",

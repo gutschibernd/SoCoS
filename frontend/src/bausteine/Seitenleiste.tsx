@@ -1,8 +1,10 @@
 import { Fragment, useState } from "react";
 
-import { csrfWert, hole } from "../basis/api";
-import { useLaufend, useNeuLaden, type Ich } from "../basis/daten";
+import { csrfWert } from "../basis/api";
+import { useLaufend, useNeuLaden, useProjekte, type Ich } from "../basis/daten";
 import type { Seite } from "../basis/router";
+import { paketgruppen } from "../basis/start";
+import { clockIn, clockOut } from "../basis/uhr";
 import { alsDauer } from "../basis/zeit";
 import { hatEinstellungen } from "../ansichten/Einstellungen";
 import { Notizdialog } from "./Notizdialog";
@@ -84,14 +86,20 @@ export function Seitenleiste({
   wechseln: (s: Seite) => void;
 }) {
   const laufend = useLaufend();
+  const projekte = useProjekte();
   const neuLaden = useNeuLaden();
   const [fragtNotiz, setFragtNotiz] = useState(false);
   const [offen, setOffen] = useState(false);
   const buchung = laufend.data?.laufend ?? null;
 
-  async function clockOut(notiz: string) {
-    await hole("/zeiten/clock_out/", { method: "POST", body: JSON.stringify({ notiz }) });
+  async function beenden(notiz: string, paket: number) {
+    await clockOut(notiz, paket !== buchung?.paket ? paket : undefined);
     setFragtNotiz(false);
+    neuLaden();
+  }
+
+  async function ohnePaket() {
+    await clockIn();
     neuLaden();
   }
 
@@ -107,6 +115,7 @@ export function Seitenleiste({
       buchung={buchung}
       fragen={() => setFragtNotiz(true)}
       waehlen={() => hin("projekt")}
+      ohnePaket={ich.darf.bearbeiten ? ohnePaket : null}
     />
   );
 
@@ -256,7 +265,9 @@ export function Seitenleiste({
         <Notizdialog
           wo={`${buchung.projekt_titel} · ${buchung.paket_titel}`}
           dauer={alsDauer(Math.floor((Date.now() - new Date(buchung.start).getTime()) / 1000))}
-          speichern={clockOut}
+          paket={buchung.paket}
+          gruppen={paketgruppen(projekte.data ?? [], [buchung.paket])}
+          speichern={beenden}
           abbrechen={() => setFragtNotiz(false)}
         />
       )}
@@ -276,10 +287,14 @@ function Uhrblock({
   buchung,
   fragen,
   waehlen,
+  ohnePaket,
 }: {
   buchung: { start: string; paket_titel: string; projekt_titel: string } | null;
   fragen: () => void;
   waehlen: () => void;
+  /** `null` für einen Leser: Er darf nicht buchen, und ein Knopf, der still
+      eine 403 kassiert, ist schlimmer als keiner. */
+  ohnePaket: (() => void) | null;
 }) {
   return (
     <div className="uhrblock" data-laeuft={buchung ? "ja" : "nein"}>
@@ -296,14 +311,29 @@ function Uhrblock({
           Clock-out
         </button>
       ) : (
-        <button
-          type="button"
-          className="uhrblock-knopf"
-          onClick={waehlen}
-          title="Die Uhr startet auf einem Arbeitspaket."
-        >
-          Paket wählen
-        </button>
+        /* Zwei Wege, weil der Alltag zwei kennt: Wer weiß, woran er arbeitet,
+           wählt das Paket. Wer nur anfangen will, drückt „Ohne Paket" — die
+           Zeit läuft auf Overhead und wird beim Clock-out umgebucht. */
+        <div className="uhrblock-knoepfe">
+          <button
+            type="button"
+            className="uhrblock-knopf"
+            onClick={waehlen}
+            title="Die Uhr startet auf einem Arbeitspaket."
+          >
+            Paket wählen
+          </button>
+          {ohnePaket && (
+            <button
+              type="button"
+              className="uhrblock-knopf"
+              onClick={ohnePaket}
+              title="Die Uhr läuft auf „Overhead“. Beim Clock-out kannst du sie umbuchen."
+            >
+              Ohne Paket
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

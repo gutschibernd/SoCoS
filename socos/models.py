@@ -410,6 +410,16 @@ class Arbeitspaket(Basismodell):
     stufenstand = models.IntegerField("Stufenstand", default=0)
     reihenfolge = models.IntegerField("Reihenfolge", default=0)
 
+    # Hier landet Zeit, die ohne Paketwahl gestartet wurde (siehe
+    # `auffangpaket()` unter dieser Klasse). Genau ein Paket trägt das Merkmal.
+    #
+    # **Warum ein Merkmal am Paket und nicht ein Blick auf den Titel
+    # „Overhead":** Ein Titel wird umbenannt, und danach legte der nächste
+    # Klick still ein zweites Overhead-Projekt an — zwei Töpfe mit demselben
+    # Namen, und in keiner Auswertung fiele das auf. Das Merkmal überlebt jede
+    # Umbenennung.
+    ist_auffang = models.BooleanField("Auffangpaket", default=False)
+
     class Meta(Basismodell.Meta):
         verbose_name = "Arbeitspaket"
         verbose_name_plural = "Arbeitspakete"
@@ -425,6 +435,59 @@ class Arbeitspaket(Basismodell):
         if not self.pk and not self.stufen:
             self.stufen = stufenvorlage(self.bereich.art)
         super().save(*args, **kwargs)
+
+
+#: Wie das Projekt heißt, das beim ersten Start ohne Paketwahl entsteht.
+AUFFANG_PROJEKT = "Overhead"
+AUFFANG_BEREICH = "Laufendes"
+AUFFANG_PAKET = "Allgemein"
+
+
+def auffangpaket():
+    """
+    Das Paket, auf das die Uhr läuft, wenn niemand ein Paket gewählt hat.
+
+    **Warum es überhaupt eines gibt:** Zeit soll sich aufzeichnen lassen, bevor
+    man weiß, wohin sie gehört. Der naheliegende Weg wäre eine Buchung ohne
+    Paket (`paket = null`) — genau den gibt es nicht: Dann gäbe es zwei Arten
+    von Buchungen, und jede Auswertung, jeder Nachweis und jede Summe müsste
+    beide kennen. Stattdessen landet solche Zeit auf einem ganz normalen Paket
+    in einem ganz normalen Projekt; beim Clock-out oder später in der Zeitliste
+    wird sie umgebucht, wenn sie woanders hingehört.
+
+    **Warum es angelegt wird und nicht eingerichtet werden muss:** Ein Knopf,
+    der erst funktioniert, nachdem jemand in der Projektansicht ein Paket
+    angelegt und irgendwo als Auffang markiert hat, ist kein Knopf, sondern
+    eine Fehlermeldung. Angelegt wird beim ersten Griff, nicht in einer
+    Migration — eine Migration legte es auch dort an, wo nie jemand den Knopf
+    drückt.
+
+    Gibt es schon ein Projekt „Overhead", wird das benutzt statt ein zweites
+    daneben zu stellen.
+    """
+    paket = Arbeitspaket.objects.filter(ist_auffang=True).order_by("pk").first()
+    if paket is not None:
+        return paket
+
+    projekt = Projekt.objects.filter(titel__iexact=AUFFANG_PROJEKT).order_by("pk").first()
+    if projekt is None:
+        projekt = Projekt.objects.create(
+            titel=AUFFANG_PROJEKT,
+            untertitel="Zeit, die zu keinem Paket gehört",
+            # Hinten, nicht vorn: Overhead ist das, was nebenher läuft.
+            reihenfolge=900,
+        )
+    bereich = projekt.bereiche.filter(geloescht_am__isnull=True).order_by("pk").first()
+    if bereich is None:
+        bereich = Bereich.objects.create(
+            projekt=projekt, titel=AUFFANG_BEREICH, art=Bereichsart.DEV
+        )
+    return Arbeitspaket.objects.create(
+        bereich=bereich,
+        titel=AUFFANG_PAKET,
+        status=Paketstatus.LAEUFT,
+        ist_auffang=True,
+    )
 
 
 class Unteraufgabe(Basismodell):

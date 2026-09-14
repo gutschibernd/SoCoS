@@ -7,6 +7,75 @@ betrifft.
 
 ---
 
+## 2026-09-14 — Die Uhr darf ohne Paket starten (Auffangpaket „Overhead")
+
+### Warum
+
+Die Uhr verlangte vor dem ersten Tick eine Entscheidung: auf welches Arbeitspaket?
+Im Alltag steht die Entscheidung am Ende, nicht am Anfang — man fängt an und weiß
+erst danach, woran man gearbeitet hat. Wer nicht suchen will, bucht gar nicht, und
+dann fehlt die Stunde ganz.
+
+### Eine Buchung ohne Paket gibt es weiterhin nicht
+
+Der naheliegende Weg wäre `Zeitbuchung.paket = null` gewesen. **Genau den nicht:**
+Dann gäbe es zwei Arten von Buchungen, und jede Auswertung, jeder Nachweis und jede
+Summe müsste beide kennen — dieselbe Begründung, aus der „Overhead" schon immer ein
+gewöhnliches Projekt ist und kein Sonderfall im Code.
+
+Stattdessen: `clock_in` **ohne** `paket` bucht auf das **Auffangpaket**. Das ist ein
+ganz normales Paket in einem ganz normalen Projekt; ab da ist die Buchung von jeder
+anderen ununterscheidbar.
+
+### `Arbeitspaket.ist_auffang` — ein Merkmal, kein Titelvergleich
+
+Migration `0013`. Genau ein Paket im Bestand trägt es.
+
+**Warum nicht `Projekt.objects.filter(titel="Overhead")`:** Ein Titel wird umbenannt.
+Danach legte der nächste Klick still ein zweites Overhead-Projekt an — zwei Töpfe mit
+demselben Namen, die Zeit auf beide verteilt, und in keiner Auswertung fiele das auf.
+Das Merkmal überlebt jede Umbenennung.
+
+**Es gibt keine DB-Bedingung „höchstens eines".** Bewusst: Der Schaden bei zweien wäre
+ein Topf zu viel, kein falscher Wert — dafür lohnt kein partieller Index. Gelesen wird
+ohnehin nur über `auffangpaket()` (in `socos/models.py`), und die nimmt das älteste.
+
+**Angelegt wird beim ersten Griff, nicht in einer Migration.** Eine Migration legte es
+auch dort an, wo nie jemand den Knopf drückt. Gibt es schon ein Projekt „Overhead",
+wird das benutzt statt ein zweites daneben zu stellen — genau der Fall auf dem Server,
+wo eines von Hand existiert.
+
+### Umgebucht wird an zwei Stellen, und beide sind dieselbe Frage
+
+- **Beim Clock-out**: Das Paket steht als Auswahlfeld im Notizfenster. Der Clock-out
+  ist der Moment, in dem man es weiß.
+- **In der Buchungsliste**: „Ändern" öffnet jetzt auch das Paket — **für jede
+  Buchung**, nicht nur für die von Overhead. Ein Fehlgriff beim Start war vorher nur
+  über Entfernen und Nachtragen zu beheben, und das ist zweimal Protokoll für eine
+  Korrektur.
+
+Serverseitig war dafür nichts nötig: `paket` war im `ZeitbuchungSerializer` immer
+schreibbar. `clock_out` nimmt es neu entgegen.
+
+### Die Falle im Auswahlfeld
+
+Die Feldliste zeigt nur **buchbare** Pakete (nicht `fertig`/`verworfen`). Beim Ändern
+einer alten Buchung hängt die aber vielleicht an genau so einem — ohne Ausnahme
+verschwände es aus dem Feld, und **Speichern schöbe die Zeit still auf das erstbeste
+andere**. Deshalb nimmt `paketgruppen(projekte, auch)` das Paket der Buchung
+ausdrücklich mit auf.
+
+### Kleinigkeiten
+
+- `frontend/src/basis/uhr.ts`: `clockIn`/`clockOut` an einer Stelle. Vier Plätze
+  starten die Uhr inzwischen; vier eigene `hole`-Aufrufe liefen beim nächsten Feld
+  auseinander.
+- Am Handy verschwindet „Keine Buchung läuft" aus der Uhrzeile, sobald dort zwei
+  Knöpfe stehen — der Satz sagt nichts, was die stehende Uhr und der graue Punkt
+  nicht schon sagen.
+
+---
+
 ## 2026-09-13 — Das Zeichen bekommt einen Rand und einen Untergrund
 
 ### Warum
@@ -1264,7 +1333,8 @@ im Entwurf schon angelegt (`item.subs`) und sind ausdrücklich gewünscht.
 
 „Overhead" ist **kein Sonderfall im Code**, sondern ein ganz normales Projekt, das
 angelegt wird. Sonst gäbe es zwei Wege, Zeit zu verbuchen, und jede Auswertung müsste
-beide kennen.
+beide kennen. Das eine Paket darin, auf das die Uhr ohne Paketwahl läuft, trägt seit
+`0013` das Merkmal `ist_auffang` — siehe den Eintrag vom 2026-09-14.
 
 Bereichsart bleibt die feste Aufzählung `dev` · `fin` · `ziel`. Sie wählt die
 Vorlage für die Stufenliste eines neuen Pakets, sonst nichts.
