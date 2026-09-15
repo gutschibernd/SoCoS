@@ -969,6 +969,134 @@ class Eventziel(Basismodell):
         return str(self.kontakt or self.organisation)
 
 
+# --- Meetings ---------------------------------------------------------------
+
+
+class Meeting(Basismodell):
+    """
+    Eine Besprechung: vorher geplant, während des Termins mitgeschrieben,
+    danach als Protokoll gegliedert.
+
+    **Ein Meeting hängt an nichts.** Es lässt sich anlegen, bevor feststeht,
+    wer dabei ist — genau so entsteht es ja: zuerst der Termin, dann die
+    Namen. Personen und Häuser sind deshalb beide optional und beide als Menge
+    angehängt; keines von beiden ist der Besitzer. *Nachgetragen* gehören sie
+    trotzdem, sonst findet das Meeting später niemand mehr über den Kontakt —
+    danach fragt die Oberfläche, nicht die Datenbank.
+
+    Drei Texte mit drei verschiedenen Leben:
+
+    - `vorbereitung`   vorher, in Ruhe: was wir aus dem Termin holen wollen.
+    - `mitschrift`     währenddessen, schnell: Stichworte, halbe Sätze.
+    - die Abschnitte   danach: das lesbare Protokoll (`Meetingabschnitt`).
+
+    **Warum die Mitschrift nicht einfach das Protokoll ist:** Wer mitschreibt,
+    hat keine Hand frei zum Gliedern. Und wer danach gliedert, will das Rohe
+    danebenliegen haben statt es überschrieben zu bekommen — es ist die einzige
+    Stelle, an der nachzulesen wäre, ob beim Aufräumen etwas verrutscht ist.
+    """
+
+    titel = models.CharField("Titel", max_length=200)
+    datum = models.DateField("Datum", default=timezone.localdate)
+    # Ohne Uhrzeit ist es trotzdem ein Meeting — SoCoS ist kein Kalender und
+    # erinnert an nichts (siehe MEMORY.md). Sie steht hier, weil „Dienstag
+    # 14:00" das ist, was man einander sagt.
+    uhrzeit = models.TimeField("Uhrzeit", null=True, blank=True)
+    ort = models.CharField("Ort", max_length=160, blank=True)
+
+    # Wer von außen dabei war und aus welchen Häusern. Beide als Menge und
+    # beide leer erlaubt: Ein Termin mit einem Haus, dessen Ansprechpartner
+    # noch niemand kennt, ist der Normalfall der ersten Runde.
+    #
+    # **Kein `through`:** An der Zuordnung hängt nichts weiter — keine Rolle,
+    # kein Status, kein Datum. Und kein PROTECT-Schutz, weil ein M2M keinen
+    # kennt: Wird eine Person weich gelöscht, bleibt sie im Protokoll des
+    # Meetings stehen, an dem sie teilgenommen hat. Das ist richtig so — sie
+    # war dort, und ein Protokoll, das seine Teilnehmer im Nachhinein
+    # verliert, ist keines mehr.
+    kontakte = models.ManyToManyField(
+        "Kontakt", verbose_name="Personen", blank=True, related_name="meetings"
+    )
+    organisationen = models.ManyToManyField(
+        "Organisation", verbose_name="Organisationen", blank=True, related_name="meetings"
+    )
+    teilnehmer = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, verbose_name="Von uns", blank=True, related_name="meetings"
+    )
+
+    vorbereitung = models.TextField("Vorbereitung", blank=True)
+    mitschrift = models.TextField("Mitschrift", blank=True)
+
+    # **Diese beiden Felder stehen nicht im Änderungsprotokoll.** Sie speichern
+    # sich beim Tippen von selbst; jede Pause von zwei Sekunden schriebe sonst
+    # einen Eintrag mit dem alten *und* dem neuen Text nebeneinander. Nach
+    # einer Stunde Mitschreiben wären das hunderte Einträge, in denen jeder
+    # echte Vorgang untergeht — und das Protokoll ist dafür da, gelesen zu
+    # werden. Was nachträglich am *Protokoll* geändert wird, steht vollständig
+    # drin: Das sind die Abschnitte, und die schreibt niemand im Sekundentakt.
+    protokoll_ohne = ("vorbereitung", "mitschrift")
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Meeting"
+        verbose_name_plural = "Meetings"
+        # Das Jüngste zuerst, und am selben Tag das spätere oben. Ein Meeting
+        # ohne Uhrzeit steht hinter denen mit — sonst stünde „irgendwann am
+        # Dienstag" über „Dienstag 16:00".
+        ordering = ["-datum", models.F("uhrzeit").desc(nulls_last=True), "titel"]
+
+    def __str__(self):
+        return f"{self.datum:%d.%m.%Y} · {self.titel}"
+
+    def delete(self, *args, **kwargs):
+        """
+        Die Abschnitte gehen mit.
+
+        **Warum das hier von Hand steht:** Weiches Löschen ist für die
+        Datenbank ein UPDATE — `on_delete=CASCADE` löst dabei nie aus. Ohne
+        diese Zeilen bliebe das Protokoll eines entfernten Meetings als Satz
+        Abschnitte zurück, die auf nichts Sichtbares mehr zeigen.
+
+        Erst das Meeting, dann die Abschnitte: Wehrt sich das Meeting gegen das
+        Löschen, bleiben sie unangetastet.
+        """
+        super().delete(*args, **kwargs)
+        for abschnitt in self.abschnitte.filter(geloescht_am__isnull=True):
+            abschnitt.delete()
+
+
+class Meetingabschnitt(Basismodell):
+    """
+    Ein Stück Protokoll: eine Überschrift und ein Text.
+
+    **Warum das Protokoll zerlegt ist und nicht in einem Feld steht:** Nach dem
+    Termin wird nachgebessert — ein Name richtiggestellt, ein Ergebnis
+    präzisiert. In einem einzigen langen Feld heißt das, den ganzen Text
+    aufzumachen; hier ändert man den einen Absatz, um den es geht. Und das
+    Änderungsprotokoll sagt dann auch, welcher Absatz es war.
+
+    `CASCADE` und nicht `PROTECT` wie sonst überall: Ein Abschnitt hat außerhalb
+    seines Meetings kein Leben. Ein Meeting, das sich nicht entfernen ließe,
+    solange sein Protokoll daran hängt, wäre die falsche Nachfrage — das
+    Protokoll ist der Inhalt, nicht ein fremder Verweis darauf. Beim weichen
+    Löschen greift CASCADE ohnehin nicht; das erledigt `Meeting.delete()`.
+    """
+
+    meeting = models.ForeignKey(
+        Meeting, verbose_name="Meeting", on_delete=models.CASCADE, related_name="abschnitte"
+    )
+    ueberschrift = models.CharField("Überschrift", max_length=200, blank=True)
+    text = models.TextField("Text", blank=True)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Protokollabschnitt"
+        verbose_name_plural = "Protokollabschnitte"
+        ordering = ["meeting", "reihenfolge", "id"]
+
+    def __str__(self):
+        return self.ueberschrift or (self.text[:40] or "Abschnitt")
+
+
 # --- Finanzen ---------------------------------------------------------------
 #
 # Geld ist Decimal, immer. JSON kennt nur Gleitkomma, und dort ist 0.1 + 0.2

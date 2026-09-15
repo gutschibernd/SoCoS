@@ -26,6 +26,8 @@ MODELLE_IM_ARCHIV = [
     "socos.Verlaufseintrag",
     "socos.Event",
     "socos.Eventziel",
+    "socos.Meeting",
+    "socos.Meetingabschnitt",
     "socos.Kontostand",
     "socos.Fixkosten",
     "socos.Monatskosten",
@@ -43,6 +45,10 @@ LOESCHREIHENFOLGE = [
     # dreien.
     "socos.Verlaufseintrag",
     "socos.Eventziel",
+    # Der Abschnitt vor dem Meeting, das Meeting vor Kontakt und Organisation:
+    # Es zeigt auf beide (als Menge), und die Zwischentabellen hängen an ihm.
+    "socos.Meetingabschnitt",
+    "socos.Meeting",
     # Der Kontakt steht **vor** dem Event, seit er mit `kennengelernt_auf` auf
     # eines zeigt. Andersherum hielte PROTECT beim Leeren dagegen, und das
     # Einspielen bräche mitten im Vorgang ab — mit einer halb geleerten

@@ -12,6 +12,7 @@ import { Doku } from "./ansichten/Doku";
 import { Einstellungen } from "./ansichten/Einstellungen";
 import { Events } from "./ansichten/Events";
 import { Kontakte } from "./ansichten/Kontakte";
+import { Meetings } from "./ansichten/Meetings";
 import { Profil } from "./ansichten/Profil";
 import { Projekt } from "./ansichten/Projekt";
 import { Rueckmeldungen } from "./ansichten/Rueckmeldungen";
@@ -29,6 +30,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   aufgaben: { titel: "Aufgaben", unter: "Was ansteht — allgemein und je Person" },
   kontakte: { titel: "Kontakte", unter: "Organisationen und Personen" },
   events: { titel: "Events", unter: "Tagungen, Hitlist, wen wir getroffen haben" },
+  meetings: { titel: "Meetings", unter: "Vorher planen, mitschreiben, Protokoll" },
   profil: { titel: "Profil", unter: "Deine Stammdaten" },
   einstellungen: { titel: "Einstellungen", unter: "Konten, Protokoll, Sicherung" },
   doku: { titel: "Doku", unter: "Wie SoCoS gemeint ist — kurz" },
@@ -116,6 +118,9 @@ export function App() {
           )}
           {ort.seite === "events" && (
             <Events ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+          )}
+          {ort.seite === "meetings" && (
+            <Meetings ich={ich.data} unter={ort.unter} wechseln={wechseln} />
           )}
           {ort.seite === "profil" && (
             <Profil ich={ich.data} unter={ort.unter} wechseln={wechseln} />

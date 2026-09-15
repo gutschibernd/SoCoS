@@ -20,6 +20,66 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-15",
+        "titel": "Meetings — vorbereiten, mitschreiben, Protokoll",
+        "punkte": [
+            {
+                "titel": "Neu: Extern · Meetings",
+                "text": (
+                    "Eine Seite je Besprechung: oben, was wir aus dem Termin "
+                    "holen wollen, darunter das Feld zum Mitschreiben, danach "
+                    "das Protokoll. Ein Meeting lässt sich anlegen, bevor "
+                    "feststeht, wer kommt — Personen und Häuser trägst du "
+                    "später nach."
+                ),
+                "wo": "meetings",
+            },
+            {
+                "titel": "Die Mitschrift speichert sich selbst",
+                "text": (
+                    "Während des Meetings gibt es keinen Speichern-Knopf: Das "
+                    "Feld sichert nach einer kurzen Schreibpause, beim "
+                    "Wegklicken und wenn du die App wechselst. Darunter "
+                    "steht, wann zuletzt gespeichert wurde. Schließt du den "
+                    "Tab, während etwas offen ist, fragt der Browser nach."
+                ),
+                "wo": "doku/meetings",
+            },
+            {
+                "titel": "Aus der Mitschrift ein lesbares Protokoll",
+                "text": (
+                    "„Für ein LLM kopieren“ legt die Mitschrift samt Auftrag "
+                    "in die Zwischenablage — die Regeln darin sagen dem "
+                    "Modell, dass es nichts erfinden und nichts weglassen "
+                    "darf. Das Ergebnis fügst du zurück ein; SoCoS zerlegt es "
+                    "an den Überschriften in Abschnitte, die danach einzeln "
+                    "änderbar und verschiebbar sind."
+                ),
+                "wo": "doku/meetings",
+            },
+            {
+                "titel": "Meetings stehen im Verlauf beim Kontakt",
+                "text": (
+                    "Bei einer Person und bei ihrem Haus steht ein Meeting in "
+                    "derselben Liste wie Mails und Telefonate, mit einem Pfeil "
+                    "dorthin. Das gilt nur für die Personen, die am Meeting "
+                    "eingetragen sind — ein Grund mehr, sie nachzutragen."
+                ),
+                "wo": "kontakte",
+            },
+            {
+                "titel": "Start liegt jetzt auf dem Logo",
+                "text": (
+                    "Der eigene Menüeintrag „Start“ ist weg; zur Startseite "
+                    "kommst du über das SoCoS-Zeichen ganz oben in der "
+                    "Leiste. Das schafft Platz für die Rubriken darunter. Am "
+                    "Handy steht „Start“ weiter in der Fußleiste."
+                ),
+                "wo": "start",
+            },
+        ],
+    },
+    {
         "version": "2026-09-14",
         "titel": "Die Aufgabentafel — und Zeit ohne Paketsuche",
         "punkte": [

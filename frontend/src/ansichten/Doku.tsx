@@ -30,6 +30,7 @@ const TEILE: { teil: Dokuteil; titel: string }[] = [
   { teil: "projekt", titel: "Projekt & Fortschritt" },
   { teil: "kontakte", titel: "Kontakte" },
   { teil: "events", titel: "Events" },
+  { teil: "meetings", titel: "Meetings" },
   { teil: "geld", titel: "Geld & Runway" },
   { teil: "rechte", titel: "Rollen & Sicherung" },
   { teil: "aenderungen", titel: "Änderungen" },
@@ -71,6 +72,7 @@ export function Doku({
         {gewaehlt === "projekt" && <ProjektDoku />}
         {gewaehlt === "kontakte" && <KontakteDoku />}
         {gewaehlt === "events" && <EventsDoku />}
+        {gewaehlt === "meetings" && <MeetingsDoku />}
         {gewaehlt === "geld" && <GeldDoku />}
         {gewaehlt === "rechte" && <RechteDoku />}
         {gewaehlt === "aenderungen" && <AenderungenDoku />}
@@ -212,6 +214,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, je Person." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
+            { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
           ].map((w) => (
             <button key={w.seite} type="button" className="doku-weg" onClick={() => wechseln(w.seite)}>
               <Zeichen name={w.zeichen} />
@@ -499,6 +502,83 @@ function EventsDoku() {
             {
               begriff: "Suche",
               text: "Sie geht über die Hitlist mit: Wer den Namen einer Förderstelle eingibt, findet das Event, auf dem er sie treffen wollte.",
+            },
+          ]}
+        />
+      </Abschnitt>
+    </>
+  );
+}
+
+function MeetingsDoku() {
+  return (
+    <>
+      <Abschnitt
+        zeichen="meeting"
+        titel="Eine Seite je Besprechung — vorher, währenddessen, danach"
+        vorspann="Vorbereitung, Mitschrift und Protokoll stehen untereinander auf derselben Seite, in der Reihenfolge, in der sie entstehen."
+      >
+        <Schritte
+          schritte={[
+            "Meeting anlegen, sobald der Termin steht — Titel, Tag, Uhrzeit. Personen und Häuser kannst du später nachtragen.",
+            "In „Vorbereitung“ eintragen, was wir aus dem Termin holen wollen. Das bleibt danach stehen: Daran misst sich, ob wir es bekommen haben.",
+            "Während des Meetings in „Mitschrift“ tippen. Stichworte reichen — das Feld speichert sich von selbst, es gibt keinen Knopf dafür.",
+            "Danach „Für ein LLM kopieren“ drücken, den Text bei einem Sprachmodell einfügen, das Ergebnis zurück in das Feld darunter und „Als Protokoll übernehmen“.",
+            "Das Protokoll steht dann oben, in Abschnitten. Jede Überschrift und jeder Text ist einzeln änderbar, Abschnitte lassen sich verschieben und ergänzen.",
+          ]}
+        />
+        <Merke>
+          Das Feld speichert nach einer kurzen Schreibpause, beim Wegklicken und wenn du die App
+          wechselst. Unter dem Feld steht, wann zuletzt gespeichert wurde. Schließt du den Tab,
+          während etwas offen ist, fragt der Browser nach.
+        </Merke>
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="buch"
+        titel="Der Weg über ein Sprachmodell"
+        vorspann="SoCoS schickt nichts irgendwohin. Kopiert wird in die Zwischenablage — wohin du es einfügst, entscheidest du."
+      >
+        <Begriffe
+          paare={[
+            {
+              begriff: "Was mitkopiert wird",
+              text: "Die Mitschrift, der Rahmen (Titel, Tag, wer dabei war) und der Auftrag samt Regeln: nichts erfinden, nichts weglassen, Unklares unklar lassen, keine Einleitung. Mit „Auftrag ansehen“ kannst du nachlesen, was da steht.",
+            },
+            {
+              begriff: "Was nicht mitkopiert wird",
+              text: "Die Vorbereitung. Sie ist der Plan, nicht das Gespräch — läge sie daneben, machte das Modell daraus leicht ein „wurde besprochen“.",
+            },
+            {
+              begriff: "Wie zerlegt wird",
+              text: "An den Überschriften: Jede Zeile, die mit ## beginnt, fängt einen neuen Abschnitt an. Was vor der ersten Überschrift steht, wird ein Abschnitt ohne Titel — verloren geht nichts.",
+            },
+            {
+              begriff: "Ein zweiter Durchlauf",
+              text: "Übernimmst du noch einmal, ersetzt das neue Protokoll das alte vollständig. Vorher wird gefragt. Die Mitschrift bleibt in jedem Fall stehen — sie ist die Quelle, in der man nachsieht, wenn ein Satz zu glatt klingt.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="kontakte"
+        titel="Personen nachtragen"
+        vorspann="Ein Meeting hängt an nichts — es lässt sich anlegen, bevor feststeht, wer kommt."
+      >
+        <Begriffe
+          paare={[
+            {
+              begriff: "Warum trotzdem eintragen",
+              text: "Nur über die eingetragenen Personen und Häuser taucht das Meeting im Verlauf eines Kontakts auf. Wer es nicht nachträgt, findet das Protokoll später nur über die Meetingliste.",
+            },
+            {
+              begriff: "Im Verlauf",
+              text: "Bei der Person und bei ihrem Haus steht das Meeting in derselben Liste wie Mails und Telefonate — mit einem Pfeil daneben, der hierher zurückführt. Geändert wird es nur hier.",
+            },
+            {
+              begriff: "Kurze Notiz statt Meeting",
+              text: "Für ein Telefonat von drei Sätzen ist ein Meeting zu viel. Das bleibt ein Verlaufseintrag beim Kontakt.",
             },
           ]}
         />

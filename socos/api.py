@@ -29,6 +29,8 @@ from socos.models import (
     Fixkosten,
     Kontakt,
     Kontostand,
+    Meeting,
+    Meetingabschnitt,
     Monatskosten,
     Nutzer,
     Organisation,
@@ -368,6 +370,131 @@ class EventzielViewSet(SocosViewSet):
         if event := self.request.query_params.get("event"):
             menge = menge.filter(event_id=event)
         return menge
+
+
+# --- Meetings ---------------------------------------------------------------
+
+
+class MeetingViewSet(SocosViewSet):
+    """
+    Besprechungen samt Protokoll.
+
+    Kein Zeitfilter: Es gibt ein paar Dutzend Meetings im Jahr, und ein stiller
+    Filter auf „dieser Monat" wäre genau die Art Fehler, bei der eine Liste
+    vollständig aussieht und es nicht ist. Gesucht und geteilt wird in der
+    Oberfläche.
+    """
+
+    serializer_class = ser.MeetingSerializer
+    queryset = Meeting.objects.prefetch_related(
+        "kontakte__organisation", "organisationen", "teilnehmer", "abschnitte"
+    )
+
+    @action(detail=True, methods=["post"])
+    def protokoll(self, request, pk=None):
+        """
+        Setzt das Protokoll — die geschickten Abschnitte **ersetzen** die
+        vorhandenen.
+
+        So kommt das aufbereitete Protokoll in einem Stück herein: Der Text aus
+        dem LLM wird in der Oberfläche an seinen Überschriften zerlegt (siehe
+        `frontend/src/basis/meetings.ts`) und hier als Liste abgeliefert.
+
+        **Warum ersetzen und nicht anhängen:** Wer den Text ein zweites Mal
+        durch das LLM schickt, weil beim ersten Versuch die Hälfte fehlte, will
+        das Ergebnis — nicht beides untereinander. Dass dabei Änderungen von
+        Hand verlorengehen, ist die Nachfrage in der Oberfläche wert; sie steht
+        dort, weil nur sie weiß, ob schon etwas dasteht.
+
+        Ein Abschnitt ohne Überschrift *und* ohne Text wird übergangen: Das ist
+        eine Leerzeile aus der Zwischenablage, kein Abschnitt.
+        """
+        meeting = self.get_object()
+        roh = request.data.get("abschnitte")
+        if not isinstance(roh, list):
+            raise ValidationError({"abschnitte": "Erwartet wird eine Liste von Abschnitten."})
+        if len(roh) > 200:
+            raise ValidationError(
+                {"abschnitte": "Über 200 Abschnitte — das ist kein Protokoll mehr."}
+            )
+
+        neue = []
+        for stelle, eintrag in enumerate(roh):
+            if not isinstance(eintrag, dict):
+                raise ValidationError(
+                    {"abschnitte": "Jeder Abschnitt ist ein Objekt aus Überschrift und Text."}
+                )
+            ueberschrift = str(eintrag.get("ueberschrift") or "").strip()[:200]
+            text = str(eintrag.get("text") or "").strip()
+            if not ueberschrift and not text:
+                continue
+            neue.append((ueberschrift, text, stelle))
+
+        # In einem Zug: Ein Abbruch zwischen Leeren und Schreiben ließe das
+        # Meeting ohne Protokoll zurück, und das Original steht dann nur noch
+        # in der Zwischenablage von jemandem.
+        with transaction.atomic():
+            for alt in meeting.abschnitte.filter(geloescht_am__isnull=True):
+                alt.delete()
+            for ueberschrift, text, stelle in neue:
+                Meetingabschnitt.objects.create(
+                    meeting=meeting, ueberschrift=ueberschrift, text=text, reihenfolge=stelle
+                )
+
+        return Response(self.get_serializer(meeting).data)
+
+
+class MeetingabschnittViewSet(SocosViewSet):
+    """Einzelne Abschnitte — angelegt, geändert und verschoben wird hier."""
+
+    serializer_class = ser.MeetingabschnittSerializer
+    queryset = Meetingabschnitt.objects.select_related("meeting")
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        if meeting := self.request.query_params.get("meeting"):
+            menge = menge.filter(meeting_id=meeting)
+        return menge
+
+    @action(detail=True, methods=["post"])
+    def verschieben(self, request, pk=None):
+        """
+        Einen Abschnitt um eine Stelle nach oben oder unten.
+
+        **Warum das der Server macht und nicht die Oberfläche:** Getauscht
+        werden müssten zwei `reihenfolge`-Werte — und die sind nicht
+        zwangsläufig verschieden. Ein Abschnitt, der von Hand angefügt wurde,
+        und einer aus einer Aufbereitung können dieselbe Zahl tragen; ein
+        Tausch bewegte dann nichts, und niemand sähe warum. Hier wird die
+        ganze Liste in ihrer sichtbaren Ordnung neu durchnummeriert, und der
+        Tausch ist danach immer echt.
+        """
+        abschnitt = self.get_object()
+        richtung = request.data.get("richtung")
+        if richtung not in ("hoch", "runter"):
+            raise ValidationError(
+                {"richtung": "Erwartet wird „hoch“ oder „runter“."}
+            )
+
+        geschwister = list(
+            abschnitt.meeting.abschnitte.filter(geloescht_am__isnull=True).order_by(
+                "reihenfolge", "id"
+            )
+        )
+        stelle = [g.pk for g in geschwister].index(abschnitt.pk)
+        ziel = stelle - 1 if richtung == "hoch" else stelle + 1
+        if 0 <= ziel < len(geschwister):
+            geschwister[stelle], geschwister[ziel] = geschwister[ziel], geschwister[stelle]
+
+        with transaction.atomic():
+            for nummer, g in enumerate(geschwister):
+                if g.reihenfolge != nummer:
+                    g.reihenfolge = nummer
+                    g.save(update_fields=["reihenfolge", "geaendert_am"])
+
+        return Response(
+            ser.MeetingabschnittSerializer(geschwister, many=True).data
+        )
 
 
 # --- Finanzen ---------------------------------------------------------------

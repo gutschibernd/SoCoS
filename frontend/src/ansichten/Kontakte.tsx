@@ -239,6 +239,7 @@ export function Kontakte({
           neuLaden={neuLaden}
           zurueck={zurueck}
           zumLoeschen={setLoeschen}
+          zumMeeting={(id) => wechseln("meetings", String(id))}
         />
       ) : unter === LOSE ? (
         <LoseSeite
@@ -247,6 +248,7 @@ export function Kontakte({
           ich={ich}
           neuLaden={neuLaden}
           zumLoeschen={setLoeschen}
+          zumMeeting={(id) => wechseln("meetings", String(id))}
         />
       ) : (
         <Uebersicht
@@ -589,6 +591,7 @@ function Organisationsseite({
   neuLaden,
   zurueck,
   zumLoeschen,
+  zumMeeting,
 }: {
   org: Organisation;
   organisationen: Organisation[];
@@ -596,6 +599,7 @@ function Organisationsseite({
   neuLaden: () => void;
   zurueck: () => void;
   zumLoeschen: (auftrag: Loeschauftrag) => void;
+  zumMeeting: (id: number) => void;
 }) {
   return (
     <>
@@ -708,6 +712,7 @@ function Organisationsseite({
         andasHaus={org.id}
         ich={ich}
         neuLaden={neuLaden}
+        zumMeeting={zumMeeting}
       />
     </>
   );
@@ -721,12 +726,14 @@ function LoseSeite({
   ich,
   neuLaden,
   zumLoeschen,
+  zumMeeting,
 }: {
   kontakte: Kontakt[];
   organisationen: Organisation[];
   ich: Ich;
   neuLaden: () => void;
   zumLoeschen: (auftrag: Loeschauftrag) => void;
+  zumMeeting: (id: number) => void;
 }) {
   return (
     <>
@@ -759,6 +766,7 @@ function LoseSeite({
         andasHaus={null}
         ich={ich}
         neuLaden={neuLaden}
+        zumMeeting={zumMeeting}
       />
     </>
   );
@@ -1079,6 +1087,7 @@ function Verlaufskarte({
   andasHaus,
   ich,
   neuLaden,
+  zumMeeting,
 }: {
   zeilen: Verlaufszeile[];
   kontakte: Kontakt[];
@@ -1086,6 +1095,8 @@ function Verlaufskarte({
   andasHaus: number | null;
   ich: Ich;
   neuLaden: () => void;
+  /** Der Weg zur Meetingseite — die Zeile wird dort bearbeitet, nicht hier. */
+  zumMeeting: (id: number) => void;
 }) {
   const [eintrag, setEintrag] = useState(() => ({
     art: "call",
@@ -1197,8 +1208,10 @@ function Verlaufskarte({
         />
       ) : (
         <ul className="verlauf">
+          {/* Der Schlüssel trägt die Quelle mit: Eintrag 3 und Meeting 3 sind
+              zwei verschiedene Zeilen. */}
           {zeilen.map((z) => (
-            <li key={z.id}>
+            <li key={`${z.quelle}${z.id}`}>
               <span className="zahl datum">{alsDatum(z.datum)}</span>
               <div style={{ flex: 1 }}>
                 <b>{z.titel}</b>
@@ -1211,18 +1224,33 @@ function Verlaufskarte({
                   {z.wer_name && ` · notiert von ${z.wer_name}`}
                 </span>
               </div>
-              {ich.darf.loeschen && (
+              {/* Ein Meeting wird auf seiner eigenen Seite geändert und
+                  entfernt. Hier stünde sonst ein Kreuz, das ein Protokoll
+                  wegwirft, ohne es je gezeigt zu haben. */}
+              {z.quelle === "meeting" ? (
                 <button
                   type="button"
                   className="mini"
-                  aria-label="Eintrag entfernen"
-                  onClick={async () => {
-                    await hole(`/verlauf/${z.id}/`, { method: "DELETE" });
-                    neuLaden();
-                  }}
+                  aria-label={`Meeting „${z.titel}“ öffnen`}
+                  title="Zum Meeting"
+                  onClick={() => zumMeeting(z.id)}
                 >
-                  <Zeichen name="kreuz" />
+                  <Zeichen name="zeiger" />
                 </button>
+              ) : (
+                ich.darf.loeschen && (
+                  <button
+                    type="button"
+                    className="mini"
+                    aria-label="Eintrag entfernen"
+                    onClick={async () => {
+                      await hole(`/verlauf/${z.id}/`, { method: "DELETE" });
+                      neuLaden();
+                    }}
+                  >
+                    <Zeichen name="kreuz" />
+                  </button>
+                )
               )}
             </li>
           ))}

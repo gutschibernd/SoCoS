@@ -53,6 +53,7 @@ function person(id: number, name: string, teil: Partial<Kontakt> = {}): Kontakt 
     offener_punkt: "",
     letzter_kontakt: null,
     verlauf: [],
+    meetings: [],
     ...teil,
   };
 }
@@ -68,9 +69,71 @@ function organisation(teil: Partial<Organisation> = {}): Organisation {
     nutzen: "",
     kontakte: [],
     verlauf: [],
+    meetings: [],
     ...teil,
   };
 }
+
+function treffen(id: number, datum: string, titel = `Meeting ${id}`) {
+  return { id, titel, datum, hat_protokoll: true };
+}
+
+describe("Meetings im Verlauf", () => {
+  /* Der Fall, der ohne Zusammenfassen wie drei Termine aussähe: dasselbe
+     Meeting hängt am Haus und an zwei Personen daraus. */
+  it("führt dasselbe Meeting nur einmal, mit allen Beteiligten", () => {
+    const org = organisation({
+      meetings: [treffen(4, "2026-09-15", "Abstimmung Antrag")],
+      kontakte: [
+        person(7, "Andrea", { meetings: [treffen(4, "2026-09-15", "Abstimmung Antrag")] }),
+        person(8, "Martin", { meetings: [treffen(4, "2026-09-15", "Abstimmung Antrag")] }),
+      ],
+    });
+
+    expect(verlaufDerOrganisation(org).map((z) => [z.titel, z.wem])).toEqual([
+      ["Abstimmung Antrag", "Andrea, Martin"],
+    ]);
+  });
+
+  it("nimmt ein Meeting auch dann mit, wenn nur eine Person daran hängt", () => {
+    const org = organisation({
+      kontakte: [person(7, "Andrea", { meetings: [treffen(4, "2026-09-15")] })],
+    });
+
+    expect(verlaufDerOrganisation(org).map((z) => [z.quelle, z.wem])).toEqual([
+      ["meeting", "Andrea"],
+    ]);
+  });
+
+  it("sagt, wenn noch kein Protokoll dasteht", () => {
+    const org = organisation({
+      meetings: [{ id: 4, titel: "Erstgespräch", datum: "2026-09-15", hat_protokoll: false }],
+    });
+
+    expect(verlaufDerOrganisation(org)[0].text).toBe("Noch kein Protokoll.");
+  });
+
+  it("stellt am selben Tag das Meeting über den Eintrag", () => {
+    const org = organisation({
+      verlauf: [eintrag(9, "2026-09-15", "Mail hinterher")],
+      meetings: [treffen(1, "2026-09-15", "Der Termin")],
+    });
+
+    expect(verlaufDerOrganisation(org).map((z) => z.titel)).toEqual([
+      "Der Termin",
+      "Mail hinterher",
+    ]);
+  });
+
+  it("führt auch bei losen Personen jedes Meeting nur einmal", () => {
+    const zeilen = verlaufDerPersonen([
+      person(7, "Andrea", { meetings: [treffen(4, "2026-09-15")] }),
+      person(8, "Martin", { meetings: [treffen(4, "2026-09-15")] }),
+    ]);
+
+    expect(zeilen.map((z) => z.wem)).toEqual(["Andrea, Martin"]);
+  });
+});
 
 describe("verlaufDerOrganisation", () => {
   it("führt Einträge an der Organisation und an ihren Personen in einen Strang", () => {

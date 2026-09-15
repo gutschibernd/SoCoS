@@ -17,6 +17,8 @@ from socos.models import (
     Fixkosten,
     Kontakt,
     Kontostand,
+    Meeting,
+    Meetingabschnitt,
     Monatskosten,
     Nutzer,
     Organisation,
@@ -272,6 +274,7 @@ class KontaktSerializer(serializers.ModelSerializer):
     )
     letzter_kontakt = serializers.SerializerMethodField()
     verlauf = serializers.SerializerMethodField()
+    meetings = serializers.SerializerMethodField()
 
     class Meta:
         model = Kontakt
@@ -279,29 +282,40 @@ class KontaktSerializer(serializers.ModelSerializer):
             "id", "name", "anrede", "funktion", "email", "telefon",
             "organisation", "organisation_name",
             "kennengelernt_auf", "kennengelernt_auf_titel",
-            "ball", "offener_punkt", "letzter_kontakt", "verlauf",
+            "ball", "offener_punkt", "letzter_kontakt", "verlauf", "meetings",
         ]
 
     def get_letzter_kontakt(self, kontakt):
-        letzter = (
-            kontakt.verlauf.filter(geloescht_am__isnull=True).order_by("-datum").first()
-        )
-        return letzter.datum if letzter else None
+        """
+        Wann zuletzt etwas mit dieser Person war — **Verlauf und Meetings**.
+
+        Ein Meeting ist der deutlichste Kontakt, den es gibt; es hier zu
+        übergehen ließe eine Person als „seit Monaten nichts" dastehen, obwohl
+        man vorige Woche eine Stunde mit ihr geredet hat.
+        """
+        letzter = kontakt.verlauf.filter(geloescht_am__isnull=True).order_by("-datum").first()
+        treffen = kontakt.meetings.filter(geloescht_am__isnull=True).order_by("-datum").first()
+        datumsangaben = [x.datum for x in (letzter, treffen) if x]
+        return max(datumsangaben) if datumsangaben else None
 
     def get_verlauf(self, kontakt):
         menge = kontakt.verlauf.filter(geloescht_am__isnull=True).order_by("-datum", "-id")
         return VerlaufseintragSerializer(menge, many=True, context=self.context).data
 
+    def get_meetings(self, kontakt):
+        return meetingzeilen(kontakt.meetings)
+
 
 class OrganisationSerializer(serializers.ModelSerializer):
     kontakte = serializers.SerializerMethodField()
     verlauf = serializers.SerializerMethodField()
+    meetings = serializers.SerializerMethodField()
 
     class Meta:
         model = Organisation
         fields = [
             "id", "name", "kurz", "typ", "stufe", "prioritaet", "nutzen",
-            "kontakte", "verlauf",
+            "kontakte", "verlauf", "meetings",
         ]
 
     def get_kontakte(self, org):
@@ -311,6 +325,17 @@ class OrganisationSerializer(serializers.ModelSerializer):
     def get_verlauf(self, org):
         menge = org.verlauf.filter(geloescht_am__isnull=True).order_by("-datum", "-id")
         return VerlaufseintragSerializer(menge, many=True, context=self.context).data
+
+    def get_meetings(self, org):
+        """Nur die Meetings, die am Haus selbst hängen.
+
+        Die Meetings der Personen darin kommen über deren eigene Liste mit —
+        zusammengeführt wird beim Anzeigen, so wie beim Verlauf auch (siehe
+        `frontend/src/basis/kontakte.ts`). Hier beides zu mischen hieße, eine
+        Besprechung, bei der das Haus *und* eine Person eingetragen sind,
+        zweimal auszuliefern.
+        """
+        return meetingzeilen(org.meetings)
 
 
 # --- Events -----------------------------------------------------------------
@@ -396,6 +421,87 @@ class EventSerializer(serializers.ModelSerializer):
         if von and bis and bis < von:
             raise serializers.ValidationError({"bis": "Das Ende liegt vor dem Anfang."})
         return daten
+
+
+# --- Meetings ---------------------------------------------------------------
+
+
+def meetingzeilen(menge):
+    """
+    Meetings in der kurzen Form, wie sie im Verlauf einer Person oder eines
+    Hauses stehen: Datum, Titel, und ob schon ein Protokoll da ist.
+
+    **Ohne die Texte.** Auf der Kontakteseite steht das Meeting als Zeile mit
+    einem Knopf daneben; die Mitschrift dort mitzuliefern hieße, den Verlauf
+    einer Organisation mit zwanzig Protokollen zu laden, um zwanzig
+    Überschriften anzuzeigen.
+    """
+    treffer = menge.filter(geloescht_am__isnull=True).order_by("-datum", "-id")
+    return [
+        {
+            "id": m.id,
+            "titel": m.titel,
+            "datum": m.datum,
+            "hat_protokoll": m.abschnitte.filter(geloescht_am__isnull=True).exists(),
+        }
+        for m in treffer
+    ]
+
+
+class MeetingabschnittSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Meetingabschnitt
+        fields = ["id", "meeting", "ueberschrift", "text", "reihenfolge"]
+
+
+class MeetingSerializer(serializers.ModelSerializer):
+    """
+    Ein Meeting samt Protokoll und den Namen der Beteiligten.
+
+    Die Namen kommen mit, weil die Liste sonst Nummern zeigte und für jede
+    Zeile die Kontakte nachladen müsste. Geschrieben wird über `kontakte`,
+    `organisationen` und `teilnehmer` — die Namenlisten sind nur lesbar.
+    """
+
+    abschnitte = serializers.SerializerMethodField()
+    personen = serializers.SerializerMethodField()
+    haeuser = serializers.SerializerMethodField()
+    teilnehmer_namen = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Meeting
+        fields = [
+            "id", "titel", "datum", "uhrzeit", "ort",
+            "kontakte", "personen", "organisationen", "haeuser",
+            "teilnehmer", "teilnehmer_namen",
+            "vorbereitung", "mitschrift", "abschnitte",
+        ]
+
+    def get_abschnitte(self, meeting):
+        # Nur die nicht gelöschten: über die Beziehung käme sonst auch weich
+        # Gelöschtes mit, weil Django dafür den Basis-Manager nimmt.
+        menge = meeting.abschnitte.filter(geloescht_am__isnull=True).order_by(
+            "reihenfolge", "id"
+        )
+        return MeetingabschnittSerializer(menge, many=True, context=self.context).data
+
+    def get_personen(self, meeting):
+        return [
+            {
+                "id": k.id,
+                "name": k.name,
+                # Das Haus dahinter — ohne es steht in der Zeile ein Name, den
+                # ein halbes Jahr später niemand mehr einordnet.
+                "organisation_name": k.organisation.name if k.organisation else "",
+            }
+            for k in meeting.kontakte.all()
+        ]
+
+    def get_haeuser(self, meeting):
+        return [{"id": o.id, "name": o.name} for o in meeting.organisationen.all()]
+
+    def get_teilnehmer_namen(self, meeting):
+        return [n.name for n in meeting.teilnehmer.all()]
 
 
 # --- Finanzen ---------------------------------------------------------------

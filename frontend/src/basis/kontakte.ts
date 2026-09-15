@@ -13,7 +13,7 @@
  * Umhängen einer Person auseinanderläuft.
  */
 
-import type { Kontakt, Organisation, Verlaufseintrag } from "./daten";
+import type { Kontakt, Meetingzeile, Organisation, Verlaufseintrag } from "./daten";
 
 export type Ballfilter = "alle" | Kontakt["ball"];
 
@@ -145,32 +145,118 @@ export function artText(art: string): string {
   return VERLAUFSARTEN.find((a) => a.wert === art)?.text ?? art;
 }
 
-export type Verlaufszeile = Verlaufseintrag & {
-  /** Mit wem — leer, wenn der Eintrag an der Organisation selbst hängt. */
+/**
+ * Eine Zeile im Verlauf — sie kommt aus einem Verlaufseintrag **oder** aus
+ * einem Meeting.
+ *
+ * **Warum ein Meeting hier mitläuft und nicht daneben steht:** „Was ist mit
+ * diesem Haus zuletzt passiert?" ist eine Frage mit einer Antwort. Zwei Listen
+ * untereinander — Verlauf hier, Besprechungen dort — hieße, dass man sie zum
+ * Lesen im Kopf zusammenführt und dabei die Reihenfolge verliert. Gespeichert
+ * wird trotzdem nur an einer Stelle: Das Meeting steht auf seiner eigenen
+ * Seite, hier steht ein Verweis darauf.
+ */
+export type Verlaufszeile = {
+  /** Woher die Zeile kommt — danach entscheidet sich, was man mit ihr tun kann. */
+  quelle: "verlauf" | "meeting";
+  /** Die Nummer des Eintrags bzw. des Meetings. */
+  id: number;
+  datum: string;
+  art: string;
+  titel: string;
+  text: string;
+  /** Mit wem — leer, wenn die Zeile an der Organisation selbst hängt. */
   wem: string;
+  wer_name: string;
+  event_titel: string;
 };
 
+function ausEintrag(eintrag: Verlaufseintrag, wem: string): Verlaufszeile {
+  return {
+    quelle: "verlauf",
+    id: eintrag.id,
+    datum: eintrag.datum,
+    art: eintrag.art,
+    titel: eintrag.titel,
+    text: eintrag.text,
+    wem,
+    wer_name: eintrag.wer_name,
+    event_titel: eintrag.event_titel,
+  };
+}
+
+function ausMeeting(meeting: Meetingzeile, wem: string): Verlaufszeile {
+  return {
+    quelle: "meeting",
+    id: meeting.id,
+    datum: meeting.datum,
+    art: "meeting",
+    titel: meeting.titel,
+    // Der Inhalt steht auf der Meetingseite. Hier nur, ob es dort etwas zu
+    // lesen gibt — ein geplanter Termin ohne Protokoll sieht sonst aus wie
+    // einer, bei dem nichts herauskam.
+    text: meeting.hat_protokoll ? "" : "Noch kein Protokoll.",
+    wem,
+    wer_name: "",
+    event_titel: "",
+  };
+}
+
 /**
- * Neuestes zuerst, bei gleichem Datum der jüngere Eintrag — dieselbe Ordnung
+ * Neuestes zuerst, bei gleichem Datum die jüngere Zeile — dieselbe Ordnung
  * wie im Backend (`ordering = ["-datum", "-id"]`). Zwei Ordnungen für
  * dieselbe Liste wären der Fehler, den man erst bei zwei Einträgen am selben
  * Tag sieht.
+ *
+ * Nummern aus zwei Quellen sind untereinander nicht vergleichbar — ein
+ * Meeting Nr. 3 ist nicht jünger als Eintrag Nr. 9. Am selben Tag steht
+ * deshalb das Meeting oben: Es ist das Ereignis, der Eintrag oft die Notiz
+ * dazu.
  */
 function neuesteZuerst(a: Verlaufszeile, b: Verlaufszeile): number {
   if (a.datum !== b.datum) return a.datum < b.datum ? 1 : -1;
+  if (a.quelle !== b.quelle) return a.quelle === "meeting" ? -1 : 1;
   return b.id - a.id;
+}
+
+/**
+ * Die Meetings eines Hauses — **jedes genau einmal**.
+ *
+ * Ein Meeting kann am Haus *und* an mehreren Personen daraus hängen; das ist
+ * der Normalfall, wenn man es ordentlich nachträgt. Ohne Zusammenfassen stünde
+ * dieselbe Besprechung drei Mal untereinander im Verlauf, und der Leser hielte
+ * das für drei Termine. Die Namen der Beteiligten aus diesem Haus stehen
+ * stattdessen nebeneinander in einer Zeile.
+ */
+function meetingreihen(
+  amHaus: Meetingzeile[],
+  personen: { name: string; meetings: Meetingzeile[] }[],
+): Verlaufszeile[] {
+  const gesammelt = new Map<number, { zeile: Meetingzeile; wer: string[] }>();
+  for (const m of amHaus) gesammelt.set(m.id, { zeile: m, wer: [] });
+  for (const person of personen)
+    for (const m of person.meetings) {
+      const schon = gesammelt.get(m.id);
+      if (schon) schon.wer.push(person.name);
+      else gesammelt.set(m.id, { zeile: m, wer: [person.name] });
+    }
+  return [...gesammelt.values()].map(({ zeile, wer }) => ausMeeting(zeile, wer.join(", ")));
 }
 
 export function verlaufDerOrganisation(org: Organisation): Verlaufszeile[] {
   return [
-    ...org.verlauf.map((v) => ({ ...v, wem: "" })),
-    ...org.kontakte.flatMap((k) => k.verlauf.map((v) => ({ ...v, wem: k.name }))),
+    ...org.verlauf.map((v) => ausEintrag(v, "")),
+    ...org.kontakte.flatMap((k) => k.verlauf.map((v) => ausEintrag(v, k.name))),
+    ...meetingreihen(org.meetings, org.kontakte),
   ].sort(neuesteZuerst);
 }
 
 /** Derselbe Strang für die losen Kontakte — sie haben keine Organisation. */
 export function verlaufDerPersonen(kontakte: Kontakt[]): Verlaufszeile[] {
-  return kontakte.flatMap((k) => k.verlauf.map((v) => ({ ...v, wem: k.name }))).sort(neuesteZuerst);
+  return [
+    ...kontakte.flatMap((k) => k.verlauf.map((v) => ausEintrag(v, k.name))),
+    ...meetingreihen([], kontakte),
+  ].sort(neuesteZuerst);
 }
 
 /** Das Datum des jüngsten Eintrags, egal ob an der Organisation oder an einer Person. */

@@ -16,20 +16,20 @@ type Eintrag = { seite: Seite; titel: string; zeichen: ZeichenName };
 /**
  * Das Menü — **eine** Liste, aus der beide Größen leben.
  *
- * Start steht ungruppiert ganz oben: Sie ist keine der beiden Welten, sondern
- * der Weg hinein. Bis hierher war sie nur über das Logo erreichbar; mit einer
- * Seitenleiste gibt es kein Logo mehr, auf das zu klicken sich anbietet, also
- * braucht sie einen Eintrag.
+ * **Start steht nicht darin: Dorthin führt das Logo.** Sie hatte eine Weile
+ * einen eigenen Eintrag ganz oben, und er kostete eine Zeile in einer Leiste,
+ * die mit jeder Rubrik länger wird. Ein Signet, das auf die Startseite führt,
+ * ist außerdem das, was jeder ohnehin zuerst anklickt.
+ *
+ * Am Handy bleibt „Start" in der Fußleiste stehen (siehe FUSS): Dort ist das
+ * Logo erst zu sehen, wenn die Schublade offen ist — der Weg dahin wäre sonst
+ * zwei Griffe statt einem.
  *
  * „Intern" und „Extern" statt „Arbeit" und „Leute": Die erste Einteilung
  * trennte nicht sauber — Zeit ist auch Leute, Events sind auch Arbeit. Intern
  * ist, was wir selbst tun; extern, mit wem wir reden.
  */
 const GRUPPEN: { titel: string | null; eintraege: Eintrag[] }[] = [
-  {
-    titel: null,
-    eintraege: [{ seite: "start", titel: "Start", zeichen: "zuhause" }],
-  },
   {
     titel: "Intern",
     eintraege: [
@@ -44,6 +44,7 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[] }[] = [
     eintraege: [
       { seite: "kontakte", titel: "Kontakte", zeichen: "kontakte" },
       { seite: "events", titel: "Events", zeichen: "event" },
+      { seite: "meetings", titel: "Meetings", zeichen: "meeting" },
     ],
   },
   /*
@@ -61,7 +62,11 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[] }[] = [
   },
 ];
 
-const ALLE = GRUPPEN.flatMap((g) => g.eintraege);
+/* Start steht in keiner Gruppe (siehe oben), wird am Handy aber gebraucht —
+   die Fußleiste sucht ihre Einträge aus dieser Liste heraus. */
+const START: Eintrag = { seite: "start", titel: "Start", zeichen: "zuhause" };
+
+const ALLE: Eintrag[] = [START, ...GRUPPEN.flatMap((g) => g.eintraege)];
 
 /**
  * Die vier Abkürzungen in der Fußleiste am Handy — der fünfte Platz ist
@@ -124,17 +129,27 @@ export function Seitenleiste({
     <>
       <aside className="leiste" data-offen={offen ? "ja" : "nein"}>
         {/*
-          Nur das Signet und der Name, kein Knopf. Bis hierher war das Logo der
-          einzige Weg zur Startseite — jetzt steht sie als erster Eintrag im
-          Menü direkt darunter. Beides wäre derselbe Weg zweimal.
+          Das Signet ist der Weg zur Startseite — deshalb ein Anker und kein
+          div. Sie hatte daneben eine Weile einen eigenen Menüeintrag; der war
+          derselbe Weg zweimal und kostete eine Zeile in einer Leiste, die mit
+          jeder Rubrik länger wird.
 
           Das Signet ist dieselbe Datei wie das Favicon. Nachgezeichnet wäre es
           beim ersten Nachbessern falsch.
         */}
-        <div className="leiste-marke">
+        <a
+          className="leiste-marke"
+          href="/start"
+          aria-current={seite === "start" ? "page" : undefined}
+          title="Zur Startseite"
+          onClick={(e) => {
+            e.preventDefault();
+            hin("start");
+          }}
+        >
           <img src="/static/favicon.svg" alt="" width="20" height="20" />
           <b>SoCoS</b>
-        </div>
+        </a>
 
         <nav className="navigation">
           {GRUPPEN.map((gruppe, i) => (

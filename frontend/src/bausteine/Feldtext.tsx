@@ -19,6 +19,7 @@ export function Feldtext({
   speichern,
   aendern,
   mehrzeilig,
+  zeilen,
   platzhalter,
   klasse,
 }: {
@@ -26,6 +27,9 @@ export function Feldtext({
   speichern: (neu: string) => void | Promise<void>;
   aendern: boolean;
   mehrzeilig?: boolean;
+  /** Wie hoch das aufgeklappte Feld ist. Drei Zeilen reichen für eine Notiz,
+      nicht für einen Protokollabschnitt — der wäre sonst ein Guckloch. */
+  zeilen?: number;
   platzhalter?: string;
   klasse?: string;
 }) {
@@ -87,7 +91,7 @@ export function Feldtext({
     <textarea
       ref={feld}
       className="feld"
-      rows={3}
+      rows={zeilen ?? 3}
       value={entwurf}
       placeholder={platzhalter}
       onChange={(e) => setEntwurf(e.target.value)}

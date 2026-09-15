@@ -47,10 +47,15 @@
   background: var(--kopf-grund);
 }
 
+/* Der Weg zur Startseite. Die 44 px sind kein Zierrat: Das Signet ist am
+   Handy in der Schublade der einzige Griff dorthin. */
 .leiste-marke {
   display: flex; align-items: center; gap: 10px;
-  height: 36px; padding: 0 4px; margin-bottom: 14px;
+  min-height: var(--griff); padding: 0 8px; margin-bottom: 10px;
+  border-radius: var(--kante);
 }
+.leiste-marke:hover { background: var(--kopf-aktiv); }
+.leiste-marke[aria-current="page"] { background: var(--kopf-aktiv); }
 .leiste-marke img { display: block; border-radius: var(--kante); }
 .leiste-marke b { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.03em; }
 
@@ -1381,6 +1386,80 @@ a.mini { text-decoration: none; }
 /* In einer Spalte ist die Leerstelle ein Satz, keine halbe Seite. */
 .tafel-spalte .leerstelle { padding: 14px 4px; }
 
+
+/* --- Meetings ------------------------------------------------------------- */
+
+/* Wer von außen dabei war. Kein Gitter: Es sind zwei oder zehn Namen, und die
+   sollen umbrechen wie Wörter, nicht in Spalten stehen. */
+.beteiligte { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.beteiligte:empty { display: none; }
+.beteiligt {
+  display: inline-flex; align-items: center; gap: 2px;
+  border: 1px solid var(--rand); border-radius: var(--kante);
+  background: var(--flaeche-leise);
+}
+.beteiligt-name {
+  display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  min-height: 32px; padding: 0 4px 0 10px;
+  background: none; border: 0; cursor: pointer;
+  font-family: inherit; font-size: 13px; color: var(--marke);
+  text-align: left;
+}
+.beteiligt-name:hover { color: var(--marke-dunkel); }
+.beteiligt-name em { font-style: normal; color: var(--text-sehr-leise); }
+/* Ein Haus ist kein Weg: Es gibt keine Seite „diese Organisation" außerhalb
+   der Kontakte, und ein Knopf, der nirgends hinführt, ist ein Versprechen. */
+.beteiligt-haus { color: var(--text); cursor: default; padding-right: 4px; }
+.beteiligt > .mini { border: 0; background: none; min-width: 28px; }
+
+/* Ein Feld, das sich selbst speichert. Es ist das Arbeitsgerät während eines
+   Gesprächs — deshalb mehr Zeilenabstand als bei einer Notiz und eine Schrift,
+   die man beim schnellen Tippen nicht sucht. */
+.entwurfsfeld {
+  width: 100%; resize: vertical;
+  font-size: 15px; line-height: 1.6;
+  padding: 12px 13px; min-height: 0;
+}
+.entwurfsstand {
+  display: flex; align-items: center; gap: 6px;
+  margin: 5px 2px 0; min-height: 18px;
+  font-size: 12px; color: var(--text-sehr-leise);
+}
+.entwurfsstand > .zeichen { width: 14px; height: 14px; }
+/* „Nicht gespeichert" ist keine Warnung — es ist der Normalfall zwischen zwei
+   Tastendrücken. Erst wenn das Speichern scheitert, wird die Zeile laut. */
+.entwurfsstand[data-stand="fehler"] { color: var(--warnung); font-weight: 600; }
+.vorgelesen { margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+
+.aufbereitung {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rand);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.aufbereitung textarea { width: 100%; resize: vertical; font-size: 14px; line-height: 1.55; }
+/* Der Auftrag ist zum Nachlesen und Markieren da, nicht zum Ändern. */
+.auftragsfeld {
+  font-family: var(--schrift-zahl); font-size: 12px; line-height: 1.5;
+  background: var(--flaeche-leise); color: var(--text-leise);
+}
+
+.abschnitt { padding: 14px 0; border-bottom: 1px solid var(--rand); }
+.abschnitt:last-child { border-bottom: 0; padding-bottom: 0; }
+.abschnitt-kopf { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.abschnitt-kopf h3 {
+  margin: 0; flex: 1; min-width: 0;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+}
+.abschnitt-knoepfe { display: flex; gap: 4px; flex: 0 0 auto; }
+/* Der Text kommt mit Zeilenumbrüchen aus dem Protokoll — im Lesezustand steht
+   er in einem span, und ohne pre-wrap fiele eine Aufzählung zu einer Zeile
+   zusammen. */
+.abschnitt-text { display: block; white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+/* Auch am Handy: Die Regel für inline-aendern dort macht daraus sonst eine
+   Zeile mit Zeilenumbrüchen darin. */
+.abschnitt-text.inline-aendern { display: block; width: 100%; text-align: left; }
+
+/* Der Ort unter dem Titel in der Meetingliste. */
+.unterzeile { font-size: 12px; color: var(--text-sehr-leise); margin-top: 2px; }
 
 /* ==========================================================================
    Schmaler Rechner (bis 1200 px): vier Kennzahlen werden zwei mal zwei

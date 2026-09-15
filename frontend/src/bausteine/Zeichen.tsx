@@ -22,6 +22,7 @@ export type ZeichenName =
   | "aufgaben"
   | "kontakte"
   | "event"
+  | "meeting"
   | "plus"
   | "kreuz"
   | "hoch"
@@ -110,6 +111,10 @@ const PFADE: Record<ZeichenName, string> = {
      Zipfel sitzt am Rand und nicht in der Mitte: mittig wird er bei 18 px zu
      einem Zacken, den man für einen Fehler im Strich hält. */
   sprechblase: "M4 5h16v11H9l-4 4v-4H4z",
+  /* Dieselbe Blase mit zwei Zeilen darin — „es wird geredet und mitgeschrieben".
+     Sie muss neben `sprechblase` (Wünsche & Fehler) im selben Menü noch
+     unterscheidbar sein; zwei Blasen übereinander waren es bei 18 px nicht. */
+  meeting: "M4 5h16v11H9l-4 4v-4H4zM7.5 8.5h9M7.5 12h5.5",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

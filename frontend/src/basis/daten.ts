@@ -171,6 +171,8 @@ export type Kontakt = {
   offener_punkt: string;
   letzter_kontakt: string | null;
   verlauf: Verlaufseintrag[];
+  /** Besprechungen, bei denen diese Person eingetragen ist — kurz, ohne Texte. */
+  meetings: Meetingzeile[];
 };
 export type Verlaufseintrag = {
   id: number;
@@ -197,6 +199,8 @@ export type Organisation = {
   nutzen: string;
   kontakte: Kontakt[];
   verlauf: Verlaufseintrag[];
+  /** Nur die Meetings am Haus selbst — die der Personen stehen bei diesen. */
+  meetings: Meetingzeile[];
 };
 
 /**
@@ -235,6 +239,48 @@ export type Event = {
   teilnehmer_namen: string[];
   ziele: Eventziel[];
   verlauf: Verlaufseintrag[];
+};
+
+/**
+ * Eine Besprechung: vorher geplant, während des Termins mitgeschrieben, danach
+ * als Protokoll gegliedert.
+ *
+ * `kontakte`, `organisationen` und `teilnehmer` sind die Nummern — damit wird
+ * geschrieben. `personen`, `haeuser` und `teilnehmer_namen` sind dieselben
+ * Beteiligten mit Namen und nur lesbar; ohne sie zeigte die Liste Nummern.
+ */
+export type Meeting = {
+  id: number;
+  titel: string;
+  datum: string;
+  /** „14:30:00" — oder `null`, dann ist nur der Tag bekannt. */
+  uhrzeit: string | null;
+  ort: string;
+  kontakte: number[];
+  personen: { id: number; name: string; organisation_name: string }[];
+  organisationen: number[];
+  haeuser: { id: number; name: string }[];
+  teilnehmer: number[];
+  teilnehmer_namen: string[];
+  vorbereitung: string;
+  mitschrift: string;
+  abschnitte: Meetingabschnitt[];
+};
+
+export type Meetingabschnitt = {
+  id: number;
+  meeting: number;
+  ueberschrift: string;
+  text: string;
+  reihenfolge: number;
+};
+
+/** Wie ein Meeting im Verlauf einer Person oder eines Hauses erscheint. */
+export type Meetingzeile = {
+  id: number;
+  titel: string;
+  datum: string;
+  hat_protokoll: boolean;
 };
 
 export const useIch = () => useQuery({ queryKey: ["ich"], queryFn: () => hole<Ich>("/ich/") });
@@ -321,6 +367,9 @@ export const useKontakte = () =>
 export const useEvents = () =>
   useQuery({ queryKey: ["events"], queryFn: () => hole<Event[]>("/events/") });
 
+export const useMeetings = () =>
+  useQuery({ queryKey: ["meetings"], queryFn: () => hole<Meeting[]>("/meetings/") });
+
 /**
  * Nach jeder Änderung werden **alle** betroffenen Abrufe verworfen.
  *
@@ -333,7 +382,7 @@ export function useNeuLaden() {
   return () => {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
-      "events", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
+      "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

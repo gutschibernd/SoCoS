@@ -38,10 +38,19 @@ def _lesbar(wert):
 
 
 def _felder(modell):
-    return [
-        f for f in modell._meta.concrete_fields
-        if f.name not in FELDER_OHNE_PROTOKOLL
-    ]
+    """
+    Was von einem Modell protokolliert wird.
+
+    Ein Modell darf einzelne Felder ausnehmen (`protokoll_ohne`). Gebraucht
+    wird das für Felder, die sich beim Tippen selbst speichern — jede Pause
+    schriebe sonst einen Eintrag mit dem ganzen alten und dem ganzen neuen
+    Text, und das Protokoll wäre nach einer Stunde Mitschreiben nicht mehr
+    lesbar. **Am Modell und nicht in der Liste oben**, weil ein Feldname
+    global gesperrt auch das gleichnamige Feld eines anderen Modells träfe —
+    still und ohne dass es jemandem auffiele.
+    """
+    ohne = FELDER_OHNE_PROTOKOLL | set(getattr(modell, "protokoll_ohne", ()))
+    return [f for f in modell._meta.concrete_fields if f.name not in ohne]
 
 
 def vor_speichern(sender, instance, raw=False, **kwargs):

@@ -7,6 +7,146 @@ betrifft.
 
 ---
 
+## 2026-09-15 — Meetings (`Meeting`, `Meetingabschnitt`, Migration 0015)
+
+### Ein Meeting hängt an nichts
+
+Personen (`kontakte`) und Häuser (`organisationen`) sind **zwei Mengen, beide
+optional** — kein Besitzer, kein Pflichtfeld. So entsteht ein Meeting im Alltag:
+Zuerst steht der Termin, dann erst, wer kommt. Ein Pflichtfeld hätte dazu
+geführt, dass man beim Anlegen irgendetwas einträgt, und das stünde danach
+falsch im Verlauf.
+
+**Nachgetragen gehören sie trotzdem** — nur über sie taucht das Meeting beim
+Kontakt auf. Danach fragt die Oberfläche (ein Satz statt eines Gedankenstrichs,
+solange nichts eingetragen ist), nicht die Datenbank.
+
+Ein M2M kennt kein `on_delete=PROTECT`. Eine weich gelöschte Person bleibt
+deshalb am Meeting stehen — **und das ist richtig so**: Sie war dort. Ein
+Protokoll, das seine Teilnehmer im Nachhinein verliert, ist keines mehr.
+
+### Drei Texte, drei Leben
+
+`vorbereitung` (vorher, in Ruhe), `mitschrift` (währenddessen, schnell), die
+Abschnitte (danach, gegliedert). Die Mitschrift wird beim Aufbereiten **nicht**
+überschrieben: Sie ist die einzige Stelle, an der nachzulesen wäre, ob beim
+Glattziehen etwas verrutscht ist. Steht ein Protokoll, rückt es in der Ansicht
+über die Mitschrift, und die klappt zugeklappt ans Ende.
+
+### `protokoll_ohne` — zwei Felder stehen nicht im Änderungsprotokoll
+
+Vorbereitung und Mitschrift speichern sich beim Tippen selbst. Jede Schreibpause
+schriebe sonst einen Protokolleintrag mit dem ganzen alten *und* dem ganzen
+neuen Text; nach einer Stunde Mitschreiben ginge darin jeder echte Vorgang
+unter. Was am **fertigen** Protokoll geändert wird, steht vollständig drin —
+das sind die Abschnitte, und die schreibt niemand im Sekundentakt.
+
+Umgesetzt als Klassenattribut am Modell, nicht als Eintrag in
+`FELDER_OHNE_PROTOKOLL`: Ein global gesperrter Feldname träfe still auch das
+gleichnamige Feld eines anderen Modells.
+
+### Der Weg über ein LLM führt über die Zwischenablage
+
+**SoCoS ruft kein Sprachmodell auf.** Was in einer Mitschrift steht, geht keinen
+Dienst etwas an, den wir nicht selbst gewählt haben — und ein eingebauter Aufruf
+wäre ein Schlüssel, eine Abrechnung und eine Abhängigkeit für drei Nutzer. Der
+Kopierknopf legt Auftrag und Mitschrift in die Zwischenablage; wohin das
+eingefügt wird, entscheidet der Mensch, der es sieht.
+
+Auftrag und Parser stehen **in derselben Datei** (`frontend/src/basis/
+meetings.ts`), weil sie dasselbe Format beschreiben. Stünde die eine Hälfte im
+Backend, hätte sie beim nächsten Nachbessern ein Format, das die andere nicht
+mehr liest — und auffallen würde es an einem Protokoll, das als ein Klumpen
+hereinkommt.
+
+Zwei Festlegungen im Auftrag, die nicht kosmetisch sind:
+
+- **Die Vorbereitung geht nicht mit.** Sie ist der Plan, nicht das Gespräch.
+  Läge sie daneben, machte das Modell aus „wollten wir ansprechen" still ein
+  „wurde besprochen" — im fertigen Protokoll nicht mehr zu unterscheiden.
+- **Was vor der ersten Überschrift steht, wird ein Abschnitt ohne Titel.** Ein
+  Modell, das sich nicht an das Format hält, darf keinen Text kosten; sonst
+  verschwände er genau dann, wenn man hinsehen müsste.
+
+Ein zweiter Durchlauf **ersetzt** das Protokoll (mit Nachfrage), statt anzuhängen:
+Wer noch einmal aufbereiten lässt, will das Ergebnis, nicht beides untereinander.
+
+### `Meeting.delete()` nimmt die Abschnitte mit
+
+Weiches Löschen ist ein UPDATE — `on_delete=CASCADE` löst dabei nie aus. Ohne
+die eigene `delete()` bliebe das Protokoll als Satz Abschnitte zurück, die auf
+nichts Sichtbares mehr zeigen. Erst das Meeting, dann die Abschnitte: Wehrt sich
+das Meeting, bleiben sie unangetastet.
+
+Und CASCADE statt des sonst üblichen PROTECT: Ein Abschnitt hat außerhalb seines
+Meetings kein Leben. „Erst das Protokoll löschen" wäre die falsche Nachfrage.
+
+### Verschoben wird am Server
+
+`POST /api/meetingabschnitte/<id>/verschieben/`. Ein Tausch zweier
+`reihenfolge`-Werte im Frontend bewegte nichts, wenn beide gleich sind — und das
+sind sie bei von Hand angefügten Abschnitten. Der Server nummeriert die ganze
+Liste in ihrer sichtbaren Ordnung neu durch; danach ist der Tausch immer echt.
+
+### Meetings stehen im Verlauf, gespeichert werden sie nur einmal
+
+`Verlaufszeile` (frontend/src/basis/kontakte.ts) hat ein Feld `quelle` und
+kommt aus einem Verlaufseintrag **oder** aus einem Meeting. „Was war mit diesem
+Haus zuletzt?" ist eine Frage mit einer Antwort; zwei Listen untereinander
+hießen, sie beim Lesen im Kopf zusammenzuführen. Das Meeting selbst steht nur
+auf seiner Seite — die Zeile im Verlauf ist ein Verweis mit einem Pfeil, kein
+zweiter Datensatz.
+
+Die Verlaufsart „Meeting" bleibt daneben bestehen: Für ein Telefonat von drei
+Sätzen ist eine eigene Seite zu viel.
+
+`letzter_kontakt` am Kontakt zählt Meetings mit — sonst stünde eine Person als
+„seit Monaten nichts" da, mit der man vorige Woche eine Stunde geredet hat.
+
+### Das Feld, das sich selbst speichert (`basis/entwurf.ts`)
+
+Gespeichert wird nach 1,5 s Schreibpause, beim Verlassen des Feldes, beim
+Wechsel in den Hintergrund (`visibilitychange` — am Handy jeder App-Wechsel),
+bei `pagehide` und beim Abbauen des Feldes. Solange etwas offen ist, hält
+`beforeunload` den Browser an; das ist die einzige Stelle, an der wirklich etwas
+verlorengehen könnte.
+
+**Der Server ist der Zwischenspeicher, nicht `localStorage`:** Ein Entwurf im
+Browser liegt auf genau einem Gerät. Wer am Laptop mitschreibt und am Handy
+nachsieht, fände dort nichts — und merkte es, wenn er es braucht.
+
+**Die Falle:** Nach dem Speichern lädt die Liste neu und schickt denselben Wert
+zurück herein. Ein Übernehmen ohne Prüfung nähme jemandem den Satz unter den
+Fingern weg. Übernommen wird nur, solange nichts Eigenes offen ist.
+
+Die Meetingseite bekommt `key={meeting.id}`: Ohne den trüge das Feld beim
+Wechsel die Mitschrift des vorigen Meetings weiter — und speicherte sie beim
+nächsten Tastendruck am falschen Ort.
+
+### Kleinigkeiten
+
+- `uhrzeit` ist nullbar und `ordering` sortiert sie mit `nulls_last`: „irgendwann
+  am Dienstag" stünde sonst über „Dienstag 16:00".
+- Der heutige Tag zählt zu „Kommend", bis er vorbei ist. Ein Meeting um 16:00
+  gehört am Morgen nicht unter „Gewesen".
+- **Start liegt auf dem Logo.** Der eigene Menüeintrag kostete eine Zeile in
+  einer Leiste, die mit jeder Rubrik länger wird; ein Signet, das zur
+  Startseite führt, ist ohnehin das, was jeder zuerst anklickt. Am Handy bleibt
+  „Start" in der Fußleiste — dort ist das Logo erst zu sehen, wenn die
+  Schublade offen ist.
+
+### Was bewusst nicht gebaut wurde
+
+- **Kein Kalender, keine Erinnerung, keine Einladung.** Ein Meeting ist ein
+  Zettel mit einem Datum, kein Termin mit Benachrichtigung (siehe auch Event).
+- **Keine Anhänge.** Käme das, müsste es unter `MEDIA_ROOT` liegen, sonst
+  wandert es nicht in die Sicherung.
+- **Keine Aufgaben aus dem Protokoll.** „Nächste Schritte" ist ein Abschnitt,
+  keine Verknüpfung auf die Aufgabentafel. Die Verbindung wäre reizvoll und
+  wäre der zweite Ort, an dem dieselbe Zusage steht.
+
+---
+
 ## 2026-09-14 — Die Aufgabentafel (`Aufgabe`, Migration 0014)
 
 ### Warum überhaupt ein eigenes Modell
