@@ -1404,6 +1404,30 @@ a.mini { text-decoration: none; }
 /* In einer Spalte ist die Leerstelle ein Satz, keine halbe Seite. */
 .tafel-spalte .leerstelle { padding: 14px 4px; }
 
+/* Der Weg zur Ideenliste, über der Tafel und rechts: Links steht die erste
+   Spaltenüberschrift, und ein Knopf davor wäre das Erste, was man liest — die
+   Tafel ist aber das, weswegen man hier ist. */
+.tafel-wege { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.tafel-wege .knopf-still { display: inline-flex; align-items: center; gap: 8px; }
+.tafel-wege .zeichen { width: 15px; height: 15px; }
+
+/* Die Ideenliste: **eine** Liste statt Spalten, und deshalb begrenzt. Über die
+   volle Breite von 1400 px gelesen, verliert man am Zeilenende die Zeile — und
+   eine Idee ist ein Satz, kein Absatz. */
+.ideenliste { max-width: 720px; }
+.ideenliste .karte { padding: 14px 16px; }
+
+/* „Auf die Tafel": Wort **und** Pfeil. Ein Pfeil allein stünde neben dem Haken
+   und sähe aus wie „eins weiter", nicht wie „das machen wir". */
+.idee-uebernehmen {
+  flex: 0 0 auto; align-self: center; gap: 4px; white-space: nowrap;
+  /* Volle Griffhöhe wie Priorität und Haken in derselben Zeile — `.mini`
+     allein brächte 32 px, und drei verschieden hohe Griffe nebeneinander
+     treffen am Daumen zwei von dreien. */
+  min-height: var(--griff);
+}
+.idee-uebernehmen .zeichen { width: 13px; height: 13px; }
+
 
 /* --- Meetings ------------------------------------------------------------- */
 
@@ -1601,6 +1625,16 @@ a.mini { text-decoration: none; }
   /* Zugeklappt wird am Handy nach oben und nicht zur Seite — der Pfeil zeigt
      deshalb dorthin, wohin die Spalte verschwindet. */
   .tafel-klappen .zeichen { transform: rotate(-90deg); }
+
+  /* Auf der Ideenliste stehen drei Griffe in einer Zeile, und einer davon
+     trägt zwei Wörter. Nebeneinander bliebe für den Text der Idee eine Spalte
+     von zwei Handbreit Buchstaben. Deshalb bricht die Zeile hier um: der Text
+     zuerst über die volle Breite, die Griffe darunter — der Pfeil und der
+     Haken rechts, wo der Daumen liegt. */
+  .ideenliste .aufgabe { flex-wrap: wrap; padding: 6px 0; }
+  .ideenliste .aufgabe > .aufgabe-text,
+  .ideenliste .aufgabe > .feld { order: -1; flex: 1 1 100%; min-height: 0; }
+  .ideenliste .idee-uebernehmen { margin-left: auto; }
 
   /* Platz für Uhr und Fußleiste am Fuß der Seite. Ohne das liegt die letzte
      Tabellenzeile unter der Leiste und ist nicht erreichbar. */

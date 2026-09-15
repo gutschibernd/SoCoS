@@ -86,6 +86,7 @@ export type Profilteil = (typeof PROFILTEILE)[number];
  */
 const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   projekt: (unter) => unter === "bearbeiten",
+  aufgaben: (unter) => unter === "ideen",
   kontakte: (unter) => unter === "lose" || /^\d+$/.test(unter),
   events: (unter) => /^\d+$/.test(unter),
   meetings: (unter) => /^\d+$/.test(unter),

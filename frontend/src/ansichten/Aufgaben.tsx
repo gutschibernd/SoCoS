@@ -1,14 +1,21 @@
 /**
- * Die Tafel — Spalten nebeneinander, in jeder eine Liste.
+ * Die Tafel — Spalten nebeneinander, in jeder eine Liste. Und eine Ebene
+ * darunter die **Ideenliste**.
  *
- * **Was sie bewusst nicht kann:** kein Fälligkeitsdatum, keine Beschreibung,
- * keine Zuordnung zu einem Arbeitspaket, kein Verschieben zwischen Spalten per
- * Ziehen. Wer einen Punkt woanders braucht, hakt ihn ab und schreibt ihn dort
- * neu — zwei Sekunden, und dafür gibt es keine zweite Projektansicht neben der
- * Projektansicht.
+ * **Was die Tafel bewusst nicht kann:** kein Fälligkeitsdatum, keine
+ * Beschreibung, keine Zuordnung zu einem Arbeitspaket, kein Verschieben
+ * zwischen Spalten per Ziehen. Wer einen Punkt woanders braucht, hakt ihn ab
+ * und schreibt ihn dort neu — zwei Sekunden, und dafür gibt es keine zweite
+ * Projektansicht neben der Projektansicht.
  *
  * Drei Griffe, und jeder ist genau ein Tipp: schreiben und Enter, auf die
  * Priorität tippen, den Haken setzen.
+ *
+ * **Warum die Ideenliste eine Unterseite ist und keine vierte Spalte:** Auf
+ * der Tafel steht, was jetzt zu tun ist. Eine Spalte „Ideen" daneben stünde
+ * jeden Tag im Blick und würde mit der Zeit länger als alle anderen zusammen —
+ * und dann sieht man die Tafel nicht mehr. Sie ist dieselbe Zeile in einem
+ * anderen Zustand (`ist_idee`): „Das machen wir" ist ein Klick, kein Abtippen.
  *
  * Wer eine Spalte nicht ständig braucht, klappt sie zu einem schmalen Streifen
  * zusammen. **Das merkt sich der Browser, nicht der Server:** Es ist keine
@@ -19,7 +26,14 @@
 import { useEffect, useState } from "react";
 
 import { hole } from "../basis/api";
-import { naechstePrioritaet, prioritaetstext, spalten, type Spalte } from "../basis/aufgaben";
+import {
+  ideen,
+  naechstePrioritaet,
+  prioritaetstext,
+  spalten,
+  type Spalte,
+} from "../basis/aufgaben";
+import type { Seite } from "../basis/router";
 import { useAufgaben, useNeuLaden, useTeam, type Aufgabe, type Ich } from "../basis/daten";
 import { Zustand } from "../basis/Zustand";
 import { Feldtext } from "../bausteine/Feldtext";
@@ -40,10 +54,73 @@ function zugeklappteLesen(): string[] {
   }
 }
 
-export function Aufgaben({ ich }: { ich: Ich }) {
+/** Was eine neue Zeile außer dem Text mitbekommt — Spalte oder Ideenliste. */
+type Neufelder = Partial<Pick<Aufgabe, "person" | "ist_idee">>;
+
+export function Aufgaben({
+  ich,
+  unter,
+  wechseln,
+}: {
+  ich: Ich;
+  unter: string | null;
+  wechseln: (seite: Seite, unter?: string | null) => void;
+}) {
   const liste = useAufgaben();
-  const team = useTeam();
   const neuLaden = useNeuLaden();
+
+  // Hinter der Prüfung auf die Daten selbst — nicht hinter isLoading oder
+  // isError. Siehe basis/Zustand.tsx.
+  if (!liste.data) return <Zustand abfrage={liste} erneut={() => liste.refetch()} />;
+
+  /* Tafel und Ideenliste schreiben über dieselben zwei Funktionen. Der
+     Unterschied steckt einzig in den Feldern, die mitgehen — nicht in einem
+     zweiten Weg zum Server. */
+  async function anlegen(text: string, felder: Neufelder) {
+    await hole("/aufgaben/", { method: "POST", body: JSON.stringify({ text, ...felder }) });
+    neuLaden();
+  }
+
+  async function speichern(aufgabe: Aufgabe, daten: Partial<Aufgabe>) {
+    await hole(`/aufgaben/${aufgabe.id}/`, { method: "PATCH", body: JSON.stringify(daten) });
+    neuLaden();
+  }
+
+  if (unter === "ideen")
+    return (
+      <Ideenliste
+        aufgaben={liste.data}
+        darfSchreiben={ich.darf.bearbeiten}
+        anlegen={anlegen}
+        speichern={speichern}
+      />
+    );
+
+  return (
+    <Tafel
+      ich={ich}
+      aufgaben={liste.data}
+      wechseln={wechseln}
+      anlegen={anlegen}
+      speichern={speichern}
+    />
+  );
+}
+
+function Tafel({
+  ich,
+  aufgaben,
+  wechseln,
+  anlegen,
+  speichern,
+}: {
+  ich: Ich;
+  aufgaben: Aufgabe[];
+  wechseln: (seite: Seite, unter?: string | null) => void;
+  anlegen: (text: string, felder: Neufelder) => Promise<void>;
+  speichern: (aufgabe: Aufgabe, daten: Partial<Aufgabe>) => Promise<void>;
+}) {
+  const team = useTeam();
   const [zugeklappt, setZugeklappt] = useState<string[]>(zugeklappteLesen);
 
   useEffect(() => {
@@ -54,16 +131,14 @@ export function Aufgaben({ ich }: { ich: Ich }) {
     }
   }, [zugeklappt]);
 
-  // Hinter der Prüfung auf die Daten selbst — nicht hinter isLoading oder
-  // isError. Siehe basis/Zustand.tsx.
-  if (!liste.data) return <Zustand abfrage={liste} erneut={() => liste.refetch()} />;
   if (!team.data) return <Zustand abfrage={team} erneut={() => team.refetch()} />;
 
-  const alle = spalten(liste.data, team.data, ich.id);
+  const alle = spalten(aufgaben, team.data, ich.id);
   const istZu = (s: Spalte) => zugeklappt.includes(String(s.person));
   // Zugeklapptes wandert ans Ende — sonst stünde der schmale Streifen mitten
   // zwischen den Spalten, die man täglich braucht.
   const geordnet = [...alle.filter((s) => !istZu(s)), ...alle.filter(istZu)];
+  const offeneIdeen = ideen(aufgaben).offen.length;
 
   function klappen(spalte: Spalte) {
     const schluessel = String(spalte.person);
@@ -72,29 +147,121 @@ export function Aufgaben({ ich }: { ich: Ich }) {
     );
   }
 
-  async function anlegen(text: string, person: number | null) {
-    await hole("/aufgaben/", { method: "POST", body: JSON.stringify({ text, person }) });
-    neuLaden();
-  }
+  return (
+    <>
+      {/* Der Weg zur Ideenliste steht über der Tafel und nicht im Menü: Sie
+          gehört zu den Aufgaben, und ein eigener Menüeintrag machte aus einer
+          Ebene darunter eine zweite Seite daneben. Die Zahl steht dabei —
+          ohne sie wäre es ein Link, hinter dem man nachsehen muss, ob sich
+          das Nachsehen lohnt. */}
+      <div className="tafel-wege">
+        <button
+          type="button"
+          className="knopf-still"
+          onClick={() => wechseln("aufgaben", "ideen")}
+        >
+          <Zeichen name="idee" />
+          Ideenliste
+          <span className="tafel-zahl">{offeneIdeen}</span>
+        </button>
+      </div>
 
-  async function speichern(aufgabe: Aufgabe, daten: Partial<Aufgabe>) {
-    await hole(`/aufgaben/${aufgabe.id}/`, { method: "PATCH", body: JSON.stringify(daten) });
-    neuLaden();
-  }
+      <div className="tafel">
+        {geordnet.map((spalte) => (
+          <Spaltenkarte
+            key={String(spalte.person)}
+            spalte={spalte}
+            zu={istZu(spalte)}
+            klappen={() => klappen(spalte)}
+            darfSchreiben={ich.darf.bearbeiten}
+            anlegen={anlegen}
+            speichern={speichern}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Die Ideenliste: **eine** Liste, keine Spalten.
+ *
+ * Eine Idee gehört niemandem — wer sie macht, ist ja gerade die Frage, die
+ * noch offen ist. Spalten je Person hießen, sie schon beantwortet zu haben.
+ *
+ * Zwei Knöpfe am Ende jeder Zeile, und beide beantworten dieselbe Frage:
+ * „Auf die Tafel" heißt ja, der Haken heißt nein. Was auf die Tafel wandert,
+ * landet in „Allgemein" — wer sie übernimmt, schreibt sie sich von dort in
+ * seine Spalte, genau wie bei jeder anderen Aufgabe auch. Eine Personenauswahl
+ * an dieser Stelle wäre der einzige Ort in der Anwendung, an dem eine Aufgabe
+ * doch die Spalte wechselt.
+ */
+function Ideenliste({
+  aufgaben,
+  darfSchreiben,
+  anlegen,
+  speichern,
+}: {
+  aufgaben: Aufgabe[];
+  darfSchreiben: boolean;
+  anlegen: (text: string, felder: Neufelder) => Promise<void>;
+  speichern: (aufgabe: Aufgabe, daten: Partial<Aufgabe>) => Promise<void>;
+}) {
+  const { offen, vomTisch } = ideen(aufgaben);
 
   return (
-    <div className="tafel">
-      {geordnet.map((spalte) => (
-        <Spaltenkarte
-          key={String(spalte.person)}
-          spalte={spalte}
-          zu={istZu(spalte)}
-          klappen={() => klappen(spalte)}
-          darfSchreiben={ich.darf.bearbeiten}
-          anlegen={anlegen}
-          speichern={speichern}
-        />
-      ))}
+    <div className="ideenliste">
+      <section className="karte">
+        {darfSchreiben && (
+          <Neuzeile
+            anlegen={(text) => anlegen(text, { ist_idee: true })}
+            platzhalter="Was wäre möglich?"
+            beschriftung="Neue Idee"
+          />
+        )}
+
+        {offen.length === 0 ? (
+          <Leerstelle
+            was="Noch keine Idee aufgeschrieben"
+            satz={
+              darfSchreiben
+                ? "Hier steht, was uns eingefallen ist und noch nicht entschieden. Oben hineinschreiben und Enter drücken."
+                : "Hier steht, was uns eingefallen ist und noch nicht entschieden ist."
+            }
+          />
+        ) : (
+          <ul className="aufgabenliste">
+            {offen.map((idee) => (
+              <Zeile
+                key={idee.id}
+                aufgabe={idee}
+                darfSchreiben={darfSchreiben}
+                speichern={speichern}
+              />
+            ))}
+          </ul>
+        )}
+
+        {vomTisch.length > 0 && (
+          <details className="klappkarte tafel-erledigt">
+            <summary>
+              <Zeichen name="zeiger" klasse="zeiger-klapp" />
+              <span className="klapptitel">Vom Tisch</span>
+              <span className="tafel-zahl">{vomTisch.length}</span>
+            </summary>
+            <ul className="aufgabenliste">
+              {vomTisch.map((idee) => (
+                <Zeile
+                  key={idee.id}
+                  aufgabe={idee}
+                  darfSchreiben={darfSchreiben}
+                  speichern={speichern}
+                />
+              ))}
+            </ul>
+          </details>
+        )}
+      </section>
     </div>
   );
 }
@@ -111,7 +278,7 @@ function Spaltenkarte({
   zu: boolean;
   klappen: () => void;
   darfSchreiben: boolean;
-  anlegen: (text: string, person: number | null) => Promise<void>;
+  anlegen: (text: string, felder: Neufelder) => Promise<void>;
   speichern: (aufgabe: Aufgabe, daten: Partial<Aufgabe>) => Promise<void>;
 }) {
   /* Der Vorname reicht: In der Spaltenüberschrift steht daneben das Kürzel in
@@ -163,7 +330,13 @@ function Spaltenkarte({
         </button>
       </div>
 
-      {darfSchreiben && <Neuzeile person={spalte.person} anlegen={anlegen} />}
+      {darfSchreiben && (
+        <Neuzeile
+          anlegen={(text) => anlegen(text, { person: spalte.person })}
+          platzhalter="Was ist zu tun?"
+          beschriftung="Neue Aufgabe"
+        />
+      )}
 
       {spalte.offen.length === 0 ? (
         <Leerstelle
@@ -215,13 +388,18 @@ function Spaltenkarte({
  *
  * Nach dem Enter bleibt der Griff im Feld: Wer eine Sache aufschreibt, hat
  * meistens gleich die zweite im Kopf.
+ *
+ * Was außer dem Text mitgeht (Spalte oder `ist_idee`), bindet der Aufrufer —
+ * das Feld selbst kennt nur Text und Enter.
  */
 function Neuzeile({
-  person,
   anlegen,
+  platzhalter,
+  beschriftung,
 }: {
-  person: number | null;
-  anlegen: (text: string, person: number | null) => Promise<void>;
+  anlegen: (text: string) => Promise<void>;
+  platzhalter: string;
+  beschriftung: string;
 }) {
   const [text, setText] = useState("");
   const [laeuft, setLaeuft] = useState(false);
@@ -231,7 +409,7 @@ function Neuzeile({
     if (!text.trim() || laeuft) return;
     setLaeuft(true);
     try {
-      await anlegen(text.trim(), person);
+      await anlegen(text.trim());
       setText("");
     } finally {
       setLaeuft(false);
@@ -244,16 +422,11 @@ function Neuzeile({
         className="feld"
         value={text}
         maxLength={250}
-        placeholder="Was ist zu tun?"
-        aria-label="Neue Aufgabe"
+        placeholder={platzhalter}
+        aria-label={beschriftung}
         onChange={(e) => setText(e.target.value)}
       />
-      <button
-        type="submit"
-        className="mini"
-        disabled={!text.trim() || laeuft}
-        aria-label="Aufgabe hinzufügen"
-      >
+      <button type="submit" className="mini" disabled={!text.trim() || laeuft} aria-label={beschriftung}>
         <Zeichen name="plus" />
       </button>
     </form>
@@ -269,6 +442,14 @@ function Zeile({
   darfSchreiben: boolean;
   speichern: (aufgabe: Aufgabe, daten: Partial<Aufgabe>) => Promise<void>;
 }) {
+  /* Eine Zeile für beide Listen — sie liest am `ist_idee` der Aufgabe selbst
+     ab, wo sie steht. Eine zweite Zeilenkomponente daneben ginge beim nächsten
+     neuen Feld auseinander, und auffallen würde es an der selteneren der
+     beiden Listen zuerst nicht. */
+  const haken = aufgabe.ist_idee
+    ? { zurueck: "Wieder auf die Liste", weg: "Vom Tisch" }
+    : { zurueck: "Wieder offen", weg: "Erledigt" };
+
   return (
     <li className="aufgabe" data-erledigt={aufgabe.erledigt ? "ja" : "nein"}>
       {/* Ein Tipp dreht die Priorität weiter — kein Auswahlfeld, das erst
@@ -303,13 +484,30 @@ function Zeile({
         speichern={(neu) => speichern(aufgabe, { text: neu })}
       />
 
+      {/* Nur auf der Ideenliste, und nur solange die Idee offen ist: derselbe
+          Datensatz zieht auf die Tafel um. Kein Abtippen, keine neue Kennung —
+          und damit bleibt im Änderungsprotokoll stehen, wer das entschieden
+          hat. */}
+      {aufgabe.ist_idee && !aufgabe.erledigt && (
+        <button
+          type="button"
+          className="mini idee-uebernehmen"
+          disabled={!darfSchreiben}
+          title="Wandert als Aufgabe nach „Allgemein“ auf die Tafel"
+          onClick={() => speichern(aufgabe, { ist_idee: false })}
+        >
+          Auf die Tafel
+          <Zeichen name="zeiger" />
+        </button>
+      )}
+
       <button
         type="button"
         className="aufgabe-haken"
         disabled={!darfSchreiben}
         aria-pressed={aufgabe.erledigt}
-        aria-label={aufgabe.erledigt ? "Wieder offen" : "Erledigt"}
-        title={aufgabe.erledigt ? "Wieder auf die Liste" : "Erledigt"}
+        aria-label={aufgabe.erledigt ? haken.zurueck : haken.weg}
+        title={aufgabe.erledigt ? haken.zurueck : haken.weg}
         onClick={() => speichern(aufgabe, { erledigt: !aufgabe.erledigt })}
       >
         <Zeichen name="haken" />

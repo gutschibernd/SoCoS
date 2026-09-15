@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { naechstePrioritaet, sortiere, spalten } from "./aufgaben";
+import { ideen, naechstePrioritaet, sortiere, spalten } from "./aufgaben";
 import type { Aufgabe, Teammitglied } from "./daten";
 
 function aufgabe(teil: Partial<Aufgabe> & { id: number }): Aufgabe {
@@ -10,6 +10,7 @@ function aufgabe(teil: Partial<Aufgabe> & { id: number }): Aufgabe {
     person_name: "",
     prioritaet: "mittel",
     erledigt: false,
+    ist_idee: false,
     erstellt_am: "2026-09-01T08:00:00Z",
     geaendert_am: "2026-09-01T08:00:00Z",
     ...teil,
@@ -121,5 +122,43 @@ describe("Spalten", () => {
       aufgabe({ id: 2, erledigt: true, geaendert_am: "2026-09-05T08:00:00Z" }),
     ];
     expect(spalten(liste, team, 2)[0].erledigt.map((a) => a.id)).toEqual([2, 1]);
+  });
+});
+
+describe("Ideenliste", () => {
+  it("trennt die Ideen von der Tafel — in beide Richtungen", () => {
+    /* Der Fehler, den dieser Test fangen soll: Tafel und Ideenliste kommen aus
+       **einer** Antwort. Fehlte der Filter an einer der beiden Stellen, sähe
+       eine Idee auf der Tafel aus wie jede andere Zeile — und niemand fände
+       den Grund. */
+    const liste = [
+      aufgabe({ id: 1 }),
+      aufgabe({ id: 2, ist_idee: true }),
+      aufgabe({ id: 3, person: 2 }),
+    ];
+    const team = [mitglied({ id: 2, name: "Anna Berger" })];
+
+    const tafel = spalten(liste, team, 2);
+    expect(tafel.flatMap((s) => s.offen).map((a) => a.id)).toEqual([1, 3]);
+    expect(ideen(liste).offen.map((a) => a.id)).toEqual([2]);
+  });
+
+  it("sortiert wie die Tafel: Hohes zuerst", () => {
+    const liste = [
+      aufgabe({ id: 1, ist_idee: true, prioritaet: "gering" }),
+      aufgabe({ id: 2, ist_idee: true, prioritaet: "hoch" }),
+    ];
+    expect(ideen(liste).offen.map((a) => a.id)).toEqual([2, 1]);
+  });
+
+  it("legt Abgehaktes unter „Vom Tisch“, zuletzt Angefasstes oben", () => {
+    const liste = [
+      aufgabe({ id: 1, ist_idee: true, erledigt: true, geaendert_am: "2026-09-01T08:00:00Z" }),
+      aufgabe({ id: 2, ist_idee: true, erledigt: true, geaendert_am: "2026-09-05T08:00:00Z" }),
+      aufgabe({ id: 3, ist_idee: true }),
+    ];
+    const { offen, vomTisch } = ideen(liste);
+    expect(offen.map((a) => a.id)).toEqual([3]);
+    expect(vomTisch.map((a) => a.id)).toEqual([2, 1]);
   });
 });

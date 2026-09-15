@@ -37,9 +37,19 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   rueckmeldungen: { titel: "Wünsche & Fehler", unter: "Was fehlt, was stört, was erledigt ist" },
 };
 
-/* Die einzige Unterseite bekommt ihre eigene Zeile, statt sie aus dem Namen
-   zusammenzusetzen — bei einer Ausnahme ist die Ausnahme kürzer als die Regel. */
-const PROJEKT_BEARBEITEN = { titel: "Projekt bearbeiten", unter: "Gliedern, umordnen, entfernen" };
+/* Die Unterseiten mit einer eigenen Zeile. Sie steht hier ausgeschrieben,
+   statt aus Seitenname und Weg zusammengesetzt zu werden: „Aufgaben · ideen"
+   wäre keine Zeile, sondern ein Pfad — und die Regel, die daraus „Ideenliste"
+   machte, wäre länger als diese Liste.
+
+   Alles, was kein Eintrag hat, trägt weiter die Zeile seiner Seite. */
+const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
+  "projekt/bearbeiten": { titel: "Projekt bearbeiten", unter: "Gliedern, umordnen, entfernen" },
+  "aufgaben/ideen": {
+    titel: "Ideenliste",
+    unter: "Was möglich wäre — noch nicht entschieden",
+  },
+};
 
 export function App() {
   const ich = useIch();
@@ -57,11 +67,11 @@ export function App() {
   if (!ich.data) return <Zustand abfrage={ich} erneut={() => ich.refetch()} />;
 
   const bearbeiten = ort.seite === "projekt" && ort.unter === "bearbeiten";
-  const kopfzeile = bearbeiten
-    ? PROJEKT_BEARBEITEN
-    : ort.seite === "start"
+  const kopfzeile =
+    UNTERTITEL[`${ort.seite}/${ort.unter}`] ??
+    (ort.seite === "start"
       ? { titel: `Hallo ${ich.data.name.split(" ")[0]}`, unter: TITEL.start.unter }
-      : TITEL[ort.seite];
+      : TITEL[ort.seite]);
 
   return (
     <div className="geruest">
@@ -112,7 +122,9 @@ export function App() {
             <Projekt ich={ich.data} bearbeiten={bearbeiten} wechseln={wechseln} />
           )}
           {ort.seite === "zeit" && <Zeit ich={ich.data} />}
-          {ort.seite === "aufgaben" && <Aufgaben ich={ich.data} />}
+          {ort.seite === "aufgaben" && (
+            <Aufgaben ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+          )}
           {ort.seite === "kontakte" && (
             <Kontakte ich={ich.data} unter={ort.unter} wechseln={wechseln} />
           )}

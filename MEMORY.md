@@ -7,6 +7,54 @@ betrifft.
 
 ---
 
+## 2026-09-15 — Die Ideenliste (`Aufgabe.ist_idee`, Migration 0016)
+
+### Kein eigenes Modell `Idee`
+
+Der naheliegende Weg wäre eine zweite Tabelle gewesen — **genau den nicht.** Eine
+Idee ist dasselbe wie eine Aufgabe, solange niemand entschieden hat, dass sie
+getan wird: eine Zeile Text, eine Einschätzung, ein Haken. Der Unterschied ist
+ein Zustand, kein Ding.
+
+Was ein Kennzeichen an derselben Tabelle mitbringt:
+
+- **„Das machen wir" ist ein PATCH.** Mit zwei Tabellen wäre es Löschen plus
+  Anlegen — und damit eine neue Kennung, ein abgetippter Text und ein
+  Änderungsprotokoll, das an der Stelle abreißt, an der die interessante Frage
+  steht: *wer hat das entschieden.*
+- **Sicherung, Protokoll und Berechtigung gelten ohne Zutun weiter.** Ein neues
+  Modell müsste in `sicherung.py` (zwei Listen), in der Löschreihenfolge und in
+  einem eigenen ViewSet nachgetragen werden. Drei Stellen, an denen ein
+  Vergessen erst beim Wiederherstellen auffällt.
+
+Der Preis: `erledigt` heißt auf der Ideenliste „vom Tisch" statt „erledigt". Das
+ist dieselbe Aussage — *nicht mehr offen* —, nur in einem anderen Zusammenhang
+gelesen; die Beschriftung sagt es, das Feld muss es nicht.
+
+### Eine Unterseite, keine vierte Spalte
+
+Eine Spalte „Ideen" neben den Personen stünde jeden Tag im Blick und wüchse mit
+der Zeit länger als alle anderen zusammen. Dann sieht man die Tafel nicht mehr —
+und die Tafel ist das, was *jetzt* zu tun ist. Deshalb `/aufgaben/ideen` und auf
+der Tafel nur ein Knopf mit der Zahl der offenen Ideen.
+
+Die Liste hat **keine Spalten je Person**: Wer eine Idee macht, ist ja gerade
+die Frage, die noch offen ist. „Auf die Tafel" landet darum immer in
+„Allgemein". Eine Personenauswahl an dieser Stelle wäre der einzige Ort in der
+Anwendung, an dem eine Aufgabe doch die Spalte wechselt — und damit die Ausnahme
+von der Regel, die die Tafel klein hält.
+
+### Kein `?idee=` an der API
+
+Tafel und Ideenliste kommen aus **einer** Antwort (`/api/aufgaben/`) und werden
+in `basis/aufgaben.ts` getrennt — dort steht ohnehin die Sortierung. Ein Filter
+am Server hätte keinen Aufrufer. Der Filter sitzt in `spalten()` selbst und
+nicht beim Aufrufer: Eine durchgerutschte Idee sähe auf der Tafel aus wie jede
+andere Zeile, und niemand fände den Grund (`aufgaben.test.ts` prüft beide
+Richtungen).
+
+---
+
 ## 2026-09-15 — Meetings (`Meeting`, `Meetingabschnitt`, Migration 0015)
 
 ### Ein Meeting hängt an nichts

@@ -21,7 +21,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-15",
-        "titel": "Meetings — und eine kürzere Startseite",
+        "titel": "Meetings, eine Ideenliste und eine kürzere Startseite",
         "punkte": [
             {
                 "titel": "Neu: Extern · Meetings",
@@ -66,6 +66,26 @@ VERSIONEN = [
                     "eingetragen sind — ein Grund mehr, sie nachzutragen."
                 ),
                 "wo": "kontakte",
+            },
+            {
+                "titel": "Neu: die Ideenliste",
+                "text": (
+                    "Rechts über der Aufgabentafel steht jetzt „Ideenliste“ "
+                    "mit der Zahl der offenen Ideen. Dort schreibst du auf, "
+                    "was möglich wäre und noch nicht entschieden ist — die "
+                    "Tafel bleibt damit das, was jetzt zu tun ist."
+                ),
+                "wo": "aufgaben/ideen",
+            },
+            {
+                "titel": "Aus einer Idee wird eine Aufgabe",
+                "text": (
+                    "„Auf die Tafel“ verschiebt die Idee unverändert nach "
+                    "„Allgemein“ — kein Abtippen, und im Protokoll steht, wer "
+                    "das entschieden hat. Der Haken daneben legt sie unter "
+                    "„Vom Tisch“, von wo du sie jederzeit zurückholst."
+                ),
+                "wo": "doku/aufgaben",
             },
             {
                 "titel": "Start liegt jetzt auf dem Logo",

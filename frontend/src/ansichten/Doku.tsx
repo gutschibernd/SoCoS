@@ -344,6 +344,24 @@ function AufgabenDoku() {
       </Abschnitt>
 
       <Abschnitt
+        zeichen="idee"
+        titel="Die Ideenliste"
+        vorspann="Eine Ebene unter der Tafel, über den Knopf „Ideenliste“ rechts oben. Dort steht, was möglich wäre und noch nicht entschieden ist — damit es die Tafel nicht zuwächst."
+      >
+        <Schritte
+          schritte={[
+            "Hineinschreiben und Enter, genau wie auf der Tafel. Die Priorität sagt hier, wie gut die Idee ist, nicht wie dringend.",
+            "„Auf die Tafel“ macht aus der Idee eine Aufgabe unter „Allgemein“ — dieselbe Zeile, derselbe Text. Wer sie übernimmt, schreibt sie sich von dort in die eigene Spalte.",
+            "Der Haken legt sie unter „Vom Tisch“ am Fuß der Liste. Ein zweiter Tipp dort holt sie zurück — nichts ist weg.",
+          ]}
+        />
+        <p className="doku-text">
+          Die Zahl neben dem Knopf auf der Tafel ist die Zahl der <b>offenen</b> Ideen.
+          Wer wann etwas auf die Tafel geholt hat, steht im Änderungsprotokoll.
+        </p>
+      </Abschnitt>
+
+      <Abschnitt
         zeichen="achtung"
         titel="Was die Tafel bewusst nicht kann"
         vorspann="Sie ist ein Zettel am Bildschirmrand, keine zweite Projektansicht."
@@ -360,7 +378,7 @@ function AufgabenDoku() {
             },
             {
               begriff: "Kein Verschieben",
-              text: "Eine Zeile wandert nicht in eine andere Spalte. Abhaken und drüben neu schreiben dauert zwei Sekunden.",
+              text: "Eine Zeile wandert nicht in eine andere Spalte. Abhaken und drüben neu schreiben dauert zwei Sekunden. Die einzige Ausnahme ist der Weg von der Ideenliste auf die Tafel — und der endet immer bei „Allgemein“.",
             },
             {
               begriff: "Kein Wer-war-das",

@@ -23,6 +23,8 @@ describe("ausPfad", () => {
 
   it("liest die Unterseite", () => {
     expect(ausPfad("/projekt/bearbeiten")).toEqual({ seite: "projekt", unter: "bearbeiten" });
+    expect(ausPfad("/aufgaben/ideen")).toEqual({ seite: "aufgaben", unter: "ideen" });
+    expect(ausPfad("/aufgaben")).toEqual({ seite: "aufgaben", unter: null });
   });
 
   it("liest die gewählte Organisation und die losen Kontakte", () => {

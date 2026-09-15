@@ -1269,6 +1269,14 @@ class Aufgabe(Basismodell):
     Fällig-Datum, Beschreibung, Anhänge, wer es abgehakt hat: alles bewusst
     nicht. Wer wann was geändert hat, steht ohnehin im Änderungsprotokoll —
     dafür braucht die Tafel kein eigenes Feld.
+
+    **`ist_idee` macht aus derselben Zeile einen Punkt der Ideenliste.** Kein
+    eigenes Modell `Idee` daneben: Eine Idee ist genau das, was eine Aufgabe
+    ist, solange niemand entschieden hat, dass sie getan wird — Text,
+    Einschätzung, ein Haken. Mit einem zweiten Modell wäre „das machen wir"
+    ein Löschen samt Abtippen, mit dem Kennzeichen ist es ein Klick. Und die
+    Sicherung, das Änderungsprotokoll und die Berechtigung gelten ohne Zutun
+    weiter — ein neues Modell müsste in allen dreien nachgetragen werden.
     """
 
     text = models.CharField("Aufgabe", max_length=250)
@@ -1288,6 +1296,11 @@ class Aufgabe(Basismodell):
         default=Aufgabenprioritaet.MITTEL,
     )
     erledigt = models.BooleanField("erledigt", default=False)
+    ist_idee = models.BooleanField(
+        "Idee",
+        default=False,
+        help_text="Steht auf der Ideenliste statt auf der Tafel — noch nicht entschieden.",
+    )
 
     class Meta(Basismodell.Meta):
         verbose_name = "Aufgabe"

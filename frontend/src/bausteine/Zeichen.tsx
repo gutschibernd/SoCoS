@@ -43,7 +43,8 @@ export type ZeichenName =
   | "zuhause"
   | "mehr"
   | "buch"
-  | "sprechblase";
+  | "sprechblase"
+  | "idee";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -115,6 +116,11 @@ const PFADE: Record<ZeichenName, string> = {
      Sie muss neben `sprechblase` (Wünsche & Fehler) im selben Menü noch
      unterscheidbar sein; zwei Blasen übereinander waren es bei 18 px nicht. */
   meeting: "M4 5h16v11H9l-4 4v-4H4zM7.5 8.5h9M7.5 12h5.5",
+  /* Eine Glühbirne: Kolben als voller Kreis, darunter zwei Striche als Sockel.
+     Kein Kolben mit eingezogenem Hals — der Einzug braucht zwei Bögen, die bei
+     18 px ineinanderlaufen, und übrig bleibt ein Fleck mit Strichen. Der Kreis
+     bleibt ein Kreis. */
+  idee: "M12 4a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M9.5 17.5h5M10.7 20h2.6",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

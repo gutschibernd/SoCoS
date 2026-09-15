@@ -4,6 +4,10 @@ Die Tafel unter „Intern · Aufgaben".
 Geprüft wird, was entschieden wurde: wer schreiben darf, dass „Allgemein" ein
 gewöhnlicher Wert ist und kein Sonderfall, und dass eine leere Zeile keine
 Aufgabe wird. Dass DRF eine Liste ausgibt, wird nicht geprüft.
+
+Dazu die Ideenliste — sie ist dieselbe Tabelle mit `ist_idee`. Geprüft wird
+genau das, was diese Entscheidung tragen muss: dass aus der Idee ohne Abtippen
+eine Aufgabe wird und dass der Schritt im Protokoll steht.
 """
 
 import pytest
@@ -148,3 +152,63 @@ def test_erledigtes_laesst_sich_weglassen(client, bearbeiter):
     assert len(client.get("/api/aufgaben/").json()) == 2
     offen = client.get("/api/aufgaben/?erledigt=nein").json()
     assert [a["text"] for a in offen] == ["Offen"]
+
+
+@pytest.mark.django_db
+def test_aus_einer_idee_wird_eine_aufgabe_mit_einem_patch(client, bearbeiter):
+    """
+    Der Grund, warum die Idee **kein eigenes Modell** ist: „Das machen wir"
+    darf kein Löschen samt Abtippen sein. Text, Einschätzung und Verlauf
+    bleiben dieselbe Zeile.
+    """
+    client.force_login(bearbeiter)
+    antwort = client.post(
+        "/api/aufgaben/",
+        {"text": "Messestand aus Holz statt Alu", "ist_idee": True, "prioritaet": "hoch"},
+        content_type="application/json",
+    )
+    assert antwort.status_code == 201
+    kennung = antwort.json()["id"]
+
+    uebernommen = client.patch(
+        f"/api/aufgaben/{kennung}/", {"ist_idee": False}, content_type="application/json"
+    )
+    assert uebernommen.status_code == 200
+    aufgabe = Aufgabe.objects.get(pk=kennung)
+    assert not aufgabe.ist_idee
+    # Dieselbe Kennung, derselbe Text, dieselbe Einschätzung — nichts abgetippt.
+    assert aufgabe.text == "Messestand aus Holz statt Alu"
+    assert aufgabe.prioritaet == Aufgabenprioritaet.HOCH
+
+
+@pytest.mark.django_db
+def test_eine_neue_zeile_ist_ohne_angabe_keine_idee(client, bearbeiter):
+    """
+    Die Vorgabe ist die Tafel, nicht die Ideenliste: Wer über die API etwas
+    anlegt und nichts dazu sagt, meint den Zettel, der jetzt getan werden soll.
+    """
+    client.force_login(bearbeiter)
+    antwort = client.post(
+        "/api/aufgaben/", {"text": "Rechnung prüfen"}, content_type="application/json"
+    )
+    assert antwort.status_code == 201
+    assert antwort.json()["ist_idee"] is False
+
+
+@pytest.mark.django_db
+def test_das_uebernehmen_steht_im_protokoll(client, bearbeiter):
+    """
+    Ohne eigenes Modell gilt das Änderungsprotokoll ohne Zutun weiter — „wer
+    hat das entschieden" ist damit beantwortet, ohne ein Feld dafür.
+    """
+    client.force_login(bearbeiter)
+    idee = Aufgabe.objects.create(text="Zweiter Lieferant", ist_idee=True)
+    client.patch(
+        f"/api/aufgaben/{idee.pk}/", {"ist_idee": False}, content_type="application/json"
+    )
+
+    eintrag = Protokolleintrag.objects.filter(
+        modell="socos.Aufgabe", objekt_id=str(idee.pk), aktion="geaendert"
+    ).first()
+    assert eintrag is not None
+    assert eintrag.aenderungen["ist_idee"] == {"alt": True, "neu": False}

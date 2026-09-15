@@ -595,6 +595,10 @@ class AufgabeSerializer(serializers.ModelSerializer):
     Anders als beim Melder einer Rückmeldung ist die Person hier **nicht** der
     Absender: Eine Aufgabe schreibt man dem anderen auf die Tafel, das ist der
     ganze Zweck. Wer sie angelegt hat, steht im Änderungsprotokoll.
+
+    `ist_idee` ist ein gewöhnliches schreibbares Feld — „das machen wir" ist
+    genau ein PATCH darauf. Keine eigene Aktion `/uebernehmen/` daneben: Sie
+    täte dasselbe und wäre ein zweiter Weg zum selben Zustand.
     """
 
     person_name = serializers.CharField(source="person.name", read_only=True, default="")
@@ -603,7 +607,7 @@ class AufgabeSerializer(serializers.ModelSerializer):
         model = Aufgabe
         fields = [
             "id", "text", "person", "person_name", "prioritaet", "erledigt",
-            "erstellt_am", "geaendert_am",
+            "ist_idee", "erstellt_am", "geaendert_am",
         ]
         read_only_fields = ["id", "erstellt_am", "geaendert_am"]
 

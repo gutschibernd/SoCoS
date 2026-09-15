@@ -1,6 +1,6 @@
 /**
- * Was die Tafel sortiert und in Spalten teilt — an einer Stelle, damit es
- * prüfbar ist.
+ * Was die Tafel sortiert und in Spalten teilt — und was davon auf die
+ * Ideenliste gehört. An einer Stelle, damit es prüfbar ist.
  *
  * Sortiert wird hier und nicht am Server: In der Datenbank stünden „gering",
  * „hoch", „mittel" alphabetisch, also genau falsch. Ein `ORDER BY CASE` täte
@@ -88,6 +88,26 @@ function sortiereErledigte(aufgaben: Aufgabe[]): Aufgabe[] {
 }
 
 /**
+ * Die Ideenliste: **eine** Liste, keine Spalten.
+ *
+ * Eine Idee gehört niemandem — sie ist ja gerade noch nicht verteilt. Eine
+ * Spalte je Person hieße, die Entscheidung „wer macht das" schon getroffen zu
+ * haben, und genau die steht hier noch aus.
+ *
+ * Sortiert wird wie auf der Tafel (Priorität, dann das Neueste oben) — es ist
+ * dieselbe Liste in einem anderen Zustand, nicht eine zweite Art von Zeile.
+ * `erledigt` heißt hier „vom Tisch": Was gemacht wird, wandert als Aufgabe auf
+ * die Tafel und ist dann keine Idee mehr.
+ */
+export function ideen(aufgaben: Aufgabe[]): { offen: Aufgabe[]; vomTisch: Aufgabe[] } {
+  const eigene = aufgaben.filter((a) => a.ist_idee);
+  return {
+    offen: sortiere(eigene.filter((a) => !a.erledigt)),
+    vomTisch: sortiereErledigte(eigene.filter((a) => a.erledigt)),
+  };
+}
+
+/**
  * Die Spalten der Tafel: **Allgemein**, dann ich, dann die anderen nach Namen.
  *
  * Warum ich an zweiter Stelle und nicht alphabetisch dazwischen: Die eigene
@@ -103,7 +123,15 @@ export function spalten(
   team: Teammitglied[],
   ich: number,
 ): Spalte[] {
-  const mitAufgaben = new Set(aufgaben.map((a) => a.person).filter((p): p is number => p !== null));
+  /* Die Ideen fallen **hier** heraus und nicht beim Aufrufer: Tafel und
+     Ideenliste kommen aus derselben Antwort, und ein vergessener Filter an
+     einer der beiden Stellen wäre nicht zu sehen — eine Idee sähe auf der
+     Tafel aus wie jede andere Zeile. */
+  const aufDerTafel = aufgaben.filter((a) => !a.ist_idee);
+
+  const mitAufgaben = new Set(
+    aufDerTafel.map((a) => a.person).filter((p): p is number => p !== null),
+  );
   const leute = team.filter((m) => m.is_active || mitAufgaben.has(m.id));
 
   const geordnet = [
@@ -114,7 +142,7 @@ export function spalten(
   ];
 
   const bauen = (person: number | null, titel: string, initialen: string, farbe: string) => {
-    const eigene = aufgaben.filter((a) => a.person === person);
+    const eigene = aufDerTafel.filter((a) => a.person === person);
     return {
       person,
       titel,

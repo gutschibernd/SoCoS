@@ -69,6 +69,10 @@ export type Rueckmeldung = {
  * `person: null` heißt **Allgemein** — die Spalte, die niemandem gehört. Kein
  * zweites Feld daneben, das dasselbe noch einmal sagt und ihm widersprechen
  * könnte.
+ *
+ * `ist_idee: true` heißt: Der Punkt steht auf der **Ideenliste** unter
+ * `/aufgaben/ideen` und nicht auf der Tafel. Dieselbe Zeile, dieselbe
+ * Kennung — „das machen wir" setzt nur dieses eine Feld um.
  */
 export type Aufgabe = {
   id: number;
@@ -77,6 +81,7 @@ export type Aufgabe = {
   person_name: string;
   prioritaet: "hoch" | "mittel" | "gering";
   erledigt: boolean;
+  ist_idee: boolean;
   erstellt_am: string;
   geaendert_am: string;
 };

@@ -614,6 +614,11 @@ class AufgabeViewSet(SocosViewSet):
 
     `?erledigt=nein` lässt das Abgehakte weg. Ohne Angabe kommt alles — es gibt
     hier so wenig einen stillen Filter wie bei den Zeiträumen.
+
+    Das gilt auch für die Ideenliste: Sie kommt aus **derselben** Antwort und
+    wird in `basis/aufgaben.ts` herausgetrennt. Ein `?idee=` daneben wäre ein
+    Filter ohne Aufrufer — die Oberfläche lädt die Tafel und die Ideen in
+    einem Zug und hat beides ohnehin schon da.
     """
 
     serializer_class = ser.AufgabeSerializer
