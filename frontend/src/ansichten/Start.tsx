@@ -70,6 +70,14 @@ const KACHELN: Ziel[][] = [
   ],
   [
     {
+      titel: "Aufgaben",
+      satz: "Die gemeinsame Tafel — allgemein und je Person.",
+      zeichen: "aufgaben",
+      seite: "aufgaben",
+    },
+  ],
+  [
+    {
       titel: "Organisation erfassen",
       satz: "Neue Organisation anlegen — die Personen hängen darunter.",
       zeichen: "kontakte",

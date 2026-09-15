@@ -826,12 +826,13 @@ a.leiste-knopf { text-decoration: none; }
  * darin steht. Sonst gäbe es zwei Bauweisen nebeneinander, und die geteilte
  * Kachel wäre die, die beim nächsten Nachbessern vergessen wird.
  *
- * Vier Spalten, weil die geteilte Kachel zwei davon nimmt: So steht alles in
- * einer Reihe. Bei drei Spalten bliebe die letzte Kachel allein in einer
- * zweiten Zeile mit zwei leeren Feldern daneben.
+ * Drei Spalten: Die drei einfachen Kacheln füllen die erste Zeile, die
+ * geteilte nimmt mit ihren zwei Spalten die zweite. Das eine leere Feld
+ * bleibt damit ganz am Ende — und nicht zwischen zwei Kacheln, wo es wie
+ * ein Fehler aussieht.
  */
 
-.kacheln { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kacheln { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .kachel {
   display: grid; grid-template-columns: minmax(0, 1fr);
   background: var(--flaeche); border: 1px solid var(--rand);
@@ -1517,11 +1518,14 @@ a.mini { text-decoration: none; }
 
 @media (max-width: 1200px) {
   .raster-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  /* Dieselbe Frage wie eine Zeile darüber: Vier Spalten werden hier zu schmal
+  /* Dieselbe Frage wie eine Zeile darüber: Drei Spalten werden hier zu schmal
      — bei den Kacheln bricht zuerst der Titel um, dann der Satz auf vier
-     Zeilen. Zwei Spalten, und die geteilte Kachel nimmt mit ihren zwei die
-     ganze Breite der zweiten Zeile. */
+     Zeilen.
+     Die geteilte Kachel nimmt hier nur **eine** Spalte und behält ihre beiden
+     Hälften nebeneinander. Über zwei Spalten wäre sie so breit wie die Zeile,
+     und eine der vier Kacheln bliebe mit einem leeren Feld daneben stehen. */
   .kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kachel[data-teile="2"] { grid-column: auto; }
 }
 
 /* ==========================================================================

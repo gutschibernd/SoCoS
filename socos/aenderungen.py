@@ -104,7 +104,8 @@ VERSIONEN = [
                     "mehr — beides erreichst du über die Leiste links. "
                     "„Organisation erfassen“ und „Person ohne Organisation“ "
                     "liegen jetzt zu zweit in einer Kachel nebeneinander: Es "
-                    "ist derselbe Griff, nur mit und ohne Haus dahinter."
+                    "ist derselbe Griff, nur mit und ohne Haus dahinter. Neu "
+                    "dazugekommen ist „Aufgaben“."
                 ),
                 "wo": "start",
             },
