@@ -21,7 +21,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-15",
-        "titel": "Meetings — vorbereiten, mitschreiben, Protokoll",
+        "titel": "Meetings — und eine kürzere Startseite",
         "punkte": [
             {
                 "titel": "Neu: Extern · Meetings",
@@ -74,6 +74,17 @@ VERSIONEN = [
                     "kommst du über das SoCoS-Zeichen ganz oben in der "
                     "Leiste. Das schafft Platz für die Rubriken darunter. Am "
                     "Handy steht „Start“ weiter in der Fußleiste."
+                ),
+                "wo": "start",
+            },
+            {
+                "titel": "Weniger Kacheln auf der Startseite",
+                "text": (
+                    "„Event anlegen“ und „Zahlen & Runway“ stehen dort nicht "
+                    "mehr — beides erreichst du über die Leiste links. "
+                    "„Organisation erfassen“ und „Person ohne Organisation“ "
+                    "liegen jetzt zu zweit in einer Kachel nebeneinander: Es "
+                    "ist derselbe Griff, nur mit und ohne Haus dahinter."
                 ),
                 "wo": "start",
             },

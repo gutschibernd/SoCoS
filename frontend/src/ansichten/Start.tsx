@@ -2,10 +2,14 @@
  * Die Startseite: große Kacheln als Abkürzungen.
  *
  * Sie steht in keinem Menü — hin kommt man über das Logo links oben. Sie
- * erfindet keine eigenen Daten, sondern führt auf die fünf Seiten, die es
- * ohnehin gibt. Die einzige Ausnahme ist das Buchen ganz oben: Die Uhr zu
- * starten ist der häufigste Griff des Tages, und dafür einmal über die
- * Projektseite zu gehen und dort das Paket zu suchen sind drei Wege zu viel.
+ * erfindet keine eigenen Daten, sondern führt auf Seiten, die es ohnehin
+ * gibt. Die einzige Ausnahme ist das Buchen ganz oben: Die Uhr zu starten
+ * ist der häufigste Griff des Tages, und dafür einmal über die Projektseite
+ * zu gehen und dort das Paket zu suchen sind drei Wege zu viel.
+ *
+ * Hier steht nur, was man von hier aus *tut*. Zahlen nicht: Das Dashboard
+ * hat sie, und eine Kachel, die bloß „Zahlen" heißt, ist derselbe Weg wie
+ * der Menüeintrag daneben — nur länger.
  */
 
 import { useState } from "react";
@@ -24,57 +28,62 @@ import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen, type ZeichenName } from "../bausteine/Zeichen";
 
-type Kachel = {
+type Ziel = {
   titel: string;
   satz: string;
   zeichen: ZeichenName;
   seite: Seite;
   unter?: string;
-  /** Kacheln, die zum Anlegen führen, sieht nur, wer auch anlegen darf. */
+  /** Ziele, die zum Anlegen führen, sieht nur, wer auch anlegen darf. */
   nurBearbeiter?: boolean;
 };
 
-const KACHELN: Kachel[] = [
-  {
-    titel: "Zeit nachtragen",
-    satz: "Eine Buchung von Hand eintragen oder eine bestehende korrigieren.",
-    zeichen: "zeit",
-    seite: "zeit",
-    nurBearbeiter: true,
-  },
-  {
-    titel: "Organisation erfassen",
-    satz: "Neue Organisation anlegen — die Personen hängen darunter.",
-    zeichen: "kontakte",
-    seite: "kontakte",
-    nurBearbeiter: true,
-  },
-  {
-    titel: "Person ohne Organisation",
-    satz: "Wen du kennst, aber noch nirgends einsortiert hast.",
-    zeichen: "kontakte",
-    seite: "kontakte",
-    unter: "lose",
-  },
-  {
-    titel: "Event anlegen",
-    satz: "Tagung eintragen und die Hitlist dazu aufbauen.",
-    zeichen: "event",
-    seite: "events",
-    nurBearbeiter: true,
-  },
-  {
-    titel: "Projekt & Pakete",
-    satz: "Bereiche, Arbeitspakete, Stufen — der ganze Baum.",
-    zeichen: "projekt",
-    seite: "projekt",
-  },
-  {
-    titel: "Zahlen & Runway",
-    satz: "Woche, Geld, Fortschritt auf einen Blick.",
-    zeichen: "dashboard",
-    seite: "dashboard",
-  },
+/*
+ * Eine Kachel ist eine Gruppe von Zielen, nicht ein einzelnes.
+ *
+ * Organisation und lose Person sind derselbe Griff — „jemanden eintragen" —
+ * und stehen deshalb geteilt in einer Kachel statt als zwei gleich große
+ * Nachbarn, zwischen denen man erst lesen muss. Eine Gruppe mit einem Ziel
+ * ist die gewöhnliche Kachel; ein zweiter Bauweg daneben wäre einer zu viel.
+ *
+ * Die geteilte Kachel steht zuletzt, und das ist keine Geschmacksfrage: Sie
+ * ist zwei Spalten breit. Stünde sie in der Mitte, rutschte sie im schmaleren
+ * Raster in die nächste Zeile und ließe neben sich ein leeres Feld stehen.
+ */
+const KACHELN: Ziel[][] = [
+  [
+    {
+      titel: "Zeit nachtragen",
+      satz: "Eine Buchung von Hand eintragen oder eine bestehende korrigieren.",
+      zeichen: "zeit",
+      seite: "zeit",
+      nurBearbeiter: true,
+    },
+  ],
+  [
+    {
+      titel: "Projekt & Pakete",
+      satz: "Bereiche, Arbeitspakete, Stufen — der ganze Baum.",
+      zeichen: "projekt",
+      seite: "projekt",
+    },
+  ],
+  [
+    {
+      titel: "Organisation erfassen",
+      satz: "Neue Organisation anlegen — die Personen hängen darunter.",
+      zeichen: "kontakte",
+      seite: "kontakte",
+      nurBearbeiter: true,
+    },
+    {
+      titel: "Person ohne Organisation",
+      satz: "Wen du kennst, aber noch nirgends einsortiert hast.",
+      zeichen: "kontakte",
+      seite: "kontakte",
+      unter: "lose",
+    },
+  ],
 ];
 
 /** Der Tag vor 30 Tagen als JJJJ-MM-TT — die Grundlage für „zuletzt gebucht". */
@@ -96,18 +105,27 @@ export function Start({
       {ich.darf.bearbeiten && <Buchen ich={ich} wechseln={wechseln} />}
 
       <div className="kacheln">
-        {KACHELN.filter((k) => !k.nurBearbeiter || ich.darf.bearbeiten).map((k) => (
-          <button
-            key={`${k.seite}/${k.unter ?? ""}`}
-            type="button"
-            className="kachel"
-            onClick={() => wechseln(k.seite, k.unter ?? null)}
-          >
-            <Zeichen name={k.zeichen} />
-            <b>{k.titel}</b>
-            <span>{k.satz}</span>
-          </button>
-        ))}
+        {KACHELN.map((gruppe) => {
+          const sichtbar = gruppe.filter((z) => !z.nurBearbeiter || ich.darf.bearbeiten);
+          if (sichtbar.length === 0) return null;
+          const schluessel = sichtbar.map((z) => `${z.seite}/${z.unter ?? ""}`).join("+");
+          return (
+            <div key={schluessel} className="kachel" data-teile={sichtbar.length}>
+              {sichtbar.map((z) => (
+                <button
+                  key={`${z.seite}/${z.unter ?? ""}`}
+                  type="button"
+                  className="kachel-ziel"
+                  onClick={() => wechseln(z.seite, z.unter ?? null)}
+                >
+                  <Zeichen name={z.zeichen} />
+                  <b>{z.titel}</b>
+                  <span>{z.satz}</span>
+                </button>
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

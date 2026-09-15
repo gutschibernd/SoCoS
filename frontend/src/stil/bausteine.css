@@ -818,24 +818,42 @@ a.leiste-knopf { text-decoration: none; }
 
 /* --- Startseite ---------------------------------------------------------- */
 /*
- * Die Kacheln sind Knöpfe, keine Karten mit einem Link darin: Wer eine Kachel
- * anfasst, meint immer den ganzen Block. Ein Link nur auf der Überschrift
- * hätte am Handy ein Ziel von 20 px in einem 130 px hohen Feld.
+ * Die Ziele in den Kacheln sind Knöpfe, keine Karten mit einem Link darin:
+ * Wer ein Ziel anfasst, meint immer den ganzen Block. Ein Link nur auf der
+ * Überschrift hätte am Handy ein Ziel von 20 px in einem 130 px hohen Feld.
+ *
+ * Die Kachel ist der Rahmen, das Ziel darin der Knopf — auch wenn nur eines
+ * darin steht. Sonst gäbe es zwei Bauweisen nebeneinander, und die geteilte
+ * Kachel wäre die, die beim nächsten Nachbessern vergessen wird.
+ *
+ * Vier Spalten, weil die geteilte Kachel zwei davon nimmt: So steht alles in
+ * einer Reihe. Bei drei Spalten bliebe die letzte Kachel allein in einer
+ * zweiten Zeile mit zwei leeren Feldern daneben.
  */
 
-.kacheln { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kacheln { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .kachel {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
-  padding: 18px 18px 20px; min-height: 132px; text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: minmax(0, 1fr);
   background: var(--flaeche); border: 1px solid var(--rand);
   border-radius: var(--kante); border-top: 3px solid var(--marke);
 }
+.kachel-ziel {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  padding: 18px 18px 20px; min-height: 132px; text-align: left; cursor: pointer;
+  background: none; border: 0; border-radius: var(--kante); color: inherit;
+}
 /* Nur der Grund wechselt: `border-color` würde auch die Kante oben
    übermalen, und die ist das einzige Farbige an der Kachel. */
-.kachel:hover { background: var(--flaeche-leise); }
-.kachel > .zeichen { font-size: 22px; color: var(--marke); margin-bottom: 3px; }
-.kachel b { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
-.kachel span { font-size: 14px; color: var(--text-leise); line-height: 1.4; }
+.kachel-ziel:hover { background: var(--flaeche-leise); }
+.kachel-ziel > .zeichen { font-size: 22px; color: var(--marke); margin-bottom: 3px; }
+.kachel-ziel b { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.kachel-ziel span { font-size: 14px; color: var(--text-leise); line-height: 1.4; }
+
+/* Zwei Ziele in einer Kachel — links und rechts, getrennt durch eine
+   Haarlinie. Sie nimmt dafür zwei Spalten, sonst wäre jede Hälfte halb so
+   breit wie eine gewöhnliche Kachel und der Satz darin vierzeilig. */
+.kachel[data-teile="2"] { grid-column: span 2; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.kachel[data-teile="2"] > .kachel-ziel + .kachel-ziel { border-left: 1px solid var(--rand); }
 
 /* Die Uhr-Kachel steht über der Breite: Sie ist der Griff, den man am
    häufigsten sucht, und sie trägt Felder statt nur einer Beschriftung. */
@@ -1475,6 +1493,11 @@ a.mini { text-decoration: none; }
 
 @media (max-width: 1200px) {
   .raster-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Dieselbe Frage wie eine Zeile darüber: Vier Spalten werden hier zu schmal
+     — bei den Kacheln bricht zuerst der Titel um, dann der Satz auf vier
+     Zeilen. Zwei Spalten, und die geteilte Kachel nimmt mit ihren zwei die
+     ganze Breite der zweiten Zeile. */
+  .kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ==========================================================================
@@ -1621,6 +1644,13 @@ a.mini { text-decoration: none; }
   }
 
   .raster-4, .raster-3, .raster-2, .kacheln, .doku-wege { grid-template-columns: 1fr; }
+  /* Untereinander statt nebeneinander — und ohne die 132 px je Hälfte, sonst
+     wäre diese eine Kachel doppelt so hoch wie jede andere. */
+  .kachel[data-teile="2"] { grid-column: auto; grid-template-columns: 1fr; }
+  .kachel[data-teile="2"] > .kachel-ziel { min-height: 0; }
+  .kachel[data-teile="2"] > .kachel-ziel + .kachel-ziel {
+    border-left: 0; border-top: 1px solid var(--rand);
+  }
   /* Unten **dieselben 140 px wie im 900er Block** und nicht 40. Hier stand
      genau der Fehler, vor dem die Überschrift dieses Blocks warnt: Die Regel
      weiter unten gewinnt bei gleicher Spezifität, und damit lag das Ende
