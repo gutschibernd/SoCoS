@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Projekt } from "./daten";
-import { buchbarePakete, letztePakete, paketgruppen } from "./start";
+import { buchbarePakete, letztePakete, paketeSuchen, paketgruppen } from "./start";
 
 /** Ein Projektbaum mit so wenig Feldern wie möglich — der Rest spielt hier keine Rolle. */
 function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[] {
@@ -126,5 +126,30 @@ describe("paketgruppen", () => {
 
   it("lässt ein Projekt ohne buchbares Paket weg", () => {
     expect(paketgruppen(baum([{ id: 9, titel: "Abgeschlossen", status: "fertig" }]))).toEqual([]);
+  });
+});
+
+describe("paketeSuchen", () => {
+  const gruppen = paketgruppen(
+    baum([
+      { id: 1, titel: "Dauerlauftests", status: "offen" },
+      { id: 2, titel: "Risikoanalyse", status: "offen" },
+      { id: 3, titel: "Allgemein", status: "offen" },
+    ]),
+  );
+
+  it("findet über Projekt und Paket, wortweise und in beliebiger Reihenfolge", () => {
+    expect(paketeSuchen(gruppen, "dauer").map((p) => p.id)).toEqual([1]);
+    expect(paketeSuchen(gruppen, "DAUER").map((p) => p.id)).toEqual([1]);
+    // „Zulassung" ist das Projekt, „Dossier" der Bereich, „Risiko" das Paket.
+    expect(paketeSuchen(gruppen, "risiko zulassung").map((p) => p.id)).toEqual([2]);
+  });
+
+  it("stellt die zuletzt bebuchten Pakete voran", () => {
+    expect(paketeSuchen(gruppen, "", [3, 2]).map((p) => p.id)).toEqual([3, 2, 1]);
+  });
+
+  it("gibt ohne Suchwort alles zurück", () => {
+    expect(paketeSuchen(gruppen, "  ")).toHaveLength(3);
   });
 });

@@ -10,13 +10,24 @@ import {
   type Buchung,
   type Ich,
   type Projekt,
+  type Teammitglied,
 } from "../basis/daten";
-import { paketgruppen } from "../basis/start";
+import { letztePakete, paketgruppen } from "../basis/start";
 import { Zustand } from "../basis/Zustand";
 import { clockIn } from "../basis/uhr";
-import { alsDauer, alsStunden } from "../basis/zeit";
+import {
+  alsDauer,
+  alsStunden,
+  alsZeitpunkt,
+  heuteAlsDatum,
+  plusMinuten,
+  spanne,
+  tagAusZeitpunkt,
+  uhrzeitAusZeitpunkt,
+} from "../basis/zeit";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Leerstelle } from "../bausteine/Leerstelle";
+import { Paketwahl } from "../bausteine/Paketwahl";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 
@@ -35,11 +46,124 @@ function aktuellerMonat() {
   return `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, "0")}`;
 }
 
-/** Für datetime-local: lokale Zeit, nicht UTC — sonst springt die Anzeige. */
-function fuerFeld(iso: string) {
-  const d = new Date(iso);
-  const versetzt = new Date(d.getTime() - d.getTimezoneOffset() * 60_000);
-  return versetzt.toISOString().slice(0, 16);
+const TAG_LANG = new Intl.DateTimeFormat("de-AT", {
+  weekday: "short",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+/** Die Felder einer Zeitspanne: ein Tag, zwei Uhrzeiten. */
+type Spannenfelder = { tag: string; von: string; bis: string };
+
+/** Aus einer bestehenden Buchung in die Felder. */
+function ausBuchung(buchung: Buchung): Spannenfelder {
+  return {
+    tag: tagAusZeitpunkt(buchung.start),
+    von: uhrzeitAusZeitpunkt(buchung.start),
+    bis: buchung.ende ? uhrzeitAusZeitpunkt(buchung.ende) : "",
+  };
+}
+
+/**
+ * Die Dauern, die ein Klick einträgt. Sie ersetzen das Kopfrechnen beim Ende:
+ * Wer um 9:02 angefangen hat und zwei Stunden gearbeitet hat, soll nicht
+ * 11:02 ausrechnen müssen.
+ */
+const DAUERN = [15, 30, 60, 120, 480];
+
+function dauername(minuten: number) {
+  return minuten < 60 ? `${minuten} min` : `${minuten / 60} h`;
+}
+
+/**
+ * Tag, Von, Bis — und daneben die Dauer, die dabei herauskommt.
+ *
+ * **Warum nicht mehr zwei `datetime-local`:** Dort steht der Tag zweimal, und
+ * beide müssen stimmen; wer das Datum nur im ersten Feld ändert, bucht eine
+ * Spanne über Wochen, ohne dass es auffällt. Der Tag gehört einmal hin, die
+ * Uhrzeiten sind vier Zeichen — und die Dauer, um die es eigentlich geht,
+ * stand vorher nirgends.
+ *
+ * Ein Ende vor dem Beginn meint den Folgetag (`spanne`); der Satz darunter
+ * schreibt diesen Tag ausdrücklich hin.
+ */
+function Zeitfelder({
+  felder,
+  setzen,
+  offenesEnde = false,
+}: {
+  felder: Spannenfelder;
+  setzen: (felder: Spannenfelder) => void;
+  /** Bei der laufenden Buchung darf „Bis" leer bleiben. */
+  offenesEnde?: boolean;
+}) {
+  const gespannt = spanne(felder.tag, felder.von, felder.bis);
+
+  return (
+    <div className="zeitfelder">
+      <label className="feldblock feldblock-tag">
+        <span className="beschriftung-klein">Tag</span>
+        <input
+          className="feld"
+          type="date"
+          value={felder.tag}
+          onChange={(e) => setzen({ ...felder, tag: e.target.value })}
+        />
+      </label>
+      <label className="feldblock feldblock-uhrzeit">
+        <span className="beschriftung-klein">Von</span>
+        <input
+          className="feld zahl"
+          type="time"
+          value={felder.von}
+          onChange={(e) => setzen({ ...felder, von: e.target.value })}
+        />
+      </label>
+      <label className="feldblock feldblock-uhrzeit">
+        <span className="beschriftung-klein">Bis</span>
+        <input
+          className="feld zahl"
+          type="time"
+          value={felder.bis}
+          onChange={(e) => setzen({ ...felder, bis: e.target.value })}
+        />
+      </label>
+      <div className="feldblock feldblock-dauern">
+        <span className="beschriftung-klein">Oder Dauer</span>
+        <div className="dauern">
+          {DAUERN.map((minuten) => (
+            <button
+              key={minuten}
+              type="button"
+              className="mini"
+              // Ohne Beginn gibt es nichts, worauf sich die Dauer legen ließe.
+              disabled={!felder.von}
+              onClick={() => setzen({ ...felder, bis: plusMinuten(felder.von, minuten) })}
+            >
+              {dauername(minuten)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="spannen-satz">
+        {gespannt ? (
+          <>
+            <b className="zahl">
+              {alsDauer((gespannt.ende.getTime() - gespannt.start.getTime()) / 1000)} h
+            </b>
+            {" am "}
+            {TAG_LANG.format(gespannt.start)}
+            {gespannt.ueberNacht && ` — das Ende liegt am ${TAG_LANG.format(gespannt.ende)}`}
+          </>
+        ) : offenesEnde && felder.tag && felder.von ? (
+          "Ohne „Bis“ läuft die Buchung weiter."
+        ) : (
+          "Trag ein, von wann bis wann."
+        )}
+      </p>
+    </div>
+  );
 }
 
 export function Zeit({ ich }: { ich: Ich }) {
@@ -66,6 +190,15 @@ export function Zeit({ ich }: { ich: Ich }) {
   const entwuerfe = buchungen.data.filter((b) => b.ist_entwurf);
   const echte = buchungen.data.filter((b) => !b.ist_entwurf);
   const gesamt = echte.reduce((s, b) => s + b.sekunden, 0);
+
+  // Wo **ich** zuletzt gebucht habe. Das Nachtragen wählt das oberste davon
+  // vor und stellt die Liste im Suchfeld voran; fremde Buchungen sagen darüber
+  // nichts, auch wenn sie gerade mit in der Tabelle stehen.
+  const zuletztGebucht = letztePakete(
+    echte.filter((b) => b.person === ich.id),
+    projekte.data ?? [],
+    6,
+  ).map((p) => p.id);
 
   const nachweisPfad = (nurIch: boolean) =>
     `/api/zeitnachweis/?monat=${monat}${nurIch ? `&person=${ich.id}` : ""}`;
@@ -165,6 +298,9 @@ export function Zeit({ ich }: { ich: Ich }) {
         {nachtragen && projekte.data && (
           <Nachtragen
             projekte={projekte.data}
+            team={team.data ?? []}
+            ich={ich}
+            zuletzt={zuletztGebucht}
             fertig={() => {
               setNachtragen(false);
               neuLaden();
@@ -274,8 +410,7 @@ function BuchungAendern({
   schliessen: () => void;
   fertig: () => void;
 }) {
-  const [start, setStart] = useState(() => fuerFeld(buchung.start));
-  const [ende, setEnde] = useState(() => (buchung.ende ? fuerFeld(buchung.ende) : ""));
+  const [felder, setFelder] = useState<Spannenfelder>(() => ausBuchung(buchung));
   const [paket, setPaket] = useState(buchung.paket);
   const [notiz, setNotiz] = useState(buchung.notiz);
   const [fehler, setFehler] = useState("");
@@ -284,22 +419,25 @@ function BuchungAendern({
   // fertig oder verworfen ist — sonst schöbe das Speichern die Zeit still auf
   // das erstbeste andere.
   const gruppen = paketgruppen(projekte, [buchung.paket]);
-  // Dasselbe wie im Notizdialog: Das Projekt steht im Feld nur als
-  // Gruppenkopf und ist zugeklappt nicht zu sehen.
+  // Für die Kopfzeile: Sie nennt das **gewählte** Paket, nicht das gebuchte —
+  // sonst widerspräche sie dem Feld, sobald jemand umbucht.
   const gewaehlt = gruppen.flatMap((g) => g.pakete).find((p) => p.id === paket);
 
   async function speichern() {
     setFehler("");
-    if (ende && new Date(ende) <= new Date(start)) {
-      return setFehler("Das Ende muss nach dem Beginn liegen.");
-    }
+    if (!felder.tag || !felder.von) return setFehler("Tag und Beginn werden gebraucht.");
+    const gespannt = spanne(felder.tag, felder.von, felder.bis);
+    // Ohne „Bis" bleibt die Buchung offen — sie läuft dann weiter. Das gilt
+    // nur für die laufende; bei jeder anderen wäre es ein zweiter Weg, die Uhr
+    // zu starten.
+    if (!gespannt && !buchung.laeuft) return setFehler("Trag ein, bis wann gearbeitet wurde.");
     try {
       await hole(`/zeiten/${buchung.id}/`, {
         method: "PATCH",
         body: JSON.stringify({
           paket,
-          start: new Date(start).toISOString(),
-          ende: ende ? new Date(ende).toISOString() : null,
+          start: (gespannt?.start ?? alsZeitpunkt(felder.tag, felder.von)).toISOString(),
+          ende: gespannt ? gespannt.ende.toISOString() : null,
           notiz,
         }),
       });
@@ -320,31 +458,14 @@ function BuchungAendern({
           Jede Änderung steht mit Zeitpunkt und Person im Änderungsprotokoll.
         </p>
         {gruppen.length > 0 && (
-          <select
-            className="feld"
-            style={{ marginBottom: 8 }}
-            value={paket}
-            onChange={(e) => setPaket(Number(e.target.value))}
-            aria-label="Arbeitspaket"
-          >
-            {gruppen.map((gruppe) => (
-              <optgroup key={gruppe.projekt} label={gruppe.projekt}>
-                {gruppe.pakete.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.titel}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+          <div className="feldblock">
+            <span className="beschriftung-klein">Arbeitspaket</span>
+            <Paketwahl gruppen={gruppen} wert={paket} setzen={setPaket} />
+          </div>
         )}
-        <div className="feld-reihe">
-          <input className="feld" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Beginn" />
-          <input className="feld" type="datetime-local" value={ende} onChange={(e) => setEnde(e.target.value)} aria-label="Ende" />
-        </div>
+        <Zeitfelder felder={felder} setzen={setFelder} offenesEnde={buchung.laeuft} />
         <input
           className="feld"
-          style={{ marginTop: 8 }}
           value={notiz}
           placeholder="Notiz"
           onChange={(e) => setNotiz(e.target.value)}
@@ -363,74 +484,194 @@ function BuchungAendern({
   );
 }
 
+/**
+ * Ein abgeschnittener Clock-out, der bestätigt werden will.
+ *
+ * Gefragt ist **nur die Uhrzeit**: Der Tag steht fest, es ist der des Beginns.
+ * Ein volles Datumsfeld daneben wäre ein zweiter Wert, der falsch sein kann,
+ * ohne dass er je richtig sein müsste. Wer bis nach Mitternacht gearbeitet
+ * hat, trägt die Uhrzeit nach Mitternacht ein — `spanne` legt sie dann auf den
+ * Folgetag.
+ */
 function EntwurfZeile({ buchung, neuLaden }: { buchung: Buchung; neuLaden: () => void }) {
-  const [ende, setEnde] = useState(() => (buchung.ende ? fuerFeld(buchung.ende) : ""));
+  const tag = tagAusZeitpunkt(buchung.start);
+  const von = uhrzeitAusZeitpunkt(buchung.start);
+  const [bis, setBis] = useState(() => (buchung.ende ? uhrzeitAusZeitpunkt(buchung.ende) : ""));
   const [fehler, setFehler] = useState("");
+
+  const gespannt = spanne(tag, von, bis);
 
   async function bestaetigen() {
     // Ohne Prüfung warf `new Date("").toISOString()` einen RangeError: in der
     // Konsole ein Fehler, auf der Seite nichts. Genau der Fall, den niemand
     // meldet, weil es so aussieht, als hätte man danebengeklickt.
-    if (!ende) return setFehler("Trag ein, bis wann du gearbeitet hast.");
-    if (new Date(ende) <= new Date(buchung.start))
-      return setFehler("Das Ende muss nach dem Beginn liegen.");
+    if (!gespannt) return setFehler("Trag ein, bis wann du gearbeitet hast.");
     setFehler("");
     await hole(`/zeiten/${buchung.id}/entwurf_bestaetigen/`, {
       method: "POST",
-      body: JSON.stringify({ ende: new Date(ende).toISOString() }),
+      body: JSON.stringify({ ende: gespannt.ende.toISOString() }),
     });
     neuLaden();
   }
 
   return (
-    <div className="feld-reihe" style={{ marginBottom: 10 }}>
-      <div style={{ flex: "2 1 240px", fontSize: 14 }}>
+    <div className="feld-reihe entwurfzeile">
+      <div className="entwurf-wer">
         <b>{buchung.paket_titel}</b>
-        <div style={{ color: "var(--text-leise)" }}>
-          {TAG.format(new Date(buchung.start))}, ab {UHRZEIT.format(new Date(buchung.start))} — bis
-          wann hast du gearbeitet?
+        <div>
+          {TAG.format(new Date(buchung.start))}, ab <span className="zahl">{von}</span> — bis wann
+          hast du gearbeitet?
         </div>
       </div>
-      <input className="feld" type="datetime-local" value={ende} onChange={(e) => setEnde(e.target.value)} aria-label="Ende" />
+      <label className="feldblock feldblock-uhrzeit">
+        <span className="beschriftung-klein">Bis</span>
+        <input
+          className="feld zahl"
+          type="time"
+          value={bis}
+          onChange={(e) => setBis(e.target.value)}
+        />
+      </label>
       <button type="button" className="knopf" onClick={bestaetigen}>
-        Bestätigen
+        <Zeichen name="haken" />
+        {gespannt
+          ? `${alsDauer((gespannt.ende.getTime() - gespannt.start.getTime()) / 1000)} h bestätigen`
+          : "Bestätigen"}
       </button>
       <Fehlerzeile text={fehler} />
     </div>
   );
 }
 
-function Nachtragen({ projekte, fertig }: { projekte: Projekt[]; fertig: () => void }) {
-  const pakete = projekte.flatMap((p) =>
-    p.bereiche.flatMap((b) => b.pakete.map((k) => ({ ...k, wo: `${p.titel} · ${k.titel}` }))),
+/**
+ * Wer die Zeit bekommt. Die eigene Person steht vorgewählt da — man bucht fast
+ * immer für sich.
+ *
+ * **Mehrere sind ausdrücklich erlaubt:** An einem Meeting sitzen zwei oder
+ * drei, und dieselbe Stunde dreimal einzeln nachzutragen ist dreimal dieselbe
+ * Tipparbeit — mit drei Gelegenheiten, sich zu vertippen.
+ */
+function Personenwahl({
+  team,
+  ich,
+  gewaehlt,
+  setzen,
+}: {
+  team: Teammitglied[];
+  ich: Ich;
+  gewaehlt: number[];
+  setzen: (ids: number[]) => void;
+}) {
+  return (
+    <div className="feldblock nachtrag-wer">
+      <span className="beschriftung-klein">Für wen</span>
+      <div className="teamwahl">
+        {team.map((m) => (
+          <label key={m.id} className="schalter">
+            <input
+              type="checkbox"
+              checked={gewaehlt.includes(m.id)}
+              onChange={(e) =>
+                setzen(
+                  e.target.checked ? [...gewaehlt, m.id] : gewaehlt.filter((id) => id !== m.id),
+                )
+              }
+            />
+            {m.name}
+            {m.id === ich.id && <span className="team-du">du</span>}
+          </label>
+        ))}
+      </div>
+    </div>
   );
-  const [paket, setPaket] = useState(pakete[0]?.id ?? 0);
-  const [start, setStart] = useState("");
-  const [ende, setEnde] = useState("");
+}
+
+/** „für dich und Florian" — damit vor dem Klick dasteht, was gleich entsteht. */
+function fuerWen(gewaehlt: number[], team: Teammitglied[], ich: Ich) {
+  const namen = gewaehlt.map((id) =>
+    id === ich.id ? "dich" : (team.find((m) => m.id === id)?.name ?? "jemanden"),
+  );
+  if (namen.length === 0) return "für niemanden";
+  if (namen.length === 1) return `für ${namen[0]}`;
+  return `für ${namen.slice(0, -1).join(", ")} und ${namen[namen.length - 1]}`;
+}
+
+/**
+ * Zeit nachtragen — der Weg ohne Uhr.
+ *
+ * Die Person ging bis zur Fassung vom 15.09.2026 **nicht** mit: Der Server
+ * verlangte sie als Pflichtfeld, und jedes Nachtragen endete mit „Dieses Feld
+ * ist zwingend erforderlich" über einem Feld, das es im Formular gar nicht gab
+ * (siehe `ZeitbuchungSerializer`).
+ */
+function Nachtragen({
+  projekte,
+  team,
+  ich,
+  zuletzt,
+  fertig,
+}: {
+  projekte: Projekt[];
+  team: Teammitglied[];
+  ich: Ich;
+  /** Paketnummern der letzten eigenen Buchungen, neueste zuerst. */
+  zuletzt: number[];
+  fertig: () => void;
+}) {
+  const gruppen = paketgruppen(projekte);
+  const alle = gruppen.flatMap((g) => g.pakete);
+  // Vorgewählt ist das zuletzt bebuchte Paket: Man bucht fast immer wieder
+  // dorthin, wo man gestern gebucht hat.
+  const [paket, setPaket] = useState(() => zuletzt[0] ?? alle[0]?.id ?? 0);
+  const [felder, setFelder] = useState<Spannenfelder>(() => ({
+    tag: heuteAlsDatum(),
+    von: "",
+    bis: "",
+  }));
+  const [personen, setPersonen] = useState<number[]>([ich.id]);
   const [notiz, setNotiz] = useState("");
   const [fehler, setFehler] = useState("");
+  const [schickt, setSchickt] = useState(false);
+
+  // Stillgelegte Konten stehen nicht zur Wahl: Auf sie zu buchen hieße, Zeit
+  // an einer Person zu führen, die nicht mehr da ist.
+  const aktive = team.filter((m) => m.is_active);
+  const gespannt = spanne(felder.tag, felder.von, felder.bis);
 
   async function speichern() {
     setFehler("");
-    if (!paket || !start || !ende) return setFehler("Paket, Beginn und Ende werden gebraucht.");
-    if (new Date(ende) <= new Date(start)) return setFehler("Das Ende muss nach dem Beginn liegen.");
+    if (!paket) return setFehler("Wähl ein Arbeitspaket.");
+    if (!gespannt) return setFehler("Tag, Von und Bis werden gebraucht.");
+    if (personen.length === 0) return setFehler("Für wen soll die Zeit gebucht werden?");
+
+    setSchickt(true);
     try {
-      await hole("/zeiten/", {
-        method: "POST",
-        body: JSON.stringify({
-          paket,
-          start: new Date(start).toISOString(),
-          ende: new Date(ende).toISOString(),
-          notiz,
-        }),
-      });
+      // Eine Anfrage je Person, nacheinander — kein Sammelaufruf am Server.
+      // Paket und Spanne sind für alle dieselben; was schiefgehen kann (Paket
+      // weg, Spanne verdreht, Recht fehlt), trifft deshalb entweder alle oder
+      // keinen. Ein zweiter Weg, auf dem Buchungen entstehen, wäre ein zweiter
+      // Weg, den man beim nächsten Feld vergisst.
+      for (const person of personen) {
+        await hole("/zeiten/", {
+          method: "POST",
+          body: JSON.stringify({
+            person,
+            paket,
+            start: gespannt.start.toISOString(),
+            ende: gespannt.ende.toISOString(),
+            notiz,
+          }),
+        });
+      }
       fertig();
     } catch (e) {
       setFehler(e instanceof Error ? e.message : "Das hat nicht geklappt.");
+    } finally {
+      setSchickt(false);
     }
   }
 
-  if (pakete.length === 0) {
+  if (alle.length === 0) {
     return (
       <Leerstelle
         was="Kein Arbeitspaket vorhanden"
@@ -441,23 +682,33 @@ function Nachtragen({ projekte, fertig }: { projekte: Projekt[]; fertig: () => v
 
   return (
     <div className="nachtrag">
-      <div className="feld-reihe">
-        <select className="feld" value={paket} onChange={(e) => setPaket(Number(e.target.value))} aria-label="Arbeitspaket">
-          {pakete.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.wo}
-            </option>
-          ))}
-        </select>
-        <input className="feld" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Beginn" />
-        <input className="feld" type="datetime-local" value={ende} onChange={(e) => setEnde(e.target.value)} aria-label="Ende" />
+      <div className="feldblock nachtrag-paket">
+        <span className="beschriftung-klein">Arbeitspaket</span>
+        <Paketwahl gruppen={gruppen} wert={paket} setzen={setPaket} zuletzt={zuletzt} />
       </div>
-      <div className="feld-reihe" style={{ marginTop: 8 }}>
-        <input className="feld" placeholder="Was hast du gemacht?" value={notiz} onChange={(e) => setNotiz(e.target.value)} />
-        <button type="button" className="knopf" onClick={speichern}>
-          Nachtragen
+
+      <Zeitfelder felder={felder} setzen={setFelder} />
+
+      {aktive.length > 1 && (
+        <Personenwahl team={aktive} ich={ich} gewaehlt={personen} setzen={setPersonen} />
+      )}
+
+      <div className="feld-reihe nachtrag-abschluss">
+        <input
+          className="feld"
+          placeholder="Was hast du gemacht?"
+          value={notiz}
+          onChange={(e) => setNotiz(e.target.value)}
+          aria-label="Notiz"
+        />
+        <button type="button" className="knopf" onClick={speichern} disabled={schickt}>
+          <Zeichen name="plus" />
+          {personen.length > 1 ? `${personen.length}× nachtragen` : "Nachtragen"}
         </button>
       </div>
+      {aktive.length > 1 && (
+        <p className="nachtrag-satz">Wird gebucht {fuerWen(personen, aktive, ich)}.</p>
+      )}
       <Fehlerzeile text={fehler} />
     </div>
   );

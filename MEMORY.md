@@ -7,6 +7,78 @@ betrifft.
 
 ---
 
+## 2026-09-15 — Zeit nachtragen: der 400er, die Felder, mehrere Personen
+
+### Der Fehler: `person` war ein Pflichtfeld
+
+Jedes Nachtragen endete mit **400 „Dieses Feld ist zwingend erforderlich"** — über
+einem Feld, das das Formular gar nicht kennt. `ZeitbuchungSerializer` ist ein
+`ModelSerializer`; `Zeitbuchung.person` ist ein FK ohne `null`, also war das Feld
+verpflichtend. `perform_create` hätte die Person aus der Sitzung gesetzt
+(`validated_data.get("person") or request.user`) — nur kam es nie so weit, weil die
+Prüfung davor abbrach.
+
+Jetzt steht `person` ausdrücklich als `PrimaryKeyRelatedField(required=False)` im
+Serializer. **Kein `read_only`**: Wer fremde Zeiten ändern darf, soll auch für
+andere nachtragen können, und die Prüfung dafür steht schon in `_pruefe_fremde`.
+
+Gefehlt hat der Test: Getestet waren `clock_in`, `clock_out`, `entwurf_bestaetigen`
+und PATCH — der gewöhnliche POST auf `/api/zeiten/` nicht. `TestNachtragen` in
+`test_api.py` deckt ihn jetzt ab, in beiden Richtungen (mit und ohne Person).
+
+### Mehrere Personen, eine Spanne — im Frontend, nicht am Server
+
+An einem Meeting sitzen zwei oder drei. Das Formular schickt deshalb **eine Anfrage
+je angehakter Person**, nacheinander.
+
+Kein Sammelaufruf am Server: Paket und Spanne sind für alle dieselben, was
+schiefgehen kann (Paket weg, Spanne verdreht, Recht fehlt) trifft also entweder
+alle oder keinen. Ein zweiter Weg, auf dem Buchungen entstehen, wäre ein zweiter
+Weg, den man beim nächsten Feld vergisst.
+
+**Überschneidungen sind erlaubt und bleiben es.** Die einzige Bedingung in der
+Datenbank ist „höchstens eine **laufende** Buchung je Person"; zwei abgeschlossene
+Buchungen zur selben Zeit sind fachlich in Ordnung (zwei Projekte in einem Termin)
+und werden nicht abgewiesen.
+
+### Tag + zwei Uhrzeiten statt zweimal `datetime-local`
+
+Zwei `datetime-local` heißt: der Tag steht zweimal da und beide müssen stimmen. Wer
+nur im ersten Feld das Datum ändert, bucht eine Spanne über Wochen — und sieht es
+nicht. Jetzt: ein `date`, zwei `time`, die Dauer als Satz darunter, dazu Knöpfe für
+15 min bis 8 h, die das Ende vom Beginn aus setzen.
+
+**Ein Ende, das nicht nach dem Beginn liegt, gilt als Folgetag** (`spanne()` in
+`basis/zeit.ts`, getestet). Ohne diese Regel ließe sich 22:00–01:00 gar nicht
+eintragen. Damit es nicht still geschieht, nennt der Satz unter den Feldern den Tag
+des Endes.
+
+Dieselben Felder nimmt „Buchung ändern"; die laufende Buchung darf „bis" leer
+lassen. Die Entwurfszeile fragt nur noch die **Uhrzeit** — der Tag ist der des
+Beginns und kann nichts anderes sein.
+
+### `bausteine/Paketwahl.tsx` — ein Feld mit Suche statt `<select>`
+
+Zugeklappt zeigte das Auswahlmenü eine Zeile, und die hieß oft „Allgemein"; zu
+welchem Projekt das gehört, stand im Gruppenkopf, den man zugeklappt nicht sieht.
+Aufgeklappt war es der ganze Projektbaum ohne Suche, am Handy ein Rad des
+Betriebssystems.
+
+Die Wahl steht jetzt an **einer** Stelle und wird an drei Plätzen benutzt
+(nachtragen, ändern, Clock-out). Gesucht wird wortweise über Projekt **und** Paket
+(`paketeSuchen` in `basis/start.ts`, getestet); die zuletzt bebuchten Pakete stehen
+oben und liefern auch die Vorauswahl beim Nachtragen.
+
+### Kleinigkeiten
+
+- `.paketwahl` hat **kein** `flex-basis`: In der Spalte `.feldblock` wäre das eine
+  Höhe, und die Wahl stünde mit 240 px Luft unter ihrer Beschriftung. Genau so ist
+  es beim ersten Versuch auch ausgesehen.
+- Die Liste liegt auf `z-index: 86`, ihr Klickfänger auf 85 — über dem Dialog (80),
+  sonst ginge sie in „Buchung ändern" nicht mehr zu.
+
+---
+
 ## 2026-09-15 — Die Ideenliste (`Aufgabe.ist_idee`, Migration 0016)
 
 ### Kein eigenes Modell `Idee`

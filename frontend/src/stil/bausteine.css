@@ -1219,6 +1219,78 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 
 .nachweis-hinweis { margin: 10px 0 0; font-size: 12px; color: var(--text-leise); line-height: 1.5; }
 .nachtrag { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rand); }
+.nachtrag-abschluss { margin-top: 10px; }
+.nachtrag-satz { margin: 8px 0 0; font-size: 13px; color: var(--text-leise); }
+.nachtrag-wer { margin-top: 10px; }
+/* Nicht über die ganze Kartenbreite: Ein Feld, das dreimal so breit ist wie
+   sein längster Eintrag, sieht aus, als fehlte etwas daneben. */
+.nachtrag-paket { max-width: 440px; }
+
+/* Ein Feld mit seiner Beschriftung darüber. `.feld` bringt `width: 100%` mit —
+   die Breite muss deshalb der Block bestimmen, nicht das Feld (wie bei
+   .datumsfeld). */
+.feldblock { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.feldblock-tag { flex: 0 0 auto; width: 168px; }
+.feldblock-uhrzeit { flex: 0 0 auto; width: 118px; }
+.feldblock-dauern { flex: 0 1 auto; }
+
+.zeitfelder { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-start; margin-top: 10px; }
+.dauern { display: flex; flex-wrap: wrap; gap: 4px; min-height: var(--griff); align-items: center; }
+/* Volle Breite heißt bei flex-wrap: eigene Zeile unter den Feldern. */
+.spannen-satz { flex: 1 0 100%; margin: 2px 0 0; font-size: 13px; color: var(--text-leise); }
+.spannen-satz b { color: var(--text); font-weight: 600; }
+
+.entwurfzeile { align-items: flex-end; }
+.entwurf-wer { flex: 2 1 240px; font-size: 14px; }
+.entwurf-wer > div { color: var(--text-leise); }
+
+/* --- Das Arbeitspaket wählen --------------------------------------------- */
+/*
+ * Sieht aus wie ein Feld, ist aber ein Knopf, der eine Liste mit Suchfeld
+ * aufmacht — die Begründung steht in bausteine/Paketwahl.tsx.
+ */
+/* Kein `flex-basis` hier: In einer Spalte (`.feldblock`) wäre das eine Höhe,
+   und die Wahl stünde mit 240 px Luft unter ihrer Beschriftung. Die Breite
+   bestimmt der umgebende Block. */
+.paketwahl { position: relative; min-width: 0; }
+.wahlfeld {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  min-height: var(--griff); padding: 6px 10px 6px 12px; text-align: left;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text); cursor: pointer;
+}
+.wahlfeld:hover { border-color: var(--marke-rand); }
+.wahlfeld > .zeichen { flex: 0 0 auto; color: var(--text-sehr-leise); }
+.wahlfeld-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.wahlfeld-text b { font-size: 14px; font-weight: 600; }
+.wahlfeld-text em,
+.wahl-eintrag em { font-style: normal; font-size: 12px; color: var(--text-leise); }
+.wahlfeld-text b, .wahlfeld-text em,
+.wahl-eintrag b, .wahl-eintrag em {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wahlfeld-leer { color: var(--text-leise); font-weight: 400; }
+
+/* Fängt den Klick daneben ab. Über dem Dialog (z-index 80), damit die Liste
+   auch im Dialog „Buchung ändern" zugeht. */
+.wahl-grund { position: fixed; inset: 0; z-index: 85; }
+.wahlliste {
+  position: absolute; z-index: 86; top: calc(100% + 4px); left: 0; right: 0;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche); padding: 6px;
+}
+.wahl-treffer { max-height: 240px; overflow-y: auto; margin-top: 6px; }
+.wahl-eintrag {
+  display: flex; flex-direction: column; width: 100%; min-height: var(--griff);
+  justify-content: center; padding: 5px 9px; text-align: left;
+  border: 0; border-radius: var(--kante); background: none; color: var(--text);
+  cursor: pointer;
+}
+.wahl-eintrag b { font-size: 14px; font-weight: 500; }
+.wahl-eintrag:hover { background: var(--flaeche-leise); }
+.wahl-eintrag[aria-selected="true"] { background: var(--marke-hell); }
+.wahl-eintrag[aria-selected="true"] b { color: var(--marke); font-weight: 600; }
+.wahl-nichts { margin: 8px 9px; font-size: 13px; color: var(--text-leise); }
 
 .schalter {
   display: flex; align-items: center; gap: 8px; font-size: 14px;
@@ -1695,6 +1767,16 @@ a.mini { text-decoration: none; }
      jeder Seite hinter der Uhr und der Fußleiste — erreichbar war es nicht
      mehr, und im Stylesheet sah beides richtig aus. */
   .seite { padding: 14px 14px calc(140px + env(safe-area-inset-bottom)); }
+
+  /* Die Notiz bekommt ihre eigene Zeile: Neben dem Knopf blieben von ihr
+     150 px, und ein Satz, von dem man vier Wörter sieht, wird keiner. */
+  .nachtrag-abschluss > .feld { flex: 1 1 100%; }
+
+  /* Der Tag über die ganze Breite, darunter Von und Bis nebeneinander. Mit
+     den festen Breiten von oben fiele „Bis" allein in eine dritte Zeile. */
+  .feldblock-tag { flex: 1 1 100%; width: auto; }
+  .feldblock-uhrzeit { flex: 1 1 0; width: auto; }
+  .feldblock-dauern { flex: 1 1 100%; }
 
   /* Jeder Text, den man antippen kann, ist ein Fingerziel — auch einer, der
      wie Fließtext aussieht. Am Rechner bleibt er kompakt, dort trifft die

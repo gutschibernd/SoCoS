@@ -273,6 +273,63 @@ class TestZeitOhnePaket:
 
 
 @pytest.mark.django_db
+class TestNachtragen:
+    """
+    Zeit nachtragen — der Weg ohne Uhr.
+
+    Die Person kommt nicht mit: Man bucht fast immer für sich. Dass sie als
+    Pflichtfeld im Serializer stand, hat **jedes** Nachtragen mit 400
+    abgewiesen, und die Meldung („Dieses Feld ist zwingend erforderlich")
+    nannte das Feld nicht, weil das Formular es gar nicht kennt.
+    """
+
+    def test_ohne_person_bucht_man_fuer_sich_selbst(self, client, bearbeiter, paket):
+        client.force_login(bearbeiter)
+        start = timezone.now() - timedelta(hours=3)
+        antwort = client.post(
+            "/api/zeiten/",
+            {
+                "paket": paket.pk,
+                "start": start.isoformat(),
+                "ende": (start + timedelta(hours=2)).isoformat(),
+                "notiz": "Meeting SPG",
+            },
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201, antwort.json()
+        assert antwort.json()["person"] == bearbeiter.pk
+
+    def test_fuer_jemand_anderen_darf_wer_fremde_zeiten_aendern_darf(
+        self, client, bearbeiter, admin_nutzer, paket
+    ):
+        """Zwei Personen im selben Meeting: dieselbe Spanne, zwei Buchungen."""
+        client.force_login(bearbeiter)
+        start = timezone.now() - timedelta(hours=3)
+        antwort = client.post(
+            "/api/zeiten/",
+            {
+                "person": admin_nutzer.pk,
+                "paket": paket.pk,
+                "start": start.isoformat(),
+                "ende": (start + timedelta(hours=2)).isoformat(),
+            },
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201, antwort.json()
+        assert antwort.json()["person"] == admin_nutzer.pk
+
+    def test_leser_darf_auch_fuer_sich_nichts_nachtragen(self, client, leser, paket):
+        client.force_login(leser)
+        start = timezone.now() - timedelta(hours=3)
+        antwort = client.post(
+            "/api/zeiten/",
+            {"paket": paket.pk, "start": start.isoformat(), "ende": timezone.now().isoformat()},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 403
+
+
+@pytest.mark.django_db
 class TestEntwuerfe:
     def test_ein_vergessener_clockout_taucht_als_entwurf_auf(self, client, bearbeiter, paket):
         gestern = timezone.now() - timedelta(days=1)

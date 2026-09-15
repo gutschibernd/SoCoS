@@ -255,7 +255,7 @@ function ZeitDoku() {
         <Schritte
           schritte={[
             "„Ohne Paket starten“ drücken. Die Zeit läuft auf das Projekt „Overhead“ — ein ganz normales Projekt im Baum, kein Sonderfall.",
-            "Beim Clock-out steht das Arbeitspaket als Auswahlfeld im selben Fenster wie die Notiz. Wer dort etwas anderes wählt, bucht die Zeit dorthin um.",
+            "Beim Clock-out steht das Arbeitspaket im selben Fenster wie die Notiz. Wer dort ein anderes wählt, bucht die Zeit dorthin um.",
             "Wer nichts ändert, lässt sie auf Overhead stehen. Das ist kein Versehen, sondern die richtige Antwort für alles, was zu keinem Paket gehört.",
           ]}
         />
@@ -281,9 +281,36 @@ function ZeitDoku() {
       </Abschnitt>
 
       <Abschnitt
+        zeichen="plus"
+        titel="Zeit nachtragen"
+        vorspann="Was ohne Uhr gearbeitet wurde, wird eingetragen: ein Paket, ein Tag, zwei Uhrzeiten."
+      >
+        <Schritte
+          schritte={[
+            "„Zeit nachtragen“ auf der Zeitseite. Vorgewählt ist das Paket, auf das du zuletzt gebucht hast.",
+            "Ins Paketfeld tippen filtert die Liste — Projekt und Paket, die Wörter in beliebiger Reihenfolge. Return nimmt den ersten Treffer.",
+            "Tag eintragen, „von“ eintragen, dann entweder „bis“ tippen oder einen der Dauerknöpfe drücken. Darunter steht, wie lang die Buchung wird.",
+            "Unter „Für wen“ anhaken, wer dabei war. Jede angehakte Person bekommt ihre eigene Buchung über dieselbe Zeit.",
+          ]}
+        />
+        <Begriffe
+          paare={[
+            {
+              begriff: "Über Mitternacht",
+              text: "Liegt „bis“ vor „von“, ist der Folgetag gemeint — 22:00 bis 01:00 sind drei Stunden. Welcher Tag das Ende trägt, steht im Satz unter den Feldern.",
+            },
+            {
+              begriff: "Für andere buchen",
+              text: "Admin und Bearbeiter dürfen das. Es steht mit Zeitpunkt und Person im Änderungsprotokoll — die Person sieht die Buchung in ihrer eigenen Liste.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
         zeichen="pdf"
-        titel="Nachtragen, filtern, nachweisen"
-        vorspann="Was nicht gebucht wurde, wird eingetragen — mit Datum, Zeit und Paket."
+        titel="Filtern und nachweisen"
+        vorspann="Welche Zeiten angezeigt werden — und was davon ins PDF geht."
       >
         <Begriffe
           paare={[

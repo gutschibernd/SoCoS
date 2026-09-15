@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import type { Paketgruppe } from "../basis/start";
+import { Paketwahl } from "./Paketwahl";
 
 /**
  * Die Nachfrage beim Clock-out: „Was hast du gemacht?"
@@ -32,10 +33,8 @@ export function Notizdialog({
   const [ziel, setZiel] = useState(paket);
   const [fragtNach, setFragtNach] = useState(false);
 
-  // Das Projekt steht im Auswahlfeld nur als Gruppenkopf und ist zugeklappt
-  // nicht zu sehen — „Laufendes · Allgemein" sagt nicht, dass das Overhead
-  // ist. Deshalb darüber, und zwar zum **gewählten** Paket: Sonst widerspräche
-  // die Zeile dem Feld, sobald jemand umbucht.
+  // Die Zeile über dem Feld nennt das **gewählte** Paket, nicht das gebuchte:
+  // Sonst widerspräche sie dem Feld, sobald jemand umbucht.
   const gewaehlt = gruppen.flatMap((g) => g.pakete).find((p) => p.id === ziel);
 
   if (fragtNach) {
@@ -68,24 +67,7 @@ export function Notizdialog({
             ein leeres Auswahlfeld nähme sonst das Paket weg, auf dem die
             Buchung tatsächlich läuft. */}
         <p>{gewaehlt ? `${gewaehlt.projekt} · ${gewaehlt.titel}` : wo} · {dauer}</p>
-        {gruppen.length > 0 && (
-          <select
-            className="feld"
-            value={ziel}
-            onChange={(e) => setZiel(Number(e.target.value))}
-            aria-label="Arbeitspaket"
-          >
-            {gruppen.map((gruppe) => (
-              <optgroup key={gruppe.projekt} label={gruppe.projekt}>
-                {gruppe.pakete.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.titel}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        )}
+        {gruppen.length > 0 && <Paketwahl gruppen={gruppen} wert={ziel} setzen={setZiel} />}
         <textarea
           className="feld"
           style={{ marginTop: gruppen.length > 0 ? 8 : 0 }}

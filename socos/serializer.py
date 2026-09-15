@@ -198,6 +198,11 @@ class ProjektSerializer(serializers.ModelSerializer):
 
 
 class ZeitbuchungSerializer(serializers.ModelSerializer):
+    # Ohne Angabe bucht man **für sich selbst** — die Person setzt
+    # `perform_create` aus der Sitzung. Als Pflichtfeld (so kommt es aus dem
+    # Modell) hat sie jedes Nachtragen mit 400 abgewiesen, und die Meldung
+    # nannte ein Feld, das im Formular gar nicht vorkommt.
+    person = serializers.PrimaryKeyRelatedField(queryset=Nutzer.objects.all(), required=False)
     sekunden = serializers.SerializerMethodField()
     laeuft = serializers.BooleanField(read_only=True)
     paket_titel = serializers.CharField(source="paket.titel", read_only=True)

@@ -21,7 +21,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-15",
-        "titel": "Meetings, eine Ideenliste und eine kürzere Startseite",
+        "titel": "Meetings, Ideen — und das Nachtragen von Zeit",
         "punkte": [
             {
                 "titel": "Neu: Extern · Meetings",
@@ -96,6 +96,50 @@ VERSIONEN = [
                     "Handy steht „Start“ weiter in der Fußleiste."
                 ),
                 "wo": "start",
+            },
+            {
+                "titel": "Zeit nachtragen geht wieder",
+                "text": (
+                    "Der Knopf „Nachtragen“ hat mit „Fehler 400 — dieses Feld "
+                    "ist zwingend erforderlich“ geantwortet, und zwar jedes "
+                    "Mal: Der Server wollte eine Person genannt bekommen, das "
+                    "Formular schickte keine mit. Ohne Angabe buchst du jetzt "
+                    "für dich selbst."
+                ),
+                "wo": "zeit",
+            },
+            {
+                "titel": "Ein Tag, zwei Uhrzeiten — und die Dauer daneben",
+                "text": (
+                    "Statt zweimal Datum und Uhrzeit trägst du den Tag einmal "
+                    "ein und danach nur noch „von“ und „bis“. Die Knöpfe "
+                    "daneben (15 min, 30 min, 1 h, 2 h, 8 h) setzen das Ende "
+                    "vom Beginn aus; darunter steht, wie lang die Buchung "
+                    "wird. Eine Uhrzeit vor dem Beginn zählt als Folgetag — "
+                    "und der steht dann dabei."
+                ),
+                "wo": "zeit",
+            },
+            {
+                "titel": "Dieselbe Zeit für mehrere Personen",
+                "text": (
+                    "Unter „Für wen“ hakst du an, wer dabei war. Aus einem "
+                    "Meeting zu dritt wird ein Eintrag statt drei, und jede "
+                    "Person bekommt ihre eigene Buchung. Vorgewählt bist du "
+                    "selbst."
+                ),
+                "wo": "zeit",
+            },
+            {
+                "titel": "Das Arbeitspaket suchst du jetzt",
+                "text": (
+                    "Das Auswahlmenü ist weg. Im Feld stehen die zuletzt "
+                    "bebuchten Pakete oben, jedes mit seinem Projekt darunter; "
+                    "tippen filtert, und die Wörter dürfen in beliebiger "
+                    "Reihenfolge kommen. Das gilt auch beim Clock-out und beim "
+                    "Ändern einer Buchung."
+                ),
+                "wo": "zeit",
             },
             {
                 "titel": "Weniger Kacheln auf der Startseite",

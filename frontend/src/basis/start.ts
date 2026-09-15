@@ -94,3 +94,33 @@ export function paketgruppen(projekte: Projekt[], auch: number[] = []): Paketgru
   }
   return gruppen;
 }
+
+/**
+ * Die Pakete für ein Suchfeld: gefiltert, flach, die zuletzt bebuchten oben.
+ *
+ * Gesucht wird **wortweise über Projekt und Paket** und ohne Rücksicht auf
+ * Groß- und Kleinschreibung: „arz dauer" findet „Arzneimittelspender ·
+ * Dauerlauftests". Ein Feld, in das man die Wörter in der Reihenfolge des
+ * Titels tippen muss, ist keine Suche, sondern ein Ratespiel.
+ *
+ * `zuletzt` sind Paketnummern in der Reihenfolge der letzten Buchungen. Sie
+ * stehen vorn, weil man fast immer wieder dorthin bucht, wo man gestern
+ * gebucht hat. Der Rest behält die Reihenfolge des Projektbaums.
+ */
+export function paketeSuchen(
+  gruppen: Paketgruppe[],
+  suche: string,
+  zuletzt: number[] = [],
+): Buchungsziel[] {
+  const worte = suche.toLowerCase().split(/\s+/).filter(Boolean);
+  const passt = (p: Buchungsziel) =>
+    worte.every((wort) => `${p.projekt} ${p.titel}`.toLowerCase().includes(wort));
+  const rang = (p: Buchungsziel) => {
+    const platz = zuletzt.indexOf(p.id);
+    return platz === -1 ? zuletzt.length : platz;
+  };
+  return gruppen
+    .flatMap((g) => g.pakete)
+    .filter(passt)
+    .sort((a, z) => rang(a) - rang(z));
+}
