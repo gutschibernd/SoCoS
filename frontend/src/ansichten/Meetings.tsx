@@ -29,7 +29,7 @@
  * basis/router.ts).
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { hole } from "../basis/api";
 import {
@@ -49,6 +49,7 @@ import { standText, useEntwurf } from "../basis/entwurf";
 import {
   abschnitteAusText,
   auftragFuerLLM,
+  besteTreffer,
   passtMeeting,
   teileNachZeit,
   wann,
@@ -672,29 +673,14 @@ function Beteiligte({
 
       {ich.darf.bearbeiten && (
         <div className="feld-reihe">
+          <Personensuche
+            kontakte={offeneKontakte}
+            hinzufuegen={(id) => speichern({ kontakte: [...meeting.kontakte, id] })}
+          />
+
           {/* Der Wert springt nach dem Hinzufügen zurück auf "" — das Feld ist
               ein Griff, keine Anzeige dessen, was eingetragen ist. Das steht
               als Liste darüber. */}
-          <select
-            className="feld"
-            value=""
-            aria-label="Person hinzufügen"
-            disabled={offeneKontakte.length === 0}
-            onChange={(e) =>
-              e.target.value &&
-              speichern({ kontakte: [...meeting.kontakte, Number(e.target.value)] })
-            }
-          >
-            <option value="">
-              {offeneKontakte.length === 0 ? "Alle Personen sind eingetragen" : "Person hinzufügen …"}
-            </option>
-            {offeneKontakte.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.organisation_name ? `${k.name} · ${k.organisation_name}` : k.name}
-              </option>
-            ))}
-          </select>
-
           <select
             className="feld"
             value=""
@@ -717,6 +703,81 @@ function Beteiligte({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Eine Person finden statt sie aus einer Liste zu ziehen.
+ *
+ * **Kein `<select>` und keine Überlagerung**: Die Treffer stehen als Knöpfe
+ * unter dem Feld, höchstens drei — das ist eine Antwort auf das Getippte,
+ * kein Verzeichnis. Bei dreißig Kontakten ist ein Aufklappmenü noch zu
+ * überblicken, bei dreihundert nicht mehr, und die Reihung (siehe
+ * `besteTreffer`) sagt schon nach zwei Buchstaben, wer gemeint ist.
+ *
+ * Enter nimmt den ersten Treffer; der ist deshalb auch so gezeichnet. Nach dem
+ * Eintragen bleibt der Fokus im Feld: Meist kommt gleich die nächste Person.
+ */
+function Personensuche({
+  kontakte,
+  hinzufuegen,
+}: {
+  kontakte: Kontakt[];
+  hinzufuegen: (id: number) => Promise<void>;
+}) {
+  const [suche, setSuche] = useState("");
+  const feld = useRef<HTMLInputElement>(null);
+  const treffer = besteTreffer(kontakte, suche);
+
+  async function nehmen(k: Kontakt) {
+    setSuche("");
+    await hinzufuegen(k.id);
+    feld.current?.focus();
+  }
+
+  if (kontakte.length === 0)
+    return <p className="tabellen-hinweis personensuche">Alle Personen sind eingetragen.</p>;
+
+  return (
+    <div className="personensuche">
+      <input
+        ref={feld}
+        type="text"
+        className="feld"
+        aria-label="Person hinzufügen"
+        placeholder="Person hinzufügen — Name, Haus oder Funktion tippen …"
+        autoComplete="off"
+        value={suche}
+        onChange={(e) => setSuche(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && treffer[0]) {
+            e.preventDefault();
+            nehmen(treffer[0]);
+          }
+          if (e.key === "Escape") setSuche("");
+        }}
+      />
+      {suche.trim() && (
+        <div className="treffer" aria-live="polite">
+          {treffer.length === 0 ? (
+            <span className="tabellen-hinweis">Niemand passt zu „{suche.trim()}“.</span>
+          ) : (
+            treffer.map((k, i) => (
+              <button
+                type="button"
+                key={k.id}
+                className={i === 0 ? "treffer-knopf treffer-erster" : "treffer-knopf"}
+                onClick={() => nehmen(k)}
+              >
+                <Zeichen name="plus" />
+                <span>{k.name}</span>
+                {k.organisation_name && <em>· {k.organisation_name}</em>}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

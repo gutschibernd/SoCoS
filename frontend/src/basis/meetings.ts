@@ -9,7 +9,7 @@
  * würde es erst an einem Protokoll, das als ein einziger Klumpen hereinkommt.
  */
 
-import type { Meeting } from "./daten";
+import type { Kontakt, Meeting } from "./daten";
 
 /* --- Die Liste ------------------------------------------------------------ */
 
@@ -29,6 +29,51 @@ export function passtMeeting(meeting: Meeting, suche: string): boolean {
     ...meeting.abschnitte.map((a) => `${a.ueberschrift} ${a.text}`),
   ];
   return felder.join(" ").toLowerCase().includes(wort);
+}
+
+/* --- Personen finden ------------------------------------------------------ */
+
+/**
+ * Die besten Treffer für „wen trag ich ein" — wenige, gereiht, nicht alle.
+ *
+ * **Warum eine Rangfolge und nicht bloß ein Filter:** Wer „be" tippt, meint
+ * Berger, nicht Lieberwirth — obwohl beide die zwei Buchstaben enthalten. Ein
+ * Name, der so *beginnt*, steht vor einem, in dem ein Wort so beginnt, und der
+ * vor einem, der es nur irgendwo enthält. Das Haus und die Funktion zählen
+ * zuletzt: „nord" soll die Leute der Förderstelle Nord finden, aber nicht vor
+ * jemandem, der Nordmann heißt.
+ *
+ * Mehrere Wörter müssen alle passen („berger nord"), jedes für sich irgendwo.
+ * Gleichstand entscheidet der Name — damit die Liste bei jedem Tippen stabil
+ * bleibt und nicht springt.
+ */
+export function besteTreffer(kontakte: Kontakt[], suche: string, anzahl = 3): Kontakt[] {
+  const woerter = suche.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (woerter.length === 0) return [];
+
+  const gewichtet = kontakte
+    .map((k) => ({ k, gewicht: gewichtVon(k, woerter) }))
+    .filter((t) => t.gewicht > 0)
+    .sort((a, b) => b.gewicht - a.gewicht || a.k.name.localeCompare(b.k.name, "de"));
+
+  return gewichtet.slice(0, anzahl).map((t) => t.k);
+}
+
+function gewichtVon(k: Kontakt, woerter: string[]): number {
+  const name = k.name.toLowerCase();
+  const nebenbei = `${k.organisation_name} ${k.funktion}`.toLowerCase();
+  let summe = 0;
+  for (const wort of woerter) {
+    let gewicht = 0;
+    if (name.startsWith(wort)) gewicht = 4;
+    else if (name.split(/[\s-]+/).some((teil) => teil.startsWith(wort))) gewicht = 3;
+    else if (name.includes(wort)) gewicht = 2;
+    else if (nebenbei.includes(wort)) gewicht = 1;
+    // Ein Wort, das nirgends passt, lässt den ganzen Kontakt durchfallen.
+    if (gewicht === 0) return 0;
+    summe += gewicht;
+  }
+  return summe;
 }
 
 /**

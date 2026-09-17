@@ -623,6 +623,10 @@ function MeetingsDoku() {
               text: "Nur über die eingetragenen Personen und Häuser taucht das Meeting im Verlauf eines Kontakts auf. Wer es nicht nachträgt, findet das Protokoll später nur über die Meetingliste.",
             },
             {
+              begriff: "Wie eintragen",
+              text: "Unter „Mit wem“ in das Feld tippen — Name, Haus oder Funktion. Darunter stehen die drei besten Treffer; wer mit dem Namen anfängt, steht vor dem, der ihn nur enthält. Enter nimmt den ersten, ein Klick jeden anderen. Häuser wählst du weiter aus der Liste daneben.",
+            },
+            {
               begriff: "Im Verlauf",
               text: "Bei der Person und bei ihrem Haus steht das Meeting in derselben Liste wie Mails und Telefonate — mit einem Pfeil daneben, der hierher zurückführt. Geändert wird es nur hier.",
             },

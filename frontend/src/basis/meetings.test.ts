@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { abschnitteAusText, auftragFuerLLM, passtMeeting, teileNachZeit, wann } from "./meetings";
-import type { Meeting } from "./daten";
+import {
+  abschnitteAusText,
+  auftragFuerLLM,
+  besteTreffer,
+  passtMeeting,
+  teileNachZeit,
+  wann,
+} from "./meetings";
+import type { Kontakt, Meeting } from "./daten";
 
 function meeting(teil: Partial<Meeting> = {}): Meeting {
   return {
@@ -108,6 +115,61 @@ describe("auftragFuerLLM", () => {
 
     expect(auftrag).not.toContain("VORBEREITUNG");
     expect(auftrag).not.toContain("Nicht zur Sprache gekommen");
+  });
+});
+
+function kontakt(teil: Partial<Kontakt> & Pick<Kontakt, "id" | "name">): Kontakt {
+  return {
+    anrede: "",
+    funktion: "",
+    email: "",
+    telefon: "",
+    organisation: null,
+    organisation_name: "",
+    kennengelernt_auf: null,
+    kennengelernt_auf_titel: "",
+    ball: "nichts",
+    offener_punkt: "",
+    letzter_kontakt: null,
+    verlauf: [],
+    meetings: [],
+    ...teil,
+  };
+}
+
+describe("besteTreffer", () => {
+  const leute = [
+    kontakt({ id: 1, name: "Berger", organisation_name: "Förderstelle Nord" }),
+    kontakt({ id: 2, name: "Lieberwirth", organisation_name: "Klinikum Süd" }),
+    kontakt({ id: 3, name: "Anna Bergmann", funktion: "Programmleitung" }),
+    kontakt({ id: 4, name: "Nordmann", organisation_name: "Klinikum Süd" }),
+    kontakt({ id: 5, name: "Zeller", organisation_name: "Förderstelle Nord" }),
+  ];
+
+  it("liefert ohne Eingabe nichts — die Liste ist ein Vorschlag, kein Verzeichnis", () => {
+    expect(besteTreffer(leute, "  ")).toEqual([]);
+  });
+
+  /* „be" meint Berger, nicht Lieberwirth — der Anfang des Namens schlägt den
+     Anfang eines Wortes darin, und der schlägt das bloße Enthalten. */
+  it("reiht: Namensanfang vor Wortanfang vor Enthalten vor Haus", () => {
+    expect(besteTreffer(leute, "be", 5).map((k) => k.id)).toEqual([1, 3, 2]);
+  });
+
+  it("findet über das Haus, aber hinter dem Namen", () => {
+    expect(besteTreffer(leute, "nord", 5).map((k) => k.id)).toEqual([4, 1, 5]);
+  });
+
+  it("verlangt bei mehreren Wörtern jedes", () => {
+    expect(besteTreffer(leute, "berg nord").map((k) => k.id)).toEqual([1]);
+  });
+
+  it("gibt höchstens die gewünschte Zahl zurück", () => {
+    expect(besteTreffer(leute, "e", 2)).toHaveLength(2);
+  });
+
+  it("findet über die Funktion", () => {
+    expect(besteTreffer(leute, "programm").map((k) => k.id)).toEqual([3]);
   });
 });
 

@@ -53,6 +53,17 @@ VERSIONEN = [
                 ),
                 "wo": "meetings",
             },
+            {
+                "titel": "Personen zum Meeting: tippen statt aufklappen",
+                "text": (
+                    "Unter „Mit wem“ steht statt des Aufklappmenüs ein "
+                    "Suchfeld. Zwei, drei Buchstaben reichen — darunter "
+                    "erscheinen die drei besten Treffer, nach Name, Haus oder "
+                    "Funktion. Enter nimmt den ersten, und das Feld bleibt "
+                    "für die nächste Person offen."
+                ),
+                "wo": "meetings",
+            },
         ],
     },
     {

@@ -1527,6 +1527,23 @@ a.mini { text-decoration: none; }
 .beteiligt-haus { color: var(--text); cursor: default; padding-right: 4px; }
 .beteiligt > .mini { border: 0; background: none; min-width: 28px; }
 
+/* Das Suchfeld für Personen mit seinen Treffern darunter — im Fluss, keine
+   Überlagerung: Nichts verdeckt die Liste der schon Eingetragenen. Breiter
+   als das Haus-Feld daneben, weil hier getippt wird. */
+.personensuche { display: flex; flex-direction: column; gap: 6px; flex: 2 1 240px; }
+.treffer { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.treffer-knopf {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: var(--griff); padding: 0 12px 0 8px;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--marke); cursor: pointer;
+  font-family: inherit; font-size: 13px; text-align: left;
+}
+.treffer-knopf em { font-style: normal; color: var(--text-sehr-leise); }
+.treffer-knopf:hover { border-color: var(--marke-rand); }
+/* Der erste ist der, den Enter nimmt — das soll man sehen, bevor man drückt. */
+.treffer-erster { border-color: var(--marke); }
+
 /* Ein Feld, das sich selbst speichert. Es ist das Arbeitsgerät während eines
    Gesprächs — deshalb mehr Zeilenabstand als bei einer Notiz und eine Schrift,
    die man beim schnellen Tippen nicht sucht. */
