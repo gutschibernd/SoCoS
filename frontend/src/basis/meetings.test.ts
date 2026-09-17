@@ -84,14 +84,30 @@ describe("auftragFuerLLM", () => {
     expect(auftrag).toContain("## Überschrift");
   });
 
-  /* Die Vorbereitung ist der Plan, nicht das Gespräch. Läge sie daneben, machte
-     das Modell aus „wollten wir ansprechen" ein „wurde besprochen". */
-  it("schickt die Vorbereitung nicht mit", () => {
+  /* Die Vorbereitung ist der Plan, nicht das Gespräch. Sie geht mit, aber in
+     einem eigenen, so beschrifteten Block — und mit der Regel, dass daraus
+     nichts „besprochen" wird. Läge sie unmarkiert neben der Mitschrift, wäre
+     genau das nicht mehr zu verhindern. */
+  it("schickt die Vorbereitung als eigenen Block mit, nicht als Gesprächsinhalt", () => {
     const auftrag = auftragFuerLLM(
       meeting({ vorbereitung: "Preis drücken", mitschrift: "nichts dazu gesagt" }),
     );
 
-    expect(auftrag).not.toContain("Preis drücken");
+    expect(auftrag).toContain("--- VORBEREITUNG (vorher geschrieben, kein Gesprächsinhalt) ---");
+    expect(auftrag).toContain("Preis drücken");
+    expect(auftrag).toContain("Die Vorbereitung ist der Plan, nicht das Gespräch");
+    expect(auftrag).toContain("Nicht zur Sprache gekommen");
+    // Der Plan steht vor dem Gespräch, nicht mittendrin.
+    expect(auftrag.indexOf("--- ENDE DER VORBEREITUNG ---")).toBeLessThan(
+      auftrag.indexOf("--- MITSCHRIFT ---"),
+    );
+  });
+
+  it("erwähnt ohne Vorbereitung auch keine", () => {
+    const auftrag = auftragFuerLLM(meeting({ vorbereitung: "  ", mitschrift: "kurz" }));
+
+    expect(auftrag).not.toContain("VORBEREITUNG");
+    expect(auftrag).not.toContain("Nicht zur Sprache gekommen");
   });
 });
 

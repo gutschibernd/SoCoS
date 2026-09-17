@@ -408,6 +408,12 @@ class MeetingViewSet(SocosViewSet):
 
         Ein Abschnitt ohne Überschrift *und* ohne Text wird übergangen: Das ist
         eine Leerzeile aus der Zwischenablage, kein Abschnitt.
+
+        **Eine leere Liste verwirft das Protokoll.** So macht die Oberfläche das
+        Erstellen rückgängig — das Meeting steht danach wieder bei der
+        Mitschrift. Kein eigener Endpunkt dafür: Es ist dasselbe Ersetzen, nur
+        durch nichts. Und weich gelöscht wie alles andere, das Alte steht im
+        Änderungsprotokoll.
         """
         meeting = self.get_object()
         roh = request.data.get("abschnitte")

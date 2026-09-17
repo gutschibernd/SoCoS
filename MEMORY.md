@@ -151,7 +151,13 @@ Protokoll, das seine Teilnehmer im Nachhinein verliert, ist keines mehr.
 Abschnitte (danach, gegliedert). Die Mitschrift wird beim Aufbereiten **nicht**
 überschrieben: Sie ist die einzige Stelle, an der nachzulesen wäre, ob beim
 Glattziehen etwas verrutscht ist. Steht ein Protokoll, rückt es in der Ansicht
-über die Mitschrift, und die klappt zugeklappt ans Ende.
+nach oben; Vorbereitung und Mitschrift klappen zugeklappt ans Ende, in ihrer
+Reihenfolge.
+
+**„Verwerfen" ist kein eigener Endpunkt.** Es ist `POST …/protokoll/` mit einer
+leeren Liste — dasselbe Ersetzen wie beim Übernehmen, nur durch nichts. Darf,
+wer übernehmen darf (Bearbeiter): Es ist der Rückweg aus dem eigenen Schritt,
+kein Löschen im Sinn der Rollen. Die Abschnitte sind danach weich gelöscht.
 
 ### `protokoll_ohne` — zwei Felder stehen nicht im Änderungsprotokoll
 
@@ -181,9 +187,14 @@ hereinkommt.
 
 Zwei Festlegungen im Auftrag, die nicht kosmetisch sind:
 
-- **Die Vorbereitung geht nicht mit.** Sie ist der Plan, nicht das Gespräch.
-  Läge sie daneben, machte das Modell aus „wollten wir ansprechen" still ein
-  „wurde besprochen" — im fertigen Protokoll nicht mehr zu unterscheiden.
+- **Die Vorbereitung geht mit — in einem eigenen Block, mit eigener Regel.**
+  (Bis 2026-09-17 ging sie bewusst nicht mit.) Sie ist der Plan, nicht das
+  Gespräch; läge sie unmarkiert neben der Mitschrift, machte das Modell aus
+  „wollten wir ansprechen" still ein „wurde besprochen". Deshalb steht sie
+  getrennt und beschriftet, und die Regel sagt, wofür sie da ist: Namen,
+  Abkürzungen, Zusammenhang — und ein letzter Abschnitt „Nicht zur Sprache
+  gekommen" für das, was geplant war und nicht vorkam. Das ist der Grund, sie
+  mitzuschicken: Daran misst sich die Vorbereitung hinterher.
 - **Was vor der ersten Überschrift steht, wird ein Abschnitt ohne Titel.** Ein
   Modell, das sich nicht an das Format hält, darf keinen Text kosten; sonst
   verschwände er genau dann, wenn man hinsehen müsste.

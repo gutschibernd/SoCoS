@@ -7,14 +7,17 @@
  * 1. **Vorbereitung** — vorher, in Ruhe: was wir aus dem Termin holen wollen.
  * 2. **Mitschrift** — währenddessen, schnell: ein langes Feld, das sich selbst
  *    speichert. Niemand drückt während eines Gesprächs auf „Speichern".
- * 3. **Protokoll** — danach: die Mitschrift geht mit einem Auftrag an ein LLM,
- *    das Ergebnis kommt zurück und wird an seinen Überschriften in Abschnitte
- *    zerlegt. Jeder Abschnitt ist danach für sich änderbar.
+ * 3. **Protokoll** — danach: Mitschrift und Vorbereitung gehen mit einem
+ *    Auftrag an ein LLM, das Ergebnis kommt zurück und wird an seinen
+ *    Überschriften in Abschnitte zerlegt. Jeder Abschnitt ist danach für sich
+ *    änderbar.
  *
- * **Sobald ein Protokoll steht, tauschen 2 und 3 den Platz**: Das Protokoll
- * rückt nach oben, Mitschrift und Aufbereitung klappen zugeklappt ans Ende.
- * Danach ist das Protokoll das, was gelesen wird — die Mitschrift ist nur noch
- * die Quelle, in der man nachsieht, wenn ein Satz zu glatt klingt.
+ * **Sobald ein Protokoll steht, rückt es nach oben**, und Vorbereitung wie
+ * Mitschrift klappen zugeklappt ans Ende — in der Reihenfolge, in der sie
+ * entstanden sind. Danach ist das Protokoll das, was gelesen wird; die beiden
+ * anderen sind nur noch die Quellen, in denen man nachsieht, wenn ein Satz zu
+ * glatt klingt. „Verwerfen" am Protokoll dreht das um: Die Abschnitte gehen
+ * (weich) weg, und die Seite steht wieder so da wie vor dem Übernehmen.
  *
  * **Ein Meeting hängt an nichts** (siehe `Meeting` in socos/models.py): Es
  * lässt sich anlegen, bevor feststeht, wer kommt. Personen und Häuser werden
@@ -415,8 +418,18 @@ function Meetingseite({
 
   const hatProtokoll = meeting.abschnitte.length > 0;
 
-  const mitschrift = (
-    <Mitschriftkarte meeting={meeting} ich={ich} neuLaden={neuLaden} zugeklappt={hatProtokoll} />
+  // Vorbereitung und Mitschrift bleiben in ihrer Reihenfolge — ob oben oder
+  // zugeklappt unter dem Protokoll.
+  const quellen = (
+    <>
+      <Vorbereitungskarte
+        meeting={meeting}
+        ich={ich}
+        neuLaden={neuLaden}
+        zugeklappt={hatProtokoll}
+      />
+      <Mitschriftkarte meeting={meeting} ich={ich} neuLaden={neuLaden} zugeklappt={hatProtokoll} />
+    </>
   );
 
   return (
@@ -510,10 +523,8 @@ function Meetingseite({
         />
       </div>
 
-      <Vorbereitungskarte meeting={meeting} ich={ich} neuLaden={neuLaden} />
-
       {/* Steht ein Protokoll, ist es das, was gelesen wird — dann rückt es
-          über die Mitschrift, und die klappt darunter zu. */}
+          über Vorbereitung und Mitschrift, und die klappen darunter zu. */}
       {hatProtokoll ? (
         <>
           <Protokollkarte
@@ -522,10 +533,10 @@ function Meetingseite({
             neuLaden={neuLaden}
             zumLoeschen={zumLoeschen}
           />
-          {mitschrift}
+          {quellen}
         </>
       ) : (
-        mitschrift
+        quellen
       )}
     </>
   );
@@ -759,18 +770,20 @@ function Entwurfsfeld({
   );
 }
 
+/** Zugeklappt, sobald ein Protokoll steht — wie die Mitschrift. */
 function Vorbereitungskarte({
   meeting,
   ich,
   neuLaden,
+  zugeklappt,
 }: {
   meeting: Meeting;
   ich: Ich;
   neuLaden: () => void;
+  zugeklappt: boolean;
 }) {
-  return (
-    <div className="karte">
-      <h2>Vorbereitung</h2>
+  const inhalt = (
+    <>
       <Entwurfsfeld
         wert={meeting.vorbereitung}
         zeilen={6}
@@ -783,9 +796,28 @@ function Vorbereitungskarte({
       />
       <p className="tabellen-hinweis">
         Steht vor dem Termin fest und bleibt danach stehen — daran misst sich, ob wir bekommen
-        haben, wofür wir hingegangen sind.
+        haben, wofür wir hingegangen sind. Geht beim Aufbereiten mit, als Plan gekennzeichnet.
       </p>
-    </div>
+    </>
+  );
+
+  if (!zugeklappt)
+    return (
+      <div className="karte">
+        <h2>Vorbereitung</h2>
+        {inhalt}
+      </div>
+    );
+
+  return (
+    <details className="karte klappkarte">
+      <summary>
+        <Zeichen name="zeiger" klasse="zeiger-klapp" />
+        <span className="klapptitel">Vorbereitung</span>
+        <span className="stand stand-leer">Der Plan vor dem Termin</span>
+      </summary>
+      {inhalt}
+    </details>
   );
 }
 
@@ -867,7 +899,7 @@ function Aufbereitung({ meeting, neuLaden }: { meeting: Meeting; neuLaden: () =>
   async function kopieren() {
     try {
       await navigator.clipboard.writeText(auftrag);
-      melden("gut", "Auftrag und Mitschrift liegen in der Zwischenablage.");
+      melden("gut", "Auftrag, Mitschrift und Vorbereitung liegen in der Zwischenablage.");
     } catch {
       // Ohne HTTPS oder ohne Erlaubnis gibt es keine Zwischenablage. Dann
       // steht der Text eben da und wird von Hand markiert — besser als ein
@@ -899,10 +931,10 @@ function Aufbereitung({ meeting, neuLaden }: { meeting: Meeting; neuLaden: () =>
     <div className="aufbereitung">
       <span className="beschriftung-klein">Aus der Mitschrift ein Protokoll machen</span>
       <p className="tabellen-hinweis" style={{ marginTop: 0 }}>
-        Der Knopf legt die Mitschrift samt Auftrag in die Zwischenablage — die Regeln darin sagen
-        dem Modell, dass es nichts erfinden und nichts weglassen darf. Das Ergebnis kommt in das
-        Feld darunter; SoCoS zerlegt es an den Überschriften in Abschnitte, die danach einzeln
-        änderbar sind.
+        Der Knopf legt Mitschrift und Vorbereitung samt Auftrag in die Zwischenablage — die Regeln
+        darin sagen dem Modell, dass es nichts erfinden und nichts weglassen darf und dass der
+        Plan kein Gesprächsinhalt ist. Das Ergebnis kommt in das Feld darunter; SoCoS zerlegt es
+        an den Überschriften in Abschnitte, die danach einzeln änderbar sind.
       </p>
 
       <div className="feld-reihe">
@@ -1012,17 +1044,77 @@ function Protokollkarte({
     neuLaden();
   }
 
+  // Das Übernehmen rückgängig: dasselbe Ersetzen wie beim Übernehmen, nur
+  // durch nichts. Darf, wer übernehmen darf — es ist kein Löschen im Sinn der
+  // Rollen, sondern der Rückweg aus dem eigenen Schritt. Die Abschnitte sind
+  // danach weich gelöscht und stehen im Änderungsprotokoll.
+  const [fragtVerwerfen, setFragtVerwerfen] = useState(false);
+  const [laeuft, setLaeuft] = useState(false);
+  const anzahl = meeting.abschnitte.length;
+
+  async function verwerfen() {
+    setLaeuft(true);
+    try {
+      await hole(`/meetings/${meeting.id}/protokoll/`, {
+        method: "POST",
+        body: JSON.stringify({ abschnitte: [] }),
+      });
+      setFragtVerwerfen(false);
+      neuLaden();
+      melden("gut", "Das Protokoll ist verworfen — Mitschrift und Vorbereitung stehen wieder oben.");
+    } finally {
+      setLaeuft(false);
+    }
+  }
+
   return (
     <div className="karte">
       <div className="kartenkopf">
         <h2>Protokoll</h2>
         {ich.darf.bearbeiten && (
-          <button type="button" className="knopf-still" onClick={anfuegen}>
-            <Zeichen name="plus" />
-            Abschnitt
-          </button>
+          <>
+            <button type="button" className="knopf-still" onClick={anfuegen}>
+              <Zeichen name="plus" />
+              Abschnitt
+            </button>
+            <button type="button" className="knopf-still" onClick={() => setFragtVerwerfen(true)}>
+              <Zeichen name="kreuz" />
+              Verwerfen
+            </button>
+          </>
         )}
       </div>
+
+      {fragtVerwerfen && (
+        <div
+          className="dialog-grund"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setFragtVerwerfen(false)}
+        >
+          <div className="dialog" onClick={(e) => e.stopPropagation()}>
+            <h2>Das Protokoll verwerfen?</h2>
+            <p>
+              {anzahl === 1 ? "Der eine Abschnitt geht" : `Alle ${anzahl} Abschnitte gehen`} weg,
+              auch was daran von Hand geändert wurde. Mitschrift und Vorbereitung bleiben und
+              stehen danach wieder oben — du kannst neu aufbereiten. Wer nur einen Absatz
+              richtigstellen will, ändert ihn im Abschnitt selbst.
+            </p>
+            <div className="dialog-knoepfe">
+              <button
+                type="button"
+                className="knopf-still"
+                onClick={() => setFragtVerwerfen(false)}
+              >
+                Behalten
+              </button>
+              <button type="button" className="knopf" onClick={verwerfen} disabled={laeuft}>
+                Verwerfen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {meeting.abschnitte.map((a, i) => (
         <div className="abschnitt" key={a.id}>

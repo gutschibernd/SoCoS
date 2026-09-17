@@ -144,6 +144,31 @@ class TestProtokoll:
         assert Meetingabschnitt.alle_objekte.filter(meeting=meeting).count() == 2
 
     @pytest.mark.django_db
+    def test_eine_leere_liste_verwirft_das_protokoll(self, client, bearbeiter, meeting):
+        """
+        „Rückgängig" in der Oberfläche ist dasselbe Ersetzen, nur durch nichts —
+        kein zweiter Weg daneben. Weich gelöscht, damit das Alte im
+        Änderungsprotokoll bleibt.
+        """
+        client.force_login(bearbeiter)
+        client.post(
+            f"/api/meetings/{meeting.pk}/protokoll/",
+            {"abschnitte": [{"ueberschrift": "Anlass", "text": "Erstes Gespräch."}]},
+            content_type="application/json",
+        )
+
+        antwort = client.post(
+            f"/api/meetings/{meeting.pk}/protokoll/",
+            {"abschnitte": []},
+            content_type="application/json",
+        )
+
+        assert antwort.status_code == 200
+        assert antwort.json()["abschnitte"] == []
+        assert Meetingabschnitt.objects.filter(meeting=meeting).count() == 0
+        assert Meetingabschnitt.alle_objekte.filter(meeting=meeting).count() == 1
+
+    @pytest.mark.django_db
     def test_leere_abschnitte_werden_uebergangen(self, client, bearbeiter, meeting):
         client.force_login(bearbeiter)
 

@@ -569,7 +569,8 @@ function MeetingsDoku() {
             "In „Vorbereitung“ eintragen, was wir aus dem Termin holen wollen. Das bleibt danach stehen: Daran misst sich, ob wir es bekommen haben.",
             "Während des Meetings in „Mitschrift“ tippen. Stichworte reichen — das Feld speichert sich von selbst, es gibt keinen Knopf dafür.",
             "Danach „Für ein LLM kopieren“ drücken, den Text bei einem Sprachmodell einfügen, das Ergebnis zurück in das Feld darunter und „Als Protokoll übernehmen“.",
-            "Das Protokoll steht dann oben, in Abschnitten. Jede Überschrift und jeder Text ist einzeln änderbar, Abschnitte lassen sich verschieben und ergänzen.",
+            "Das Protokoll steht dann oben, in Abschnitten; Vorbereitung und Mitschrift klappen darunter zu. Jede Überschrift und jeder Text ist einzeln änderbar, Abschnitte lassen sich verschieben und ergänzen.",
+            "„Verwerfen“ am Protokoll macht das Übernehmen rückgängig: Die Abschnitte gehen weg, Mitschrift und Vorbereitung stehen wieder oben, und du kannst neu aufbereiten.",
           ]}
         />
         <Merke>
@@ -588,11 +589,11 @@ function MeetingsDoku() {
           paare={[
             {
               begriff: "Was mitkopiert wird",
-              text: "Die Mitschrift, der Rahmen (Titel, Tag, wer dabei war) und der Auftrag samt Regeln: nichts erfinden, nichts weglassen, Unklares unklar lassen, keine Einleitung. Mit „Auftrag ansehen“ kannst du nachlesen, was da steht.",
+              text: "Die Mitschrift, die Vorbereitung, der Rahmen (Titel, Tag, wer dabei war) und der Auftrag samt Regeln: nichts erfinden, nichts weglassen, Unklares unklar lassen, keine Einleitung. Mit „Auftrag ansehen“ kannst du nachlesen, was da steht.",
             },
             {
-              begriff: "Was nicht mitkopiert wird",
-              text: "Die Vorbereitung. Sie ist der Plan, nicht das Gespräch — läge sie daneben, machte das Modell daraus leicht ein „wurde besprochen“.",
+              begriff: "Die Vorbereitung ist als Plan gekennzeichnet",
+              text: "Sie steht in einem eigenen Block, und der Auftrag sagt dem Modell: Das ist der Plan, nicht das Gespräch. Daraus wird nichts „besprochen“ oder „zugesagt“, was nicht in der Mitschrift steht. Was geplant war und nicht zur Sprache kam, landet als Stichwort in einem letzten Abschnitt „Nicht zur Sprache gekommen“ — daran siehst du, ob ihr bekommen habt, wofür ihr hingegangen seid.",
             },
             {
               begriff: "Wie zerlegt wird",
@@ -601,6 +602,10 @@ function MeetingsDoku() {
             {
               begriff: "Ein zweiter Durchlauf",
               text: "Übernimmst du noch einmal, ersetzt das neue Protokoll das alte vollständig. Vorher wird gefragt. Die Mitschrift bleibt in jedem Fall stehen — sie ist die Quelle, in der man nachsieht, wenn ein Satz zu glatt klingt.",
+            },
+            {
+              begriff: "Verwerfen",
+              text: "Der Knopf oben am Protokoll nimmt alle Abschnitte weg — auch was daran von Hand geändert wurde — und stellt die Seite so hin wie vor dem Übernehmen. Für einen einzelnen falschen Satz ist das der falsche Weg: Den änderst du im Abschnitt selbst.",
             },
           ]}
         />

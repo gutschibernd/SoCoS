@@ -20,6 +20,42 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-17",
+        "titel": "Meetings: die Vorbereitung geht mit, das Protokoll lässt sich verwerfen",
+        "punkte": [
+            {
+                "titel": "Die Vorbereitung geht mit zum LLM",
+                "text": (
+                    "„Für ein LLM kopieren“ nimmt jetzt auch die Vorbereitung "
+                    "mit — in einem eigenen Block, als Plan gekennzeichnet. "
+                    "Das Modell darf daraus nichts „besprochen“ machen; was "
+                    "geplant war und nicht zur Sprache kam, landet in einem "
+                    "letzten Abschnitt „Nicht zur Sprache gekommen“."
+                ),
+                "wo": "doku/meetings",
+            },
+            {
+                "titel": "Die Vorbereitung klappt unter das Protokoll",
+                "text": (
+                    "Sobald ein Protokoll steht, rückt es ganz nach oben; "
+                    "Vorbereitung und Mitschrift stehen zugeklappt darunter, "
+                    "so wie sie entstanden sind."
+                ),
+                "wo": "meetings",
+            },
+            {
+                "titel": "„Verwerfen“ macht das Übernehmen rückgängig",
+                "text": (
+                    "Oben am Protokoll steht ein Knopf „Verwerfen“. Er nimmt "
+                    "alle Abschnitte weg, Mitschrift und Vorbereitung stehen "
+                    "wieder oben, und du kannst neu aufbereiten. Vorher wird "
+                    "gefragt."
+                ),
+                "wo": "meetings",
+            },
+        ],
+    },
+    {
         "version": "2026-09-15",
         "titel": "Meetings, Ideen — und das Nachtragen von Zeit",
         "punkte": [

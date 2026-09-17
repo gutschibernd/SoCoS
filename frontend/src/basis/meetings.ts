@@ -80,10 +80,14 @@ export function wann(meeting: Pick<Meeting, "datum" | "uhrzeit">): string {
  * Gegenlesen am wenigsten auf: Der erfundene Satz ist der, der sich am besten
  * liest.
  *
- * Die **Vorbereitung geht bewusst nicht mit.** Sie ist der Plan, nicht das
- * Gespräch. Läge sie daneben, machte das Modell aus „wollten wir ansprechen"
- * still ein „wurde besprochen" — und das wäre im fertigen Protokoll nicht mehr
- * zu unterscheiden.
+ * Die **Vorbereitung geht mit — aber in einem eigenen Block, mit eigener
+ * Regel.** Sie ist der Plan, nicht das Gespräch, und genau das ist die Gefahr:
+ * Läge sie unmarkiert daneben, machte das Modell aus „wollten wir ansprechen"
+ * still ein „wurde besprochen", im fertigen Protokoll nicht mehr zu
+ * unterscheiden. Deshalb steht sie getrennt, und die Regel sagt, wofür sie da
+ * ist: Zusammenhang, Namen, Abkürzungen — und ein Abschnitt darüber, was vom
+ * Plan *nicht* zur Sprache kam. Das ist das, woran sich die Vorbereitung
+ * hinterher misst.
  */
 export function auftragFuerLLM(meeting: Meeting): string {
   const rahmen = [
@@ -99,7 +103,9 @@ export function auftragFuerLLM(meeting: Meeting): string {
     meeting.haeuser.length ? `Organisationen: ${meeting.haeuser.map((h) => h.name).join(", ")}` : "",
   ].filter(Boolean);
 
-  return `Du bekommst die rohe Mitschrift einer Besprechung. Mach daraus ein lesbares Protokoll.
+  const vorbereitung = meeting.vorbereitung.trim();
+
+  return `Du bekommst die rohe Mitschrift einer Besprechung${vorbereitung ? " und die Vorbereitung, die vorher dazu geschrieben wurde" : ""}. Mach daraus ein lesbares Protokoll.
 
 Regeln:
 1. Erfinde nichts. Keine Ergebnisse, Zahlen, Namen, Termine oder Zusagen, die nicht in der Mitschrift stehen. Lieber eine kurze Zeile als ein runder Satz.
@@ -111,12 +117,26 @@ Regeln:
 ## Überschrift
 
    Darunter der Text: kurze Absätze oder Aufzählungen mit "- ". Keine weiteren Überschriften innerhalb eines Abschnitts.
-6. Sinnvolle Abschnitte, soweit die Mitschrift etwas dazu hergibt: Anlass, Besprochen, Entscheidungen, Offene Punkte, Nächste Schritte. Bei nächsten Schritten steht dahinter, wer und bis wann — aber nur, wenn es dasteht.
-7. Antworte auf Deutsch und ausschließlich mit dem Protokoll.
+6. Sinnvolle Abschnitte, soweit die Mitschrift etwas dazu hergibt: Anlass, Besprochen, Entscheidungen, Offene Punkte, Nächste Schritte. Bei nächsten Schritten steht dahinter, wer und bis wann — aber nur, wenn es dasteht.${
+    vorbereitung
+      ? `
+7. Die Vorbereitung ist der Plan, nicht das Gespräch. Sie hilft dir, Namen, Abkürzungen und den Zusammenhang der Mitschrift zu verstehen — aber nichts daraus wird zu etwas, das besprochen, entschieden oder zugesagt wurde, solange es nicht in der Mitschrift steht. Was in der Vorbereitung vorkommt und in der Mitschrift nicht, kommt als Stichwort in einen letzten Abschnitt "Nicht zur Sprache gekommen".
+8. Antworte auf Deutsch und ausschließlich mit dem Protokoll.`
+      : `
+7. Antworte auf Deutsch und ausschließlich mit dem Protokoll.`
+  }
 
 Rahmen:
 ${rahmen.join("\n")}
-
+${
+  vorbereitung
+    ? `
+--- VORBEREITUNG (vorher geschrieben, kein Gesprächsinhalt) ---
+${vorbereitung}
+--- ENDE DER VORBEREITUNG ---
+`
+    : ""
+}
 --- MITSCHRIFT ---
 ${meeting.mitschrift.trim()}
 --- ENDE DER MITSCHRIFT ---`;
