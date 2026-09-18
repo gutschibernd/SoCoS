@@ -1680,6 +1680,52 @@ Die Umbenennung geht durch bis in die API (`/api/phasen/`) und in den Schlüssel
 `phasen` in `daten/sopharmis-daten.json`; `daten_einspielen` weist eine Datei mit dem
 alten Schlüssel ausdrücklich zurück, statt ein Projekt ohne jede Phase anzulegen.
 
+### Der Arzneimittelspender läuft in Phasen (2026-09-18)
+
+Die Entwicklung des AMS ist keine Sammlung nebeneinanderliegender Pakete mehr,
+sondern eine **Kette**: Anforderungsmanagement (abgeschlossen) → Laborprototypen
+entwickeln (2026-10-01 bis 2027-02-28) → Erste Pilotvalidierung → MVP-Entwicklung
+→ Erprobung klein → Full Redesign → Erprobung groß → CE-MDR. Eine Phase dauert
+etwa fünf bis sechs Monate; die Arbeitspakete hängen darunter, und auf sie wird
+gebucht.
+
+Gefüllt ist bislang nur „Laborprototypen entwickeln" (AP01–AP07 aus dem
+Arbeitsplan, 752 h je Gründer, 1.504 h gesamt). Die übrigen Phasen stehen leer —
+absichtlich: Ein erfundenes Paket wäre in jeder Auslastung mitgezählt worden.
+
+**Die Sachkosten aus AP05 (1.000 Euro Material) stehen im Beschreibungstext**
+und nicht in einem eigenen Feld. Ein Kostenfeld am Paket für genau einen Fall
+wäre Konfigurierbarkeit ohne zweiten Fall — und es tauchte in keiner
+Finanzübersicht auf, weil die aus Kontoständen und Fixkosten rechnet. Kommt der
+zweite Fall, wird die Grenze hier neu gezogen.
+
+### `daten_einspielen --abgleichen`
+
+Der Befehl konnte bis 2026-09-18 nur auf eine **leere** Datenbank einspielen.
+Damit war die Datei `daten/sopharmis-daten.json` für einen laufenden Bestand
+wertlos: Man hätte alles wegwerfen müssen, samt gebuchter Zeit. `--abgleichen`
+zieht einen bestehenden Bestand aus der Datei nach.
+
+**Wiedererkannt wird am Titel**, nicht an der `id` aus der Datei: Die steht
+nirgends in der Datenbank, und ein zweites Feld nur zum Wiederfinden wäre ein
+Schlüssel, den niemand pflegt und der beim ersten Umbenennen in der Oberfläche
+falsch ist. Die Folge ist bewusst in Kauf genommen: Wer eine Phase in der
+Oberfläche umbenennt, bekommt beim nächsten Abgleich eine zweite daneben.
+
+**Ein Paket mit gebuchter Zeit wird nicht gelöscht, sondern „verworfen".**
+`on_delete=PROTECT` steht zwischen Buchung und Paket, und weiches Löschen prüft
+das nach — ein gelöschtes Paket machte seine Buchungen zu Waisen: in keiner
+Liste mehr sichtbar, aber weiter im Zeitnachweis. Als „verworfen" nimmt es keine
+neue Zeit mehr an, die alte bleibt auffindbar und umbuchbar. Der Befehl sagt es
+laut; still wegzuräumen wäre falsch, weil die Entscheidung — umbuchen oder
+stehenlassen — eine fachliche ist. Dieselbe Regel für die Phase darüber: Sie
+bleibt stehen und rückt auf `RESTPLATZ` (900) ans Ende, statt mitten in der
+Kette eine Position zu behaupten, die sie nicht mehr hat.
+
+Konkret betrifft das **„Finanzierung beantragen"** — ein Paket aus der alten
+Gliederung mit einer Buchung daran. Es steht als „verworfen" in der Restphase
+„Entwicklung" am Ende des Projekts, bis jemand die Buchung umbucht.
+
 ### Laufzeit, Abschluss und Pensum (2026-09-18, Migration `0018`)
 
 **Die Projektphase trägt `von`, `bis` und `abgeschlossen`.** Beide Daten dürfen
