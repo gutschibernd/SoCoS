@@ -7,17 +7,20 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from socos.models import (
     AUFFANG_PROJEKT,
     Arbeitspaket,
-    Projektphase,
-    Phasenart,
     Fixkosten,
     Kontostand,
     Organisation,
+    Paketstatus,
+    Pensum,
+    Phasenart,
     Projekt,
+    Projektphase,
     Zeitbuchung,
 )
 
@@ -831,3 +834,118 @@ class TestProtokollAnsehen:
         aenderung = [e for e in eintraege if e["aktion"] == "geaendert"][0]
         assert aenderung["aenderungen"]["notiz"] == {"alt": "", "neu": "korrigiert"}
         assert aenderung["nutzer_text"] == "Bearbeitende Person"
+
+
+class TestBuchsperre:
+    """
+    Auf welche Pakete keine Zeit mehr laufen darf — **serverseitig**.
+
+    Die Liste der buchbaren Stände stand bis 2026-09-18 nur im Frontend. Dort
+    räumt sie das Auswahlfeld auf und hält nichts auf: Ein `POST` mit der
+    Paketnummer ging durch, und die Zeit stand danach an einem Paket, das seit
+    Monaten zu war. Genau deshalb gibt es diese Tests.
+    """
+
+    @pytest.mark.django_db
+    def test_abgeschlossene_phase_nimmt_keine_zeit_an(self, client, bearbeiter, paket):
+        client.force_login(bearbeiter)
+        paket.phase.abgeschlossen = True
+        paket.phase.save()
+
+        antwort = client.post(
+            "/api/zeiten/clock_in/", {"paket": paket.pk}, content_type="application/json"
+        )
+        assert antwort.status_code == 400
+        # Der Satz nennt die Phase. „Nicht buchbar" sagte nicht, was los ist.
+        assert "abgeschlossen" in str(antwort.json()["paket"])
+
+    @pytest.mark.django_db
+    def test_fertiges_paket_nimmt_keine_zeit_an(self, client, bearbeiter, paket):
+        client.force_login(bearbeiter)
+        paket.status = Paketstatus.FERTIG
+        paket.save()
+
+        antwort = client.post(
+            "/api/zeiten/clock_in/", {"paket": paket.pk}, content_type="application/json"
+        )
+        assert antwort.status_code == 400
+
+    @pytest.mark.django_db
+    def test_nachtragen_auf_eine_abgeschlossene_phase_geht_nicht(
+        self, client, bearbeiter, paket
+    ):
+        """Der zweite Weg zur Zeit — und er lief an `clock_in` vorbei."""
+        client.force_login(bearbeiter)
+        paket.phase.abgeschlossen = True
+        paket.phase.save()
+
+        start = timezone.now() - timedelta(hours=3)
+        antwort = client.post(
+            "/api/zeiten/",
+            {
+                "paket": paket.pk,
+                "start": start.isoformat(),
+                "ende": (start + timedelta(hours=1)).isoformat(),
+            },
+            content_type="application/json",
+        )
+        assert antwort.status_code == 400
+
+    @pytest.mark.django_db
+    def test_eine_bestehende_buchung_bleibt_aenderbar(self, client, bearbeiter, paket):
+        """
+        Wird die Phase geschlossen, während schon Zeit darauf steht, muss sich
+        ein Tippfehler in der Uhrzeit noch berichtigen lassen. Sonst wäre das
+        Löschen der Zeit der einzige Ausweg.
+        """
+        client.force_login(bearbeiter)
+        start = timezone.now() - timedelta(hours=3)
+        b = Zeitbuchung.objects.create(
+            person=bearbeiter, paket=paket, start=start, ende=start + timedelta(hours=1)
+        )
+        paket.phase.abgeschlossen = True
+        paket.phase.save()
+
+        antwort = client.patch(
+            f"/api/zeiten/{b.pk}/",
+            {"ende": (start + timedelta(hours=2)).isoformat()},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 200
+
+    @pytest.mark.django_db
+    def test_die_laufende_uhr_laesst_sich_noch_stoppen(self, client, bearbeiter, paket):
+        """Ein Clock-out ohne Zielwechsel wählt kein Paket — er beendet nur."""
+        client.force_login(bearbeiter)
+        Zeitbuchung.objects.create(person=bearbeiter, paket=paket, start=timezone.now())
+        paket.phase.abgeschlossen = True
+        paket.phase.save()
+
+        antwort = client.post(
+            "/api/zeiten/clock_out/", {"notiz": "fertig"}, content_type="application/json"
+        )
+        assert antwort.status_code == 200
+
+
+class TestPensum:
+    @pytest.mark.django_db
+    def test_stunden_kommen_als_zeichenkette(self, client, bearbeiter, paket):
+        """
+        Decimal, nicht Gleitkomma (CLAUDE.md). Bei Stunden, die über ein Jahr
+        summiert werden, sind das Differenzen, die niemand mehr zuordnet.
+        """
+        client.force_login(bearbeiter)
+        Pensum.objects.create(paket=paket, person=bearbeiter, stunden=Decimal("270.25"))
+
+        daten = client.get("/api/projekte/").json()
+        pensen = daten[0]["phasen"][0]["pakete"][0]["pensen"]
+        assert pensen[0]["stunden"] == "270.25"
+        assert pensen[0]["person_name"] == bearbeiter.name
+
+    @pytest.mark.django_db
+    def test_zweimal_dieselbe_person_am_selben_paket_geht_nicht(self, bearbeiter, paket):
+        """Zwei Pensen für dieselbe Arbeit — keine Anzeige könnte entscheiden,
+        welches gilt."""
+        Pensum.objects.create(paket=paket, person=bearbeiter, stunden=Decimal("40"))
+        with pytest.raises(IntegrityError):
+            Pensum.objects.create(paket=paket, person=bearbeiter, stunden=Decimal("90"))

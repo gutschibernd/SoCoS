@@ -1680,6 +1680,53 @@ Die Umbenennung geht durch bis in die API (`/api/phasen/`) und in den Schlüssel
 `phasen` in `daten/sopharmis-daten.json`; `daten_einspielen` weist eine Datei mit dem
 alten Schlüssel ausdrücklich zurück, statt ein Projekt ohne jede Phase anzulegen.
 
+### Laufzeit, Abschluss und Pensum (2026-09-18, Migration `0018`)
+
+**Die Projektphase trägt `von`, `bis` und `abgeschlossen`.** Beide Daten dürfen
+leer bleiben — eine Phase, die erst in zwei Jahren ansteht, hat noch keines, und
+ein erfundenes stünde in jeder Hochrechnung.
+
+`abgeschlossen` ist **ein eigenes Merkmal und nicht „`bis` liegt in der
+Vergangenheit"**: Eine Phase läuft regelmäßig über ihr geplantes Ende hinaus.
+Wäre das Datum die Sperre, fiele die Uhr an einem willkürlichen Morgen aus, ohne
+dass jemand etwas entschieden hätte.
+
+**Das Pensum ist ein eigenes Modell** (`Pensum`: Paket + Person + Stunden), kein
+Feld am Paket und keine JSON-Liste darin. Im Arbeitsplan steht „AP02 — BG 270 h,
+FD 140 h"; eine Gesamtzahl am Paket beantwortete nicht die Frage, die jemand am
+Morgen wirklich hat — wie viel davon *er selbst* noch offen hat. Durch die Zahl
+der Beteiligten teilen ginge nicht: Der eine trägt 270 Stunden, der andere 140.
+Höchstens ein Eintrag je Paket und Person (`UniqueConstraint` auf die nicht
+gelöschten); zwei wären zwei Pensen für dieselbe Arbeit, und keine Anzeige
+könnte entscheiden, welches gilt. Stunden sind `Decimal` und gehen als
+Zeichenkette hinaus.
+
+**`Arbeitspaket.notiz` heißt jetzt `beschreibung`** (`RenameField`, nicht
+entfernen und neu anlegen — `makemigrations` schlägt hier von sich aus das
+Falsche vor, und die zehn Notizen an den Förderanträgen wären still weg
+gewesen).
+
+### Wer keine Zeit mehr annimmt
+
+`Arbeitspaket.grund_gegen_buchung()` ist die **eine** Stelle, an der das steht,
+und sie liefert einen Satz statt eines Wahrheitswerts: Die Antwort wird dem
+Nutzer gezeigt, und „nicht buchbar" sagt ihm nicht, was er stattdessen tun soll.
+Drei Gründe: weich gelöscht, Phase abgeschlossen, Status außerhalb von
+`BUCHBARE_STAENDE`.
+
+**Die Liste stand bis 2026-09-18 nur im Frontend** (`basis/start.ts`). Dort
+räumte sie das Auswahlfeld auf und hielt nichts auf — ein `POST /api/zeiten/`
+mit der Paketnummer ging durch, und die Zeit stand danach an einem Paket, das
+seit Monaten zu war. Jetzt prüfen `_paket` (Start und Umbuchen) und der
+`ZeitbuchungSerializer` (Nachtragen und Ändern); das Frontend liest
+`paket.buchbar` vom Server, statt die Regel ein zweites Mal zu bauen.
+
+Geprüft wird nur ein **neu gewähltes** Ziel. Eine Buchung, deren Phase inzwischen
+abgeschlossen ist, bleibt änderbar — sonst wäre ein Tippfehler in der Uhrzeit für
+immer eingefroren, und der einzige Ausweg wäre das Löschen der Zeit. Und die
+laufende Uhr lässt sich noch stoppen: Ein Clock-out ohne Zielwechsel wählt kein
+Paket.
+
 ### Stufen
 
 Ein **Arbeitspaket** trägt seine eigene Stufenliste (Name + Dauer in Monaten). Beim

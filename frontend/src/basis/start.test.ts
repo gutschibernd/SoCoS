@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { Projekt } from "./daten";
 import { buchbarePakete, letztePakete, paketeSuchen, paketgruppen } from "./start";
 
+/** Die Stände, auf die der Server die Uhr laufen lässt — siehe `models.py`. */
+const BUCHBARE_STAENDE = ["offen", "laeuft", "eingereicht", "zugesagt", "offene_frage"];
+
 /** Ein Projektbaum mit so wenig Feldern wie möglich — der Rest spielt hier keine Rolle. */
 function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[] {
   return [
@@ -20,17 +23,27 @@ function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[
           projekt: 1,
           titel: "Dossier",
           art: "dev",
+          von: null,
+          bis: null,
+          abgeschlossen: false,
           pakete: pakete.map((p) => ({
             id: p.id,
             phase: 1,
             projekt: 1,
             titel: p.titel,
-            notiz: "",
+            beschreibung: "",
             status: p.status,
             stufenstand: 0,
             stufen: [],
             fortschritt: 0,
             unteraufgaben: [],
+            pensen: [],
+            // Wie der Server es rechnet (`Arbeitspaket.grund_gegen_buchung`).
+            // Die Prüfungen hier reichen einen Status herein, weil sich so am
+            // kürzesten sagen lässt, welcher Fall gemeint ist — entschieden
+            // wird die Frage aber serverseitig, und dort steht auch ihr Test.
+            buchbar: BUCHBARE_STAENDE.includes(p.status),
+            grund_gegen_buchung: BUCHBARE_STAENDE.includes(p.status) ? "" : "zu",
           })),
         },
       ],

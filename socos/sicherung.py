@@ -19,6 +19,7 @@ MODELLE_IM_ARCHIV = [
     "socos.Projekt",
     "socos.Projektphase",
     "socos.Arbeitspaket",
+    "socos.Pensum",
     "socos.Unteraufgabe",
     "socos.Zeitbuchung",
     "socos.Organisation",
@@ -57,6 +58,8 @@ LOESCHREIHENFOLGE = [
     "socos.Event",
     "socos.Zeitbuchung",
     "socos.Unteraufgabe",
+    # Zeigt auf Paket **und** Nutzer und steht deshalb vor beiden.
+    "socos.Pensum",
     "socos.Arbeitspaket",
     "socos.Projektphase",
     "socos.Projekt",

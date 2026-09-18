@@ -7,6 +7,8 @@ Die Sicherung. Zwei Sorten Test, und beide sind nötig:
 2. **Rundlauf** — was hineingeht, kommt wieder heraus. Auch die Datei.
 """
 
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -25,6 +27,7 @@ from socos.models import (
     Kontakt,
     Nutzer,
     Organisation,
+    Pensum,
     Projekt,
     Protokolleintrag,
     Verlaufseintrag,
@@ -449,3 +452,56 @@ def test_die_aufgabentafel_wandert_mit(tmp_path, medien, bearbeiter):
     allgemein = Aufgabe.objects.get(text="Kaffee bestellen")
     assert allgemein.person is None
     assert allgemein.erledigt
+
+
+@pytest.mark.django_db(transaction=True)
+def test_pensen_und_phasenlaufzeit_wandern_mit(tmp_path, medien, bearbeiter):
+    """
+    Das Pensum ist die Zahl, gegen die später „was habe ich hier noch offen"
+    gerechnet wird. Ein Archiv, das die Phasen und Pakete mitnimmt und die
+    Pensen weglässt, sähe vollständig aus — und beim Wiederherstellen stünde
+    jedes Arbeitspaket auf null Stunden, ohne dass irgendwo etwas fehlte.
+    """
+    projekt = Projekt.objects.create(titel="Arzneimittelspender")
+    phase = Projektphase.objects.create(
+        projekt=projekt,
+        titel="Laborprototypen entwickeln",
+        art=Phasenart.DEV,
+        von=date(2026, 10, 1),
+        bis=date(2027, 2, 28),
+    )
+    zu = Projektphase.objects.create(
+        projekt=projekt,
+        titel="Anforderungsmanagement",
+        art=Phasenart.DEV,
+        abgeschlossen=True,
+        reihenfolge=1,
+    )
+    paket = Arbeitspaket.objects.create(
+        phase=phase,
+        titel="AP02 – Vereinzelungsmechanik",
+        beschreibung="Das größte Paket, weil es den kritischen Pfad enthält.",
+    )
+    Pensum.objects.create(paket=paket, person=bearbeiter, stunden=Decimal("270.00"))
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+
+    Pensum.objects.all().hart_loeschen()
+    phase.von = None
+    phase.bis = None
+    phase.save()
+    zu.abgeschlossen = False
+    zu.save()
+
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    wieder = Projektphase.objects.get(titel="Laborprototypen entwickeln")
+    assert wieder.von == date(2026, 10, 1)
+    assert wieder.bis == date(2027, 2, 28)
+    assert Projektphase.objects.get(titel="Anforderungsmanagement").abgeschlossen
+
+    pensum = Pensum.objects.get(paket__titel="AP02 – Vereinzelungsmechanik")
+    assert pensum.stunden == Decimal("270.00")
+    assert pensum.person.email == bearbeiter.email
+    assert "kritischen Pfad" in pensum.paket.beschreibung

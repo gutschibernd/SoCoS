@@ -7,15 +7,19 @@
 
 import type { Projekt } from "./daten";
 
-/**
- * Auf diese Stände darf die Uhr laufen.
+/*
+ * **Ob ein Paket Zeit annimmt, entscheidet der Server** und schickt es als
+ * `paket.buchbar` mit; steht es auf `false`, sagt `grund_gegen_buchung`
+ * warum. Hier stand bis 2026-09-18 eine eigene Liste erlaubter Stände —
+ * eine zweite Wahrheit neben der des Servers, und die stille Sorte: Der
+ * Server hätte eine Buchung auf ein fertiges Paket angenommen, die Liste
+ * hier hat sie nur nicht angeboten.
  *
- * „fertig" und „verworfen" fehlen mit Absicht: Der Server ließe eine Buchung
- * darauf zwar zu, aber wer ein abgeschlossenes Paket in der Liste sieht,
- * bucht früher oder später darauf — und dann steht die Zeit im Nachweis an
- * einem Paket, das seit Monaten zu ist.
+ * Seit die Regel serverseitig gilt (`Arbeitspaket.grund_gegen_buchung`),
+ * wird sie hier gelesen und nicht nachgebaut. Sonst wäre beim nächsten
+ * Grund — eine abgeschlossene Projektphase war der erste — eine der beiden
+ * Stellen wieder falsch, und zwar die, die niemand ansieht.
  */
-export const BUCHBAR = ["offen", "laeuft", "eingereicht", "zugesagt", "offene_frage"];
 
 export type Buchungsziel = { id: number; titel: string; projekt: string };
 
@@ -25,7 +29,7 @@ export function buchbarePakete(projekte: Projekt[]): Map<number, Buchungsziel> {
   for (const projekt of projekte) {
     for (const phase of projekt.phasen) {
       for (const paket of phase.pakete) {
-        if (BUCHBAR.includes(paket.status)) {
+        if (paket.buchbar) {
           offen.set(paket.id, { id: paket.id, titel: paket.titel, projekt: projekt.titel });
         }
       }
@@ -86,7 +90,7 @@ export function paketgruppen(projekte: Projekt[], auch: number[] = []): Paketgru
     const pakete: Buchungsziel[] = [];
     for (const phase of projekt.phasen) {
       for (const paket of phase.pakete) {
-        if (!BUCHBAR.includes(paket.status) && !auch.includes(paket.id)) continue;
+        if (!paket.buchbar && !auch.includes(paket.id)) continue;
         pakete.push({ id: paket.id, titel: `${phase.titel} · ${paket.titel}`, projekt: projekt.titel });
       }
     }

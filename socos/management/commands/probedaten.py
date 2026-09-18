@@ -185,10 +185,10 @@ class Command(BaseCommand):
 
         pakete = {}
 
-        def paket(phase, titel, status="offen", stand=0, notiz="", nr=0):
+        def paket(phase, titel, status="offen", stand=0, beschreibung="", nr=0):
             p = Arbeitspaket.objects.create(
                 phase=phase, titel=titel, status=status,
-                stufenstand=stand, notiz=notiz, reihenfolge=nr,
+                stufenstand=stand, beschreibung=beschreibung, reihenfolge=nr,
             )
             pakete[titel] = p
             return p

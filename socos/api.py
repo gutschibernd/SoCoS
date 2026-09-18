@@ -33,6 +33,7 @@ from socos.models import (
     Monatskosten,
     Nutzer,
     Organisation,
+    Pensum,
     Projekt,
     Projektphase,
     Protokolleintrag,
@@ -149,6 +150,17 @@ class ArbeitspaketViewSet(SocosViewSet):
         return Response(self.get_serializer(paket).data)
 
 
+class PensumViewSet(SocosViewSet):
+    serializer_class = ser.PensumSerializer
+    queryset = Pensum.objects.select_related("paket", "person")
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        if paket := self.request.query_params.get("paket"):
+            menge = menge.filter(paket_id=paket)
+        return menge
+
+
 class UnteraufgabeViewSet(SocosViewSet):
     serializer_class = ser.UnteraufgabeSerializer
     queryset = Unteraufgabe.objects.select_related("paket")
@@ -227,13 +239,21 @@ class ZeitbuchungViewSet(SocosViewSet):
         return Response({"laufend": self.get_serializer(buchung).data if buchung else None})
 
     def _paket(self, request):
-        """Das Paket aus der Anfrage — oder None, wenn keines mitkam."""
+        """
+        Das Paket aus der Anfrage — oder None, wenn keines mitkam.
+
+        Hier steht die Torwache für Start und Umbuchen: Beide wählen ein Paket
+        als **Ziel**, und beide kamen bisher an jeder Prüfung vorbei, weil die
+        Liste der buchbaren Stände nur im Frontend stand.
+        """
         paket_id = request.data.get("paket")
         if not paket_id:
             return None
         paket = Arbeitspaket.objects.filter(pk=paket_id).first()
         if paket is None:
             raise ValidationError({"paket": "Dieses Arbeitspaket gibt es nicht."})
+        if grund := paket.grund_gegen_buchung():
+            raise ValidationError({"paket": grund})
         return paket
 
     @action(detail=False, methods=["post"])

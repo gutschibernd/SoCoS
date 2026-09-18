@@ -791,14 +791,14 @@ function PaketZeile({
             <Stufenbearbeitung paket={paket} neuLaden={neuLaden} />
           )}
 
-          <div className="notiz">
+          <div className="beschreibung">
             <Feldtext
-              wert={paket.notiz}
+              wert={paket.beschreibung}
               mehrzeilig
-              platzhalter="Notiz zum Paket …"
+              platzhalter="Was in diesem Paket getan wird …"
               aendern={ich.darf.bearbeiten && bearbeiten}
-              speichern={async (notiz) => {
-                await aendern(`/pakete/${paket.id}/`, { notiz });
+              speichern={async (beschreibung) => {
+                await aendern(`/pakete/${paket.id}/`, { beschreibung });
                 neuLaden();
               }}
             />

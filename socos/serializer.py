@@ -21,6 +21,7 @@ from socos.models import (
     Monatskosten,
     Nutzer,
     Organisation,
+    Pensum,
     Projekt,
     Projektphase,
     Protokolleintrag,
@@ -74,17 +75,42 @@ class UnteraufgabeSerializer(serializers.ModelSerializer):
         fields = ["id", "paket", "titel", "erledigt", "reihenfolge"]
 
 
+class PensumSerializer(serializers.ModelSerializer):
+    person_name = serializers.CharField(source="person.name", read_only=True)
+
+    class Meta:
+        model = Pensum
+        fields = ["id", "paket", "person", "person_name", "stunden"]
+
+
 class ArbeitspaketSerializer(serializers.ModelSerializer):
     unteraufgaben = UnteraufgabeSerializer(many=True, read_only=True)
+    pensen = serializers.SerializerMethodField()
     fortschritt = serializers.SerializerMethodField()
     projekt = serializers.IntegerField(source="phase.projekt_id", read_only=True)
+    # Ob die Uhr hier laufen darf — und wenn nicht, warum. Der Grund kommt
+    # mit, damit die Oberfläche den Satz zeigen kann, statt einen Knopf
+    # kommentarlos auszugrauen.
+    buchbar = serializers.SerializerMethodField()
+    grund_gegen_buchung = serializers.SerializerMethodField()
 
     class Meta:
         model = Arbeitspaket
         fields = [
-            "id", "phase", "projekt", "titel", "notiz", "status", "stufenstand",
-            "reihenfolge", "stufen", "fortschritt", "unteraufgaben",
+            "id", "phase", "projekt", "titel", "beschreibung", "status", "stufenstand",
+            "reihenfolge", "stufen", "fortschritt", "unteraufgaben", "pensen",
+            "buchbar", "grund_gegen_buchung",
         ]
+
+    def get_pensen(self, paket):
+        menge = paket.pensen.filter(geloescht_am__isnull=True).order_by("person__name")
+        return PensumSerializer(menge, many=True, context=self.context).data
+
+    def get_buchbar(self, paket):
+        return paket.grund_gegen_buchung() is None
+
+    def get_grund_gegen_buchung(self, paket):
+        return paket.grund_gegen_buchung() or ""
 
     def get_fortschritt(self, paket):
         return auswertung.fortschritt(paket)
@@ -164,7 +190,10 @@ class ProjektphaseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Projektphase
-        fields = ["id", "projekt", "titel", "art", "reihenfolge", "pakete"]
+        fields = [
+            "id", "projekt", "titel", "art", "reihenfolge",
+            "von", "bis", "abgeschlossen", "pakete",
+        ]
 
     def get_pakete(self, phase):
         # Nur die nicht gelöschten: über die Beziehung käme sonst auch weich
@@ -230,6 +259,15 @@ class ZeitbuchungSerializer(serializers.ModelSerializer):
         ende = daten.get("ende", getattr(self.instance, "ende", None))
         if start and ende and ende <= start:
             raise serializers.ValidationError({"ende": "Das Ende muss nach dem Start liegen."})
+
+        # Nur ein **neu gewähltes** Ziel wird geprüft. Eine Buchung, deren
+        # Phase inzwischen abgeschlossen ist, muss weiter änderbar bleiben:
+        # Sonst wäre ein Tippfehler in der Uhrzeit für immer eingefroren, und
+        # der einzige Ausweg wäre das Löschen der Zeit.
+        paket = daten.get("paket")
+        if paket is not None and paket != getattr(self.instance, "paket", None):
+            if grund := paket.grund_gegen_buchung():
+                raise serializers.ValidationError({"paket": grund})
         return daten
 
 

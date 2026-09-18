@@ -88,23 +88,40 @@ export type Aufgabe = {
 
 export type Stufe = { name: string; monate: number };
 export type Unteraufgabe = { id: number; paket: number; titel: string; erledigt: boolean };
+export type Pensum = {
+  id: number;
+  paket: number;
+  person: number;
+  person_name: string;
+  /** Zeichenkette, nicht Zahl — Stunden sind Decimal (siehe CLAUDE.md). */
+  stunden: string;
+};
 export type Paket = {
   id: number;
   phase: number;
   projekt: number;
   titel: string;
-  notiz: string;
+  beschreibung: string;
   status: string;
   stufenstand: number;
   stufen: Stufe[];
   fortschritt: number;
   unteraufgaben: Unteraufgabe[];
+  pensen: Pensum[];
+  /** Ob die Uhr hier laufen darf. Der Server entscheidet, nicht die Liste unten. */
+  buchbar: boolean;
+  /** Leer, wenn buchbar — sonst der Satz, der es erklärt. */
+  grund_gegen_buchung: string;
 };
 export type Projektphase = {
   id: number;
   projekt: number;
   titel: string;
   art: "dev" | "fin" | "ziel";
+  /** JJJJ-MM-TT oder null — eine Phase, die erst ansteht, hat noch kein Datum. */
+  von: string | null;
+  bis: string | null;
+  abgeschlossen: boolean;
   pakete: Paket[];
 };
 export type Projekt = {

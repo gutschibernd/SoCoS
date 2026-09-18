@@ -24,6 +24,27 @@ VERSIONEN = [
         "titel": "Projektphasen statt Bereiche — und eine aufgeräumte Startseite",
         "punkte": [
             {
+                "titel": "Auf eine abgeschlossene Phase läuft keine Uhr mehr",
+                "text": (
+                    "Eine Projektphase lässt sich abschließen. Danach nimmt "
+                    "keines ihrer Arbeitspakete mehr Zeit an — weder über die "
+                    "Uhr noch über das Nachtragen. Was schon gebucht ist, "
+                    "bleibt änderbar, und eine laufende Uhr lässt sich noch "
+                    "stoppen."
+                ),
+                "wo": "projekt",
+            },
+            {
+                "titel": "Stunden je Arbeitspaket und Person",
+                "text": (
+                    "Ein Arbeitspaket kann festhalten, wie viele Stunden für "
+                    "wen darin vorgesehen sind — im Arbeitsplan steht das als "
+                    "„AP02: BG 270 h, FD 140 h“. Die Phase bekommt dazu "
+                    "Beginn und Ende."
+                ),
+                "wo": "projekt",
+            },
+            {
                 "titel": "Aus dem „Bereich“ wird die „Projektphase“",
                 "text": (
                     "Die Ebene zwischen Projekt und Arbeitspaket heißt jetzt "

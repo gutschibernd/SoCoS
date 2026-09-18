@@ -973,7 +973,7 @@ a.leiste-knopf { text-decoration: none; }
 select.status { border: 1px solid transparent; min-height: var(--griff); padding: 6px 10px; }
 
 .paket-tiefe { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--rand); }
-.paket-tiefe .notiz { margin: 12px 0 0; font-size: 14px; color: var(--text-leise); line-height: 1.5; }
+.paket-tiefe .beschreibung { margin: 12px 0 0; font-size: 14px; color: var(--text-leise); line-height: 1.5; }
 
 .unteraufgaben { list-style: none; margin: 12px 0 0; padding: 0; }
 .unteraufgaben li { display: flex; align-items: center; gap: 9px; padding: 6px 0; font-size: 14px; }

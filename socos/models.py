@@ -375,6 +375,21 @@ class Projektphase(Basismodell):
     art = models.CharField("Art", max_length=8, choices=Phasenart.choices)
     reihenfolge = models.IntegerField("Reihenfolge", default=0)
 
+    # Die Laufzeit. Beide Felder dürfen leer bleiben: Eine Phase, die erst in
+    # zwei Jahren ansteht, hat noch kein Datum, und ein erfundenes wäre
+    # schlimmer als keines — es stünde in jeder Hochrechnung.
+    von = models.DateField("Beginn", null=True, blank=True)
+    bis = models.DateField("Ende", null=True, blank=True)
+
+    # Eine abgeschlossene Phase nimmt keine Zeit mehr an (siehe
+    # `darf_gebucht_werden` am Arbeitspaket).
+    #
+    # **Warum ein eigenes Merkmal und nicht „bis liegt in der Vergangenheit":**
+    # Eine Phase läuft regelmäßig über ihr geplantes Ende hinaus. Wäre das
+    # Datum die Sperre, fiele die Uhr an einem willkürlichen Morgen aus, ohne
+    # dass jemand etwas entschieden hätte.
+    abgeschlossen = models.BooleanField("abgeschlossen", default=False)
+
     class Meta(Basismodell.Meta):
         verbose_name = "Projektphase"
         verbose_name_plural = "Projektphasen"
@@ -400,12 +415,36 @@ class Paketstatus(models.TextChoices):
     OFFENE_FRAGE = "offene_frage", "offene Frage"
 
 
+#: Auf diese Stände darf die Uhr laufen.
+#:
+#: „fertig" und „verworfen" fehlen mit Absicht: Wer ein abgeschlossenes Paket
+#: in der Liste sieht, bucht früher oder später darauf — und dann steht die
+#: Zeit im Nachweis an einem Paket, das seit Monaten zu ist.
+#:
+#: **Die Liste stand bis 2026-09-18 nur im Frontend** (`basis/start.ts`). Dort
+#: ist sie eine Empfehlung: Sie räumt das Auswahlfeld auf, hält aber nichts
+#: auf, was an ihr vorbei kommt — ein `POST /api/zeiten/` mit der Paketnummer
+#: ging durch. Die Regel steht jetzt hier und wird serverseitig durchgesetzt;
+#: das Frontend liest sie weiter, damit gar nicht erst angeboten wird, was
+#: hinterher abgelehnt würde.
+BUCHBARE_STAENDE = (
+    Paketstatus.OFFEN,
+    Paketstatus.LAEUFT,
+    Paketstatus.EINGEREICHT,
+    Paketstatus.ZUGESAGT,
+    Paketstatus.OFFENE_FRAGE,
+)
+
+
 class Arbeitspaket(Basismodell):
     phase = models.ForeignKey(
         Projektphase, verbose_name="Projektphase", on_delete=models.PROTECT, related_name="pakete"
     )
     titel = models.CharField("Titel", max_length=250)
-    notiz = models.TextField("Notiz", blank=True)
+    # Hieß bis 2026-09-18 „notiz". Umbenannt, weil das Feld inzwischen den
+    # Absatz trägt, der das Paket erklärt — was darin steht, ist die Sache
+    # selbst und keine Randbemerkung dazu.
+    beschreibung = models.TextField("Beschreibung", blank=True)
     status = models.CharField(
         "Status", max_length=14, choices=Paketstatus.choices, default=Paketstatus.OFFEN
     )
@@ -433,6 +472,30 @@ class Arbeitspaket(Basismodell):
 
     def __str__(self):
         return self.titel
+
+    def grund_gegen_buchung(self):
+        """
+        Warum auf dieses Paket keine Zeit laufen darf — oder `None`.
+
+        Ein Satz und kein Wahrheitswert: Die Antwort wird dem Nutzer gezeigt,
+        und „nicht buchbar" sagt ihm nicht, was er stattdessen tun soll.
+        Gerufen wird das überall dort, wo ein Paket als **Ziel** gewählt
+        wird — nicht beim Beenden einer laufenden Buchung: Wird eine Phase
+        geschlossen, während die Uhr läuft, muss man sie noch stoppen können.
+        """
+        if self.geloescht_am is not None:
+            return "Dieses Arbeitspaket gibt es nicht mehr."
+        if self.phase.abgeschlossen:
+            return (
+                f"Die Projektphase „{self.phase.titel}“ ist abgeschlossen. "
+                "Auf ihre Arbeitspakete wird keine Zeit mehr gebucht."
+            )
+        if self.status not in BUCHBARE_STAENDE:
+            return (
+                f"Das Arbeitspaket „{self.titel}“ steht auf "
+                f"„{self.get_status_display()}“ und nimmt keine Zeit mehr an."
+            )
+        return None
 
     def save(self, *args, **kwargs):
         # Nur beim ersten Speichern füllen. Eine später geleerte Leiste ist
@@ -494,6 +557,59 @@ def auffangpaket():
         status=Paketstatus.LAEUFT,
         ist_auffang=True,
     )
+
+
+class Pensum(Basismodell):
+    """
+    Wie viele Stunden **eine bestimmte Person** für **ein Paket** vorgesehen
+    sind. Im Arbeitsplan steht das so: AP02 — BG 270 h, FD 140 h.
+
+    **Warum je Person und nicht eine Zahl am Paket:** „410 Stunden für AP02"
+    beantwortet nicht die Frage, die jemand am Morgen wirklich hat — nämlich
+    wie viel davon *er selbst* noch offen hat. Eine Gesamtzahl ließe sich
+    zwar durch die Zahl der Beteiligten teilen, aber genau das stimmt hier
+    nie: Der eine trägt 270 Stunden, der andere 140.
+
+    **Warum ein eigenes Modell und keine JSON-Liste am Paket:** Die Zahl wird
+    gegen die gebuchte Zeit derselben Person gerechnet. Das ist eine
+    Verknüpfung zum Nutzer, und die gehört in einen Fremdschlüssel — eine
+    Nummer in einem JSON-Feld hält niemand davon ab, auf ein gelöschtes Konto
+    zu zeigen.
+
+    Es gibt **höchstens einen** Eintrag je Paket und Person. Zwei wären zwei
+    Pensen für dieselbe Arbeit, und keine Anzeige könnte entscheiden, welches
+    gilt.
+    """
+
+    paket = models.ForeignKey(
+        Arbeitspaket,
+        verbose_name="Arbeitspaket",
+        on_delete=models.PROTECT,
+        related_name="pensen",
+    )
+    person = models.ForeignKey(
+        "Nutzer", verbose_name="Person", on_delete=models.PROTECT, related_name="pensen"
+    )
+    # Decimal, nicht Float: Stunden werden über ein Projekt summiert, und in
+    # Gleitkomma ist 0.1 + 0.2 nicht 0.3 (CLAUDE.md). Eine Viertelstunde ist
+    # die kleinste Einheit, die im Arbeitsplan vorkommt — zwei Nachkommastellen
+    # tragen sie.
+    stunden = models.DecimalField("Stunden", max_digits=7, decimal_places=2)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Pensum"
+        verbose_name_plural = "Pensen"
+        ordering = ["paket", "person"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["paket", "person"],
+                condition=models.Q(geloescht_am__isnull=True),
+                name="ein_pensum_je_paket_und_person",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.paket.titel} · {self.person.name}: {self.stunden} h"
 
 
 class Unteraufgabe(Basismodell):

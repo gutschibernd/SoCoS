@@ -8,6 +8,7 @@ from socos import api
 router = DefaultRouter()
 router.register("projekte", api.ProjektViewSet, basename="projekt")
 router.register("phasen", api.ProjektphaseViewSet, basename="projektphase")
+router.register("pensen", api.PensumViewSet, basename="pensum")
 router.register("pakete", api.ArbeitspaketViewSet, basename="paket")
 router.register("unteraufgaben", api.UnteraufgabeViewSet, basename="unteraufgabe")
 router.register("zeiten", api.ZeitbuchungViewSet, basename="zeit")

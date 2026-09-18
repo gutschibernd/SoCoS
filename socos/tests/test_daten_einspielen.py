@@ -44,8 +44,8 @@ GUELTIG = {
                     "titel": "Entwicklung",
                     "art": "dev",
                     "pakete": [
-                        {"titel": "Erstes Paket", "status": "laeuft", "notiz": "Notiz"},
-                        {"titel": "Zweites Paket", "status": "offen", "notiz": ""},
+                        {"titel": "Erstes Paket", "status": "laeuft", "beschreibung": "Ein Absatz"},
+                        {"titel": "Zweites Paket", "status": "offen", "beschreibung": ""},
                     ],
                 }
             ],

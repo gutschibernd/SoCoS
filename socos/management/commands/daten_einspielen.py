@@ -161,7 +161,7 @@ class Command(BaseCommand):
                         phase=phase,
                         titel=p["titel"],
                         status=p["status"],
-                        notiz=p.get("notiz", ""),
+                        beschreibung=p.get("beschreibung", ""),
                         reihenfolge=p_nr,
                     )
             self.stdout.write(
