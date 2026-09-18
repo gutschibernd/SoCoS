@@ -23,7 +23,6 @@ from socos import aenderungen, berechtigung, serializer as ser, sicherung
 from socos.models import (
     Arbeitspaket,
     Aufgabe,
-    Bereich,
     Event,
     Eventziel,
     Fixkosten,
@@ -35,6 +34,7 @@ from socos.models import (
     Nutzer,
     Organisation,
     Projekt,
+    Projektphase,
     Protokolleintrag,
     Rueckmeldung,
     Unteraufgabe,
@@ -84,19 +84,19 @@ class ProjektViewSet(SocosViewSet):
         return kontext
 
 
-class BereichViewSet(SocosViewSet):
-    serializer_class = ser.BereichSerializer
-    queryset = Bereich.objects.select_related("projekt")
+class ProjektphaseViewSet(SocosViewSet):
+    serializer_class = ser.ProjektphaseSerializer
+    queryset = Projektphase.objects.select_related("projekt")
 
 
 class ArbeitspaketViewSet(SocosViewSet):
     serializer_class = ser.ArbeitspaketSerializer
-    queryset = Arbeitspaket.objects.select_related("bereich", "bereich__projekt")
+    queryset = Arbeitspaket.objects.select_related("phase", "phase__projekt")
 
     def get_queryset(self):
         menge = super().get_queryset()
         if projekt := self.request.query_params.get("projekt"):
-            menge = menge.filter(bereich__projekt_id=projekt)
+            menge = menge.filter(phase__projekt_id=projekt)
         if status := self.request.query_params.get("status"):
             menge = menge.filter(status=status)
         return menge
@@ -166,7 +166,7 @@ class UnteraufgabeViewSet(SocosViewSet):
 class ZeitbuchungViewSet(SocosViewSet):
     serializer_class = ser.ZeitbuchungSerializer
     queryset = Zeitbuchung.objects.select_related(
-        "person", "paket", "paket__bereich", "paket__bereich__projekt"
+        "person", "paket", "paket__phase", "paket__phase__projekt"
     )
 
     def _schneide_vergessene(self):
@@ -194,7 +194,7 @@ class ZeitbuchungViewSet(SocosViewSet):
         if paket := self.request.query_params.get("paket"):
             menge = menge.filter(paket_id=paket)
         if projekt := self.request.query_params.get("projekt"):
-            menge = menge.filter(paket__bereich__projekt_id=projekt)
+            menge = menge.filter(paket__phase__projekt_id=projekt)
         return menge
 
     def perform_create(self, serializer):
@@ -800,7 +800,7 @@ def dashboard(request):
     laufende = {
         b.person_id: b
         for b in Zeitbuchung.objects.select_related(
-            "paket", "paket__bereich", "paket__bereich__projekt"
+            "paket", "paket__phase", "paket__phase__projekt"
         ).filter(ende__isnull=True)
     }
 

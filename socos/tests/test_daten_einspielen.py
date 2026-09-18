@@ -14,7 +14,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 
 from socos import berechtigung
-from socos.models import Arbeitspaket, Bereich, Nutzer, Projekt
+from socos.models import Arbeitspaket, Projektphase, Nutzer, Projekt
 
 
 @pytest.fixture(autouse=True)
@@ -39,7 +39,7 @@ GUELTIG = {
             "untertitel": "Untertitel",
             "farbe": "#14595F",
             "gebucht": "34:20",
-            "bereiche": [
+            "phasen": [
                 {
                     "titel": "Entwicklung",
                     "art": "dev",
@@ -72,18 +72,18 @@ def test_spielt_team_und_projekte_ein(tmp_path):
 
     projekt = Projekt.objects.get(titel="Ein Projekt")
     assert projekt.untertitel == "Untertitel"
-    bereich = Bereich.objects.get(projekt=projekt)
-    # Die Stufen kommen aus der Vorlage der Bereichsart, nicht aus der Datei —
-    # und sie hängen am Paket, nicht am Bereich.
-    assert all(p.stufen for p in Arbeitspaket.objects.filter(bereich=bereich))
+    phase = Projektphase.objects.get(projekt=projekt)
+    # Die Stufen kommen aus der Vorlage der Phasenart, nicht aus der Datei —
+    # und sie hängen am Paket, nicht am Projektphase.
+    assert all(p.stufen for p in Arbeitspaket.objects.filter(phase=phase))
     assert list(
-        Arbeitspaket.objects.filter(bereich=bereich).values_list("titel", "status")
+        Arbeitspaket.objects.filter(phase=phase).values_list("titel", "status")
     ) == [("Erstes Paket", "laeuft"), ("Zweites Paket", "offen")]
 
 
 def test_unbekannter_status_schreibt_nichts(tmp_path):
     daten = json.loads(json.dumps(GUELTIG))
-    daten["projekte"][0]["bereiche"][0]["pakete"][1]["status"] = "pausiert"
+    daten["projekte"][0]["phasen"][0]["pakete"][1]["status"] = "pausiert"
 
     with pytest.raises(CommandError, match="pausiert"):
         call_command("daten_einspielen", datei=_datei(tmp_path, daten))

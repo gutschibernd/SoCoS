@@ -14,7 +14,7 @@ function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[
       // sucht nach Farbwerten im Frontend, und diese Farbe wird nie gezeichnet.
       farbe: "var(--marke)",
       gebuchte_sekunden: 0,
-      bereiche: [
+      phasen: [
         {
           id: 1,
           projekt: 1,
@@ -22,7 +22,7 @@ function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[
           art: "dev",
           pakete: pakete.map((p) => ({
             id: p.id,
-            bereich: 1,
+            phase: 1,
             projekt: 1,
             titel: p.titel,
             notiz: "",
@@ -111,7 +111,7 @@ describe("paketgruppen", () => {
     { id: 9, titel: "Abgeschlossen", status: "fertig" },
   ]);
 
-  it("gruppiert nach Projekt und nennt den Bereich mit", () => {
+  it("gruppiert nach Projekt und nennt die Projektphase mit", () => {
     expect(paketgruppen(projekte)).toEqual([
       { projekt: "Zulassung", pakete: [{ id: 1, titel: "Dossier · Modul 3", projekt: "Zulassung" }] },
     ]);
@@ -141,7 +141,7 @@ describe("paketeSuchen", () => {
   it("findet über Projekt und Paket, wortweise und in beliebiger Reihenfolge", () => {
     expect(paketeSuchen(gruppen, "dauer").map((p) => p.id)).toEqual([1]);
     expect(paketeSuchen(gruppen, "DAUER").map((p) => p.id)).toEqual([1]);
-    // „Zulassung" ist das Projekt, „Dossier" der Bereich, „Risiko" das Paket.
+    // „Zulassung" ist das Projekt, „Dossier" die Projektphase, „Risiko" das Paket.
     expect(paketeSuchen(gruppen, "risiko zulassung").map((p) => p.id)).toEqual([2]);
   });
 

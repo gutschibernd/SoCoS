@@ -21,8 +21,19 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-18",
-        "titel": "Startseite: Organisation und lose Person in einer Kachel",
+        "titel": "Projektphasen statt Bereiche — und eine aufgeräumte Startseite",
         "punkte": [
+            {
+                "titel": "Aus dem „Bereich“ wird die „Projektphase“",
+                "text": (
+                    "Die Ebene zwischen Projekt und Arbeitspaket heißt jetzt "
+                    "Projektphase. Sie ist das auch: ein Abschnitt mit Anfang, "
+                    "Ende und Pensum, auf den der nächste folgt. An den Daten "
+                    "ändert sich nichts — alle Pakete und Buchungen hängen "
+                    "dort, wo sie vorher hingen."
+                ),
+                "wo": "projekt",
+            },
             {
                 "titel": "Eine Kachel statt zwei breiter Felder",
                 "text": (

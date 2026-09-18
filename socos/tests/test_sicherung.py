@@ -18,8 +18,8 @@ from socos import sicherung
 from socos.models import (
     Arbeitspaket,
     Aufgabe,
-    Bereich,
-    Bereichsart,
+    Projektphase,
+    Phasenart,
     Event,
     Eventziel,
     Kontakt,
@@ -135,9 +135,9 @@ def test_die_stufenleiste_eines_pakets_wandert_mit(tmp_path, medien, admin_nutze
     fiele erst beim Wiederherstellen auf.
     """
     projekt = Projekt.objects.create(titel="Rundlauf")
-    bereich = Bereich.objects.create(projekt=projekt, titel="Entwicklung", art=Bereichsart.DEV)
+    phase = Projektphase.objects.create(projekt=projekt, titel="Entwicklung", art=Phasenart.DEV)
     paket = Arbeitspaket.objects.create(
-        bereich=bereich,
+        phase=phase,
         titel="Eigene Leiste",
         stufen=[{"name": "Sondierung", "monate": 7}, {"name": "Bau", "monate": 2}],
         stufenstand=1,

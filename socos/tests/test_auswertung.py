@@ -6,15 +6,15 @@ import pytest
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
-from socos.models import Arbeitspaket, Bereich, Bereichsart, Projekt, Zeitbuchung
+from socos.models import Arbeitspaket, Projektphase, Phasenart, Projekt, Zeitbuchung
 from socos.services import auswertung, zeit
 
 
 @pytest.fixture
 def paket(db):
     p = Projekt.objects.create(titel="Arzneimittelspender")
-    b = Bereich.objects.create(projekt=p, titel="Entwicklung", art=Bereichsart.DEV)
-    return Arbeitspaket.objects.create(bereich=b, titel="Dauerlauftests")
+    b = Projektphase.objects.create(projekt=p, titel="Entwicklung", art=Phasenart.DEV)
+    return Arbeitspaket.objects.create(phase=b, titel="Dauerlauftests")
 
 
 def buchung(person, paket, start, minuten=None, entwurf=False):
@@ -29,17 +29,17 @@ def buchung(person, paket, start, minuten=None, entwurf=False):
 
 @pytest.mark.django_db
 class TestStufen:
-    def test_paket_bekommt_die_vorlage_der_bereichsart(self, paket):
+    def test_paket_bekommt_die_vorlage_der_phasenart(self, paket):
         namen = [s["name"] for s in paket.stufen]
         assert namen == ["Konzept", "Umsetzung", "Test", "Abschluss"]
 
     def test_die_kopie_ist_danach_frei_aenderbar(self, paket):
         """
         Kopiert, nicht verwiesen: Eine Änderung an diesem Paket darf kein
-        anderes berühren — auch keines im selben Bereich. Genau dafür sitzt
+        anderes berühren — auch keines im selben Projektphase. Genau dafür sitzt
         die Leiste am Paket.
         """
-        anderes = Arbeitspaket.objects.create(bereich=paket.bereich, titel="Zweites Paket")
+        anderes = Arbeitspaket.objects.create(phase=paket.phase, titel="Zweites Paket")
         paket.stufen[1]["monate"] = 12
         paket.save()
         anderes.refresh_from_db()

@@ -136,7 +136,7 @@ def _tabelle(buchungen):
         zeilen.append([
             Paragraph(f"{start:%d.%m.}", stile["zelle"]),
             Paragraph(
-                f"{b.paket.bereich.projekt.titel} · {b.paket.titel}", stile["zelle"]
+                f"{b.paket.phase.projekt.titel} · {b.paket.titel}", stile["zelle"]
             ),
             Paragraph(f"{start:%H:%M}", stile["zahl"]),
             Paragraph(f"{ende:%H:%M}" if ende else "läuft", stile["zahl"]),

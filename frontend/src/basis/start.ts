@@ -23,8 +23,8 @@ export type Buchungsziel = { id: number; titel: string; projekt: string };
 export function buchbarePakete(projekte: Projekt[]): Map<number, Buchungsziel> {
   const offen = new Map<number, Buchungsziel>();
   for (const projekt of projekte) {
-    for (const bereich of projekt.bereiche) {
-      for (const paket of bereich.pakete) {
+    for (const phase of projekt.phasen) {
+      for (const paket of phase.pakete) {
         if (BUCHBAR.includes(paket.status)) {
           offen.set(paket.id, { id: paket.id, titel: paket.titel, projekt: projekt.titel });
         }
@@ -84,10 +84,10 @@ export function paketgruppen(projekte: Projekt[], auch: number[] = []): Paketgru
   const gruppen: Paketgruppe[] = [];
   for (const projekt of projekte) {
     const pakete: Buchungsziel[] = [];
-    for (const bereich of projekt.bereiche) {
-      for (const paket of bereich.pakete) {
+    for (const phase of projekt.phasen) {
+      for (const paket of phase.pakete) {
         if (!BUCHBAR.includes(paket.status) && !auch.includes(paket.id)) continue;
-        pakete.push({ id: paket.id, titel: `${bereich.titel} · ${paket.titel}`, projekt: projekt.titel });
+        pakete.push({ id: paket.id, titel: `${phase.titel} · ${paket.titel}`, projekt: projekt.titel });
       }
     }
     if (pakete.length > 0) gruppen.push({ projekt: projekt.titel, pakete });

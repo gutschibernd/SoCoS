@@ -21,7 +21,7 @@ def buchungen(von=None, bis=None, person=None, projekt=None, mit_entwuerfen=Fals
     bestätigt hat. Sie sollen sichtbar sein, aber keine Summe verfälschen.
     """
     menge = Zeitbuchung.objects.select_related(
-        "person", "paket", "paket__bereich", "paket__bereich__projekt"
+        "person", "paket", "paket__phase", "paket__phase__projekt"
     )
     if not mit_entwuerfen:
         menge = menge.filter(ist_entwurf=False)
@@ -32,7 +32,7 @@ def buchungen(von=None, bis=None, person=None, projekt=None, mit_entwuerfen=Fals
     if person:
         menge = menge.filter(person=person)
     if projekt:
-        menge = menge.filter(paket__bereich__projekt=projekt)
+        menge = menge.filter(paket__phase__projekt=projekt)
     return menge
 
 
@@ -52,7 +52,7 @@ def sekunden_je_person(von=None, bis=None):
 def sekunden_je_projekt(von=None, bis=None):
     roh = {}
     for b in buchungen(von, bis):
-        roh.setdefault(b.paket.bereich.projekt_id, []).append(zeitdienst.dauer(b))
+        roh.setdefault(b.paket.phase.projekt_id, []).append(zeitdienst.dauer(b))
     return {pid: zeitdienst.summe_gerundet(werte) for pid, werte in roh.items()}
 
 
@@ -66,7 +66,7 @@ def sekunden_je_paket(von=None, bis=None):
 def laufende_buchung(person):
     """Die eine laufende Buchung einer Person, oder None."""
     return (
-        Zeitbuchung.objects.select_related("paket", "paket__bereich", "paket__bereich__projekt")
+        Zeitbuchung.objects.select_related("paket", "paket__phase", "paket__phase__projekt")
         .filter(person=person, ende__isnull=True)
         .first()
     )
@@ -78,7 +78,7 @@ def offene_entwuerfe(person=None):
     müssen. Sie stehen der Person beim nächsten Öffnen vor der Nase.
     """
     menge = Zeitbuchung.objects.select_related(
-        "paket", "paket__bereich", "paket__bereich__projekt"
+        "paket", "paket__phase", "paket__phase__projekt"
     ).filter(ist_entwurf=True)
     if person:
         menge = menge.filter(person=person)

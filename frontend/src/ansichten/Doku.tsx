@@ -432,8 +432,8 @@ function ProjektDoku() {
             <em>Die Sache selbst — „Arzneimittelspender“.</em>
             <ul>
               <li>
-                <b>Bereich</b>
-                <em>Entwicklung, Finanzierung, Ziel. Gliedert das Projekt.</em>
+                <b>Projektphase</b>
+                <em>Ein Abschnitt mit Anfang, Ende und Pensum — auf ihn folgt der nächste.</em>
                 <ul>
                   <li>
                     <b>Arbeitspaket</b>

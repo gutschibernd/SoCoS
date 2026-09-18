@@ -90,7 +90,7 @@ export type Stufe = { name: string; monate: number };
 export type Unteraufgabe = { id: number; paket: number; titel: string; erledigt: boolean };
 export type Paket = {
   id: number;
-  bereich: number;
+  phase: number;
   projekt: number;
   titel: string;
   notiz: string;
@@ -100,7 +100,7 @@ export type Paket = {
   fortschritt: number;
   unteraufgaben: Unteraufgabe[];
 };
-export type Bereich = {
+export type Projektphase = {
   id: number;
   projekt: number;
   titel: string;
@@ -112,7 +112,7 @@ export type Projekt = {
   titel: string;
   untertitel: string;
   farbe: string;
-  bereiche: Bereich[];
+  phasen: Projektphase[];
   gebuchte_sekunden: number;
 };
 

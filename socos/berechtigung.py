@@ -45,7 +45,7 @@ def darf_sehen(nutzer):
 
 
 def darf_bearbeiten(nutzer):
-    """Projekte, Bereiche, Pakete, Kontakte, Zeiten anlegen und ändern."""
+    """Projekte, Projektphasen, Pakete, Kontakte, Zeiten anlegen und ändern."""
     return rolle(nutzer) in (ADMIN, BEARBEITER)
 
 

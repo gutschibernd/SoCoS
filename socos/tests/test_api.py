@@ -12,8 +12,8 @@ from django.utils import timezone
 from socos.models import (
     AUFFANG_PROJEKT,
     Arbeitspaket,
-    Bereich,
-    Bereichsart,
+    Projektphase,
+    Phasenart,
     Fixkosten,
     Kontostand,
     Organisation,
@@ -25,8 +25,8 @@ from socos.models import (
 @pytest.fixture
 def paket(db):
     p = Projekt.objects.create(titel="Arzneimittelspender")
-    b = Bereich.objects.create(projekt=p, titel="Entwicklung", art=Bereichsart.DEV)
-    return Arbeitspaket.objects.create(bereich=b, titel="Dauerlauftests")
+    b = Projektphase.objects.create(projekt=p, titel="Entwicklung", art=Phasenart.DEV)
+    return Arbeitspaket.objects.create(phase=b, titel="Dauerlauftests")
 
 
 class TestBerechtigungAnDerSchnittstelle:
@@ -156,7 +156,7 @@ class TestUhr:
         macht die Oberfläche — der Server darf nicht davon abhängen, dass
         jemand einen Dialog beantwortet.
         """
-        zweites = Arbeitspaket.objects.create(bereich=paket.bereich, titel="MVP")
+        zweites = Arbeitspaket.objects.create(phase=paket.phase, titel="MVP")
         client.force_login(bearbeiter)
         client.post("/api/zeiten/clock_in/", {"paket": paket.pk}, content_type="application/json")
         client.post(
@@ -215,7 +215,7 @@ class TestZeitOhnePaket:
     def test_ein_vorhandenes_overhead_projekt_wird_benutzt(self, client, bearbeiter):
         """Kein zweites Projekt gleichen Namens daneben."""
         vorhanden = Projekt.objects.create(titel="Overhead")
-        Bereich.objects.create(projekt=vorhanden, titel="Laufendes", art=Bereichsart.DEV)
+        Projektphase.objects.create(projekt=vorhanden, titel="Laufendes", art=Phasenart.DEV)
         client.force_login(bearbeiter)
 
         buchung = client.post("/api/zeiten/clock_in/", {}, content_type="application/json").json()
@@ -256,7 +256,7 @@ class TestZeitOhnePaket:
     def test_eine_bestehende_buchung_laesst_sich_umhaengen(self, client, bearbeiter, paket):
         """„Das Arbeitspaket ändern" gilt für alle Buchungen, nicht nur für die
         laufende."""
-        anderes = Arbeitspaket.objects.create(bereich=paket.bereich, titel="MVP")
+        anderes = Arbeitspaket.objects.create(phase=paket.phase, titel="MVP")
         buchung = Zeitbuchung.objects.create(
             person=bearbeiter,
             paket=paket,
@@ -412,12 +412,12 @@ class TestStufenleiste:
 @pytest.mark.django_db
 class TestStufenAmPaket:
     """
-    Die Leiste hängt am Paket, nicht am Bereich — zwei Pakete nebeneinander
+    Die Leiste hängt am Paket, nicht am Projektphase — zwei Pakete nebeneinander
     dürfen verschiedene Stufen und verschiedene Dauern haben.
     """
 
-    def test_zwei_pakete_im_selben_bereich_gehen_auseinander(self, client, bearbeiter, paket):
-        zweites = Arbeitspaket.objects.create(bereich=paket.bereich, titel="Zweites")
+    def test_zwei_pakete_in_derselben_phase_gehen_auseinander(self, client, bearbeiter, paket):
+        zweites = Arbeitspaket.objects.create(phase=paket.phase, titel="Zweites")
         client.force_login(bearbeiter)
         antwort = client.patch(
             f"/api/pakete/{paket.pk}/",
@@ -539,7 +539,7 @@ class TestLoeschen:
             ende=timezone.now(),
         )
         client.force_login(admin_nutzer)
-        antwort = client.delete(f"/api/projekte/{paket.bereich.projekt.pk}/")
+        antwort = client.delete(f"/api/projekte/{paket.phase.projekt.pk}/")
         assert antwort.status_code == 409
         assert antwort.json()["code"] == "in_verwendung"
         assert antwort.json()["verwendet_von"]

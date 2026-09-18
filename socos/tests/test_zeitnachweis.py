@@ -8,15 +8,15 @@ from datetime import date, datetime, timedelta
 import pytest
 from django.utils import timezone
 
-from socos.models import Arbeitspaket, Bereich, Bereichsart, Projekt, Zeitbuchung
+from socos.models import Arbeitspaket, Projektphase, Phasenart, Projekt, Zeitbuchung
 from socos.services import zeitnachweis
 
 
 @pytest.fixture
 def paket(db):
     p = Projekt.objects.create(titel="Arzneimittelspender")
-    b = Bereich.objects.create(projekt=p, titel="Entwicklung", art=Bereichsart.DEV)
-    return Arbeitspaket.objects.create(bereich=b, titel="Dauerlauftests")
+    b = Projektphase.objects.create(projekt=p, titel="Entwicklung", art=Phasenart.DEV)
+    return Arbeitspaket.objects.create(phase=b, titel="Dauerlauftests")
 
 
 def buchung(person, paket, tag, stunde, minuten, entwurf=False):

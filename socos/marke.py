@@ -1,5 +1,5 @@
 """
-Das Signet der Marke: vier abgestufte Balken — Projekt · Bereich ·
+Das Signet der Marke: vier abgestufte Balken — Projekt · Projektphase ·
 Arbeitspaket · Unteraufgabe — auf einem dunklen Feld mit gestreuten Splittern.
 Der kupferne Balken ist das Arbeitspaket, die Ebene, an der die Uhr hängt und
 an der jede Buchung klebt.
@@ -49,7 +49,7 @@ RASTER = 64
 # bekommt den größeren Rand.
 BALKEN = [
     (12, 12, 40, 8, HELL),     # Projekt
-    (12, 24, 32, 8, HELL),     # Bereich
+    (12, 24, 32, 8, HELL),     # Projektphase
     (12, 36, 24, 8, KUPFER),   # Arbeitspaket — hier hängt die Uhr
     (12, 48, 16, 8, HELL),     # Unteraufgabe
 ]

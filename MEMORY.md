@@ -1554,7 +1554,7 @@ kein `git rm` holt sie wieder heraus.
 **Der Befehl prüft erst, dann schreibt er.** Ein unbekannter Status mitten im
 Einspielen bräche zwar die Transaktion ab — aber erst, nachdem die Hälfte
 durchgelaufen ist, und die Meldung nennt dann einen einzigen Titel statt aller
-Stellen, die noch anstehen. Geprüft werden Bereichsart, Paketstatus, E-Mail und
+Stellen, die noch anstehen. Geprüft werden Phasenart, Paketstatus, E-Mail und
 Rolle; die Meldung listet alle Verstöße auf einmal.
 
 **Was die Datei repariert werden musste**, um zum Modell zu passen:
@@ -1660,7 +1660,7 @@ geplant; die Leser-Rolle existiert für den Fall, dass Mitarbeiter dazukommen.
 
 ### Struktur
 
-Vier Ebenen: **Projekt → Bereich → Arbeitspaket → Unteraufgabe.** Unteraufgaben waren
+Vier Ebenen: **Projekt → Projektphase → Arbeitspaket → Unteraufgabe.** Unteraufgaben waren
 im Entwurf schon angelegt (`item.subs`) und sind ausdrücklich gewünscht.
 
 „Overhead" ist **kein Sonderfall im Code**, sondern ein ganz normales Projekt, das
@@ -1668,19 +1668,28 @@ angelegt wird. Sonst gäbe es zwei Wege, Zeit zu verbuchen, und jede Auswertung 
 beide kennen. Das eine Paket darin, auf das die Uhr ohne Paketwahl läuft, trägt seit
 `0013` das Merkmal `ist_auffang` — siehe den Eintrag vom 2026-09-14.
 
-Bereichsart bleibt die feste Aufzählung `dev` · `fin` · `ziel`. Sie wählt die
+Phasenart bleibt die feste Aufzählung `dev` · `fin` · `ziel`. Sie wählt die
 Vorlage für die Stufenliste eines neuen Pakets, sonst nichts.
+
+**Die mittlere Ebene hieß bis 2026-09-18 „Bereich"** (Migration `0017`). Umbenannt,
+weil sie in der Sache eine Phase ist: ein Abschnitt mit Anfang, Ende und Pensum, auf
+den der nächste folgt. „Bereich" klang nach einem Fach im Regal und ließ offen, ob
+zwei davon nebeneinander oder nacheinander laufen — bei einer Kette wie
+Anforderungsmanagement → Laborprototypen → Pilotvalidierung ist genau das die Frage.
+Die Umbenennung geht durch bis in die API (`/api/phasen/`) und in den Schlüssel
+`phasen` in `daten/sopharmis-daten.json`; `daten_einspielen` weist eine Datei mit dem
+alten Schlüssel ausdrücklich zurück, statt ein Projekt ohne jede Phase anzulegen.
 
 ### Stufen
 
 Ein **Arbeitspaket** trägt seine eigene Stufenliste (Name + Dauer in Monaten). Beim
-Anlegen wird sie aus der Vorlage der Bereichsart kopiert und ist danach frei
+Anlegen wird sie aus der Vorlage der Phasenart kopiert und ist danach frei
 änderbar — Namen wie Dauern.
 
-**Warum am Paket und nicht am Bereich** (seit Migration `0004`, davor lag sie am
-Bereich): Ein Bereich enthält Pakete verschiedenen Zuschnitts. Ein Antrag, ein
-Prototyp und eine Doku laufen weder über dieselben Stufen noch über dieselben
-Dauern. Eine Leiste für alle Pakete eines Bereichs zeigt für die meisten einen
+**Warum am Paket und nicht an der Phase** (seit Migration `0004`, davor lag sie
+eine Ebene höher): Eine Phase enthält Pakete verschiedenen Zuschnitts. Ein Antrag,
+ein Prototyp und eine Doku laufen weder über dieselben Stufen noch über dieselben
+Dauern. Eine Leiste für alle Pakete einer Phase zeigt für die meisten einen
 Fortschritt, der so nie gemessen wurde.
 
 **Warum kopieren statt vererben:** „je Paket anpassbar" wäre auch über eine
@@ -1724,7 +1733,7 @@ Die fünf im JSON waren eine Vereinfachung. Für Förderanträge sind „eingere
 
 ### Zeit
 
-- Buchung hängt **am Arbeitspaket** (Pflicht), nicht am Projekt. Projekt und Bereich
+- Buchung hängt **am Arbeitspaket** (Pflicht), nicht am Projekt. Projekt und Phase
   ergeben sich daraus. Unteraufgaben bekommen keine eigenen Buchungen — eine Ebene
   reicht, sonst zerfällt jede Auswertung in zwei Töpfe.
 - **Rundung auf 5 Minuten erst in der Auswertung**, nie beim Speichern. Gespeichert
@@ -1775,7 +1784,7 @@ stehen an genau einer Stelle in `socos/berechtigung.py`.
 | Alles sehen, inkl. Finanzen und fremder Stunden | ✓ | ✓ | ✓ |
 | Eigene Zeiten buchen und ändern | ✓ | ✓ | — |
 | Fremde Zeiten ändern | ✓ | ✓ | — |
-| Projekte, Bereiche, Pakete, Kontakte pflegen | ✓ | ✓ | — |
+| Projekte, Phasen, Pakete, Kontakte pflegen | ✓ | ✓ | — |
 | Finanzen eintragen | ✓ | — | — |
 | Löschen | ✓ | — | — |
 | Nutzer und Rollen verwalten | ✓ | — | — |
@@ -1836,7 +1845,7 @@ DejaVu (Vera-Lizenz) oder Figtree (OFL). *(Nachtrag 2026-09-12: Die Schrift der
 Oberfläche ist jetzt Archivo — siehe den Eintrag zur neuen visuellen Sprache.
 Das Argument bleibt dasselbe, nur der Name der Umgebungsschrift ändert sich.)*
 
-**Signet: vier abgestufte Balken** — Projekt · Bereich · Arbeitspaket ·
+**Signet: vier abgestufte Balken** — Projekt · Projektphase · Arbeitspaket ·
 Unteraufgabe; der kupferne ist das Arbeitspaket, die Ebene, an der die Uhr
 hängt. Ein „S" im Quadrat wäre bei 16 px lesbarer gewesen, hätte neben
 „SoCoS · Sopharmis" in der Kopfleiste aber dieselbe Auskunft ein drittes Mal
@@ -1994,7 +2003,7 @@ Entscheidungen, die man dem Code sonst nicht ansieht:
   zweite Stelle, an der steht, was eine Buchung mit einer Projektsumme macht.
 - **Ein zweiter Klick auf dieselbe Stufe nimmt sie zurück.** Sonst käme man von
   einem Fehlgriff nur über den Umweg der Nachbarstufe wieder weg.
-- **Die Bereichsart wird nur angezeigt, wenn sie etwas hinzufügt.**
+- **Die Phasenart wird nur angezeigt, wenn sie etwas hinzufügt.**
   „Entwicklung Entwicklung" ist Rauschen, das man beim Lesen aussortiert.
 - **Das Überspringen der Clock-out-Notiz fragt einmal nach.** Eine erzwungene
   Notiz führt dazu, dass „x" eingetragen wird — und dann steht überall „x".

@@ -25,7 +25,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   // bleibt und eine neue Seite ohne Zeile nicht durchrutscht.
   start: { titel: "Start", unter: "Womit geht's los?" },
   dashboard: { titel: "Dashboard", unter: "Woche, Geld, Fortschritt" },
-  projekt: { titel: "Projekt", unter: "Bereiche, Arbeitspakete, Stufen" },
+  projekt: { titel: "Projekt", unter: "Projektphasen, Arbeitspakete, Stufen" },
   zeit: { titel: "Zeit", unter: "Buchungen und Nachträge" },
   aufgaben: { titel: "Aufgaben", unter: "Was ansteht — allgemein und je Person" },
   kontakte: { titel: "Kontakte", unter: "Organisationen und Personen" },

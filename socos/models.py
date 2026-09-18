@@ -1,7 +1,7 @@
 """
 Grundmodelle: Nutzer, weiches Löschen, Änderungsprotokoll.
 
-Fachmodelle (Projekt, Bereich, Arbeitspaket, Zeitbuchung, Kontakte, Finanzen)
+Fachmodelle (Projekt, Projektphase, Arbeitspaket, Zeitbuchung, Kontakte, Finanzen)
 kommen in eigenen Dateien und werden hier importiert.
 """
 
@@ -293,7 +293,13 @@ class Protokolleintrag(models.Model):
 
 # --- Projektstruktur --------------------------------------------------------
 #
-# Projekt → Bereich → Arbeitspaket → Unteraufgabe. Vier Ebenen, mehr nicht.
+# Projekt → Projektphase → Arbeitspaket → Unteraufgabe. Vier Ebenen, mehr nicht.
+#
+# Die mittlere Ebene hieß bis 2026-09-18 „Bereich". Sie heißt jetzt
+# Projektphase, weil sie genau das ist: ein Abschnitt, der einen Anfang, ein
+# Ende und ein Stundenpensum hat und auf den der nächste folgt. „Bereich"
+# klang nach einem Fach im Regal und ließ offen, ob zwei davon nebeneinander
+# oder nacheinander laufen.
 
 
 class Projekt(Basismodell):
@@ -311,7 +317,7 @@ class Projekt(Basismodell):
         return self.titel
 
 
-class Bereichsart(models.TextChoices):
+class Phasenart(models.TextChoices):
     DEV = "dev", "Entwicklung"
     FIN = "fin", "Finanzierung"
     ZIEL = "ziel", "Ziele"
@@ -320,10 +326,10 @@ class Bereichsart(models.TextChoices):
 # Die drei Vorlagen für die Stufenleiste. Beim Anlegen eines **Arbeitspakets**
 # **kopiert**, nicht verwiesen.
 #
-# Warum am Paket und nicht am Bereich: Ein Bereich enthält Pakete
+# Warum am Paket und nicht an der Phase: Eine Phase enthält Pakete
 # verschiedenen Zuschnitts — ein Antrag, ein Prototyp und eine Doku laufen
 # nicht über dieselben Stufen und schon gar nicht über dieselben Dauern. Eine
-# Leiste für alle Pakete eines Bereichs zeigt für die meisten einen
+# Leiste für alle Pakete einer Phase zeigt für die meisten einen
 # Fortschritt, der so nie gemessen wurde.
 #
 # Warum kopieren: „je Paket anpassbar" wäre auch über eine Vererbungskette mit
@@ -331,23 +337,23 @@ class Bereichsart(models.TextChoices):
 # und man sähe einem Paket nicht an, welche Stufen für es gelten. Eine
 # kopierte Liste ist ein Wert, kein Verweis — sie ist beim Lesen fertig.
 #
-# Die Schlüssel sind die Bereichsarten: Ein neues Paket bekommt die Vorlage
-# der Art seines Bereichs als Startpunkt und kann danach auf eine der beiden
+# Die Schlüssel sind die Phasenarten: Ein neues Paket bekommt die Vorlage
+# der Art seiner Phase als Startpunkt und kann danach auf eine der beiden
 # anderen umgestellt werden.
 STUFENVORLAGEN = {
-    Bereichsart.DEV: [
+    Phasenart.DEV: [
         {"name": "Konzept", "monate": 1},
         {"name": "Umsetzung", "monate": 3},
         {"name": "Test", "monate": 2},
         {"name": "Abschluss", "monate": 1},
     ],
-    Bereichsart.FIN: [
+    Phasenart.FIN: [
         {"name": "Vorbereitung", "monate": 1},
         {"name": "Einreichung", "monate": 1},
         {"name": "Entscheidung", "monate": 2},
         {"name": "Abrechnung", "monate": 1},
     ],
-    Bereichsart.ZIEL: [
+    Phasenart.ZIEL: [
         {"name": "Definition", "monate": 1},
         {"name": "Abstimmung", "monate": 1},
         {"name": "Verankert", "monate": 1},
@@ -361,17 +367,17 @@ def stufenvorlage(schluessel):
     return [dict(s) for s in STUFENVORLAGEN.get(schluessel, [])]
 
 
-class Bereich(Basismodell):
+class Projektphase(Basismodell):
     projekt = models.ForeignKey(
-        Projekt, verbose_name="Projekt", on_delete=models.PROTECT, related_name="bereiche"
+        Projekt, verbose_name="Projekt", on_delete=models.PROTECT, related_name="phasen"
     )
     titel = models.CharField("Titel", max_length=160)
-    art = models.CharField("Art", max_length=8, choices=Bereichsart.choices)
+    art = models.CharField("Art", max_length=8, choices=Phasenart.choices)
     reihenfolge = models.IntegerField("Reihenfolge", default=0)
 
     class Meta(Basismodell.Meta):
-        verbose_name = "Bereich"
-        verbose_name_plural = "Bereiche"
+        verbose_name = "Projektphase"
+        verbose_name_plural = "Projektphasen"
         ordering = ["projekt", "reihenfolge", "titel"]
 
     def __str__(self):
@@ -395,8 +401,8 @@ class Paketstatus(models.TextChoices):
 
 
 class Arbeitspaket(Basismodell):
-    bereich = models.ForeignKey(
-        Bereich, verbose_name="Bereich", on_delete=models.PROTECT, related_name="pakete"
+    phase = models.ForeignKey(
+        Projektphase, verbose_name="Projektphase", on_delete=models.PROTECT, related_name="pakete"
     )
     titel = models.CharField("Titel", max_length=250)
     notiz = models.TextField("Notiz", blank=True)
@@ -404,7 +410,7 @@ class Arbeitspaket(Basismodell):
         "Status", max_length=14, choices=Paketstatus.choices, default=Paketstatus.OFFEN
     )
     # Liste aus {"name": …, "monate": …}. Beim Anlegen aus der Vorlage der
-    # Bereichsart kopiert und danach frei änderbar — Namen wie Dauern.
+    # Phasenart kopiert und danach frei änderbar — Namen wie Dauern.
     stufen = models.JSONField("Stufen", default=list, blank=True)
     # Wie viele der eigenen Stufen erledigt sind: 0 … len(stufen).
     stufenstand = models.IntegerField("Stufenstand", default=0)
@@ -423,7 +429,7 @@ class Arbeitspaket(Basismodell):
     class Meta(Basismodell.Meta):
         verbose_name = "Arbeitspaket"
         verbose_name_plural = "Arbeitspakete"
-        ordering = ["bereich", "reihenfolge", "titel"]
+        ordering = ["phase", "reihenfolge", "titel"]
 
     def __str__(self):
         return self.titel
@@ -433,13 +439,13 @@ class Arbeitspaket(Basismodell):
         # eine Entscheidung („dieses Paket hat keine Stufen"), keine Lücke —
         # sie hier stillschweigend wieder zu befüllen, nähme sie zurück.
         if not self.pk and not self.stufen:
-            self.stufen = stufenvorlage(self.bereich.art)
+            self.stufen = stufenvorlage(self.phase.art)
         super().save(*args, **kwargs)
 
 
 #: Wie das Projekt heißt, das beim ersten Start ohne Paketwahl entsteht.
 AUFFANG_PROJEKT = "Overhead"
-AUFFANG_BEREICH = "Laufendes"
+AUFFANG_PHASE = "Laufendes"
 AUFFANG_PAKET = "Allgemein"
 
 
@@ -477,13 +483,13 @@ def auffangpaket():
             # Hinten, nicht vorn: Overhead ist das, was nebenher läuft.
             reihenfolge=900,
         )
-    bereich = projekt.bereiche.filter(geloescht_am__isnull=True).order_by("pk").first()
-    if bereich is None:
-        bereich = Bereich.objects.create(
-            projekt=projekt, titel=AUFFANG_BEREICH, art=Bereichsart.DEV
+    phase = projekt.phasen.filter(geloescht_am__isnull=True).order_by("pk").first()
+    if phase is None:
+        phase = Projektphase.objects.create(
+            projekt=projekt, titel=AUFFANG_PHASE, art=Phasenart.DEV
         )
     return Arbeitspaket.objects.create(
-        bereich=bereich,
+        phase=phase,
         titel=AUFFANG_PAKET,
         status=Paketstatus.LAEUFT,
         ist_auffang=True,

@@ -18,7 +18,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from socos import berechtigung
-from socos.models import Arbeitspaket, Bereich, Bereichsart, Nutzer, Paketstatus, Projekt
+from socos.models import Arbeitspaket, Nutzer, Paketstatus, Phasenart, Projekt, Projektphase
 
 STANDARDDATEI = Path("daten/sopharmis-daten.json")
 
@@ -75,17 +75,25 @@ class Command(BaseCommand):
         dann einen Titel und nicht alle Stellen, die noch anstehen.
         """
         stati = set(Paketstatus.values)
-        arten = set(Bereichsart.values)
+        arten = set(Phasenart.values)
         fehler = []
 
         for projekt in daten.get("projekte", []):
-            for bereich in projekt.get("bereiche", []):
-                if bereich.get("art") not in arten:
+            # Die Ebene hieß bis 2026-09-18 „bereiche". Eine Datei von damals
+            # liefe sonst durch und legte ein Projekt **ohne jede Phase** an —
+            # ein leerer Baum sieht nicht nach einem Fehler aus, sondern nach
+            # einem Projekt, das noch niemand gegliedert hat.
+            if "bereiche" in projekt:
+                fehler.append(
+                    f"Projekt „{projekt.get('titel')}“: „bereiche“ heißt jetzt „phasen“."
+                )
+            for phase in projekt.get("phasen", []):
+                if phase.get("art") not in arten:
                     fehler.append(
-                        f"Bereich „{bereich.get('titel')}“: art={bereich.get('art')!r} "
+                        f"Projektphase „{phase.get('titel')}“: art={phase.get('art')!r} "
                         f"— erlaubt: {', '.join(sorted(arten))}"
                     )
-                for paket in bereich.get("pakete", []):
+                for paket in phase.get("pakete", []):
                     if paket.get("status") not in stati:
                         fehler.append(
                             f"Paket „{paket.get('titel')}“: status={paket.get('status')!r} "
@@ -144,21 +152,21 @@ class Command(BaseCommand):
                 farbe=eintrag.get("farbe", "#14595F"),
                 reihenfolge=nr,
             )
-            for b_nr, b in enumerate(eintrag.get("bereiche", [])):
-                bereich = Bereich.objects.create(
-                    projekt=projekt, titel=b["titel"], art=b["art"], reihenfolge=b_nr,
+            for ph_nr, ph in enumerate(eintrag.get("phasen", [])):
+                phase = Projektphase.objects.create(
+                    projekt=projekt, titel=ph["titel"], art=ph["art"], reihenfolge=ph_nr,
                 )
-                for p_nr, p in enumerate(b.get("pakete", [])):
+                for p_nr, p in enumerate(ph.get("pakete", [])):
                     Arbeitspaket.objects.create(
-                        bereich=bereich,
+                        phase=phase,
                         titel=p["titel"],
                         status=p["status"],
                         notiz=p.get("notiz", ""),
                         reihenfolge=p_nr,
                     )
             self.stdout.write(
-                f"  {projekt.titel}: {projekt.bereiche.count()} Bereiche, "
-                f"{Arbeitspaket.objects.filter(bereich__projekt=projekt).count()} Pakete"
+                f"  {projekt.titel}: {projekt.phasen.count()} Projektphasen, "
+                f"{Arbeitspaket.objects.filter(phase__projekt=projekt).count()} Pakete"
             )
 
         self.stdout.write(

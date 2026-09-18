@@ -4,7 +4,7 @@ import { hole } from "../basis/api";
 import {
   useNeuLaden,
   useProjekte,
-  type Bereich,
+  type Projektphase,
   type Ich,
   type Paket,
   type Projekt as ProjektTyp,
@@ -128,7 +128,7 @@ export function Projekt({
               !ich.darf.bearbeiten
                 ? "Projekte legt ein Bearbeiter oder Admin an."
                 : bearbeiten
-                  ? "Ein Projekt bekommt Bereiche (Entwicklung, Finanzierung, Ziele) und darin die Arbeitspakete, auf die Zeit gebucht wird."
+                  ? "Ein Projekt bekommt Projektphasen (Entwicklung, Finanzierung, Ziele) und darin die Arbeitspakete, auf die Zeit gebucht wird."
                   : "Angelegt wird unter „Bearbeiten“ — dort steht die Gliederung."
             }
             aktion={
@@ -229,7 +229,7 @@ export function Projekt({
       {loeschen && bearbeiten && (
         <Loeschdialog
           name={loeschen.name}
-          was="Das Projekt mit allen Bereichen und Paketen"
+          was="Das Projekt mit allen Phasen und Paketen"
           abbrechen={() => setLoeschen(null)}
           loeschen={() => projektEntfernen(loeschen.id)}
         />
@@ -253,21 +253,21 @@ function ProjektKarte({
   neuLaden: () => void;
   zumLoeschen: () => void;
 }) {
-  const [neuerBereich, setNeuerBereich] = useState({ titel: "", art: "dev" });
-  const [bereichFehler, setBereichFehler] = useState("");
+  const [neuePhase, setNeuePhase] = useState({ titel: "", art: "dev" });
+  const [phasenFehler, setPhasenFehler] = useState("");
 
-  async function bereichAnlegen() {
-    if (!neuerBereich.titel.trim()) return setBereichFehler("Ohne Titel gibt es nichts anzulegen.");
-    setBereichFehler("");
-    await hole("/bereiche/", {
+  async function phaseAnlegen() {
+    if (!neuePhase.titel.trim()) return setPhasenFehler("Ohne Titel gibt es nichts anzulegen.");
+    setPhasenFehler("");
+    await hole("/phasen/", {
       method: "POST",
       body: JSON.stringify({
         projekt: projekt.id,
-        titel: neuerBereich.titel.trim(),
-        art: neuerBereich.art,
+        titel: neuePhase.titel.trim(),
+        art: neuePhase.art,
       }),
     });
-    setNeuerBereich({ titel: "", art: "dev" });
+    setNeuePhase({ titel: "", art: "dev" });
     neuLaden();
   }
 
@@ -310,20 +310,20 @@ function ProjektKarte({
         )}
       </div>
 
-      {projekt.bereiche.length === 0 ? (
+      {projekt.phasen.length === 0 ? (
         <Leerstelle
-          was="Noch kein Bereich"
+          was="Noch keine Projektphase"
           satz={
-            "Bereiche gliedern das Projekt — Entwicklung, Finanzierung, Ziele. Jeder bringt seine eigene Stufenleiste mit." +
+            "Projektphasen gliedern das Projekt — Entwicklung, Finanzierung, Ziele. Jede bringt ihre eigene Stufenleiste mit." +
             (ich.darf.bearbeiten && !bearbeiten ? " Angelegt wird unter „Bearbeiten“." : "")
           }
         />
       ) : (
-        projekt.bereiche.map((bereich, i) => (
-          <BereichBlock
-            key={bereich.id}
-            bereich={bereich}
-            geschwister={projekt.bereiche}
+        projekt.phasen.map((phase, i) => (
+          <Phasenblock
+            key={phase.id}
+            phase={phase}
+            geschwister={projekt.phasen}
             stelle={i}
             ich={ich}
             bearbeiten={bearbeiten}
@@ -337,16 +337,16 @@ function ProjektKarte({
         <div className="feld-reihe" style={{ marginTop: 14 }}>
           <input
             className="feld"
-            placeholder="Neuer Bereich"
-            value={neuerBereich.titel}
-            onChange={(e) => setNeuerBereich({ ...neuerBereich, titel: e.target.value })}
-            onKeyDown={(e) => e.key === "Enter" && bereichAnlegen()}
+            placeholder="Neue Projektphase"
+            value={neuePhase.titel}
+            onChange={(e) => setNeuePhase({ ...neuePhase, titel: e.target.value })}
+            onKeyDown={(e) => e.key === "Enter" && phaseAnlegen()}
           />
           <select
             className="feld"
-            value={neuerBereich.art}
-            onChange={(e) => setNeuerBereich({ ...neuerBereich, art: e.target.value })}
-            aria-label="Art des Bereichs"
+            value={neuePhase.art}
+            onChange={(e) => setNeuePhase({ ...neuePhase, art: e.target.value })}
+            aria-label="Art der Projektphase"
           >
             {Object.entries(ART).map(([wert, text]) => (
               <option key={wert} value={wert}>
@@ -354,19 +354,19 @@ function ProjektKarte({
               </option>
             ))}
           </select>
-          <button type="button" className="knopf-still" onClick={bereichAnlegen}>
+          <button type="button" className="knopf-still" onClick={phaseAnlegen}>
             <Zeichen name="plus" />
-            Bereich anlegen
+            Phase anlegen
           </button>
-          <Fehlerzeile text={bereichFehler} />
+          <Fehlerzeile text={phasenFehler} />
         </div>
       )}
     </div>
   );
 }
 
-function BereichBlock({
-  bereich,
+function Phasenblock({
+  phase,
   geschwister,
   stelle,
   ich,
@@ -374,8 +374,8 @@ function BereichBlock({
   statusFilter,
   neuLaden,
 }: {
-  bereich: Bereich;
-  geschwister: Bereich[];
+  phase: Projektphase;
+  geschwister: Projektphase[];
   stelle: number;
   ich: Ich;
   bearbeiten: boolean;
@@ -385,20 +385,20 @@ function BereichBlock({
   const [neuesPaket, setNeuesPaket] = useState("");
   const [paketFehler, setPaketFehler] = useState("");
   const [loeschen, setLoeschen] = useState(false);
-  const pakete = bereich.pakete.filter((p) => statusFilter === "alle" || p.status === statusFilter);
+  const pakete = phase.pakete.filter((p) => statusFilter === "alle" || p.status === statusFilter);
 
   async function verschieben(richtung: -1 | 1) {
     const nachbar = geschwister[stelle + richtung];
     if (!nachbar) return;
     // Beide Nummern tauschen, nicht nur eine hochzählen: Sonst wandern zwei
     // Einträge auf dieselbe Zahl und die Reihenfolge wird zufällig.
-    await aendern(`/bereiche/${bereich.id}/`, { reihenfolge: stelle + richtung });
-    await aendern(`/bereiche/${nachbar.id}/`, { reihenfolge: stelle });
+    await aendern(`/phasen/${phase.id}/`, { reihenfolge: stelle + richtung });
+    await aendern(`/phasen/${nachbar.id}/`, { reihenfolge: stelle });
     neuLaden();
   }
 
   async function entfernen() {
-    await hole(`/bereiche/${bereich.id}/`, { method: "DELETE" });
+    await hole(`/phasen/${phase.id}/`, { method: "DELETE" });
     setLoeschen(false);
     neuLaden();
   }
@@ -408,27 +408,27 @@ function BereichBlock({
     setPaketFehler("");
     await hole("/pakete/", {
       method: "POST",
-      body: JSON.stringify({ bereich: bereich.id, titel: neuesPaket.trim() }),
+      body: JSON.stringify({ phase: phase.id, titel: neuesPaket.trim() }),
     });
     setNeuesPaket("");
     neuLaden();
   }
 
   return (
-    <section className="bereich">
+    <section className="projektphase">
       <h4>
         <Feldtext
-          wert={bereich.titel}
+          wert={phase.titel}
           aendern={ich.darf.bearbeiten && bearbeiten}
           speichern={async (titel) => {
-            await aendern(`/bereiche/${bereich.id}/`, { titel });
+            await aendern(`/phasen/${phase.id}/`, { titel });
             neuLaden();
           }}
         />
         {/* Die Art nur zeigen, wenn sie etwas hinzufügt. „Entwicklung
             Entwicklung" ist Rauschen, das man beim Lesen jedes Mal aussortiert. */}
-        {ART[bereich.art].toLowerCase() !== bereich.titel.trim().toLowerCase() && (
-          <span className="art">{ART[bereich.art]}</span>
+        {ART[phase.art].toLowerCase() !== phase.titel.trim().toLowerCase() && (
+          <span className="art">{ART[phase.art]}</span>
         )}
         {ich.darf.bearbeiten && bearbeiten && (
           <span className="ordnen">
@@ -450,8 +450,8 @@ function BereichBlock({
 
       {loeschen && bearbeiten && (
         <Loeschdialog
-          name={bereich.titel}
-          was="Der Bereich mit allen Arbeitspaketen darin"
+          name={phase.titel}
+          was="Die Projektphase mit allen Arbeitspaketen darin"
           abbrechen={() => setLoeschen(false)}
           loeschen={entfernen}
         />

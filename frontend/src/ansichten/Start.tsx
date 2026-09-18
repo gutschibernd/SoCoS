@@ -63,7 +63,7 @@ const KACHELN: Ziel[][] = [
   [
     {
       titel: "Projekt & Pakete",
-      satz: "Bereiche, Arbeitspakete, Stufen — der ganze Baum.",
+      satz: "Phasen, Arbeitspakete, Stufen — der ganze Baum.",
       zeichen: "projekt",
       seite: "projekt",
     },

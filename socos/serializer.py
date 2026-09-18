@@ -11,7 +11,6 @@ from socos import berechtigung
 from socos.models import (
     Arbeitspaket,
     Aufgabe,
-    Bereich,
     Event,
     Eventziel,
     Fixkosten,
@@ -23,6 +22,7 @@ from socos.models import (
     Nutzer,
     Organisation,
     Projekt,
+    Projektphase,
     Protokolleintrag,
     Rueckmeldung,
     Unteraufgabe,
@@ -77,12 +77,12 @@ class UnteraufgabeSerializer(serializers.ModelSerializer):
 class ArbeitspaketSerializer(serializers.ModelSerializer):
     unteraufgaben = UnteraufgabeSerializer(many=True, read_only=True)
     fortschritt = serializers.SerializerMethodField()
-    projekt = serializers.IntegerField(source="bereich.projekt_id", read_only=True)
+    projekt = serializers.IntegerField(source="phase.projekt_id", read_only=True)
 
     class Meta:
         model = Arbeitspaket
         fields = [
-            "id", "bereich", "projekt", "titel", "notiz", "status", "stufenstand",
+            "id", "phase", "projekt", "titel", "notiz", "status", "stufenstand",
             "reihenfolge", "stufen", "fortschritt", "unteraufgaben",
         ]
 
@@ -138,8 +138,8 @@ class ArbeitspaketSerializer(serializers.ModelSerializer):
             # Beim Anlegen füllt das Modell die Leiste erst in `save`. Hier
             # zählt darum schon die Vorlage, sonst wäre jeder Stand über 0
             # beim Anlegen unzulässig.
-            bereich = daten.get("bereich")
-            stufen = stufenvorlage(bereich.art) if bereich else []
+            phase = daten.get("phase")
+            stufen = stufenvorlage(phase.art) if phase else []
 
         stand = daten["stufenstand"]
         if not 0 <= stand <= len(stufen):
@@ -159,36 +159,36 @@ class ArbeitspaketSerializer(serializers.ModelSerializer):
         return paket
 
 
-class BereichSerializer(serializers.ModelSerializer):
+class ProjektphaseSerializer(serializers.ModelSerializer):
     pakete = serializers.SerializerMethodField()
 
     class Meta:
-        model = Bereich
+        model = Projektphase
         fields = ["id", "projekt", "titel", "art", "reihenfolge", "pakete"]
 
-    def get_pakete(self, bereich):
+    def get_pakete(self, phase):
         # Nur die nicht gelöschten: über die Beziehung käme sonst auch weich
         # Gelöschtes mit, weil Django dafür den Basis-Manager nimmt.
-        menge = bereich.pakete.filter(geloescht_am__isnull=True).order_by("reihenfolge", "titel")
+        menge = phase.pakete.filter(geloescht_am__isnull=True).order_by("reihenfolge", "titel")
         return ArbeitspaketSerializer(menge, many=True, context=self.context).data
 
 
 class ProjektSerializer(serializers.ModelSerializer):
-    bereiche = serializers.SerializerMethodField()
+    phasen = serializers.SerializerMethodField()
     gebuchte_sekunden = serializers.SerializerMethodField()
 
     class Meta:
         model = Projekt
         fields = [
             "id", "titel", "untertitel", "farbe", "reihenfolge",
-            "bereiche", "gebuchte_sekunden",
+            "phasen", "gebuchte_sekunden",
         ]
 
-    def get_bereiche(self, projekt):
-        menge = projekt.bereiche.filter(geloescht_am__isnull=True).order_by(
+    def get_phasen(self, projekt):
+        menge = projekt.phasen.filter(geloescht_am__isnull=True).order_by(
             "reihenfolge", "titel"
         )
-        return BereichSerializer(menge, many=True, context=self.context).data
+        return ProjektphaseSerializer(menge, many=True, context=self.context).data
 
     def get_gebuchte_sekunden(self, projekt):
         return self.context.get("sekunden_je_projekt", {}).get(projekt.pk, 0)
@@ -206,8 +206,8 @@ class ZeitbuchungSerializer(serializers.ModelSerializer):
     sekunden = serializers.SerializerMethodField()
     laeuft = serializers.BooleanField(read_only=True)
     paket_titel = serializers.CharField(source="paket.titel", read_only=True)
-    projekt_titel = serializers.CharField(source="paket.bereich.projekt.titel", read_only=True)
-    projekt = serializers.IntegerField(source="paket.bereich.projekt_id", read_only=True)
+    projekt_titel = serializers.CharField(source="paket.phase.projekt.titel", read_only=True)
+    projekt = serializers.IntegerField(source="paket.phase.projekt_id", read_only=True)
     person_name = serializers.CharField(source="person.name", read_only=True)
 
     class Meta:

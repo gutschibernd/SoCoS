@@ -22,15 +22,15 @@ from django.utils import timezone
 from socos import sicherung
 from socos.models import (
     Arbeitspaket,
-    Bereich,
-    Bereichsart,
     Fixkosten,
     Kontakt,
     Kontostand,
     Monatskosten,
     Nutzer,
     Organisation,
+    Phasenart,
     Projekt,
+    Projektphase,
     Protokolleintrag,
     Unteraufgabe,
     Verlaufseintrag,
@@ -170,24 +170,24 @@ class Command(BaseCommand):
             reihenfolge=2,
         )
 
-        ams_dev = Bereich.objects.create(projekt=ams, titel="Entwicklung", art=Bereichsart.DEV)
-        ams_fin = Bereich.objects.create(
-            projekt=ams, titel="Finanzierung", art=Bereichsart.FIN, reihenfolge=1
+        ams_dev = Projektphase.objects.create(projekt=ams, titel="Entwicklung", art=Phasenart.DEV)
+        ams_fin = Projektphase.objects.create(
+            projekt=ams, titel="Finanzierung", art=Phasenart.FIN, reihenfolge=1
         )
-        ams_ziel = Bereich.objects.create(
-            projekt=ams, titel="Ziele", art=Bereichsart.ZIEL, reihenfolge=2
+        ams_ziel = Projektphase.objects.create(
+            projekt=ams, titel="Ziele", art=Phasenart.ZIEL, reihenfolge=2
         )
-        cl_dev = Bereich.objects.create(projekt=claire, titel="Entwicklung", art=Bereichsart.DEV)
-        cl_fin = Bereich.objects.create(
-            projekt=claire, titel="Finanzierung", art=Bereichsart.FIN, reihenfolge=1
+        cl_dev = Projektphase.objects.create(projekt=claire, titel="Entwicklung", art=Phasenart.DEV)
+        cl_fin = Projektphase.objects.create(
+            projekt=claire, titel="Finanzierung", art=Phasenart.FIN, reihenfolge=1
         )
-        oh = Bereich.objects.create(projekt=overhead, titel="Laufendes", art=Bereichsart.DEV)
+        oh = Projektphase.objects.create(projekt=overhead, titel="Laufendes", art=Phasenart.DEV)
 
         pakete = {}
 
-        def paket(bereich, titel, status="offen", stand=0, notiz="", nr=0):
+        def paket(phase, titel, status="offen", stand=0, notiz="", nr=0):
             p = Arbeitspaket.objects.create(
-                bereich=bereich, titel=titel, status=status,
+                phase=phase, titel=titel, status=status,
                 stufenstand=stand, notiz=notiz, reihenfolge=nr,
             )
             pakete[titel] = p

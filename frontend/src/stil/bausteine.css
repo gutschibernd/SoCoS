@@ -144,7 +144,7 @@
 .sicherung-teil h3,
 .klapptitel,
 .start-beschriftung,
-.bereich h4,
+.projektphase h4,
 .summenzeile .beschriftung,
 .stufen-kopf,
 .beschriftung-klein,
@@ -947,12 +947,12 @@ a.leiste-knopf { text-decoration: none; }
 .projekt-kopf .unter { font-size: 13px; color: var(--text-leise); margin-top: 2px; }
 .projekt-kopf .gebucht { margin-left: auto; font-size: 13px; color: var(--text-leise); }
 
-.bereich { margin-bottom: 18px; }
-.bereich h4 {
+.projektphase { margin-bottom: 18px; }
+.projektphase h4 {
   margin: 0 0 9px;
   display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
 }
-.bereich h4 .art {
+.projektphase h4 .art {
   padding: 2px 8px; border-radius: var(--kante);
   background: var(--flaeche-leise); color: var(--text-leise); letter-spacing: 0.04em;
 }
