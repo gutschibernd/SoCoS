@@ -21,8 +21,20 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-18",
-        "titel": "Projektphasen statt Bereiche — und eine aufgeräumte Startseite",
+        "titel": "Projektphasen statt Bereiche — und das Protokoll am Stück",
         "punkte": [
+            {
+                "titel": "Das Protokoll wird hinter dem Stift bearbeitet",
+                "text": (
+                    "Über dem Protokoll steht jetzt „Bearbeiten“. Der Stift "
+                    "öffnet ein Fenster mit allen Abschnitten auf einmal — "
+                    "Speichern und Abbrechen bleiben beim Scrollen oben "
+                    "stehen. Wer daneben klickt, ohne gespeichert zu haben, "
+                    "wird gefragt, statt den Text zu verlieren. Die Abschnitte "
+                    "auf der Seite selbst sind jetzt nur noch zum Lesen da."
+                ),
+                "wo": "meetings",
+            },
             {
                 "titel": "Auf eine abgeschlossene Phase läuft keine Uhr mehr",
                 "text": (

@@ -29,7 +29,7 @@
  * basis/router.ts).
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { hole } from "../basis/api";
 import {
@@ -1071,6 +1071,188 @@ function Aufbereitung({ meeting, neuLaden }: { meeting: Meeting; neuLaden: () =>
   );
 }
 
+/* --- Das Protokoll bearbeiten ---------------------------------------------- */
+
+type Abschnittsentwurf = { id: number; ueberschrift: string; text: string };
+
+/**
+ * Das ganze Protokoll in einem Fenster ändern.
+ *
+ * **Warum hier nicht an Ort und Stelle wie sonst** (`Feldtext`): Ein Protokoll
+ * wird nicht an einem Wort nachgebessert, sondern am Stück durchgegangen —
+ * dabei springt man zwischen Abschnitten hin und her. Ein Feld, das beim
+ * Verlassen speichert, schickt bei jedem Sprung eine Anfrage und schreibt
+ * jeden Zwischenstand ins Änderungsprotokoll. Hier gibt es **einen** Stand,
+ * den man ganz übernimmt oder ganz verwirft.
+ *
+ * Und deshalb gibt es die Nachfrage beim Hinausklicken: Wo nicht von selbst
+ * gespeichert wird, ist ein Klick daneben sonst ein stiller Verlust.
+ *
+ * Gespeichert wird nur, was sich geändert hat. Ein PATCH je Abschnitt schriebe
+ * sonst zehn Protokolleinträge für einen geänderten Satz.
+ */
+function Protokolldialog({
+  meeting,
+  neuLaden,
+  schliessen,
+}: {
+  meeting: Meeting;
+  neuLaden: () => void;
+  schliessen: () => void;
+}) {
+  const [entwuerfe, setEntwuerfe] = useState<Abschnittsentwurf[]>(() =>
+    meeting.abschnitte.map((a) => ({ id: a.id, ueberschrift: a.ueberschrift, text: a.text })),
+  );
+  const [fragtVerwerfen, setFragtVerwerfen] = useState(false);
+  const [laeuft, setLaeuft] = useState(false);
+
+  // Verglichen wird über die id, nicht über die Position: Die Liste im Prop
+  // kann sich zwischendurch neu sortiert haben, und dann verglichen sich zwei
+  // fremde Abschnitte.
+  const vorher = new Map(meeting.abschnitte.map((a) => [a.id, a]));
+  const offen = entwuerfe.filter((e) => {
+    const a = vorher.get(e.id);
+    return !a || a.ueberschrift !== e.ueberschrift || a.text !== e.text;
+  });
+
+  const setzen = (id: number, teil: Partial<Abschnittsentwurf>) =>
+    setEntwuerfe((alt) => alt.map((e) => (e.id === id ? { ...e, ...teil } : e)));
+
+  async function speichern() {
+    setLaeuft(true);
+    try {
+      for (const e of offen) {
+        await aendern(`/meetingabschnitte/${e.id}/`, {
+          ueberschrift: e.ueberschrift.trim(),
+          text: e.text.trim(),
+        });
+      }
+      neuLaden();
+      schliessen();
+      melden(
+        "gut",
+        offen.length === 1
+          ? "Der geänderte Abschnitt ist gespeichert."
+          : `${offen.length} geänderte Abschnitte sind gespeichert.`,
+      );
+    } catch {
+      // `hole` hat den Grund schon gemeldet. Das Fenster bleibt offen — sonst
+      // wäre mit der Fehlermeldung auch der Text weg.
+      setLaeuft(false);
+    }
+  }
+
+  // Hinausklicken, Abbrechen und Escape gehen denselben Weg: Steht etwas
+  // Ungespeichertes da, wird gefragt, sonst schließt es sofort.
+  const zurueck = () => (offen.length > 0 ? setFragtVerwerfen(true) : schliessen());
+
+  useEffect(() => {
+    const beiTaste = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (fragtVerwerfen) setFragtVerwerfen(false);
+      else if (!laeuft) zurueck();
+    };
+    window.addEventListener("keydown", beiTaste);
+    return () => window.removeEventListener("keydown", beiTaste);
+  });
+
+  return (
+    <>
+      <div
+        className="dialog-grund"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Protokoll bearbeiten"
+        onClick={zurueck}
+      >
+        <div className="dialog dialog-arbeit" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-kopf">
+            <div className="dialog-kopf-text">
+              <h2>Protokoll bearbeiten</h2>
+              {offen.length > 0 && (
+                <span className="dialog-offen">
+                  {offen.length === 1
+                    ? "1 Abschnitt geändert"
+                    : `${offen.length} Abschnitte geändert`}
+                </span>
+              )}
+            </div>
+            <div className="dialog-knoepfe">
+              <button type="button" className="knopf-still" onClick={zurueck} disabled={laeuft}>
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                className="knopf"
+                onClick={speichern}
+                disabled={laeuft || offen.length === 0}
+              >
+                Speichern
+              </button>
+            </div>
+          </div>
+
+          <div className="dialog-koerper">
+            {entwuerfe.map((e, i) => (
+              <div className="abschnitt-eingabe" key={e.id}>
+                <input
+                  className="feld"
+                  value={e.ueberschrift}
+                  placeholder="Ohne Überschrift"
+                  autoFocus={i === 0}
+                  onChange={(ev) => setzen(e.id, { ueberschrift: ev.target.value })}
+                />
+                <textarea
+                  className="feld"
+                  rows={Math.min(20, Math.max(4, e.text.split("\n").length + 1))}
+                  value={e.text}
+                  placeholder="Was in diesem Abschnitt steht …"
+                  onChange={(ev) => setzen(e.id, { text: ev.target.value })}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {fragtVerwerfen && (
+        <div className="dialog-grund" role="dialog" aria-modal="true">
+          <div className="dialog">
+            <h2>Noch nicht gespeichert</h2>
+            <p>
+              {offen.length === 1 ? "Ein Abschnitt ist" : `${offen.length} Abschnitte sind`} geändert
+              und noch nicht gespeichert. Wer jetzt schließt, hat wieder den Stand von vorher.
+            </p>
+            <div className="dialog-knoepfe">
+              <button
+                type="button"
+                className="knopf-still"
+                onClick={() => setFragtVerwerfen(false)}
+              >
+                Weiter bearbeiten
+              </button>
+              <button type="button" className="knopf-still" onClick={schliessen}>
+                Verwerfen
+              </button>
+              <button
+                type="button"
+                className="knopf"
+                onClick={() => {
+                  setFragtVerwerfen(false);
+                  speichern();
+                }}
+                disabled={laeuft}
+              >
+                Speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* --- Das Protokoll -------------------------------------------------------- */
 
 function Protokollkarte({
@@ -1110,6 +1292,7 @@ function Protokollkarte({
   // Rollen, sondern der Rückweg aus dem eigenen Schritt. Die Abschnitte sind
   // danach weich gelöscht und stehen im Änderungsprotokoll.
   const [fragtVerwerfen, setFragtVerwerfen] = useState(false);
+  const [bearbeitet, setBearbeitet] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
   const anzahl = meeting.abschnitte.length;
 
@@ -1134,6 +1317,12 @@ function Protokollkarte({
         <h2>Protokoll</h2>
         {ich.darf.bearbeiten && (
           <>
+            {anzahl > 0 && (
+              <button type="button" className="knopf-still" onClick={() => setBearbeitet(true)}>
+                <Zeichen name="stift" />
+                Bearbeiten
+              </button>
+            )}
             <button type="button" className="knopf-still" onClick={anfuegen}>
               <Zeichen name="plus" />
               Abschnitt
@@ -1177,20 +1366,21 @@ function Protokollkarte({
         </div>
       )}
 
+      {bearbeitet && (
+        <Protokolldialog
+          meeting={meeting}
+          neuLaden={neuLaden}
+          schliessen={() => setBearbeitet(false)}
+        />
+      )}
+
       {meeting.abschnitte.map((a, i) => (
         <div className="abschnitt" key={a.id}>
           <div className="abschnitt-kopf">
-            <h3>
-              <Feldtext
-                wert={a.ueberschrift}
-                platzhalter="Ohne Überschrift"
-                aendern={ich.darf.bearbeiten}
-                speichern={async (ueberschrift) => {
-                  await aendern(`/meetingabschnitte/${a.id}/`, { ueberschrift });
-                  neuLaden();
-                }}
-              />
-            </h3>
+            {/* Gelesen wird hier, geändert im Fenster hinter dem Stift — deshalb
+                steht der Text hier schlicht da und nicht in einem Feld, das auf
+                einen Klick wartet. */}
+            <h3>{a.ueberschrift || <span className="leer">Ohne Überschrift</span>}</h3>
             {ich.darf.bearbeiten && (
               <div className="abschnitt-knoepfe">
                 <button
@@ -1230,18 +1420,9 @@ function Protokollkarte({
               </div>
             )}
           </div>
-          <Feldtext
-            wert={a.text}
-            mehrzeilig
-            zeilen={Math.min(14, Math.max(3, a.text.split("\n").length + 1))}
-            klasse="abschnitt-text"
-            platzhalter="Was in diesem Abschnitt steht …"
-            aendern={ich.darf.bearbeiten}
-            speichern={async (text) => {
-              await aendern(`/meetingabschnitte/${a.id}/`, { text });
-              neuLaden();
-            }}
-          />
+          <span className="abschnitt-text">
+            {a.text || <span className="leer">Noch nichts geschrieben</span>}
+          </span>
         </div>
       ))}
     </div>
