@@ -161,7 +161,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             },
             {
               begriff: "Projekt",
-              text: "Vier Ebenen und eine Stufenleiste je Paket. Der Fortschritt wird gerechnet, nicht geschätzt.",
+              text: "Vier Ebenen. Der Fortschritt ist gebuchte Zeit gegen das Pensum — gerechnet, nicht geschätzt.",
             },
             {
               begriff: "Kontakte & Events",
@@ -209,7 +209,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
           {[
             { seite: "start" as const, zeichen: "zuhause" as const, titel: "Start", text: "Uhr starten, zuletzt gebucht, der schnelle Griff." },
             { seite: "dashboard" as const, zeichen: "dashboard" as const, titel: "Dashboard", text: "Woche, Geld, Fortschritt auf einen Blick." },
-            { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, die Stufen." },
+            { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, je Person." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
@@ -437,7 +437,7 @@ function ProjektDoku() {
                 <ul>
                   <li>
                     <b>Arbeitspaket</b>
-                    <em>Hierauf läuft die Uhr. Hat Status und Stufenleiste.</em>
+                    <em>Hierauf läuft die Uhr. Hat Status und ein Pensum je Person.</em>
                     <ul>
                       <li>
                         <b>Unteraufgabe</b>
@@ -454,21 +454,43 @@ function ProjektDoku() {
 
       <Abschnitt
         zeichen="haken"
-        titel="Stufen und Fortschritt"
-        vorspann="Jedes Paket hat eine Leiste aus Stufen, und jede Stufe hat eine Dauer in Monaten."
+        titel="Pensum und Fortschritt"
+        vorspann="Ein Arbeitspaket weiß, wie viele Stunden für wen vorgesehen sind. Der Balken zeigt, wie viel davon schon gebucht ist."
       >
         <p className="doku-text">
-          Der Fortschritt rechnet <b>über die Monate, nicht über die Anzahl</b>:
-          „Umsetzung“ mit drei Monaten neben „Konzept“ mit einem ist die Hälfte des
-          Weges, nicht ein Viertel.
+          Der Fortschritt ist <b>gebuchte Zeit gegen das Pensum</b>, sonst nichts.
+          Läuft ein Paket über sein Pensum hinaus, bleibt der Balken nicht bei 100 %
+          stehen, sondern wechselt die Farbe. Ein Paket ohne Pensum — ein
+          Förderantrag, ein Ziel — hat keinen Balken, nur die gebuchte Zeit.
         </p>
         <Schritte
           schritte={[
-            "Ein Klick auf eine Stufe setzt den Stand bis dorthin.",
-            "Ein zweiter Klick auf dieselbe Stufe nimmt ihn wieder zurück.",
-            "Eine Vorlage ersetzt die ganze Leiste und setzt den Stand auf null — „Stufe 3“ heißt in einer anderen Leiste etwas anderes.",
+            "In der Paketzeile steht die Summe über alle Personen: gebucht / Pensum · Prozent.",
+            "Aufgeklappt steht das Pensum je Person — wie viel du selbst hier noch offen hast.",
+            "Das Pensum selbst kommt aus dem Arbeitsplan und wird mit den Projektdaten eingespielt.",
           ]}
         />
+        <Merke>
+          Bis September 2026 hatte jedes Paket eine Stufenleiste (Konzept · Umsetzung ·
+          Test · Abschluss). Sie ist weg: Ein Stand per Klick hat nichts gemessen.
+        </Merke>
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="projekt"
+        titel="Phasen auf- und zuklappen"
+        vorspann="Eine Phase ist offen, läuft oder ist abgeschlossen. Aufgeklappt ist, was läuft — die anderen sagen in der Zeile, was drin ist."
+      >
+        <p className="doku-text">
+          Den Stand stellst du unter <b>Bearbeiten</b> um. Eine abgeschlossene Phase
+          nimmt keine Zeit mehr an. Pakete klappen von selbst nur auf, wenn Zeit darauf
+          gebucht ist oder sie auf „läuft“ stehen.
+        </p>
+        <p className="doku-text">
+          Das Overhead-Projekt steht <b>quer über den anderen</b>. Dort landet alles,
+          was zu keinem Paket gehört: Networking, Meetings, Gespräche mit Personen. Es
+          ist ein gewöhnliches Projekt — nur eines, das zu allen gehört.
+        </p>
       </Abschnitt>
 
       <Abschnitt

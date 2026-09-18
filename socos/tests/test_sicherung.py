@@ -22,6 +22,7 @@ from socos.models import (
     Aufgabe,
     Projektphase,
     Phasenart,
+    Phasenstand,
     Event,
     Eventziel,
     Kontakt,
@@ -128,39 +129,6 @@ def test_der_medienordner_selbst_bleibt_stehen(tmp_path, medien, admin_nutzer):
     assert medien.stat().st_ino == inode_vorher, "Der Medienordner wurde neu angelegt."
     assert alt.read_text() == "kommt weg"
     assert not (medien / "dazwischen.txt").exists()
-
-
-@pytest.mark.django_db(transaction=True)
-def test_die_stufenleiste_eines_pakets_wandert_mit(tmp_path, medien, admin_nutzer):
-    """
-    Die Leiste ist ein JSON-Feld mit angepassten Dauern. Ein Export, der sie
-    auf die Vorlage zurückfallen ließe, sähe vollständig aus — und der Verlust
-    fiele erst beim Wiederherstellen auf.
-    """
-    projekt = Projekt.objects.create(titel="Rundlauf")
-    phase = Projektphase.objects.create(projekt=projekt, titel="Entwicklung", art=Phasenart.DEV)
-    paket = Arbeitspaket.objects.create(
-        phase=phase,
-        titel="Eigene Leiste",
-        stufen=[{"name": "Sondierung", "monate": 7}, {"name": "Bau", "monate": 2}],
-        stufenstand=1,
-    )
-
-    archiv = tmp_path / "archiv.tar.gz"
-    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
-
-    paket.stufen = [{"name": "Egal", "monate": 1}]
-    paket.stufenstand = 0
-    paket.save()
-
-    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
-
-    wieder_da = Arbeitspaket.objects.get(titel="Eigene Leiste")
-    assert wieder_da.stufen == [
-        {"name": "Sondierung", "monate": 7},
-        {"name": "Bau", "monate": 2},
-    ]
-    assert wieder_da.stufenstand == 1
 
 
 @pytest.mark.django_db(transaction=True)
@@ -474,7 +442,7 @@ def test_pensen_und_phasenlaufzeit_wandern_mit(tmp_path, medien, bearbeiter):
         projekt=projekt,
         titel="Anforderungsmanagement",
         art=Phasenart.DEV,
-        abgeschlossen=True,
+        stand=Phasenstand.ABGESCHLOSSEN,
         reihenfolge=1,
     )
     paket = Arbeitspaket.objects.create(
@@ -491,7 +459,7 @@ def test_pensen_und_phasenlaufzeit_wandern_mit(tmp_path, medien, bearbeiter):
     phase.von = None
     phase.bis = None
     phase.save()
-    zu.abgeschlossen = False
+    zu.stand = Phasenstand.LAEUFT
     zu.save()
 
     call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)

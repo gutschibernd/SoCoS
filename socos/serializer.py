@@ -5,6 +5,8 @@ Geld und Zeit gehen als **Zeichenkette** hinaus (`COERCE_DECIMAL_TO_STRING`).
 JSON kennt nur Gleitkomma, und dort ist 0.1 + 0.2 nicht 0.3.
 """
 
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from socos import berechtigung
@@ -29,7 +31,6 @@ from socos.models import (
     Unteraufgabe,
     Verlaufseintrag,
     Zeitbuchung,
-    stufenvorlage,
 )
 from socos.services import auswertung, zeit as zeitdienst
 
@@ -77,15 +78,27 @@ class UnteraufgabeSerializer(serializers.ModelSerializer):
 
 class PensumSerializer(serializers.ModelSerializer):
     person_name = serializers.CharField(source="person.name", read_only=True)
+    # Was diese Person auf dieses Paket schon gebucht hat — gegen ihr Pensum.
+    # Aus dem Kontext (`sekunden_je_paket_und_person`), einmal für alle
+    # gerechnet; ohne Kontext steht 0 da.
+    gebuchte_sekunden = serializers.SerializerMethodField()
 
     class Meta:
         model = Pensum
-        fields = ["id", "paket", "person", "person_name", "stunden"]
+        fields = ["id", "paket", "person", "person_name", "stunden", "gebuchte_sekunden"]
+
+    def get_gebuchte_sekunden(self, pensum):
+        summen = self.context.get("sekunden_je_paket_und_person", {})
+        return summen.get((pensum.paket_id, pensum.person_id), 0)
 
 
 class ArbeitspaketSerializer(serializers.ModelSerializer):
     unteraufgaben = UnteraufgabeSerializer(many=True, read_only=True)
     pensen = serializers.SerializerMethodField()
+    # Gebucht, Pensum (Summe über alle Personen, Decimal → Zeichenkette) und
+    # der Fortschritt dazwischen. Alles gerechnet, nichts gespeichert.
+    gebuchte_sekunden = serializers.SerializerMethodField()
+    pensum_stunden = serializers.SerializerMethodField()
     fortschritt = serializers.SerializerMethodField()
     projekt = serializers.IntegerField(source="phase.projekt_id", read_only=True)
     # Ob die Uhr hier laufen darf — und wenn nicht, warum. Der Grund kommt
@@ -97,13 +110,13 @@ class ArbeitspaketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Arbeitspaket
         fields = [
-            "id", "phase", "projekt", "titel", "beschreibung", "status", "stufenstand",
-            "reihenfolge", "stufen", "fortschritt", "unteraufgaben", "pensen",
-            "buchbar", "grund_gegen_buchung",
+            "id", "phase", "projekt", "titel", "beschreibung", "status",
+            "reihenfolge", "gebuchte_sekunden", "pensum_stunden", "fortschritt",
+            "unteraufgaben", "pensen", "buchbar", "grund_gegen_buchung",
         ]
 
     def get_pensen(self, paket):
-        menge = paket.pensen.filter(geloescht_am__isnull=True).order_by("person__name")
+        menge = self._pensen(paket).order_by("person__name")
         return PensumSerializer(menge, many=True, context=self.context).data
 
     def get_buchbar(self, paket):
@@ -112,77 +125,19 @@ class ArbeitspaketSerializer(serializers.ModelSerializer):
     def get_grund_gegen_buchung(self, paket):
         return paket.grund_gegen_buchung() or ""
 
+    def _pensen(self, paket):
+        return paket.pensen.filter(geloescht_am__isnull=True)
+
+    def get_gebuchte_sekunden(self, paket):
+        return self.context.get("sekunden_je_paket", {}).get(paket.pk, 0)
+
+    def get_pensum_stunden(self, paket):
+        return sum((p.stunden for p in self._pensen(paket)), Decimal("0"))
+
     def get_fortschritt(self, paket):
-        return auswertung.fortschritt(paket)
-
-    def validate_stufen(self, stufen):
-        """
-        Die Leiste kommt als Liste aus {"name", "monate"} herein.
-
-        Geprüft wird sie hier und nicht erst beim Rechnen: `fortschritt` würde
-        aus einem Text in `monate` eine 1 machen und stillschweigend eine
-        falsche Zahl liefern — und eine falsche Prozentzahl sieht man ihr
-        nicht an.
-        """
-        if not isinstance(stufen, list):
-            raise serializers.ValidationError("Eine Liste von Stufen wird gebraucht.")
-        sauber = []
-        for i, stufe in enumerate(stufen, 1):
-            if not isinstance(stufe, dict):
-                raise serializers.ValidationError(f"Stufe {i}: ein Objekt wird gebraucht.")
-            name = str(stufe.get("name", "")).strip()
-            if not name:
-                raise serializers.ValidationError(f"Stufe {i}: Der Name fehlt.")
-            if len(name) > 60:
-                raise serializers.ValidationError(f"Stufe {i}: Der Name ist zu lang.")
-            try:
-                monate = int(stufe["monate"])
-            except (KeyError, TypeError, ValueError):
-                raise serializers.ValidationError(f"Stufe {i}: Die Dauer ist keine ganze Zahl.")
-            # Obergrenze, damit ein Tippfehler (12 statt 1,2) nicht als
-            # jahrzehntelange Stufe durchgeht und den Fortschritt einfriert.
-            if not 0 <= monate <= 120:
-                raise serializers.ValidationError(
-                    f"Stufe {i}: Die Dauer muss zwischen 0 und 120 Monaten liegen."
-                )
-            sauber.append({"name": name, "monate": monate})
-        return sauber
-
-    def validate(self, daten):
-        # Nur ein **ausdrücklich mitgeschickter** Stand wird geprüft. Wer bloß
-        # die Leiste kürzt, meint nicht den Stand — der wird in `update`
-        # gekappt. Eine Fehlermeldung wäre hier die falsche Antwort auf eine
-        # richtige Absicht.
-        if "stufenstand" not in daten:
-            return daten
-
-        if "stufen" in daten:
-            stufen = daten["stufen"]
-        elif self.instance is not None:
-            stufen = self.instance.stufen or []
-        else:
-            # Beim Anlegen füllt das Modell die Leiste erst in `save`. Hier
-            # zählt darum schon die Vorlage, sonst wäre jeder Stand über 0
-            # beim Anlegen unzulässig.
-            phase = daten.get("phase")
-            stufen = stufenvorlage(phase.art) if phase else []
-
-        stand = daten["stufenstand"]
-        if not 0 <= stand <= len(stufen):
-            raise serializers.ValidationError(
-                {"stufenstand": f"Muss zwischen 0 und {len(stufen)} liegen."}
-            )
-        return daten
-
-    def update(self, paket, daten):
-        paket = super().update(paket, daten)
-        # Wird die Leiste gekürzt, ragt der Stand über ihr Ende hinaus. Hier
-        # ist die einzige Stelle, an der beide Werte zugleich vorliegen —
-        # sonst stünde ein Paket auf Stufe 4 von 3 und zeigte 100 %.
-        if paket.stufenstand > len(paket.stufen or []):
-            paket.stufenstand = len(paket.stufen or [])
-            paket.save(update_fields=["stufenstand"])
-        return paket
+        return auswertung.fortschritt(
+            self.get_gebuchte_sekunden(paket), self.get_pensum_stunden(paket)
+        )
 
 
 class ProjektphaseSerializer(serializers.ModelSerializer):
@@ -192,7 +147,7 @@ class ProjektphaseSerializer(serializers.ModelSerializer):
         model = Projektphase
         fields = [
             "id", "projekt", "titel", "art", "reihenfolge",
-            "von", "bis", "abgeschlossen", "pakete",
+            "von", "bis", "stand", "pakete",
         ]
 
     def get_pakete(self, phase):
@@ -205,13 +160,20 @@ class ProjektphaseSerializer(serializers.ModelSerializer):
 class ProjektSerializer(serializers.ModelSerializer):
     phasen = serializers.SerializerMethodField()
     gebuchte_sekunden = serializers.SerializerMethodField()
+    # Ob hier das Auffangpaket liegt („Overhead"). Die Projektseite stellt
+    # dieses Projekt quer über die anderen — es gehört zu allen. Abgeleitet
+    # aus dem Merkmal am Paket, nicht aus dem Titel: Der wird umbenannt.
+    ist_auffang = serializers.SerializerMethodField()
 
     class Meta:
         model = Projekt
         fields = [
             "id", "titel", "untertitel", "farbe", "reihenfolge",
-            "phasen", "gebuchte_sekunden",
+            "phasen", "gebuchte_sekunden", "ist_auffang",
         ]
+
+    def get_ist_auffang(self, projekt):
+        return Arbeitspaket.objects.filter(phase__projekt=projekt, ist_auffang=True).exists()
 
     def get_phasen(self, projekt):
         menge = projekt.phasen.filter(geloescht_am__isnull=True).order_by(

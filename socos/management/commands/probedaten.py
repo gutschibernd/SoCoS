@@ -165,7 +165,7 @@ class Command(BaseCommand):
         )
         overhead = Projekt.objects.create(
             titel="Overhead",
-            untertitel="Verwaltung, Buchhaltung, Sonstiges",
+            untertitel="Networking, Meetings, Gespräche — alles, was zu keinem Paket gehört",
             farbe="#7C8A8C",
             reihenfolge=2,
         )
@@ -185,31 +185,31 @@ class Command(BaseCommand):
 
         pakete = {}
 
-        def paket(phase, titel, status="offen", stand=0, beschreibung="", nr=0):
+        def paket(phase, titel, status="offen", beschreibung="", nr=0):
             p = Arbeitspaket.objects.create(
                 phase=phase, titel=titel, status=status,
-                stufenstand=stand, beschreibung=beschreibung, reihenfolge=nr,
+                beschreibung=beschreibung, reihenfolge=nr,
             )
             pakete[titel] = p
             return p
 
-        paket(ams_dev, "Dauerlauftests", "laeuft", 2, "Prüfstand läuft seit KW 34.", 0)
-        paket(ams_dev, "MVP", "offen", 0, "", 1)
-        paket(ams_dev, "Erprobung klein", "offen", 0, "", 2)
-        paket(ams_dev, "CE-MDR", "offen", 0, "Erst nach der Erprobung sinnvoll.", 3)
+        paket(ams_dev, "Dauerlauftests", "laeuft", "Prüfstand läuft seit KW 34.", 0)
+        paket(ams_dev, "MVP", "offen", "", 1)
+        paket(ams_dev, "Erprobung klein", "offen", "", 2)
+        paket(ams_dev, "CE-MDR", "offen", "Erst nach der Erprobung sinnvoll.", 3)
 
-        paket(ams_fin, "Förderschiene A", "eingereicht", 2, "Zwischenbericht fällig.", 0)
-        paket(ams_fin, "Förderschiene B", "verworfen", 0, "Passt nicht zum Zeitplan.", 1)
-        paket(ams_fin, "Landesförderung", "laeuft", 1, "", 2)
+        paket(ams_fin, "Förderschiene A", "eingereicht", "Zwischenbericht fällig.", 0)
+        paket(ams_fin, "Förderschiene B", "verworfen", "Passt nicht zum Zeitplan.", 1)
+        paket(ams_fin, "Landesförderung", "laeuft", "", 2)
 
-        paket(ams_ziel, "Erprobtes Produkt auf den Markt bringen", "laeuft", 1, "", 0)
+        paket(ams_ziel, "Erprobtes Produkt auf den Markt bringen", "laeuft", "", 0)
 
-        paket(cl_dev, "Hardware", "laeuft", 1, "", 0)
-        paket(cl_dev, "App: Dispensierhilfe", "offen", 0, "", 1)
-        paket(cl_fin, "Forschungsförderung", "zugesagt", 3, "Zusage liegt vor.", 0)
+        paket(cl_dev, "Hardware", "laeuft", "", 0)
+        paket(cl_dev, "App: Dispensierhilfe", "offen", "", 1)
+        paket(cl_fin, "Forschungsförderung", "zugesagt", "Zusage liegt vor.", 0)
 
-        paket(oh, "Buchhaltung", "laeuft", 1, "", 0)
-        paket(oh, "Büro und Organisation", "laeuft", 1, "", 1)
+        paket(oh, "Buchhaltung", "laeuft", "", 0)
+        paket(oh, "Büro und Organisation", "laeuft", "", 1)
 
         Unteraufgabe.objects.create(
             paket=pakete["Dauerlauftests"], titel="Protokollvorlage anlegen", erledigt=True

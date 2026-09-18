@@ -323,48 +323,16 @@ class Phasenart(models.TextChoices):
     ZIEL = "ziel", "Ziele"
 
 
-# Die drei Vorlagen für die Stufenleiste. Beim Anlegen eines **Arbeitspakets**
-# **kopiert**, nicht verwiesen.
-#
-# Warum am Paket und nicht an der Phase: Eine Phase enthält Pakete
-# verschiedenen Zuschnitts — ein Antrag, ein Prototyp und eine Doku laufen
-# nicht über dieselben Stufen und schon gar nicht über dieselben Dauern. Eine
-# Leiste für alle Pakete einer Phase zeigt für die meisten einen
-# Fortschritt, der so nie gemessen wurde.
-#
-# Warum kopieren: „je Paket anpassbar" wäre auch über eine Vererbungskette mit
-# Überschreibungen zu haben. Die müsste man aber bei jeder Anzeige auflösen,
-# und man sähe einem Paket nicht an, welche Stufen für es gelten. Eine
-# kopierte Liste ist ein Wert, kein Verweis — sie ist beim Lesen fertig.
-#
-# Die Schlüssel sind die Phasenarten: Ein neues Paket bekommt die Vorlage
-# der Art seiner Phase als Startpunkt und kann danach auf eine der beiden
-# anderen umgestellt werden.
-STUFENVORLAGEN = {
-    Phasenart.DEV: [
-        {"name": "Konzept", "monate": 1},
-        {"name": "Umsetzung", "monate": 3},
-        {"name": "Test", "monate": 2},
-        {"name": "Abschluss", "monate": 1},
-    ],
-    Phasenart.FIN: [
-        {"name": "Vorbereitung", "monate": 1},
-        {"name": "Einreichung", "monate": 1},
-        {"name": "Entscheidung", "monate": 2},
-        {"name": "Abrechnung", "monate": 1},
-    ],
-    Phasenart.ZIEL: [
-        {"name": "Definition", "monate": 1},
-        {"name": "Abstimmung", "monate": 1},
-        {"name": "Verankert", "monate": 1},
-    ],
-}
+class Phasenstand(models.TextChoices):
+    """
+    Drei Werte, nicht ein Ja/Nein. Bis 2026-09-18 gab es nur `abgeschlossen`;
+    ob eine Phase erst ansteht oder gerade läuft, war daraus nicht zu sehen —
+    und genau das entscheidet auf der Projektseite, was aufgeklappt ist.
+    """
 
-
-def stufenvorlage(schluessel):
-    """Eine frische Kopie einer Vorlage. Nie die Liste aus STUFENVORLAGEN
-    selbst herausgeben — wer sie ändert, änderte sie für alle."""
-    return [dict(s) for s in STUFENVORLAGEN.get(schluessel, [])]
+    OFFEN = "offen", "offen"
+    LAEUFT = "laeuft", "läuft"
+    ABGESCHLOSSEN = "abgeschlossen", "abgeschlossen"
 
 
 class Projektphase(Basismodell):
@@ -382,13 +350,19 @@ class Projektphase(Basismodell):
     bis = models.DateField("Ende", null=True, blank=True)
 
     # Eine abgeschlossene Phase nimmt keine Zeit mehr an (siehe
-    # `darf_gebucht_werden` am Arbeitspaket).
+    # `grund_gegen_buchung` am Arbeitspaket).
     #
     # **Warum ein eigenes Merkmal und nicht „bis liegt in der Vergangenheit":**
     # Eine Phase läuft regelmäßig über ihr geplantes Ende hinaus. Wäre das
     # Datum die Sperre, fiele die Uhr an einem willkürlichen Morgen aus, ohne
     # dass jemand etwas entschieden hätte.
-    abgeschlossen = models.BooleanField("abgeschlossen", default=False)
+    stand = models.CharField(
+        "Stand", max_length=14, choices=Phasenstand.choices, default=Phasenstand.OFFEN
+    )
+
+    @property
+    def abgeschlossen(self):
+        return self.stand == Phasenstand.ABGESCHLOSSEN
 
     class Meta(Basismodell.Meta):
         verbose_name = "Projektphase"
@@ -448,11 +422,13 @@ class Arbeitspaket(Basismodell):
     status = models.CharField(
         "Status", max_length=14, choices=Paketstatus.choices, default=Paketstatus.OFFEN
     )
-    # Liste aus {"name": …, "monate": …}. Beim Anlegen aus der Vorlage der
-    # Phasenart kopiert und danach frei änderbar — Namen wie Dauern.
-    stufen = models.JSONField("Stufen", default=list, blank=True)
-    # Wie viele der eigenen Stufen erledigt sind: 0 … len(stufen).
-    stufenstand = models.IntegerField("Stufenstand", default=0)
+    # Bis 2026-09-18 trug das Paket eine Stufenleiste (Konzept · Umsetzung ·
+    # Test · Abschluss, mit Monaten je Stufe), aus der ein Fortschritt
+    # gerechnet wurde. Weg, weil sie nichts gemessen hat: Der Stand war eine
+    # Schätzung per Klick, und die Monate stammten aus einer Vorlage, die für
+    # kein Paket je gestimmt hat. Der Fortschritt kommt jetzt aus den
+    # gebuchten Stunden gegen das Pensum (siehe `Pensum` und
+    # `auswertung.fortschritt`) — das wird gerechnet, nicht geschätzt.
     reihenfolge = models.IntegerField("Reihenfolge", default=0)
 
     # Hier landet Zeit, die ohne Paketwahl gestartet wurde (siehe
@@ -497,17 +473,11 @@ class Arbeitspaket(Basismodell):
             )
         return None
 
-    def save(self, *args, **kwargs):
-        # Nur beim ersten Speichern füllen. Eine später geleerte Leiste ist
-        # eine Entscheidung („dieses Paket hat keine Stufen"), keine Lücke —
-        # sie hier stillschweigend wieder zu befüllen, nähme sie zurück.
-        if not self.pk and not self.stufen:
-            self.stufen = stufenvorlage(self.phase.art)
-        super().save(*args, **kwargs)
-
-
 #: Wie das Projekt heißt, das beim ersten Start ohne Paketwahl entsteht.
 AUFFANG_PROJEKT = "Overhead"
+# Was hineinfällt, steht im Untertitel — damit niemand ein eigenes Paket
+# „Networking" anlegt, das dann neben dem Auffangpaket steht.
+AUFFANG_UNTERTITEL = "Networking, Meetings, Gespräche — alles, was zu keinem Paket gehört"
 AUFFANG_PHASE = "Laufendes"
 AUFFANG_PAKET = "Allgemein"
 
@@ -542,8 +512,10 @@ def auffangpaket():
     if projekt is None:
         projekt = Projekt.objects.create(
             titel=AUFFANG_PROJEKT,
-            untertitel="Zeit, die zu keinem Paket gehört",
-            # Hinten, nicht vorn: Overhead ist das, was nebenher läuft.
+            untertitel=AUFFANG_UNTERTITEL,
+            # Hinten in den Auswahllisten: Overhead ist das, was nebenher
+            # läuft. Die Projektseite stellt es trotzdem nach oben — quer über
+            # die Projekte, weil es zu allen gehört (`ist_auffang` am Projekt).
             reihenfolge=900,
         )
     phase = projekt.phasen.filter(geloescht_am__isnull=True).order_by("pk").first()

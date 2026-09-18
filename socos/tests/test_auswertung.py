@@ -1,6 +1,7 @@
 """Auswertungen über Zeitbuchungen — und die Regeln, die dabei greifen."""
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 import pytest
 from django.db.utils import IntegrityError
@@ -27,46 +28,43 @@ def buchung(person, paket, start, minuten=None, entwurf=False):
     )
 
 
+class TestFortschritt:
+    """
+    Gebuchte Zeit gegen das Pensum. Die Stufenleiste, aus der das bis
+    2026-09-18 kam, hat nichts gemessen — das hier lässt sich nachrechnen.
+    """
+
+    def test_gebucht_gegen_pensum(self):
+        # 10 von 40 Stunden
+        assert auswertung.fortschritt(36000, Decimal("40")) == 25
+
+    def test_ohne_pensum_gibt_es_keinen_fortschritt(self):
+        """
+        `None`, nicht 0: Ein Förderantrag ohne Pensum hat nicht „nichts
+        geschafft", er hat keine Zahl, gegen die man rechnen könnte.
+        """
+        assert auswertung.fortschritt(36000, Decimal("0")) is None
+        assert auswertung.fortschritt(36000, None) is None
+
+    def test_ueber_hundert_bleibt_ueber_hundert(self):
+        """Ein überzogenes Pensum soll das zeigen, nicht bei 100 stehen bleiben."""
+        assert auswertung.fortschritt(180000, Decimal("40")) == 125
+
+    def test_rundet_kaufmaennisch(self):
+        # 1 h von 3 h = 33,33 %
+        assert auswertung.fortschritt(3600, Decimal("3")) == 33
+
+
 @pytest.mark.django_db
-class TestStufen:
-    def test_paket_bekommt_die_vorlage_der_phasenart(self, paket):
-        namen = [s["name"] for s in paket.stufen]
-        assert namen == ["Konzept", "Umsetzung", "Test", "Abschluss"]
-
-    def test_die_kopie_ist_danach_frei_aenderbar(self, paket):
-        """
-        Kopiert, nicht verwiesen: Eine Änderung an diesem Paket darf kein
-        anderes berühren — auch keines im selben Projektphase. Genau dafür sitzt
-        die Leiste am Paket.
-        """
-        anderes = Arbeitspaket.objects.create(phase=paket.phase, titel="Zweites Paket")
-        paket.stufen[1]["monate"] = 12
-        paket.save()
-        anderes.refresh_from_db()
-        assert anderes.stufen[1]["monate"] == 3
-
-    def test_eine_geleerte_leiste_wird_nicht_wieder_befuellt(self, paket):
-        """
-        Eine leere Leiste ist eine Entscheidung, keine Lücke. Würde `save` sie
-        nachfüllen, käme man von ihr nie wieder weg.
-        """
-        paket.stufen = []
-        paket.save()
-        paket.refresh_from_db()
-        assert paket.stufen == []
-        assert auswertung.fortschritt(paket) == 0
-
-    def test_fortschritt_rechnet_ueber_monate_nicht_ueber_anzahl(self, paket):
-        """
-        Konzept 1 · Umsetzung 3 · Test 2 · Abschluss 1 — sieben Monate. Nach
-        dem Konzept ist ein Siebtel geschafft, nicht ein Viertel.
-        """
-        paket.stufenstand = 1
-        assert auswertung.fortschritt(paket) == 14
-        paket.stufenstand = 2
-        assert auswertung.fortschritt(paket) == 57
-        paket.stufenstand = 4
-        assert auswertung.fortschritt(paket) == 100
+class TestSekundenJePaketUndPerson:
+    def test_trennt_nach_person(self, paket, bearbeiter, admin_nutzer):
+        start = timezone.now() - timedelta(hours=5)
+        buchung(bearbeiter, paket, start, 60)
+        buchung(bearbeiter, paket, start + timedelta(hours=1), 30)
+        buchung(admin_nutzer, paket, start, 120)
+        summen = auswertung.sekunden_je_paket_und_person()
+        assert summen[(paket.pk, bearbeiter.pk)] == 5400
+        assert summen[(paket.pk, admin_nutzer.pk)] == 7200
 
 
 @pytest.mark.django_db

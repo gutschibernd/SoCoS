@@ -19,6 +19,7 @@ from socos.models import (
     Paketstatus,
     Pensum,
     Phasenart,
+    Phasenstand,
     Projekt,
     Projektphase,
     Zeitbuchung,
@@ -372,152 +373,59 @@ class TestEntwuerfe:
 
 
 @pytest.mark.django_db
-class TestStufenleiste:
-    def test_ein_klick_setzt_stand_und_status(self, client, bearbeiter, paket):
-        client.force_login(bearbeiter)
-        daten = client.post(
-            f"/api/pakete/{paket.pk}/stufe/", {"stufenstand": 2}, content_type="application/json"
-        ).json()
-        assert daten["stufenstand"] == 2
-        assert daten["status"] == "laeuft"
-        assert daten["fortschritt"] == 57  # Konzept 1 + Umsetzung 3 von 7 Monaten
-
-    def test_die_letzte_stufe_macht_fertig(self, client, bearbeiter, paket):
-        client.force_login(bearbeiter)
-        daten = client.post(
-            f"/api/pakete/{paket.pk}/stufe/", {"stufenstand": 4}, content_type="application/json"
-        ).json()
-        assert daten["status"] == "fertig"
-
-    def test_bewusst_gesetzte_status_werden_nicht_ueberschrieben(self, client, bearbeiter, paket):
-        """
-        „eingereicht", „zugesagt", „verworfen" und „offene Frage" setzt jemand
-        bewusst. Sie automatisch zu überschreiben, machte die Leiste
-        gefährlich.
-        """
-        paket.status = "eingereicht"
-        paket.save()
-        client.force_login(bearbeiter)
-        daten = client.post(
-            f"/api/pakete/{paket.pk}/stufe/", {"stufenstand": 1}, content_type="application/json"
-        ).json()
-        assert daten["stufenstand"] == 1
-        assert daten["status"] == "eingereicht"
-
-    def test_ein_stand_ausserhalb_der_leiste_wird_abgewiesen(self, client, bearbeiter, paket):
-        client.force_login(bearbeiter)
-        antwort = client.post(
-            f"/api/pakete/{paket.pk}/stufe/", {"stufenstand": 99}, content_type="application/json"
-        )
-        assert antwort.status_code == 400
-
-
-@pytest.mark.django_db
-class TestStufenAmPaket:
+class TestFortschrittAmPaket:
     """
-    Die Leiste hängt am Paket, nicht am Projektphase — zwei Pakete nebeneinander
-    dürfen verschiedene Stufen und verschiedene Dauern haben.
+    Das Paket bringt gebuchte Zeit, Pensum und den Fortschritt dazwischen
+    mit — gerechnet, nicht gespeichert, und je Person gegen ihr Pensum.
     """
 
-    def test_zwei_pakete_in_derselben_phase_gehen_auseinander(self, client, bearbeiter, paket):
-        zweites = Arbeitspaket.objects.create(phase=paket.phase, titel="Zweites")
-        client.force_login(bearbeiter)
-        antwort = client.patch(
-            f"/api/pakete/{paket.pk}/",
-            {"stufen": [{"name": "Konzept", "monate": 1}, {"name": "Umsetzung", "monate": 9}]},
-            content_type="application/json",
+    def test_gebucht_pensum_und_fortschritt(self, client, bearbeiter, admin_nutzer, paket):
+        Pensum.objects.create(paket=paket, person=bearbeiter, stunden=Decimal("40"))
+        Pensum.objects.create(paket=paket, person=admin_nutzer, stunden=Decimal("10"))
+        start = timezone.now() - timedelta(hours=6)
+        Zeitbuchung.objects.create(
+            person=bearbeiter, paket=paket, start=start, ende=start + timedelta(hours=4)
         )
-        assert antwort.status_code == 200
-        assert antwort.json()["stufen"] == [
-            {"name": "Konzept", "monate": 1},
-            {"name": "Umsetzung", "monate": 9},
-        ]
-        zweites.refresh_from_db()
-        assert [s["name"] for s in zweites.stufen] == [
-            "Konzept", "Umsetzung", "Test", "Abschluss",
-        ]
-
-    def test_eine_vorlage_setzt_die_leiste_und_nullt_den_stand(self, client, bearbeiter, paket):
-        paket.stufenstand = 3
-        paket.save()
-        client.force_login(bearbeiter)
-        daten = client.post(
-            f"/api/pakete/{paket.pk}/vorlage/", {"vorlage": "fin"}, content_type="application/json"
-        ).json()
-        assert [s["name"] for s in daten["stufen"]] == [
-            "Vorbereitung", "Einreichung", "Entscheidung", "Abrechnung",
-        ]
-        # Der Stand gehörte zur alten Leiste. „Stufe 3" heißt in der neuen
-        # etwas anderes — ihn zu übernehmen wäre eine Behauptung.
-        assert daten["stufenstand"] == 0
-        assert daten["fortschritt"] == 0
-
-    def test_eine_unbekannte_vorlage_wird_abgewiesen(self, client, bearbeiter, paket):
-        client.force_login(bearbeiter)
-        antwort = client.post(
-            f"/api/pakete/{paket.pk}/vorlage/",
-            {"vorlage": "erfunden"},
-            content_type="application/json",
+        Zeitbuchung.objects.create(
+            person=admin_nutzer, paket=paket, start=start, ende=start + timedelta(hours=1)
         )
-        assert antwort.status_code == 400
-
-    def test_geaenderte_dauern_verschieben_den_fortschritt(self, client, bearbeiter, paket):
-        paket.stufenstand = 1
-        paket.save()
         client.force_login(bearbeiter)
-        # Konzept 1 von 7 → 14 %. Mit Konzept 6 von 12 → 50 %.
-        daten = client.patch(
-            f"/api/pakete/{paket.pk}/",
-            {
-                "stufen": [
-                    {"name": "Konzept", "monate": 6},
-                    {"name": "Umsetzung", "monate": 3},
-                    {"name": "Test", "monate": 2},
-                    {"name": "Abschluss", "monate": 1},
-                ]
-            },
-            content_type="application/json",
-        ).json()
-        assert daten["fortschritt"] == 50
+        daten = client.get(f"/api/pakete/{paket.pk}/").json()
+        assert daten["gebuchte_sekunden"] == 5 * 3600
+        # Decimal → Zeichenkette (CLAUDE.md)
+        assert daten["pensum_stunden"] == "50.00"
+        assert daten["fortschritt"] == 10
+        je_person = {p["person"]: p["gebuchte_sekunden"] for p in daten["pensen"]}
+        assert je_person == {bearbeiter.pk: 4 * 3600, admin_nutzer.pk: 3600}
 
-    def test_das_kuerzen_der_leiste_kappt_den_stand(self, client, bearbeiter, paket):
-        """
-        Wer die Leiste kürzt, meint nicht den Stand. Eine Fehlermeldung wäre
-        die falsche Antwort — sonst stünde ein Paket auf Stufe 4 von 2.
-        """
-        paket.stufenstand = 4
-        paket.save()
+    def test_ohne_pensum_kein_fortschritt(self, client, bearbeiter, paket):
         client.force_login(bearbeiter)
-        daten = client.patch(
-            f"/api/pakete/{paket.pk}/",
-            {"stufen": [{"name": "Konzept", "monate": 1}, {"name": "Rest", "monate": 1}]},
-            content_type="application/json",
-        ).json()
-        assert daten["stufenstand"] == 2
-        assert daten["fortschritt"] == 100
+        daten = client.get(f"/api/pakete/{paket.pk}/").json()
+        assert daten["pensum_stunden"] == "0"
+        assert daten["fortschritt"] is None
 
-    @pytest.mark.parametrize(
-        "leiste",
-        [
-            [{"name": "", "monate": 1}],
-            [{"name": "Konzept", "monate": "drei"}],
-            [{"name": "Konzept", "monate": -1}],
-            [{"name": "Konzept", "monate": 999}],
-            [{"name": "Konzept"}],
-            "keine Liste",
-        ],
-    )
-    def test_unsinnige_leisten_werden_abgewiesen(self, client, bearbeiter, paket, leiste):
+    def test_auch_im_projektbaum(self, client, bearbeiter, paket):
         """
-        Geprüft wird beim Schreiben, nicht beim Rechnen: `fortschritt` machte
-        aus einem Text in `monate` eine 1 und lieferte stillschweigend eine
-        falsche Prozentzahl — die sieht man ihr nicht an.
+        Die Projektseite liest den Baum, nicht das einzelne Paket. Die Summen
+        müssen dort genauso stehen — sonst zeigt der Balken 0.
         """
-        client.force_login(bearbeiter)
-        antwort = client.patch(
-            f"/api/pakete/{paket.pk}/", {"stufen": leiste}, content_type="application/json"
+        Pensum.objects.create(paket=paket, person=bearbeiter, stunden=Decimal("2"))
+        start = timezone.now() - timedelta(hours=2)
+        Zeitbuchung.objects.create(
+            person=bearbeiter, paket=paket, start=start, ende=start + timedelta(hours=1)
         )
-        assert antwort.status_code == 400
+        client.force_login(bearbeiter)
+        projekte = client.get("/api/projekte/").json()
+        gefunden = projekte[0]["phasen"][0]["pakete"][0]
+        assert gefunden["fortschritt"] == 50
+        assert gefunden["pensen"][0]["gebuchte_sekunden"] == 3600
+
+    def test_das_overhead_projekt_ist_als_auffang_markiert(self, client, bearbeiter, paket):
+        client.force_login(bearbeiter)
+        client.post("/api/zeiten/clock_in/", {}, content_type="application/json")
+        nach_titel = {p["titel"]: p["ist_auffang"] for p in client.get("/api/projekte/").json()}
+        assert nach_titel["Overhead"] is True
+        assert nach_titel[paket.phase.projekt.titel] is False
 
 
 @pytest.mark.django_db
@@ -847,9 +755,25 @@ class TestBuchsperre:
     """
 
     @pytest.mark.django_db
+    def test_der_stand_wird_ueber_die_api_gesetzt(self, client, bearbeiter, paket):
+        client.force_login(bearbeiter)
+        daten = client.patch(
+            f"/api/phasen/{paket.phase.pk}/",
+            {"stand": "abgeschlossen"},
+            content_type="application/json",
+        ).json()
+        assert daten["stand"] == "abgeschlossen"
+        assert client.get(f"/api/pakete/{paket.pk}/").json()["buchbar"] is False
+
+        antwort = client.patch(
+            f"/api/phasen/{paket.phase.pk}/", {"stand": "erfunden"}, content_type="application/json"
+        )
+        assert antwort.status_code == 400
+
+    @pytest.mark.django_db
     def test_abgeschlossene_phase_nimmt_keine_zeit_an(self, client, bearbeiter, paket):
         client.force_login(bearbeiter)
-        paket.phase.abgeschlossen = True
+        paket.phase.stand = Phasenstand.ABGESCHLOSSEN
         paket.phase.save()
 
         antwort = client.post(
@@ -876,7 +800,7 @@ class TestBuchsperre:
     ):
         """Der zweite Weg zur Zeit — und er lief an `clock_in` vorbei."""
         client.force_login(bearbeiter)
-        paket.phase.abgeschlossen = True
+        paket.phase.stand = Phasenstand.ABGESCHLOSSEN
         paket.phase.save()
 
         start = timezone.now() - timedelta(hours=3)
@@ -903,7 +827,7 @@ class TestBuchsperre:
         b = Zeitbuchung.objects.create(
             person=bearbeiter, paket=paket, start=start, ende=start + timedelta(hours=1)
         )
-        paket.phase.abgeschlossen = True
+        paket.phase.stand = Phasenstand.ABGESCHLOSSEN
         paket.phase.save()
 
         antwort = client.patch(
@@ -918,7 +842,7 @@ class TestBuchsperre:
         """Ein Clock-out ohne Zielwechsel wählt kein Paket — er beendet nur."""
         client.force_login(bearbeiter)
         Zeitbuchung.objects.create(person=bearbeiter, paket=paket, start=timezone.now())
-        paket.phase.abgeschlossen = True
+        paket.phase.stand = Phasenstand.ABGESCHLOSSEN
         paket.phase.save()
 
         antwort = client.post(

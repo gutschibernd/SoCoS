@@ -26,6 +26,7 @@ from socos.models import (
     Paketstatus,
     Pensum,
     Phasenart,
+    Phasenstand,
     Projekt,
     Projektphase,
 )
@@ -104,6 +105,7 @@ class Command(BaseCommand):
         """
         stati = set(Paketstatus.values)
         arten = set(Phasenart.values)
+        staende = set(Phasenstand.values)
         # Aus der **Datei**, nicht aus der Datenbank: Team und Projekte werden
         # im selben Durchgang geschrieben, und geprüft wird vor dem ersten
         # Schreiben. Ein Konto, das erst gleich entsteht, ist hier schon gültig.
@@ -126,6 +128,19 @@ class Command(BaseCommand):
                     fehler.append(
                         f"Projektphase „{phase.get('titel')}“: art={phase.get('art')!r} "
                         f"— erlaubt: {', '.join(sorted(arten))}"
+                    )
+                # Bis 2026-09-18 hieß das `abgeschlossen: true`. Ein altes
+                # Feld still zu übergehen, ließe eine abgeschlossene Phase
+                # wieder Zeit annehmen — darum laut, wie bei „bereiche".
+                if "abgeschlossen" in phase:
+                    fehler.append(
+                        f"Projektphase „{phase.get('titel')}“: „abgeschlossen“ heißt jetzt "
+                        f"stand=\"abgeschlossen\"."
+                    )
+                if phase.get("stand", Phasenstand.OFFEN) not in staende:
+                    fehler.append(
+                        f"Projektphase „{phase.get('titel')}“: stand={phase.get('stand')!r} "
+                        f"— erlaubt: {', '.join(sorted(staende))}"
                     )
                 for feld in ("von", "bis"):
                     if (wert := phase.get(feld)) is not None:
@@ -223,7 +238,7 @@ class Command(BaseCommand):
                     reihenfolge=ph_nr,
                     von=self._datum(ph.get("von")),
                     bis=self._datum(ph.get("bis")),
-                    abgeschlossen=bool(ph.get("abgeschlossen")),
+                    stand=ph.get("stand", Phasenstand.OFFEN),
                 )
                 for p_nr, p in enumerate(ph.get("pakete", [])):
                     paket = Arbeitspaket.objects.create(
@@ -283,7 +298,7 @@ class Command(BaseCommand):
                 phase.reihenfolge = ph_nr
                 phase.von = self._datum(ph.get("von"))
                 phase.bis = self._datum(ph.get("bis"))
-                phase.abgeschlossen = bool(ph.get("abgeschlossen"))
+                phase.stand = ph.get("stand", Phasenstand.OFFEN)
                 phase.save()
                 behalten.append(phase.pk)
                 self._pakete_abgleichen(phase, ph.get("pakete", []))

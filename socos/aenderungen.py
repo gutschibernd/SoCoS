@@ -24,6 +24,30 @@ VERSIONEN = [
         "titel": "Projektphasen statt Bereiche — und das Protokoll am Stück",
         "punkte": [
             {
+                "titel": "Der Balken zeigt gebuchte Zeit gegen das Pensum",
+                "text": (
+                    "Die Stufenleiste (Konzept · Umsetzung · Test · Abschluss) "
+                    "ist weg — sie hat nichts gemessen. Jedes Arbeitspaket "
+                    "zeigt jetzt, wie viel seines Pensums schon gebucht ist: "
+                    "in der Zeile die Summe, aufgeklappt je Person. Ohne "
+                    "Pensum steht nur die gebuchte Zeit da."
+                ),
+                "wo": "projekt",
+            },
+            {
+                "titel": "Phasen haben einen Stand und lassen sich zuklappen",
+                "text": (
+                    "Eine Phase ist offen, läuft oder ist abgeschlossen — "
+                    "umgestellt wird das unter „Bearbeiten“. Aufgeklappt ist, "
+                    "was läuft; die anderen sagen in der Zeile, was drin ist. "
+                    "Auch Pakete klappen von selbst nur auf, wenn Zeit darauf "
+                    "gebucht ist oder sie laufen. Das Overhead-Projekt steht "
+                    "quer über den anderen — ein Knopf, kein Baum. Dort landen "
+                    "Networking, Meetings und alles, was zu keinem Paket gehört."
+                ),
+                "wo": "projekt",
+            },
+            {
                 "titel": "Das Protokoll wird hinter dem Stift bearbeitet",
                 "text": (
                     "Über dem Protokoll steht jetzt „Bearbeiten“. Der Stift "

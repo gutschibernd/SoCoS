@@ -6,6 +6,8 @@ Auswertungen über Zeitbuchungen.
 Fehler, bei der Zahlen plausibel aussehen und falsch sind.
 """
 
+from decimal import Decimal
+
 from django.db.models import Q
 
 from socos.models import Zeitbuchung
@@ -85,20 +87,37 @@ def offene_entwuerfe(person=None):
     return menge.order_by("start")
 
 
-def fortschritt(paket):
+def sekunden_je_paket_und_person(von=None, bis=None):
     """
-    Wie weit ein Paket ist, in Prozent seiner Stufen — gerechnet über die
-    **Monatsdauern**, nicht über die Anzahl der Stufen.
+    {(Paket-ID, Nutzer-ID): gerundete Sekunden} — die Grundlage für den
+    Fortschritt je Person gegen ihr Pensum.
+    """
+    roh = {}
+    for b in buchungen(von, bis):
+        roh.setdefault((b.paket_id, b.person_id), []).append(zeitdienst.dauer(b))
+    return {schluessel: zeitdienst.summe_gerundet(werte) for schluessel, werte in roh.items()}
 
-    Warum: Eine Stufe „Umsetzung" mit drei Monaten neben „Konzept" mit einem
-    ist nicht ein Viertel des Weges, sondern die Hälfte.
+
+def fortschritt(gebuchte_sekunden, pensum_stunden):
     """
-    stufen = paket.stufen or []
-    gesamt = sum(int(s.get("monate", 1)) for s in stufen)
-    if not gesamt:
-        return 0
-    erledigt = sum(int(s.get("monate", 1)) for s in stufen[: paket.stufenstand])
-    return round(100 * erledigt / gesamt)
+    Wie weit ein Paket ist: gebuchte Zeit gegen das Pensum, in Prozent.
+
+    **`None` statt 0, wenn es kein Pensum gibt.** 0 % hieße „nichts geschafft"
+    — das wäre eine Aussage über ein Paket, für das nie eine Zahl vorgesehen
+    war (die Förderanträge, die Ziele). Die Oberfläche zeigt dort nur die
+    gebuchte Zeit und keinen Balken.
+
+    Über 100 % ist erlaubt und gewollt: Ein Paket, das sein Pensum überzogen
+    hat, soll das zeigen, nicht bei 100 stehen bleiben.
+
+    Bis 2026-09-18 kam der Fortschritt aus einer Stufenleiste je Paket (ein
+    Stand per Klick, Monate aus einer Vorlage). Weg, weil das nichts gemessen
+    hat — die Stunden sind gebucht, das Pensum steht im Arbeitsplan, und
+    zwischen beiden liegt die einzige Zahl, die jemand nachrechnen kann.
+    """
+    if not pensum_stunden or pensum_stunden <= 0:
+        return None
+    return round(100 * Decimal(gebuchte_sekunden) / 3600 / Decimal(pensum_stunden))
 
 
 def entwuerfe_aus_vergessenen_clockouts(jetzt=None):

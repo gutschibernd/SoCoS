@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { hole } from "../basis/api";
 import {
@@ -8,7 +8,6 @@ import {
   type Ich,
   type Paket,
   type Projekt as ProjektTyp,
-  type Stufe,
 } from "../basis/daten";
 import { alsPfad, type Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
@@ -32,17 +31,47 @@ const STATUS: { wert: string; text: string }[] = [
 
 const ART: Record<string, string> = { dev: "Entwicklung", fin: "Finanzierung", ziel: "Ziele" };
 
+const PHASENSTAND: { wert: Projektphase["stand"]; text: string }[] = [
+  { wert: "offen", text: "offen" },
+  { wert: "laeuft", text: "läuft" },
+  { wert: "abgeschlossen", text: "abgeschlossen" },
+];
+
 /*
   Zwei Modi, eine Ansicht.
 
-  Die Übersicht ist zum Arbeiten: Status setzen, Stufen klicken, Notiz
-  schreiben, Haken setzen, Uhr starten. Die Gliederung — anlegen, umordnen,
+  Die Übersicht ist zum Arbeiten: Status setzen, Beschreibung schreiben,
+  Haken setzen, Uhr starten. Die Gliederung — anlegen, umordnen,
   entfernen — steht unter /projekt/bearbeiten und nur dort.
 
   Bewusst dieselben Komponenten mit einem Schalter statt einer zweiten Ansicht:
   Die zweite Ansicht wird beim nächsten neuen Feld vergessen, und dann steht in
   der Übersicht etwas, das im Bearbeiten fehlt — oder umgekehrt.
 */
+
+/**
+ * Ein Pensum als Zahl: „270.00" → „270", „12.50" → „12,5". Die Nachkommastellen
+ * kommen vom Decimal-Feld und sagen hier nichts — im Arbeitsplan steht 270 h.
+ */
+function alsPensum(stunden: string): string {
+  return String(Number(stunden)).replace(".", ",");
+}
+
+/**
+ * Der Balken: gebuchte Zeit gegen ein Pensum. Über 100 % läuft er voll und
+ * wechselt die Farbe — ein überzogenes Paket soll auffallen, nicht bei 100
+ * stehen bleiben. Ohne Pensum gibt es keinen Balken: 0 % hieße „nichts
+ * geschafft", und das wäre eine Aussage über ein Paket, für das nie eine Zahl
+ * vorgesehen war.
+ */
+function Fortschrittsbalken({ prozent }: { prozent: number | null }) {
+  if (prozent === null) return null;
+  return (
+    <div className="balken" data-ueber={prozent > 100 ? "ja" : "nein"}>
+      <i style={{ width: `${Math.min(100, prozent)}%` }} />
+    </div>
+  );
+}
 
 /** Ein PATCH auf eine Ressource. Das Neuladen entscheidet der Aufrufer. */
 async function aendern(pfad: string, daten: Record<string, unknown>): Promise<void> {
@@ -116,6 +145,12 @@ export function Projekt({
 
   const darfAnlegen = ich.darf.bearbeiten && bearbeiten;
   const sichtbar = projekte.filter((p) => projektFilter === "alle" || String(p.id) === projektFilter);
+  // Das Overhead-Projekt steht quer über den anderen: Es gehört zu allen —
+  // Networking, Meetings, Gespräche — und wäre in einer Spalte neben dem
+  // Arzneimittelspender ein Projekt wie jedes andere. In den Auswahllisten
+  // bleibt es hinten (`reihenfolge` 900); nur hier steht es vorn.
+  const auffang = sichtbar.filter((p) => p.ist_auffang);
+  const uebrige = sichtbar.filter((p) => !p.ist_auffang);
 
   if (projekte.length === 0) {
     return (
@@ -209,11 +244,15 @@ export function Projekt({
         <Fehlerzeile text={projektFehler} />
       </div>
 
+      {auffang.map((projekt) => (
+        <OverheadKarte key={projekt.id} projekt={projekt} ich={ich} bearbeiten={bearbeiten} neuLaden={neuLaden} />
+      ))}
+
       {/* Nebeneinander, sobald der Platz für zwei Spalten reicht — am Laptop
           stehen die beiden Projekte sonst untereinander und man scrollt an
           einer halbleeren Seite vorbei. */}
       <div className="projekt-raster">
-        {sichtbar.map((projekt) => (
+        {uebrige.map((projekt) => (
           <ProjektKarte
             key={projekt.id}
             projekt={projekt}
@@ -233,6 +272,70 @@ export function Projekt({
           abbrechen={() => setLoeschen(null)}
           loeschen={() => projektEntfernen(loeschen.id)}
         />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Das Overhead-Projekt: ein Kopf und ein Knopf, kein Baum.
+ *
+ * Es hat eine Phase und ein Paket, weil jede Buchung eines braucht — aber
+ * niemand gliedert Overhead. „Laufendes › Allgemein" aufzuklappen, um dann
+ * auf Clock-in zu drücken, sind zwei Griffe für einen Gedanken. Die Uhr
+ * startet hier ohne Paketnummer und landet von selbst auf dem Auffangpaket.
+ */
+function OverheadKarte({
+  projekt,
+  ich,
+  bearbeiten,
+  neuLaden,
+}: {
+  projekt: ProjektTyp;
+  ich: Ich;
+  bearbeiten: boolean;
+  neuLaden: () => void;
+}) {
+  return (
+    <div className="karte overhead" style={{ borderLeft: `3px solid ${projekt.farbe}` }}>
+      <div className="projekt-kopf">
+        <div style={{ minWidth: 200 }}>
+          <h3>
+            <Feldtext
+              wert={projekt.titel}
+              aendern={ich.darf.bearbeiten && bearbeiten}
+              speichern={async (titel) => {
+                await aendern(`/projekte/${projekt.id}/`, { titel });
+                neuLaden();
+              }}
+            />
+          </h3>
+          <div className="unter">
+            <Feldtext
+              wert={projekt.untertitel}
+              platzhalter="Untertitel …"
+              aendern={ich.darf.bearbeiten && bearbeiten}
+              speichern={async (untertitel) => {
+                await aendern(`/projekte/${projekt.id}/`, { untertitel });
+                neuLaden();
+              }}
+            />
+          </div>
+        </div>
+        <span className="zahl gebucht">{alsDauer(projekt.gebuchte_sekunden)} gebucht</span>
+      </div>
+      {ich.darf.bearbeiten && (
+        <button
+          type="button"
+          className="knopf overhead-knopf"
+          onClick={async () => {
+            await clockIn();
+            neuLaden();
+          }}
+        >
+          <Zeichen name="start" />
+          Clock-in auf Overhead
+        </button>
       )}
     </div>
   );
@@ -314,7 +417,7 @@ function ProjektKarte({
         <Leerstelle
           was="Noch keine Projektphase"
           satz={
-            "Projektphasen gliedern das Projekt — Entwicklung, Finanzierung, Ziele. Jede bringt ihre eigene Stufenleiste mit." +
+            "Projektphasen gliedern das Projekt — Entwicklung, Finanzierung, Ziele — und folgen aufeinander." +
             (ich.darf.bearbeiten && !bearbeiten ? " Angelegt wird unter „Bearbeiten“." : "")
           }
         />
@@ -385,7 +488,13 @@ function Phasenblock({
   const [neuesPaket, setNeuesPaket] = useState("");
   const [paketFehler, setPaketFehler] = useState("");
   const [loeschen, setLoeschen] = useState(false);
+  // Aufgeklappt ist, was läuft. Eine abgeschlossene Phase und eine, die erst
+  // ansteht, sind zugeklappt — bei acht Phasen in einer Kette wäre die Seite
+  // sonst eine Wand aus Leerstellen, und die zwei Pakete, an denen gerade
+  // gearbeitet wird, stünden irgendwo in der Mitte.
+  const [offen, setOffen] = useState(phase.stand === "laeuft");
   const pakete = phase.pakete.filter((p) => statusFilter === "alle" || p.status === statusFilter);
+  const gebucht = phase.pakete.reduce((summe, p) => summe + p.gebuchte_sekunden, 0);
 
   async function verschieben(richtung: -1 | 1) {
     const nachbar = geschwister[stelle + richtung];
@@ -415,8 +524,17 @@ function Phasenblock({
   }
 
   return (
-    <section className="projektphase">
+    <section className="projektphase" data-offen={offen ? "ja" : "nein"}>
       <h4>
+        <button
+          type="button"
+          className="paket-aufklappen"
+          onClick={() => setOffen((o) => !o)}
+          aria-expanded={offen}
+          aria-label={`${phase.titel} ${offen ? "zuklappen" : "aufklappen"}`}
+        >
+          <Zeichen name="zeiger" />
+        </button>
         <Feldtext
           wert={phase.titel}
           aendern={ich.darf.bearbeiten && bearbeiten}
@@ -429,6 +547,38 @@ function Phasenblock({
             Entwicklung" ist Rauschen, das man beim Lesen jedes Mal aussortiert. */}
         {ART[phase.art].toLowerCase() !== phase.titel.trim().toLowerCase() && (
           <span className="art">{ART[phase.art]}</span>
+        )}
+        {/* Der Stand: im Bearbeiten ein Auswahlfeld, sonst nur eine Marke —
+            und die nur für „abgeschlossen": „läuft" sieht man daran, dass die
+            Phase aufgeklappt ist, und „offen" ist der Normalfall. */}
+        {ich.darf.bearbeiten && bearbeiten ? (
+          <select
+            // Dieselben Töne wie am Paket: abgeschlossen ist grün wie „fertig".
+            className={`status status-${phase.stand === "abgeschlossen" ? "fertig" : phase.stand}`}
+            value={phase.stand}
+            aria-label={`Stand von ${phase.titel}`}
+            onChange={async (e) => {
+              await aendern(`/phasen/${phase.id}/`, { stand: e.target.value });
+              neuLaden();
+            }}
+          >
+            {PHASENSTAND.map((s) => (
+              <option key={s.wert} value={s.wert}>
+                {s.text}
+              </option>
+            ))}
+          </select>
+        ) : (
+          phase.stand === "abgeschlossen" && <span className="art abgeschlossen">abgeschlossen</span>
+        )}
+        {/* Zugeklappt sagt die Zeile, was drin ist — sonst müsste man jede
+            Phase aufklappen, um zu sehen, ob sich das lohnt. Eine leere Phase
+            sagt nichts: Dass sie noch aussteht, sieht man ihr an. */}
+        {!offen && phase.pakete.length > 0 && (
+          <span className="phase-summe">
+            {`${phase.pakete.length} ${phase.pakete.length === 1 ? "Paket" : "Pakete"}` +
+              (gebucht > 0 ? ` · ${alsDauer(gebucht)}` : "")}
+          </span>
         )}
         {ich.darf.bearbeiten && bearbeiten && (
           <span className="ordnen">
@@ -457,7 +607,7 @@ function Phasenblock({
         />
       )}
 
-      {pakete.length === 0 ? (
+      {!offen ? null : pakete.length === 0 ? (
         <Leerstelle
           was={statusFilter === "alle" ? "Noch kein Arbeitspaket" : "Kein Paket in diesem Filter"}
           satz={
@@ -481,7 +631,7 @@ function Phasenblock({
         ))
       )}
 
-      {ich.darf.bearbeiten && bearbeiten && statusFilter === "alle" && (
+      {offen && ich.darf.bearbeiten && bearbeiten && statusFilter === "alle" && (
         <div className="feld-reihe" style={{ marginTop: 10 }}>
           <input
             className="feld"
@@ -501,113 +651,6 @@ function Phasenblock({
   );
 }
 
-/**
- * Die Stufenleiste eines Pakets ändern: Vorlage übernehmen, Namen und Dauern
- * eintragen, Stufen hinzunehmen oder streichen.
- *
- * Gespeichert wird immer die **ganze Liste**, nie eine einzelne Stufe. Eine
- * Stufe hat keine eigene Kennung — sie ist eine Stelle in einer Liste. Einzeln
- * zu speichern hieße, sich diese Stelle zu merken, und beim Streichen liefe
- * das auseinander.
- *
- * Die Vorlagen kommen nicht von hier: Der Aufruf schickt nur ihren Namen, den
- * Inhalt kennt allein der Server. Sonst stünden die Stufen an zwei Stellen.
- */
-function Stufenbearbeitung({ paket, neuLaden }: { paket: Paket; neuLaden: () => void }) {
-  const [entwurf, setEntwurf] = useState<Stufe[]>(paket.stufen);
-
-  // Was der Server schickt, gilt — nach einer Vorlage oder einer Änderung von
-  // einem zweiten Gerät. Verglichen wird der Inhalt, nicht die Kennung des
-  // Feldes: Jeder Abruf liefert ein neues Feld mit denselben Werten.
-  const vomServer = JSON.stringify(paket.stufen);
-  useEffect(() => setEntwurf(JSON.parse(vomServer) as Stufe[]), [vomServer]);
-
-  async function speichern(stufen: Stufe[]) {
-    setEntwurf(stufen);
-    await aendern(`/pakete/${paket.id}/`, { stufen });
-    neuLaden();
-  }
-
-  async function vorlageUebernehmen(vorlage: string) {
-    await hole(`/pakete/${paket.id}/vorlage/`, {
-      method: "POST",
-      body: JSON.stringify({ vorlage }),
-    });
-    neuLaden();
-  }
-
-  const geaendert = (i: number, teil: Partial<Stufe>) =>
-    setEntwurf(entwurf.map((s, j) => (j === i ? { ...s, ...teil } : s)));
-
-  return (
-    <div className="stufen-bearbeiten">
-      <div className="stufen-vorlage">
-        <select
-          className="feld feld-klein"
-          value=""
-          aria-label="Vorlage für die Stufen übernehmen"
-          onChange={(e) => {
-            const gewaehlt = e.target.value;
-            e.target.value = "";
-            if (gewaehlt) vorlageUebernehmen(gewaehlt);
-          }}
-        >
-          <option value="">Vorlage übernehmen …</option>
-          {Object.entries(ART).map(([wert, text]) => (
-            <option key={wert} value={wert}>
-              {text}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <ul className="stufen-liste">
-        {entwurf.map((stufe, i) => (
-          // Der Index als Schlüssel: Eine Stufe hat keine Kennung, und die
-          // Liste wird nur am Ende länger oder um eine Stelle kürzer.
-          <li key={i}>
-            <input
-              className="feld"
-              value={stufe.name}
-              aria-label={`Name der ${i + 1}. Stufe`}
-              onChange={(e) => geaendert(i, { name: e.target.value })}
-              onBlur={() => speichern(entwurf)}
-            />
-            <input
-              className="feld feld-monate"
-              type="number"
-              min={0}
-              max={120}
-              value={stufe.monate}
-              aria-label={`Dauer der ${i + 1}. Stufe in Monaten`}
-              onChange={(e) => geaendert(i, { monate: Number(e.target.value) })}
-              onBlur={() => speichern(entwurf)}
-            />
-            <span className="einheit">Mon.</span>
-            <button
-              type="button"
-              className="mini"
-              aria-label={`Stufe „${stufe.name}“ entfernen`}
-              onClick={() => speichern(entwurf.filter((_, j) => j !== i))}
-            >
-              <Zeichen name="kreuz" />
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      <button
-        type="button"
-        className="knopf-still"
-        onClick={() => speichern([...entwurf, { name: "Neue Stufe", monate: 1 }])}
-      >
-        <Zeichen name="plus" />
-        Stufe hinzufügen
-      </button>
-    </div>
-  );
-}
-
 function PaketZeile({
   paket,
   geschwister,
@@ -623,23 +666,15 @@ function PaketZeile({
   bearbeiten: boolean;
   neuLaden: () => void;
 }) {
-  const [offen, setOffen] = useState(false);
+  // Aufgeklappt ist, woran gearbeitet wird: Zeit gebucht oder auf „läuft".
+  // Die anderen sind eine Zeile — sonst stehen sieben Beschreibungen
+  // untereinander, von denen sechs erst nächstes Jahr dran sind.
+  const [offen, setOffen] = useState(paket.gebuchte_sekunden > 0 || paket.status === "laeuft");
   const [neueAufgabe, setNeueAufgabe] = useState("");
   const [aufgabeFehler, setAufgabeFehler] = useState("");
   const [loeschen, setLoeschen] = useState(false);
   const [fehler, setFehler] = useState("");
-  const gesamtMonate = paket.stufen.reduce((s, x) => s + x.monate, 0) || 1;
-
-  async function stufeSetzen(stand: number) {
-    // Ein zweiter Klick auf dieselbe Stufe nimmt sie zurück — sonst käme man
-    // von einem Fehlgriff nur über den Umweg der Nachbarstufe wieder weg.
-    const ziel = paket.stufenstand === stand ? stand - 1 : stand;
-    await hole(`/pakete/${paket.id}/stufe/`, {
-      method: "POST",
-      body: JSON.stringify({ stufenstand: Math.max(0, ziel) }),
-    });
-    neuLaden();
-  }
+  const hatPensum = Number(paket.pensum_stunden) > 0;
 
   async function verschieben(richtung: -1 | 1) {
     const nachbar = geschwister[stelle + richtung];
@@ -727,7 +762,15 @@ function PaketZeile({
           </span>
         )}
 
-        <span className="zahl fortschritt">{paket.fortschritt} %</span>
+        {/* Gebucht gegen Pensum. Ohne Pensum nur die gebuchte Zeit — und die
+            nur, wenn es eine gibt: „0:00" an jedem Förderantrag sagt nichts. */}
+        {hatPensum ? (
+          <span className="zahl fortschritt">
+            {alsDauer(paket.gebuchte_sekunden)} / {alsPensum(paket.pensum_stunden)} h · {paket.fortschritt} %
+          </span>
+        ) : paket.gebuchte_sekunden > 0 ? (
+          <span className="zahl fortschritt">{alsDauer(paket.gebuchte_sekunden)}</span>
+        ) : null}
 
         {/* Clock-in ist Arbeiten, kein Gliedern — der Knopf bleibt in beiden Modi. */}
         {ich.darf.bearbeiten && (
@@ -759,36 +802,35 @@ function PaketZeile({
         )}
       </div>
 
-      <div className="balken">
-        <i style={{ width: `${paket.fortschritt}%` }} />
-      </div>
+      <Fortschrittsbalken prozent={paket.fortschritt} />
 
       <Fehlerzeile text={fehler} />
 
       {offen && (
         <div className="paket-tiefe">
-          <div className="stufen-kopf">
-            <span>Stufen</span>
-          </div>
-          <div className="stufen">
-            {paket.stufen.map((stufe, i) => (
-              <button
-                key={stufe.name}
-                type="button"
-                className="stufe"
-                data-erledigt={i < paket.stufenstand ? "ja" : "nein"}
-                style={{ ["--anteil" as string]: stufe.monate / gesamtMonate }}
-                disabled={!ich.darf.bearbeiten}
-                onClick={() => stufeSetzen(i + 1)}
-              >
-                <span>{stufe.name}</span>
-                <span className="monate">{stufe.monate} Mon.</span>
-              </button>
-            ))}
-          </div>
-
-          {ich.darf.bearbeiten && bearbeiten && (
-            <Stufenbearbeitung paket={paket} neuLaden={neuLaden} />
+          {/* Je Person gegen ihr Pensum — das ist die Frage, die jemand am
+              Morgen hat: wie viel *ich* hier noch offen habe. Die Summe oben
+              beantwortet sie nicht, wenn der eine 270 Stunden trägt und der
+              andere 140. */}
+          {paket.pensen.length > 0 && (
+            <div className="pensen">
+              <div className="tiefe-kopf">Pensum</div>
+              {paket.pensen.map((pensum) => (
+                <div className="pensum-zeile" key={pensum.id}>
+                  <span className="pensum-person">{pensum.person_name}</span>
+                  <Fortschrittsbalken
+                    prozent={
+                      Number(pensum.stunden) > 0
+                        ? Math.round((100 * pensum.gebuchte_sekunden) / 3600 / Number(pensum.stunden))
+                        : null
+                    }
+                  />
+                  <span className="zahl pensum-zahl">
+                    {alsDauer(pensum.gebuchte_sekunden)} / {alsPensum(pensum.stunden)} h
+                  </span>
+                </div>
+              ))}
+            </div>
           )}
 
           <div className="beschreibung">

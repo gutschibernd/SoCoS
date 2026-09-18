@@ -146,7 +146,7 @@
 .start-beschriftung,
 .projektphase h4,
 .summenzeile .beschriftung,
-.stufen-kopf,
+.tiefe-kopf,
 .beschriftung-klein,
 .tabelle td::before {
   font-size: 12.5px;
@@ -377,26 +377,13 @@
 .status-verworfen    { background: var(--ruhend-hell);  color: var(--ruhend); }
 .status-offene_frage { background: var(--warnung-hell); color: var(--warnung); }
 
-/* --- Stufenleiste -------------------------------------------------------- */
-
-.stufen { display: flex; gap: 3px; align-items: stretch; }
-.stufe {
-  flex: var(--anteil, 1); min-height: var(--griff); padding: 7px 9px;
-  border: 1px solid var(--rand); border-radius: var(--kante);
-  background: var(--flaeche-leise); color: var(--text-leise);
-  font-size: 12px; font-weight: 600; cursor: pointer; text-align: left;
-  display: flex; flex-direction: column; justify-content: center; gap: 2px;
-}
-.stufe:hover { border-color: var(--marke-rand); }
-.stufe[data-erledigt="ja"] {
-  background: var(--marke-hell); border-color: var(--marke-rand); color: var(--marke);
-}
-.stufe .monate { font-weight: 400; font-size: 11px; opacity: 0.75; }
-
 /* --- Balken -------------------------------------------------------------- */
 
 .balken { height: 8px; background: var(--flaeche-leise); border-radius: var(--kante); overflow: hidden; }
 .balken > i { display: block; height: 100%; background: var(--marke); }
+/* Über dem Pensum: Der Balken ist voll und wechselt die Farbe. Ein Paket,
+   das überzogen ist, soll auffallen — nicht aussehen wie eines, das fertig ist. */
+.balken[data-ueber="ja"] > i { background: var(--warnung); }
 
 /* --- Tabelle, die am Handy zur Karte wird -------------------------------- */
 /*
@@ -978,18 +965,32 @@ a.leiste-knopf { text-decoration: none; }
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--rand);
 }
+/* Ein Knopf über die ganze Breite: Overhead ist kein Baum, den man
+   durchsucht, sondern der eine Griff für alles, was zu keinem Paket gehört. */
+.overhead-knopf { width: 100%; justify-content: center; min-height: 52px; font-size: 15px; }
 .projekt-kopf h3 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
 .projekt-kopf .unter { font-size: 13px; color: var(--text-leise); margin-top: 2px; }
 .projekt-kopf .gebucht { margin-left: auto; font-size: 13px; color: var(--text-leise); }
 
 .projektphase { margin-bottom: 18px; }
+/* Zugeklappt rückt die nächste Phase näher: Eine Kette aus acht Phasen, von
+   denen sechs noch leer sind, soll wie eine Liste lesbar sein, nicht wie
+   acht Absätze. */
+.projektphase[data-offen="nein"] { margin-bottom: 4px; }
 .projektphase h4 {
   margin: 0 0 9px;
   display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
 }
+.projektphase[data-offen="nein"] h4 { margin-bottom: 0; }
+.projektphase h4 .paket-aufklappen { margin-left: -4px; }
 .projektphase h4 .art {
   padding: 2px 8px; border-radius: var(--kante);
   background: var(--flaeche-leise); color: var(--text-leise); letter-spacing: 0.04em;
+}
+.projektphase h4 .abgeschlossen { background: var(--gut-hell); color: var(--gut); }
+.projektphase h4 .phase-summe {
+  margin-left: auto; white-space: nowrap;
+  font-weight: 400; font-family: var(--schrift-zahl); color: var(--text-leise);
 }
 
 .paket {
@@ -1008,6 +1009,14 @@ a.leiste-knopf { text-decoration: none; }
 select.status { border: 1px solid transparent; min-height: var(--griff); padding: 6px 10px; }
 
 .paket-tiefe { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--rand); }
+.tiefe-kopf { margin-bottom: 7px; }
+/* Je Person: Name, Balken, Zahl — der Balken nimmt, was übrig bleibt. Name
+   und Zahl haben feste Breiten, damit die Balken zweier Personen an derselben
+   Stelle beginnen und enden — sonst vergleicht man Längen, die nichts
+   vergleichen. */
+.pensum-zeile { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 12px; margin-bottom: 6px; }
+.pensum-zeile .pensum-person { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pensum-zeile .pensum-zahl { font-size: 12.5px; color: var(--text-leise); white-space: nowrap; }
 .paket-tiefe .beschreibung { margin: 12px 0 0; font-size: 14px; color: var(--text-leise); line-height: 1.5; }
 
 .unteraufgaben { list-style: none; margin: 12px 0 0; padding: 0; }
@@ -1354,30 +1363,6 @@ a.mini { text-decoration: none; }
 .feld-reihe > .rueckmeldung { flex: 1 0 100%; margin-top: 6px; }
 .rueckmeldung.gut { color: var(--gut); }
 .rueckmeldung.schlecht { color: var(--warnung); }
-
-/* --- Stufenleiste ändern -------------------------------------------------- */
-
-.stufen-kopf {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
-}
-
-.stufen-bearbeiten {
-  margin-top: 10px; padding: 10px 12px;
-  border: 1px dashed var(--rand-stark); border-radius: var(--kante);
-  background: var(--flaeche-leise);
-}
-.stufen-vorlage { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-/* `.feld-klein` bringt oben 7 px mit, weil es sonst unter einer Beschriftung
-   sitzt. Hier steht es in einer Zeile — der Abstand kippt es aus der Achse. */
-.stufen-vorlage .feld-klein { margin-top: 0; }
-
-.stufen-liste { list-style: none; margin: 0 0 8px; padding: 0; }
-.stufen-liste li { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.stufen-liste .feld { min-width: 0; }
-/* Die Dauer ist eine kleine Zahl und bekommt nur den Platz, den sie braucht —
-   sonst schiebt sie den Namen aus der Zeile. */
-.stufen-liste .feld-monate { flex: 0 0 76px; font-family: var(--schrift-zahl); }
-.stufen-liste .einheit { font-size: 12px; color: var(--text-leise); flex: 0 0 auto; }
 
 /* --- Ändern an Ort und Stelle -------------------------------------------- */
 
@@ -1852,21 +1837,10 @@ a.mini { text-decoration: none; }
   .feld-klein { min-height: var(--griff); font-size: 15px; }
   select.status { font-size: 15px; }
 
-  /* Die Stufenleiste wird zur Liste.
-     Nebeneinander passen vier Stufen nicht in 375 px — „Vorbereitung ·
-     Einreichung · Entscheidung · Abrechnung" läuft über den Rand. Waagrecht
-     scrollen wäre die schlechtere Lösung: Die letzte Stufe ist genau die, die
-     man antippt, um ein Paket auf „fertig" zu setzen, und die läge dann
-     außerhalb des Bildes. Die Monatsanteile stehen als Zahl daneben — die
-     Information geht also nicht verloren. */
-  .stufen { flex-direction: column; }
-  .stufe {
-    flex: none; width: 100%;
-    flex-direction: row; align-items: center; justify-content: space-between;
-    gap: 10px;
-  }
-  .stufe .monate { flex: 0 0 auto; }
-  .stufe[data-erledigt="ja"] { border-left: 3px solid var(--marke); }
+  /* Je Person untereinander: 120 px Name neben einem Balken passen bei
+     375 px nicht mehr, ohne dass der Balken zum Strich wird. */
+  .pensum-zeile { grid-template-columns: 1fr auto; }
+  .pensum-zeile .balken { grid-column: 1 / -1; }
 
   .nachweis-knoepfe { justify-content: flex-start; }
 

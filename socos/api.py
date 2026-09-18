@@ -39,11 +39,9 @@ from socos.models import (
     Protokolleintrag,
     Rueckmeldung,
     Unteraufgabe,
-    STUFENVORLAGEN,
     Verlaufseintrag,
     Zeitbuchung,
     auffangpaket,
-    stufenvorlage,
 )
 from socos.services import auswertung, finanzen
 from socos.services import zeit as zeitdienst
@@ -74,25 +72,40 @@ class SocosViewSet(viewsets.ModelViewSet):
 # --- Projektstruktur --------------------------------------------------------
 
 
+def _mit_buchungssummen(kontext):
+    """
+    Die gebuchte Zeit je Projekt, je Paket und je Paket und Person — einmal
+    für die ganze Antwort gerechnet, nicht einmal je Zeile. Die Serializer
+    lesen sie aus dem Kontext; fehlt er, steht 0 da.
+    """
+    kontext["sekunden_je_projekt"] = auswertung.sekunden_je_projekt()
+    kontext["sekunden_je_paket"] = auswertung.sekunden_je_paket()
+    kontext["sekunden_je_paket_und_person"] = auswertung.sekunden_je_paket_und_person()
+    return kontext
+
+
 class ProjektViewSet(SocosViewSet):
     serializer_class = ser.ProjektSerializer
     queryset = Projekt.objects.all()
 
     def get_serializer_context(self):
-        kontext = super().get_serializer_context()
-        # Einmal für alle Projekte rechnen statt einmal je Projekt.
-        kontext["sekunden_je_projekt"] = auswertung.sekunden_je_projekt()
-        return kontext
+        return _mit_buchungssummen(super().get_serializer_context())
 
 
 class ProjektphaseViewSet(SocosViewSet):
     serializer_class = ser.ProjektphaseSerializer
     queryset = Projektphase.objects.select_related("projekt")
 
+    def get_serializer_context(self):
+        return _mit_buchungssummen(super().get_serializer_context())
+
 
 class ArbeitspaketViewSet(SocosViewSet):
     serializer_class = ser.ArbeitspaketSerializer
     queryset = Arbeitspaket.objects.select_related("phase", "phase__projekt")
+
+    def get_serializer_context(self):
+        return _mit_buchungssummen(super().get_serializer_context())
 
     def get_queryset(self):
         menge = super().get_queryset()
@@ -102,57 +115,13 @@ class ArbeitspaketViewSet(SocosViewSet):
             menge = menge.filter(status=status)
         return menge
 
-    @action(detail=True, methods=["post"])
-    def stufe(self, request, pk=None):
-        """
-        Setzt den Stufenstand und leitet den Status daraus ab — so wie im
-        Entwurf: ein Klick auf die Leiste bewegt beides.
-        """
-        paket = self.get_object()
-        try:
-            stand = int(request.data.get("stufenstand"))
-        except (TypeError, ValueError):
-            raise ValidationError({"stufenstand": "Eine ganze Zahl wird gebraucht."})
-
-        gesamt = len(paket.stufen or [])
-        if not 0 <= stand <= gesamt:
-            raise ValidationError({"stufenstand": f"Muss zwischen 0 und {gesamt} liegen."})
-
-        paket.stufenstand = stand
-        # Nur die drei neutralen Zustände werden abgeleitet. „eingereicht",
-        # „zugesagt", „verworfen" und „offene Frage" setzt jemand bewusst —
-        # sie automatisch zu überschreiben, machte die Leiste gefährlich.
-        if paket.status in ("offen", "laeuft", "fertig"):
-            paket.status = "fertig" if stand >= gesamt else ("laeuft" if stand else "offen")
-        paket.save()
-        return Response(self.get_serializer(paket).data)
-
-    @action(detail=True, methods=["post"])
-    def vorlage(self, request, pk=None):
-        """
-        Setzt die Stufenleiste des Pakets auf eine der drei Vorlagen.
-
-        Der Aufrufer schickt nur den **Namen** der Vorlage, nicht ihren Inhalt.
-        Sonst stünden die Stufen an einer zweiten Stelle — im Frontend —, und
-        beim nächsten Nachbessern hätte man zwei Fassungen davon.
-        """
-        vorlage = request.data.get("vorlage")
-        if vorlage not in STUFENVORLAGEN:
-            erlaubt = ", ".join(STUFENVORLAGEN)
-            raise ValidationError({"vorlage": f"Unbekannt. Erlaubt sind: {erlaubt}."})
-
-        paket = self.get_object()
-        paket.stufen = stufenvorlage(vorlage)
-        # Der Stand gehört zur alten Leiste. Er auf die neue zu übertragen,
-        # hieße zu behaupten, „Stufe 3" bedeute in beiden dasselbe.
-        paket.stufenstand = 0
-        paket.save()
-        return Response(self.get_serializer(paket).data)
-
 
 class PensumViewSet(SocosViewSet):
     serializer_class = ser.PensumSerializer
     queryset = Pensum.objects.select_related("paket", "person")
+
+    def get_serializer_context(self):
+        return _mit_buchungssummen(super().get_serializer_context())
 
     def get_queryset(self):
         menge = super().get_queryset()

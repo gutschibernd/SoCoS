@@ -17,6 +17,7 @@ function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[
       // sucht nach Farbwerten im Frontend, und diese Farbe wird nie gezeichnet.
       farbe: "var(--marke)",
       gebuchte_sekunden: 0,
+      ist_auffang: false,
       phasen: [
         {
           id: 1,
@@ -25,7 +26,7 @@ function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[
           art: "dev",
           von: null,
           bis: null,
-          abgeschlossen: false,
+          stand: "laeuft",
           pakete: pakete.map((p) => ({
             id: p.id,
             phase: 1,
@@ -33,9 +34,9 @@ function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[
             titel: p.titel,
             beschreibung: "",
             status: p.status,
-            stufenstand: 0,
-            stufen: [],
-            fortschritt: 0,
+            gebuchte_sekunden: 0,
+            pensum_stunden: "0",
+            fortschritt: null,
             unteraufgaben: [],
             pensen: [],
             // Wie der Server es rechnet (`Arbeitspaket.grund_gegen_buchung`).

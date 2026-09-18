@@ -86,7 +86,6 @@ export type Aufgabe = {
   geaendert_am: string;
 };
 
-export type Stufe = { name: string; monate: number };
 export type Unteraufgabe = { id: number; paket: number; titel: string; erledigt: boolean };
 export type Pensum = {
   id: number;
@@ -95,6 +94,8 @@ export type Pensum = {
   person_name: string;
   /** Zeichenkette, nicht Zahl — Stunden sind Decimal (siehe CLAUDE.md). */
   stunden: string;
+  /** Was diese Person auf dieses Paket schon gebucht hat. */
+  gebuchte_sekunden: number;
 };
 export type Paket = {
   id: number;
@@ -103,9 +104,11 @@ export type Paket = {
   titel: string;
   beschreibung: string;
   status: string;
-  stufenstand: number;
-  stufen: Stufe[];
-  fortschritt: number;
+  gebuchte_sekunden: number;
+  /** Summe der Pensen, Decimal als Zeichenkette; "0", wenn keines da ist. */
+  pensum_stunden: string;
+  /** Gebucht gegen Pensum in Prozent — null, wenn es kein Pensum gibt. Kann über 100 liegen. */
+  fortschritt: number | null;
   unteraufgaben: Unteraufgabe[];
   pensen: Pensum[];
   /** Ob die Uhr hier laufen darf. Der Server entscheidet, nicht die Liste unten. */
@@ -121,7 +124,8 @@ export type Projektphase = {
   /** JJJJ-MM-TT oder null — eine Phase, die erst ansteht, hat noch kein Datum. */
   von: string | null;
   bis: string | null;
-  abgeschlossen: boolean;
+  /** Abgeschlossen nimmt keine Zeit mehr an; „läuft“ ist auf der Projektseite aufgeklappt. */
+  stand: "offen" | "laeuft" | "abgeschlossen";
   pakete: Paket[];
 };
 export type Projekt = {
@@ -131,6 +135,8 @@ export type Projekt = {
   farbe: string;
   phasen: Projektphase[];
   gebuchte_sekunden: number;
+  /** Das Projekt mit dem Auffangpaket („Overhead") — steht auf der Projektseite quer über den anderen. */
+  ist_auffang: boolean;
 };
 
 export type Buchung = {

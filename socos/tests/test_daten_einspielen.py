@@ -83,9 +83,6 @@ def test_spielt_team_und_projekte_ein(tmp_path):
     projekt = Projekt.objects.get(titel="Ein Projekt")
     assert projekt.untertitel == "Untertitel"
     phase = Projektphase.objects.get(projekt=projekt)
-    # Die Stufen kommen aus der Vorlage der Phasenart, nicht aus der Datei —
-    # und sie hängen am Paket, nicht am Projektphase.
-    assert all(p.stufen for p in Arbeitspaket.objects.filter(phase=phase))
     assert list(
         Arbeitspaket.objects.filter(phase=phase).values_list("titel", "status")
     ) == [("Erstes Paket", "laeuft"), ("Zweites Paket", "offen")]
@@ -237,15 +234,39 @@ def test_ein_paket_mit_gebuchter_zeit_wird_verworfen_statt_geloescht(tmp_path):
 
 
 @pytest.mark.django_db
-def test_eine_abgeschlossene_phase_kommt_aus_der_datei(tmp_path):
+def test_der_stand_einer_phase_kommt_aus_der_datei(tmp_path):
     daten = json.loads(json.dumps(GUELTIG))
-    daten["projekte"][0]["phasen"][0]["abgeschlossen"] = True
+    daten["projekte"][0]["phasen"][0]["stand"] = "abgeschlossen"
     call_command("daten_einspielen", datei=_datei(tmp_path, daten), verbosity=0)
 
     assert Projektphase.objects.get(titel="Entwicklung").abgeschlossen
     # Und damit nimmt kein Paket darin mehr Zeit an.
     paket = Arbeitspaket.objects.get(titel="Erstes Paket")
     assert "abgeschlossen" in paket.grund_gegen_buchung()
+
+
+def test_ohne_stand_ist_eine_phase_offen(tmp_path):
+    call_command("daten_einspielen", datei=_datei(tmp_path, GUELTIG), verbosity=0)
+    assert Projektphase.objects.get(titel="Entwicklung").stand == "offen"
+
+
+def test_das_alte_feld_abgeschlossen_wird_laut_abgewiesen(tmp_path):
+    """
+    Still übergangen, nähme eine abgeschlossene Phase wieder Zeit an — und
+    das fiele erst auf, wenn die Buchung schon dort steht.
+    """
+    daten = json.loads(json.dumps(GUELTIG))
+    daten["projekte"][0]["phasen"][0]["abgeschlossen"] = True
+    with pytest.raises(CommandError, match="stand"):
+        call_command("daten_einspielen", datei=_datei(tmp_path, daten), verbosity=0)
+    assert not Projektphase.objects.exists()
+
+
+def test_ein_unbekannter_stand_wird_abgewiesen(tmp_path):
+    daten = json.loads(json.dumps(GUELTIG))
+    daten["projekte"][0]["phasen"][0]["stand"] = "erfunden"
+    with pytest.raises(CommandError, match="stand"):
+        call_command("daten_einspielen", datei=_datei(tmp_path, daten), verbosity=0)
 
 
 @pytest.mark.django_db

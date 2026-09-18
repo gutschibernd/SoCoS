@@ -7,6 +7,74 @@ betrifft.
 
 ---
 
+## 2026-09-18 — Die Stufenleiste ist weg; der Fortschritt ist gebucht gegen Pensum
+
+### Was raus ist
+
+`Arbeitspaket.stufen` und `.stufenstand` (Migration `0019`), die drei Vorlagen
+`STUFENVORLAGEN`, `stufenvorlage()`, die Aktionen `POST /pakete/<id>/stufe/` und
+`/vorlage/`, die Stufenprüfung im Serializer, die Stufenbearbeitung im Frontend.
+Der Abschnitt „Stufen" weiter unten (vom 2026-09-08) beschreibt den alten Stand
+und bleibt als Begründung stehen, warum die Leiste am Paket hing — gilt nicht mehr.
+
+**Warum:** „Konzept 1 Mon. · Umsetzung 3 Mon. · Test 2 Mon. · Abschluss" hat für
+kein Paket je gestimmt. Der Stand war ein Klick, die Monate eine Vorlage; die
+Prozentzahl, die daraus kam, sah wie eine Messung aus und war eine Schätzung.
+Seit `0018` gibt es das Pensum je Person, und zwischen gebuchter Zeit und Pensum
+liegt die einzige Zahl, die jemand nachrechnen kann.
+
+### Wie der Fortschritt jetzt rechnet
+
+`auswertung.fortschritt(gebuchte_sekunden, pensum_stunden)`, Prozent, kaufmännisch
+gerundet. Drei Entscheidungen:
+
+- **`None` statt 0 ohne Pensum.** 0 % hieße „nichts geschafft" — an einem
+  Förderantrag oder einem Ziel gibt es keine Zahl, gegen die man rechnen könnte.
+  Die Oberfläche zeigt dort keinen Balken, nur die gebuchte Zeit (und die nur,
+  wenn es eine gibt).
+- **Über 100 % bleibt über 100 %.** Der Balken läuft voll und wechselt auf
+  `--warnung`. Ein überzogenes Paket soll auffallen, nicht aussehen wie ein
+  fertiges.
+- **Je Person, nicht nur je Paket.** `PensumSerializer.gebuchte_sekunden` kommt aus
+  `sekunden_je_paket_und_person()`. Die Summe oben beantwortet nicht, wie viel
+  *ich* noch offen habe, wenn der eine 270 Stunden trägt und der andere 140.
+
+Die Summen (`sekunden_je_projekt`, `_je_paket`, `_je_paket_und_person`) werden
+**einmal je Antwort** gerechnet und über den Serializer-Kontext gereicht
+(`_mit_buchungssummen` in `api.py`) — für Projekt-, Phasen-, Paket- und
+Pensum-ViewSet. Ohne Kontext steht 0 da; ein Test prüft den Projektbaum, nicht
+nur das einzelne Paket, weil die Projektseite den Baum liest.
+
+### Overhead quer über den Projekten
+
+`ProjektSerializer.ist_auffang` (abgeleitet aus dem Merkmal am Paket, nicht aus
+dem Titel — der wird umbenannt). Die Projektseite stellt das Projekt mit dem
+Auffangpaket **vor** die anderen, in voller Breite — als Kopf mit **einem**
+Knopf (`OverheadKarte`), nicht als Baum: Phase und Paket gibt es nur, weil jede
+Buchung eines braucht; niemand gliedert Overhead. In den Auswahllisten bleibt es hinten (`reihenfolge` 900). Der Untertitel sagt jetzt,
+was hineinfällt (`AUFFANG_UNTERTITEL`: Networking, Meetings, Gespräche) — damit
+niemand ein eigenes Paket „Networking" daneben anlegt.
+
+### Phasen haben einen Stand: offen · läuft · abgeschlossen
+
+`Projektphase.stand` (Migration `0020`) ersetzt das Ja/Nein `abgeschlossen` aus
+`0018`. Ein Ja/Nein konnte nicht sagen, ob eine Phase erst ansteht oder gerade
+läuft — und genau das entscheidet, was auf der Projektseite aufgeklappt ist.
+`abgeschlossen` bleibt als **Property** am Modell, damit `grund_gegen_buchung`
+und die Tests weiter dieselbe Frage stellen. Die Migration übernimmt: abgeschlossen
+bleibt, eine Phase mit Paketen wird „läuft", eine leere „offen" — eine Annahme,
+aber die, die dem bisherigen Bild entspricht.
+
+In `daten/sopharmis-daten.json` heißt das Feld `stand`; ein altes
+`abgeschlossen: true` weist `daten_einspielen` laut ab (wie „bereiche"), weil
+eine still übergangene Sperre eine Phase wieder Zeit annehmen ließe.
+
+**Aufgeklappt ist, was läuft** — Phasen mit `stand == laeuft`, Pakete mit gebuchter
+Zeit oder Status „läuft". Der Zustand lebt nur in der Komponente (kein Feld, kein
+`localStorage`): Beim nächsten Öffnen gilt wieder die Regel.
+
+---
+
 ## 2026-09-15 — Zeit nachtragen: der 400er, die Felder, mehrere Personen
 
 ### Der Fehler: `person` war ein Pflichtfeld
@@ -1668,8 +1736,9 @@ angelegt wird. Sonst gäbe es zwei Wege, Zeit zu verbuchen, und jede Auswertung 
 beide kennen. Das eine Paket darin, auf das die Uhr ohne Paketwahl läuft, trägt seit
 `0013` das Merkmal `ist_auffang` — siehe den Eintrag vom 2026-09-14.
 
-Phasenart bleibt die feste Aufzählung `dev` · `fin` · `ziel`. Sie wählt die
-Vorlage für die Stufenliste eines neuen Pakets, sonst nichts.
+Phasenart bleibt die feste Aufzählung `dev` · `fin` · `ziel`. Sie wählte bis
+2026-09-18 die Vorlage für die Stufenliste eines neuen Pakets; seitdem ist sie
+nur noch eine Beschriftung.
 
 **Die mittlere Ebene hieß bis 2026-09-18 „Bereich"** (Migration `0017`). Umbenannt,
 weil sie in der Sache eine Phase ist: ein Abschnitt mit Anfang, Ende und Pensum, auf
@@ -1773,7 +1842,7 @@ immer eingefroren, und der einzige Ausweg wäre das Löschen der Zeit. Und die
 laufende Uhr lässt sich noch stoppen: Ein Clock-out ohne Zielwechsel wählt kein
 Paket.
 
-### Stufen
+### Stufen (überholt — seit 2026-09-18 entfernt, siehe oben)
 
 Ein **Arbeitspaket** trägt seine eigene Stufenliste (Name + Dauer in Monaten). Beim
 Anlegen wird sie aus der Vorlage der Phasenart kopiert und ist danach frei
