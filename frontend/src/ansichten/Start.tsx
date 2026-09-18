@@ -46,9 +46,9 @@ type Ziel = {
  * Nachbarn, zwischen denen man erst lesen muss. Eine Gruppe mit einem Ziel
  * ist die gewöhnliche Kachel; ein zweiter Bauweg daneben wäre einer zu viel.
  *
- * Die geteilte Kachel steht zuletzt, und das ist keine Geschmacksfrage: Sie
- * ist zwei Spalten breit. Stünde sie in der Mitte, rutschte sie im schmaleren
- * Raster in die nächste Zeile und ließe neben sich ein leeres Feld stehen.
+ * Die geteilte Kachel ist so breit wie jede andere — zwei Hälften in einem
+ * Feld. Ihre beiden Sätze sind deshalb kürzer als die der übrigen: In halber
+ * Kachelbreite wird aus jedem längeren Satz eine fünfzeilige Säule.
  */
 const KACHELN: Ziel[][] = [
   [
@@ -78,15 +78,15 @@ const KACHELN: Ziel[][] = [
   ],
   [
     {
-      titel: "Organisation erfassen",
-      satz: "Neue Organisation anlegen — die Personen hängen darunter.",
+      titel: "Organisation",
+      satz: "Neu anlegen — Personen hängen darunter.",
       zeichen: "kontakte",
       seite: "kontakte",
       nurBearbeiter: true,
     },
     {
-      titel: "Person ohne Organisation",
-      satz: "Wen du kennst, aber noch nirgends einsortiert hast.",
+      titel: "Lose Person",
+      satz: "Jemand ohne Organisation.",
       zeichen: "kontakte",
       seite: "kontakte",
       unter: "lose",

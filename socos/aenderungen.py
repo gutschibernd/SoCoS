@@ -20,6 +20,22 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-18",
+        "titel": "Startseite: Organisation und lose Person in einer Kachel",
+        "punkte": [
+            {
+                "titel": "Eine Kachel statt zwei breiter Felder",
+                "text": (
+                    "„Organisation“ und „Lose Person“ stehen jetzt geteilt in "
+                    "einer Kachel, die so breit ist wie „Zeit nachtragen“ — "
+                    "links die Organisation, rechts die Person ohne "
+                    "Organisation. Vorher nahm dieses Paar die doppelte "
+                    "Breite ein."
+                ),
+            },
+        ],
+    },
+    {
         "version": "2026-09-17",
         "titel": "Meetings: die Vorbereitung geht mit, das Protokoll lässt sich verwerfen",
         "punkte": [

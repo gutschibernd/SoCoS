@@ -826,10 +826,10 @@ a.leiste-knopf { text-decoration: none; }
  * darin steht. Sonst gäbe es zwei Bauweisen nebeneinander, und die geteilte
  * Kachel wäre die, die beim nächsten Nachbessern vergessen wird.
  *
- * Drei Spalten: Die drei einfachen Kacheln füllen die erste Zeile, die
- * geteilte nimmt mit ihren zwei Spalten die zweite. Das eine leere Feld
- * bleibt damit ganz am Ende — und nicht zwischen zwei Kacheln, wo es wie
- * ein Fehler aussieht.
+ * Drei Spalten, und jede Kachel nimmt genau eine — auch die geteilte. Die
+ * drei einfachen füllen die erste Zeile, die geteilte steht allein in der
+ * zweiten. Die leeren Felder bleiben damit ganz am Ende und nicht zwischen
+ * zwei Kacheln, wo sie wie ein Fehler aussähen.
  */
 
 .kacheln { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -851,9 +851,9 @@ a.leiste-knopf { text-decoration: none; }
 .kachel-ziel span { font-size: 14px; color: var(--text-leise); line-height: 1.4; }
 
 /* Zwei Ziele in einer Kachel — links und rechts, getrennt durch eine
-   Haarlinie. Sie nimmt dafür zwei Spalten, sonst wäre jede Hälfte halb so
-   breit wie eine gewöhnliche Kachel und der Satz darin vierzeilig. */
-.kachel[data-teile="2"] { grid-column: span 2; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+   Haarlinie. Sie ist so breit wie jede andere Kachel; die beiden Hälften
+   sind deshalb schmal, und ihre Sätze sind dafür kurz gehalten. */
+.kachel[data-teile="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .kachel[data-teile="2"] > .kachel-ziel + .kachel-ziel { border-left: 1px solid var(--rand); }
 
 /* Die Uhr-Kachel steht über der Breite: Sie ist der Griff, den man am
@@ -1609,12 +1609,8 @@ a.mini { text-decoration: none; }
   .raster-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Dieselbe Frage wie eine Zeile darüber: Drei Spalten werden hier zu schmal
      — bei den Kacheln bricht zuerst der Titel um, dann der Satz auf vier
-     Zeilen.
-     Die geteilte Kachel nimmt hier nur **eine** Spalte und behält ihre beiden
-     Hälften nebeneinander. Über zwei Spalten wäre sie so breit wie die Zeile,
-     und eine der vier Kacheln bliebe mit einem leeren Feld daneben stehen. */
+     Zeilen. */
   .kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .kachel[data-teile="2"] { grid-column: auto; }
 }
 
 /* ==========================================================================
@@ -1773,7 +1769,7 @@ a.mini { text-decoration: none; }
   .raster-4, .raster-3, .raster-2, .kacheln, .doku-wege { grid-template-columns: 1fr; }
   /* Untereinander statt nebeneinander — und ohne die 132 px je Hälfte, sonst
      wäre diese eine Kachel doppelt so hoch wie jede andere. */
-  .kachel[data-teile="2"] { grid-column: auto; grid-template-columns: 1fr; }
+  .kachel[data-teile="2"] { grid-template-columns: 1fr; }
   .kachel[data-teile="2"] > .kachel-ziel { min-height: 0; }
   .kachel[data-teile="2"] > .kachel-ziel + .kachel-ziel {
     border-left: 0; border-top: 1px solid var(--rand);
