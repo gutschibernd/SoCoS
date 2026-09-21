@@ -30,6 +30,7 @@ from socos.models import (
     Fixkosten,
     Kontakt,
     Kontostand,
+    AUFGABEN,
     LEITFRAGEN,
     Meeting,
     Meetingabschnitt,
@@ -512,9 +513,15 @@ class VorhabenViewSet(SocosViewSet):
 
     @action(detail=False, methods=["get"])
     def felder(self, request):
-        """Die neun Felder in der Reihenfolge der SPG Academy, samt Leitfragen."""
+        """Die neun Felder in der Reihenfolge der SPG Academy, samt Aufgabe und Leitfragen."""
         return Response([
-            {"feld": wert, "nummer": nummer, "titel": titel, "leitfragen": LEITFRAGEN[wert]}
+            {
+                "feld": wert,
+                "nummer": nummer,
+                "titel": titel,
+                "aufgabe": AUFGABEN.get(wert, []),
+                "leitfragen": LEITFRAGEN[wert],
+            }
             for nummer, (wert, titel) in enumerate(Canvasfeld.choices, start=1)
         ])
 

@@ -316,6 +316,8 @@ export type Canvasfeld = {
   feld: string;
   nummer: number;
   titel: string;
+  /** Was im Feld verlangt ist, aus den Vorbereitungsvideos — oft leer. */
+  aufgabe: string[];
   leitfragen: string[];
 };
 

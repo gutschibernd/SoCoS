@@ -696,7 +696,7 @@ function ModuleDoku() {
         <Schritte
           schritte={[
             "„Neues Vorhaben“ anlegen und ihm einen Namen geben. Ein Vorhaben hängt an keinem Projekt — es darf eine Idee sein, auf die noch niemand bucht.",
-            "Auf ein Feld klicken. Oben stehen die Fragen aus dem Workshop, darunter schreibst du die Punkte.",
+            "Auf ein Feld klicken. Oben steht die Aufgabe aus den Vorbereitungsvideos — was im Feld verlangt ist —, darunter die Fragen aus dem Workshop und dann deine Punkte.",
             "Enter beginnt den nächsten Punkt, Umschalt+Enter bricht innerhalb eines Punktes um. Rückschritt in einer leeren Zeile nimmt sie weg; mit Alt+↑ und Alt+↓ verschiebst du einen Punkt.",
             "Mit den Knöpfen unten im Fenster gehst du zum vorigen oder nächsten Feld. Was offen ist, wird dabei gespeichert.",
             "„PDF“ gibt die Leinwand als eine Seite A4 quer aus — zum Mitnehmen in den Workshop.",

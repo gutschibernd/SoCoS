@@ -63,6 +63,16 @@ class TestFelder:
 
         assert all(f["leitfragen"] for f in felder)
 
+    @pytest.mark.django_db
+    def test_die_aufgabe_aus_den_videos_kommt_mit(self, client, leser):
+        client.force_login(leser)
+
+        felder = {f["feld"]: f for f in client.get("/api/vorhaben/felder/").json()}
+
+        assert "three problems" in felder["problem"]["aufgabe"][0]
+        # Ein Feld ohne Vorgabe aus den Videos bekommt eine leere Liste, kein Fehlen.
+        assert felder["kosten"]["aufgabe"] == []
+
 
 class TestFeldSetzen:
     @pytest.mark.django_db

@@ -1489,6 +1489,34 @@ LEITFRAGEN = {
 }
 
 
+# Was im Feld verlangt ist — aus den Vorbereitungsvideos der SPG Academy
+# mitgeschrieben. Die Leitfragen sagen, *worüber* man nachdenkt; die Aufgabe
+# sagt, *wie* das Ergebnis aussehen soll („höchstens drei Probleme"). Ein Feld
+# ohne Eintrag hier hat in den Videos keine eigene Vorgabe.
+AUFGABEN = {
+    Canvasfeld.PROBLEM: [
+        "Focus on no more than three problems of your key customers.",
+    ],
+    Canvasfeld.KUNDEN: [
+        "Don’t build a product for everyone — define a clear, small group of target customers.",
+        "Distinguish between the user and the customer.",
+        "Create a persona: a fictional person with specific needs. Check every design against "
+        "it — would it work for the persona?",
+    ],
+    Canvasfeld.NUTZEN: [
+        "One short, clear, concise statement describing the value your solution creates.",
+        "A strong value proposition answers only one question: why should a customer choose "
+        "your solution over what is already available?",
+        "Keep it short, clear and customer-focused.",
+    ],
+    Canvasfeld.LOESUNG: [
+        "Describe how your product solves the problem — focus on its key elements.",
+        "Identify the MVP: what you need to build the first prototype.",
+        "Plan how you get customer feedback on it.",
+    ],
+}
+
+
 class Vorhaben(Basismodell):
     """
     Die Idee, an der ein Workshop der SPG Academy ausgearbeitet wird.

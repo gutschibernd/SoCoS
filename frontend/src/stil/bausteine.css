@@ -1808,6 +1808,22 @@ a.mini { text-decoration: none; }
 /* Das Fenster zu einem Feld. */
 .feldfenster { max-width: 620px; }
 .feldfenster h2 { display: flex; align-items: baseline; gap: 10px; }
+/* Die Aufgabe: was im Feld verlangt ist. In Textfarbe und mit Strichen wie
+   die Punkte auf der Leinwand — sie ist eine Vorgabe, kein Hinweis am Rand.
+   Die Leitfragen darunter bleiben leiser. */
+.feld-aufgabe { margin: 14px 0 0; }
+.feld-aufgabe ul {
+  list-style: none; margin: 6px 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.feld-aufgabe li {
+  position: relative; padding-left: 12px;
+  font-size: 14px; line-height: 1.45; color: var(--text);
+}
+.feld-aufgabe li::before {
+  content: ""; position: absolute; left: 0; top: 0.72em;
+  width: 5px; height: 1px; background: var(--akzent);
+}
 .feld-leitfragen {
   list-style: none; margin: 14px 0 0; padding: 10px 14px;
   display: flex; flex-direction: column; gap: 4px;

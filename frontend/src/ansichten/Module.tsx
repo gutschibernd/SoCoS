@@ -528,6 +528,19 @@ function Feldfenster({
           </div>
 
           <div className="dialog-koerper">
+            {/* Erst, wie das Ergebnis aussehen soll, dann, worüber man
+                nachdenkt. Die Aufgabe steht über den Fragen, weil sie das
+                Maß ist, an dem man die Punkte am Ende misst. */}
+            {dieses.aufgabe.length > 0 && (
+              <div className="feld-aufgabe">
+                <span className="beschriftung-klein">Aufgabe</span>
+                <ul>
+                  {dieses.aufgabe.map((satz) => (
+                    <li key={satz}>{satz}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <ul className="feld-leitfragen">
               {dieses.leitfragen.map((frage) => (
                 <li key={frage}>{frage}</li>
