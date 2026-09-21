@@ -52,6 +52,7 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
     unter: "Was möglich wäre — noch nicht entschieden",
   },
   "module/spg": { titel: "SPG Academy", unter: "Lean Model Canvas" },
+  "module/spg-businessplan": { titel: "SPG Academy", unter: "Business Plan Lite" },
 };
 
 export function App() {

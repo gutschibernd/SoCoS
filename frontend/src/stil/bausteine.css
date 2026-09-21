@@ -1640,10 +1640,9 @@ a.mini { text-decoration: none; }
 
 /* --- Module --------------------------------------------------------------- */
 /*
- * Die Übersicht: eine Kachel je Modul, darin seine Teile mit Stand. Die ganze
- * Kachel ist der Link — dieselbe Überlegung wie bei den Kacheln der Startseite,
- * nur als Anker, weil darin eine Liste steht, und eine Liste darf in keinem
- * Knopf stehen.
+ * Die Übersicht: eine Kachel je Modul, darin seine Workshops mit Stand. Jede
+ * Zeile ist ein Link zu ihrem Workshop, der Kopf führt zum ersten. Die Kachel
+ * selbst ist nur der Rahmen — ein Link darin in einem Link ginge nicht.
  */
 .modul-kacheln {
   display: grid; gap: 16px; align-items: start;
@@ -1654,10 +1653,14 @@ a.mini { text-decoration: none; }
   background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante);
   color: var(--text); text-decoration: none;
 }
-.modul-kachel:hover { border-color: var(--akzent); }
-.modul-kachel:hover .modul-oeffnen { color: var(--akzent); }
-.modul-kachel:focus-visible { outline: 2px solid var(--akzent); outline-offset: 1px; }
-.modul-kopf { display: flex; gap: 12px; align-items: flex-start; padding: 16px; }
+.modul-kopf {
+  display: flex; gap: 12px; align-items: flex-start; padding: 16px;
+  color: inherit; text-decoration: none;
+}
+.modul-kopf:hover b { color: var(--akzent); }
+.modul-kopf:focus-visible, .modul-teile a:focus-visible {
+  outline: 2px solid var(--akzent); outline-offset: -2px;
+}
 .modul-siegel {
   flex: 0 0 auto; width: 40px; height: 40px; display: grid; place-items: center;
   border: 1px solid var(--marke-rand); border-radius: var(--kante);
@@ -1670,23 +1673,22 @@ a.mini { text-decoration: none; }
   font-style: normal; font-size: 13.5px; color: var(--text-leise);
 }
 .modul-teile { list-style: none; margin: 0; padding: 0 16px; border-top: 1px solid var(--rand); }
-.modul-teile li {
-  display: flex; align-items: center; gap: 10px; min-height: 42px;
-  font-size: 14px; border-bottom: 1px solid var(--rand);
-}
+.modul-teile li { border-bottom: 1px solid var(--rand); }
 .modul-teile li:last-child { border-bottom: 0; }
+.modul-teile a {
+  display: flex; align-items: center; gap: 10px; min-height: var(--griff);
+  font-size: 14px; color: var(--text); text-decoration: none;
+}
+.modul-teile a:hover { color: var(--akzent); }
+/* Der Pfeil sagt, dass die Zeile wohin führt — grün wie jeder Verweis. */
+.modul-zeiger { width: 0.85em; height: 0.85em; color: var(--marke); }
+.modul-teile a:hover .modul-zeiger { color: var(--akzent); }
 .modul-teile .zahl { font-size: 12px; color: var(--text-sehr-leise); }
 .modul-stand { margin-left: auto; font-size: 12.5px; color: var(--text-leise); }
 .modul-fuss {
   display: flex; align-items: center; gap: 8px; min-height: var(--griff); padding: 0 16px;
   border-top: 1px solid var(--rand); font-size: 12.5px; color: var(--text-sehr-leise);
 }
-/* Grün, weil es ein Verweis ist — das Kupfer kommt erst beim Überfahren. */
-.modul-oeffnen {
-  margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
-  font-size: 13.5px; font-weight: 600; color: var(--marke);
-}
-.modul-oeffnen .zeichen { width: 0.9em; height: 0.9em; }
 .modul-wunsch {
   display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
   padding: 16px; border: 1px dashed var(--rand-stark); border-radius: var(--kante);
@@ -1694,6 +1696,12 @@ a.mini { text-decoration: none; }
 }
 .modul-wunsch b { color: var(--text); font-size: 15px; font-weight: 600; }
 .modul-wunsch p { margin: 0 0 10px; }
+
+/* Die Workshops als Umschalter über dem Vorhaben. Die Nummer steht leise
+   davor, in der Ziffernschrift wie auf der Übersicht. */
+.workshopwahl { align-self: flex-start; max-width: 100%; }
+.workshopwahl button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; }
+.workshopwahl .zahl { font-size: 11.5px; opacity: 0.75; }
 
 /* Die Leiste über der Leinwand: welches Vorhaben, wie weit, was man damit tun
    kann. Die Knöpfe stehen rechts und rutschen am Handy in eigene Zeilen. */
@@ -1804,6 +1812,22 @@ a.mini { text-decoration: none; }
 .leinwand-fragen li { font-size: 12.5px; line-height: 1.45; color: var(--text-leise); }
 .leinwand-fragen li::before { content: "?"; position: absolute; left: 0; font-weight: 600; }
 
+/*
+ * Der Business Plan Lite: dieselben Felder wie die Leinwand, aber als Dokument
+ * untereinander — ein Plan liest sich von oben nach unten. Zwei Spalten ab
+ * 1200 px: Acht Abschnitte in einer Spalte wären bei dieser Breite Zeilen von
+ * einem Meter Länge, und die liest niemand.
+ */
+.plan {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px; background: var(--rand);
+  border: 1px solid var(--rand); border-radius: var(--kante); overflow: hidden;
+}
+.plan .leinwand-feld { min-height: 150px; }
+/* Bei einer ungeraden Zahl füllt der letzte Abschnitt die Zeile, statt ein
+   leeres Feld im Raster zu lassen. */
+.plan .leinwand-feld:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
 /* Das Fenster zu einem Feld. */
 .feldfenster { max-width: 620px; }
 .feldfenster h2 { display: flex; align-items: baseline; gap: 10px; }
@@ -1873,6 +1897,7 @@ a.mini { text-decoration: none; }
      — bei den Kacheln bricht zuerst der Titel um, dann der Satz auf vier
      Zeilen. */
   .kacheln, .modul-kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .plan { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ==========================================================================
@@ -2032,7 +2057,8 @@ a.mini { text-decoration: none; }
 
   /* Die Leinwand wird zur Liste — dieselben Felder, in der Reihenfolge der
      SPG Academy untereinander. Zehn Spalten in 345 px wären je 34 px. */
-  .leinwand { display: flex; flex-direction: column; }
+  .leinwand, .plan { display: flex; flex-direction: column; }
+  .plan .leinwand-feld { min-height: 0; }
   .leinwand-feld { padding: 12px 14px 14px; }
   .vorhaben-kopf { flex: 1 1 100%; }
   .vorhaben-stand .balken { flex: 1 1 auto; width: auto; }

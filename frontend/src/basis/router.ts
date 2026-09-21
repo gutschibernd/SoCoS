@@ -19,6 +19,8 @@
 
 import { useEffect, useState } from "react";
 
+import { MODULWEGE } from "./module";
+
 export const SEITEN = [
   "start",
   "dashboard",
@@ -92,8 +94,9 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   kontakte: (unter) => unter === "lose" || /^\d+$/.test(unter),
   events: (unter) => /^\d+$/.test(unter),
   meetings: (unter) => /^\d+$/.test(unter),
-  // Ein Modul: `/module/spg`. Die Liste wächst mit `MODULE` in basis/module.ts.
-  module: (unter) => unter === "spg",
+  // Ein Workshop eines Moduls: `/module/spg`, `/module/spg-businessplan`. Die
+  // Liste steht in basis/module.ts und nicht ein zweites Mal hier.
+  module: (unter) => MODULWEGE.includes(unter),
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
   profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),
   doku: (unter) => (DOKUTEILE as readonly string[]).includes(unter),

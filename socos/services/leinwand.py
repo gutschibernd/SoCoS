@@ -1,5 +1,6 @@
 """
-Das Lean Model Canvas eines Vorhabens als PDF — **eine** Seite A4 quer.
+Die Workshops der SPG Academy als PDF: das Lean Model Canvas als **eine** Seite
+A4 quer, der Business Plan Lite als Dokument (`plan_erzeugen`).
 
 Gezeichnet wird von Hand auf die Seite und nicht mit einer reportlab-Tabelle:
 Die Leinwand hat Felder, die über zwei Zeilen gehen, und eine Tabelle mit
@@ -169,7 +170,67 @@ def erzeugen(vorhaben):
     return puffer.getvalue()
 
 
-def dateiname(vorhaben):
+def plan_erzeugen(vorhaben):
+    """
+    Der Business Plan Lite als Dokument: je Abschnitt eine Überschrift und die
+    Punkte darunter. Anders als die Leinwand fließt er über so viele Seiten,
+    wie er braucht — ein Plan hat keine feste Form, in die er passen muss.
+
+    Ein Abschnitt ohne Punkte steht trotzdem da, mit „noch offen": Ein Plan,
+    dem still ein Kapitel fehlt, sähe fertig aus.
+    """
+    from reportlab.platypus import SimpleDocTemplate, Spacer
+
+    from socos.models import Planabschnitt
+
+    stil_titel = ParagraphStyle("titel", fontName="Helvetica-Bold", fontSize=16, leading=20, textColor=TEXT)
+    stil_unter = ParagraphStyle("unter", fontName="Helvetica", fontSize=9.5, leading=13, textColor=LEISE)
+    stil_kopf = ParagraphStyle(
+        "kopf", fontName="Helvetica-Bold", fontSize=11.5, leading=15, textColor=TEXT,
+        spaceBefore=5 * mm, spaceAfter=2 * mm,
+    )
+    stil_offen = ParagraphStyle("offen", fontName="Helvetica-Oblique", fontSize=9, leading=12, textColor=LEISE)
+
+    punkte = {}
+    for p in vorhaben.canvaspunkte.filter(geloescht_am__isnull=True).order_by("reihenfolge", "id"):
+        punkte.setdefault(p.feld, []).append(p.text)
+
+    inhalt = [
+        Paragraph(escape(vorhaben.titel), stil_titel),
+        Paragraph("SPG Academy · Business Plan Lite", stil_unter),
+        Spacer(1, 4 * mm),
+    ]
+    for nummer, (wert, titel) in enumerate(Planabschnitt.choices, start=1):
+        inhalt.append(Paragraph(f'<font color="#A2552C" face="Courier">{nummer}</font>&nbsp;&nbsp;{escape(titel)}', stil_kopf))
+        texte = punkte.get(wert, [])
+        inhalt.extend(_absaetze(texte, 9.5) if texte else [Paragraph("noch offen", stil_offen)])
+
+    def rahmen(leinwand, dokument):
+        breite, hoehe = A4
+        leinwand.saveState()
+        _signet(leinwand, 18 * mm, hoehe - 13.4 * mm, 5.4 * mm)
+        leinwand.setFillColor(MARKE)
+        leinwand.setFont("Helvetica-Bold", 10)
+        leinwand.drawString(25.5 * mm, hoehe - 12 * mm, "Sopharmis")
+        leinwand.setStrokeColor(RAND)
+        leinwand.setLineWidth(0.5)
+        leinwand.line(18 * mm, hoehe - 15 * mm, breite - 18 * mm, hoehe - 15 * mm)
+        leinwand.setFillColor(LEISE)
+        leinwand.setFont("Helvetica", 8)
+        leinwand.drawString(18 * mm, 10 * mm, f"Erstellt am {timezone.localtime():%d.%m.%Y um %H:%M} · SoCoS")
+        leinwand.drawRightString(breite - 18 * mm, 10 * mm, f"Seite {dokument.page}")
+        leinwand.restoreState()
+
+    puffer = BytesIO()
+    SimpleDocTemplate(
+        puffer, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
+        topMargin=22 * mm, bottomMargin=18 * mm,
+        title=f"Business Plan Lite · {vorhaben.titel}", author="Sopharmis",
+    ).build(inhalt, onFirstPage=rahmen, onLaterPages=rahmen)
+    return puffer.getvalue()
+
+
+def dateiname(vorhaben, was="Lean-Canvas"):
     # Nur ASCII: Ein Umlaut im Dateinamen des Content-Disposition-Kopfs kommt
     # je nach Browser als Mojibake an. Ausgeschrieben statt ersetzt — aus
     # „Prüfung" wird „Pruefung", nicht „Pr-fung".
@@ -178,4 +239,4 @@ def dateiname(vorhaben):
         titel = titel.replace(umlaut, aus)
     teil = "".join(z if z.isascii() and z.isalnum() else "-" for z in titel)
     teil = "-".join(t for t in teil.split("-") if t) or "Vorhaben"
-    return f"Lean-Canvas_{teil}.pdf"
+    return f"{was}_{teil}.pdf"

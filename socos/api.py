@@ -25,6 +25,7 @@ from socos.models import (
     Aufgabe,
     Canvasfeld,
     Canvaspunkt,
+    Planabschnitt,
     Event,
     Eventziel,
     Fixkosten,
@@ -32,6 +33,7 @@ from socos.models import (
     Kontostand,
     AUFGABEN,
     LEITFRAGEN,
+    WORKSHOPS,
     Meeting,
     Meetingabschnitt,
     Monatskosten,
@@ -513,7 +515,13 @@ class VorhabenViewSet(SocosViewSet):
 
     @action(detail=False, methods=["get"])
     def felder(self, request):
-        """Die neun Felder in der Reihenfolge der SPG Academy, samt Aufgabe und Leitfragen."""
+        """
+        Die Felder eines Workshops in der Reihenfolge der SPG Academy, samt
+        Aufgabe und Leitfragen. `?workshop=canvas` (Vorgabe) oder `businessplan`.
+        """
+        workshop = request.query_params.get("workshop", "canvas")
+        if workshop not in WORKSHOPS:
+            raise ValidationError({"workshop": f"„{workshop}“ ist kein Workshop der SPG Academy."})
         return Response([
             {
                 "feld": wert,
@@ -522,7 +530,7 @@ class VorhabenViewSet(SocosViewSet):
                 "aufgabe": AUFGABEN.get(wert, []),
                 "leitfragen": LEITFRAGEN[wert],
             }
-            for nummer, (wert, titel) in enumerate(Canvasfeld.choices, start=1)
+            for nummer, (wert, titel) in enumerate(WORKSHOPS[workshop].choices, start=1)
         ])
 
     @action(detail=True, methods=["post"])
@@ -548,8 +556,8 @@ class VorhabenViewSet(SocosViewSet):
         vorhaben = self.get_object()
 
         feld = request.data.get("feld")
-        if feld not in Canvasfeld.values:
-            raise ValidationError({"feld": f"„{feld}“ ist kein Feld des Canvas."})
+        if feld not in Canvasfeld.values + Planabschnitt.values:
+            raise ValidationError({"feld": f"„{feld}“ ist kein Feld eines Workshops."})
 
         roh = request.data.get("punkte")
         if not isinstance(roh, list):
@@ -595,12 +603,22 @@ class VorhabenViewSet(SocosViewSet):
 
     @action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):
-        """Die Leinwand als PDF — eine Seite A4 quer, zum Mitnehmen in den Workshop."""
+        """
+        Ein Workshop als PDF. Das Canvas als eine Seite A4 quer, der Business
+        Plan Lite als fließendes Dokument (`?workshop=businessplan`).
+        """
         from socos.services import leinwand
 
         vorhaben = self.get_object()
-        antwort = HttpResponse(leinwand.erzeugen(vorhaben), content_type="application/pdf")
-        antwort["Content-Disposition"] = f'attachment; filename="{leinwand.dateiname(vorhaben)}"'
+        workshop = request.query_params.get("workshop", "canvas")
+        if workshop not in WORKSHOPS:
+            raise ValidationError({"workshop": f"„{workshop}“ ist kein Workshop der SPG Academy."})
+        if workshop == "businessplan":
+            daten, name = leinwand.plan_erzeugen(vorhaben), leinwand.dateiname(vorhaben, "Business-Plan-Lite")
+        else:
+            daten, name = leinwand.erzeugen(vorhaben), leinwand.dateiname(vorhaben)
+        antwort = HttpResponse(daten, content_type="application/pdf")
+        antwort["Content-Disposition"] = f'attachment; filename="{name}"'
         return antwort
 
 

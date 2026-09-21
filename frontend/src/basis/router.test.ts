@@ -30,6 +30,7 @@ describe("ausPfad", () => {
   it("liest das Modul", () => {
     expect(ausPfad("/module")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/spg")).toEqual({ seite: "module", unter: "spg" });
+    expect(ausPfad("/module/spg-businessplan")).toEqual({ seite: "module", unter: "spg-businessplan" });
     expect(ausPfad("/module/spg-4")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/pitch")).toEqual({ seite: "module", unter: null });
   });

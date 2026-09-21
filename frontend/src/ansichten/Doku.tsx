@@ -690,7 +690,7 @@ function ModuleDoku() {
 
       <Abschnitt
         zeichen="akademie"
-        titel="SPG Academy: das Lean Model Canvas"
+        titel="SPG Academy: Lean Model Canvas und Business Plan Lite"
         vorspann="Hier kommen die Ergebnisse aus dem Workshop hin: neun Felder, nummeriert wie in der SPG Academy, für das Vorhaben Sopharmis Arzneimittelspender."
       >
         <Schritte
@@ -714,6 +714,10 @@ function ModuleDoku() {
             {
               begriff: "Ein Vorhaben",
               text: "In der SPG Academy gibt es genau eines: Sopharmis Arzneimittelspender. Es hängt an keinem Projekt, und die Seite zeigt immer seine Leinwand.",
+            },
+            {
+              begriff: "Business Plan Lite",
+              text: "Der zweite Workshop, oben umzuschalten. Acht Abschnitte statt neun Felder, untereinander wie ein Dokument, bearbeitet genauso. Das PDF fließt über so viele Seiten, wie der Plan braucht; ein leerer Abschnitt steht dort als „noch offen“.",
             },
             {
               begriff: "Ein volles Feld im PDF",

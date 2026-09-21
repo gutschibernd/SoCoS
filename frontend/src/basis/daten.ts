@@ -424,10 +424,10 @@ export const useVorhaben = () =>
 
 /* Die Felder ändern sich nur mit einer neuen Version der Anwendung — sie
    werden deshalb nicht bei jedem Fensterwechsel neu geholt. */
-export const useCanvasfelder = () =>
+export const useCanvasfelder = (workshop: "canvas" | "businessplan" = "canvas") =>
   useQuery({
-    queryKey: ["canvasfelder"],
-    queryFn: () => hole<Canvasfeld[]>("/vorhaben/felder/"),
+    queryKey: ["canvasfelder", workshop],
+    queryFn: () => hole<Canvasfeld[]>(`/vorhaben/felder/?workshop=${workshop}`),
     staleTime: Infinity,
   });
 

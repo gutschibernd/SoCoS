@@ -74,6 +74,52 @@ class TestFelder:
         assert felder["kosten"]["aufgabe"] == []
 
 
+class TestBusinessPlanLite:
+    @pytest.mark.django_db
+    def test_acht_abschnitte_in_der_reihenfolge_der_lektionen(self, client, leser):
+        client.force_login(leser)
+
+        felder = client.get("/api/vorhaben/felder/?workshop=businessplan").json()
+
+        assert [f["titel"] for f in felder] == [
+            "Executive Summary",
+            "Products & Services",
+            "Market Research & Analysis",
+            "Marketing & Sales",
+            "Company Structure & Management",
+            "Sustainable Development Goals",
+            "Financial Planning",
+            "Tips & Tricks",
+        ]
+        assert all(f["leitfragen"] for f in felder)
+
+    @pytest.mark.django_db
+    def test_ein_unbekannter_workshop_ist_ein_fehler(self, client, leser):
+        client.force_login(leser)
+
+        assert client.get("/api/vorhaben/felder/?workshop=pitch").status_code == 400
+
+    @pytest.mark.django_db
+    def test_ein_abschnitt_nimmt_punkte_wie_ein_feld(self, client, bearbeiter, vorhaben):
+        client.force_login(bearbeiter)
+
+        antwort = _feld(client, vorhaben, "summary", [{"text": "Ein Spender, der Einnahmen nachweist."}])
+
+        assert antwort.status_code == 200
+        assert [p.text for p in _aktive(vorhaben, "summary")] == ["Ein Spender, der Einnahmen nachweist."]
+
+    @pytest.mark.django_db
+    def test_der_plan_als_pdf(self, client, leser, vorhaben):
+        Canvaspunkt.objects.create(vorhaben=vorhaben, feld="markt", text="~1.100 Träger & <mehr>")
+        client.force_login(leser)
+
+        antwort = client.get(f"/api/vorhaben/{vorhaben.pk}/pdf/?workshop=businessplan")
+
+        assert antwort.status_code == 200
+        assert antwort.content.startswith(b"%PDF")
+        assert 'filename="Business-Plan-Lite_Arzneimittelspender.pdf"' in antwort["Content-Disposition"]
+
+
 class TestFeldSetzen:
     @pytest.mark.django_db
     def test_punkte_kommen_in_ihrer_reihenfolge_an(self, client, bearbeiter, vorhaben):

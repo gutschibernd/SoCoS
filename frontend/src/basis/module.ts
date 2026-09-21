@@ -9,14 +9,25 @@
 import type { Canvaspunkt, Vorhaben } from "./daten";
 import type { ZeichenName } from "../bausteine/Zeichen";
 
+/** Ein Workshop in einem Modul — ein Teil mit eigenem Weg und eigenen Feldern. */
+export type Workshop = {
+  /** Der Weg hinter `/module/` — der erste Teil eines Moduls trägt dessen Weg. */
+  weg: string;
+  titel: string;
+  /** Wie die Schnittstelle ihn nennt (`/api/vorhaben/felder/?workshop=…`). */
+  schluessel: "canvas" | "businessplan";
+  /** Was er zählt: „9 Felder", „8 Abschnitte". */
+  einheit: string;
+};
+
 export type Modul = {
-  /** Der Weg hinter `/module/`. */
-  weg: "spg";
+  /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
+  weg: string;
   titel: string;
   wozu: string;
   zeichen: ZeichenName;
   /** Die Workshops darin, in ihrer Reihenfolge. */
-  teile: string[];
+  teile: Workshop[];
 };
 
 export const MODULE: Modul[] = [
@@ -25,9 +36,24 @@ export const MODULE: Modul[] = [
     titel: "SPG Academy",
     wozu: "Workshop-Aufgaben ausarbeiten",
     zeichen: "akademie",
-    teile: ["Lean Model Canvas"],
+    teile: [
+      { weg: "spg", titel: "Lean Model Canvas", schluessel: "canvas", einheit: "Felder" },
+      { weg: "spg-businessplan", titel: "Business Plan Lite", schluessel: "businessplan", einheit: "Abschnitte" },
+    ],
   },
 ];
+
+/** Alle Wege, die hinter `/module/` stehen dürfen — der Router fragt hier. */
+export const MODULWEGE = MODULE.flatMap((m) => m.teile.map((t) => t.weg));
+
+/** Das Modul und der Workshop zu einem Weg — oder nichts. */
+export function workshopZuWeg(unter: string | null): { modul: Modul; teil: Workshop } | null {
+  for (const modul of MODULE) {
+    const teil = modul.teile.find((t) => t.weg === unter);
+    if (teil) return { modul, teil };
+  }
+  return null;
+}
 
 /* --- Die Leinwand --------------------------------------------------------- */
 
@@ -38,9 +64,14 @@ export function punkteIn(vorhaben: Vorhaben, feld: string): Canvaspunkt[] {
     .sort((a, b) => a.reihenfolge - b.reihenfolge || a.id - b.id);
 }
 
-/** Wie viele Felder mindestens einen Punkt haben. */
-export function ausgefuellt(vorhaben: Vorhaben): number {
-  return new Set(vorhaben.punkte.map((p) => p.feld)).size;
+/**
+ * Wie viele der genannten Felder mindestens einen Punkt haben. Die Felder
+ * werden mitgegeben, weil an einem Vorhaben die Punkte **aller** Workshops
+ * hängen — ohne sie zählte das Canvas die Abschnitte des Businessplans mit.
+ */
+export function ausgefuellt(vorhaben: Vorhaben, felder: string[]): number {
+  const belegt = new Set(vorhaben.punkte.map((p) => p.feld));
+  return felder.filter((f) => belegt.has(f)).length;
 }
 
 /* --- Ein Feld bearbeiten -------------------------------------------------- */

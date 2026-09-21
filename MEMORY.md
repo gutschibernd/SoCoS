@@ -63,6 +63,24 @@ mitgeschrieben (erst für die Felder 1–6). Die Leitfragen sagen, *worüber* ma
 nachdenkt, die Aufgabe, *wie* das Ergebnis aussehen soll. Sie steht nur im
 Feldfenster, nicht auf der Leinwand — dort bleibt Platz für die Ergebnisse.
 
+### Business Plan Lite: derselbe Mechanismus, ein zweiter Satz Felder
+
+Der zweite Workshop hat acht Abschnitte (`Planabschnitt`) statt neun Felder. Er
+lebt im **selben** Modell: `Canvaspunkt.feld` nimmt die Werte beider Workshops, und
+`WORKSHOPS` ordnet sie zu. Ein eigenes Modell hieße ein zweites Mal Sicherung,
+Protokoll, Abgleich und Fenster für dieselbe Sache — Felder mit Punkten an einem
+Vorhaben. Der Name `Canvaspunkt` stammt vom ersten Workshop und ist geblieben.
+
+Die Leitfragen zum Plan sind aus der Kursbeschreibung abgeleitet, nicht aus den
+Videos; die Aufgaben daraus kommen nach, wie beim Canvas. „Tips & Tricks" ist kein
+Kapitel eines Plans, sondern die letzte Lektion — steht aber als Abschnitt da, damit
+das Mitgeschriebene einen Ort hat.
+
+`ausgefuellt()` bekommt die Felder des Workshops mit: An einem Vorhaben hängen die
+Punkte aller Workshops, und ohne das zählte das Canvas die Abschnitte des Plans mit.
+
+Das PDF des Plans fließt (platypus), das des Canvas bleibt eine feste Seite.
+
 ### Das PDF zeichnet von Hand
 
 Eine reportlab-Tabelle mit verbundenen Zellen rechnet die Höhe nach der ersten

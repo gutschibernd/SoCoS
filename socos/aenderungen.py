@@ -47,6 +47,17 @@ VERSIONEN = [
                 "wo": "module/spg",
             },
             {
+                "titel": "Zweiter Workshop: Business Plan Lite",
+                "text": (
+                    "In der SPG Academy schaltest du oben zwischen Lean Model "
+                    "Canvas und Business Plan Lite um. Der Plan hat acht "
+                    "Abschnitte — von Executive Summary bis Tips & Tricks —, "
+                    "bearbeitet wird er wie die Leinwand, und als PDF kommt er "
+                    "als Dokument heraus."
+                ),
+                "wo": "module/spg-businessplan",
+            },
+            {
                 "titel": "Jedes Feld sagt, was verlangt ist",
                 "text": (
                     "Im Fenster zu The Problem, Customer Segments, Unique Value "

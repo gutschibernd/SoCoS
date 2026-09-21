@@ -1529,6 +1529,68 @@ AUFGABEN = {
 }
 
 
+class Planabschnitt(models.TextChoices):
+    """
+    Die Abschnitte des Business Plan Lite — der zweite Workshop der SPG
+    Academy, in der Reihenfolge der Lektionen und so durchnummeriert.
+
+    „Tips & Tricks" ist kein Kapitel eines Businessplans, sondern die letzte
+    Lektion. Es steht trotzdem hier: Was dort gesagt wird, soll man beim
+    Schreiben neben sich haben, und dafür braucht es einen Ort.
+    """
+
+    SUMMARY = "summary", "Executive Summary"
+    PRODUKTE = "produkte", "Products & Services"
+    MARKT = "markt", "Market Research & Analysis"
+    VERTRIEB = "vertrieb", "Marketing & Sales"
+    FIRMA = "firma", "Company Structure & Management"
+    SDG = "sdg", "Sustainable Development Goals"
+    FINANZEN = "finanzen", "Financial Planning"
+    TIPPS = "tipps", "Tips & Tricks"
+
+
+# Die Workshops der SPG Academy und ihre Felder. Der Schlüssel steht im Weg der
+# Schnittstelle (`/api/vorhaben/felder/?workshop=…`).
+WORKSHOPS = {"canvas": Canvasfeld, "businessplan": Planabschnitt}
+
+# Leitfragen zum Business Plan Lite. Sie sind aus der Kursbeschreibung
+# abgeleitet („a concise executive summary", „market research"), nicht aus den
+# Videos — die Aufgaben daraus kommen wie beim Canvas nach, sobald sie
+# mitgeschrieben sind.
+LEITFRAGEN.update({
+    Planabschnitt.SUMMARY: [
+        "What is your business in a few sentences — problem, solution, customers?",
+        "What do you need, and what will you achieve with it?",
+    ],
+    Planabschnitt.PRODUKTE: [
+        "What exactly do you offer, and how far along is it?",
+        "How does it stand out from existing solutions?",
+    ],
+    Planabschnitt.MARKT: [
+        "How big is your target market, and how fast is it growing?",
+        "Who are your competitors, and which data backs your numbers?",
+    ],
+    Planabschnitt.VERTRIEB: [
+        "How will customers learn about your product, and how will you sell it?",
+        "What does it cost to win a customer?",
+    ],
+    Planabschnitt.FIRMA: [
+        "What is your legal form, and who owns the company?",
+        "Who is in the team, and which expertise is still missing?",
+    ],
+    Planabschnitt.SDG: [
+        "Which of the UN Sustainable Development Goals does your business contribute to, and how?",
+    ],
+    Planabschnitt.FINANZEN: [
+        "What are your expected costs and revenues over the next years?",
+        "How much funding do you need, and where will it come from?",
+    ],
+    Planabschnitt.TIPPS: [
+        "What do you want to keep in mind while writing the plan?",
+    ],
+})
+
+
 class Vorhaben(Basismodell):
     """
     Die Idee, an der ein Workshop der SPG Academy ausgearbeitet wird.
@@ -1567,7 +1629,13 @@ class Vorhaben(Basismodell):
 
 class Canvaspunkt(Basismodell):
     """
-    Ein Stichpunkt in einem Feld des Lean Model Canvas.
+    Ein Stichpunkt in einem Feld eines Workshops — des Lean Model Canvas oder
+    eines Abschnitts des Business Plan Lite.
+
+    **Der Name stammt vom ersten Workshop** und ist geblieben: Beide Workshops
+    sind dieselbe Sache — Felder mit Punkten an einem Vorhaben —, und ein
+    zweites Modell daneben hieße ein zweites Mal Sicherung, Protokoll, Abgleich
+    und Fenster. Welcher Workshop es ist, sagt das Feld.
 
     **Warum Punkte und nicht ein Text je Feld:** Auf der Leinwand stehen
     Stichpunkte, und nachgebessert wird einer davon — nicht das ganze Feld.
@@ -1581,7 +1649,9 @@ class Canvaspunkt(Basismodell):
     vorhaben = models.ForeignKey(
         Vorhaben, verbose_name="Vorhaben", on_delete=models.CASCADE, related_name="canvaspunkte"
     )
-    feld = models.CharField("Feld", max_length=12, choices=Canvasfeld.choices)
+    feld = models.CharField(
+        "Feld", max_length=12, choices=Canvasfeld.choices + Planabschnitt.choices
+    )
     text = models.TextField("Text")
     reihenfolge = models.IntegerField("Reihenfolge", default=0)
 

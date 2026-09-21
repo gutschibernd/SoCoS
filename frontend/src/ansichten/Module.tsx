@@ -29,8 +29,11 @@ import {
   neuerSchluessel,
   punkteIn,
   zuletztText,
+  workshopZuWeg,
   zumSenden,
+  type Modul,
   type Punktentwurf,
+  type Workshop,
 } from "../basis/module";
 import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
@@ -47,7 +50,19 @@ export function Module({
   unter: string | null;
   wechseln: Wechseln;
 }) {
-  if (unter === "spg") return <SpgAcademy ich={ich} />;
+  const treffer = workshopZuWeg(unter);
+  if (treffer)
+    return (
+      <SpgAcademy
+        // Ein neuer Schlüssel je Workshop: Ein offenes Feldfenster gehört zu
+        // einem Workshop und darf beim Umschalten nicht mitwandern.
+        key={treffer.teil.weg}
+        ich={ich}
+        modul={treffer.modul}
+        teil={treffer.teil}
+        wechseln={wechseln}
+      />
+    );
   return <Uebersicht wechseln={wechseln} />;
 }
 
@@ -62,17 +77,19 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
 
   return (
     <div className="modul-kacheln">
+      {/* Die Kachel selbst ist kein Link mehr, seit ein Modul zwei Teile hat:
+          Jede Zeile führt zu ihrem Workshop, und ein Link in einem Link geht
+          nicht. Der Kopf führt zum ersten. */}
       {MODULE.map((m) => (
-        <a
-          key={m.weg}
-          className="modul-kachel"
-          href={`/module/${m.weg}`}
-          onClick={(e) => {
-            e.preventDefault();
-            wechseln("module", m.weg);
-          }}
-        >
-          <div className="modul-kopf">
+        <div key={m.weg} className="modul-kachel">
+          <a
+            className="modul-kopf"
+            href={`/module/${m.weg}`}
+            onClick={(e) => {
+              e.preventDefault();
+              wechseln("module", m.weg);
+            }}
+          >
             <i className="modul-siegel">
               <Zeichen name={m.zeichen} />
             </i>
@@ -80,26 +97,16 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
               <b>{m.titel}</b>
               <em>{m.wozu}</em>
             </span>
-          </div>
+          </a>
           <ul className="modul-teile">
             {m.teile.map((teil, i) => (
-              <li key={teil}>
-                <span className="zahl">{String(i + 1).padStart(2, "0")}</span>
-                {teil}
-                <span className="modul-stand">
-                  {eines ? `${ausgefuellt(eines)} / 9 Felder` : ""}
-                </span>
-              </li>
+              <Teilzeile key={teil.weg} teil={teil} stelle={i} vorhaben={eines} wechseln={wechseln} />
             ))}
           </ul>
           <div className="modul-fuss">
             <span>{eines ? `zuletzt ${zuletztText(eines.zuletzt)}` : ""}</span>
-            <span className="modul-oeffnen">
-              Öffnen
-              <Zeichen name="zeiger" />
-            </span>
           </div>
-        </a>
+        </div>
       ))}
 
       {/* Neue Module entstehen im Code, nicht in der Oberfläche. Die Kachel
@@ -116,19 +123,66 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
   );
 }
 
+/** Eine Zeile der Kachel: der Workshop, sein Stand, der Weg dorthin. */
+function Teilzeile({
+  teil,
+  stelle,
+  vorhaben,
+  wechseln,
+}: {
+  teil: Workshop;
+  stelle: number;
+  vorhaben: Vorhaben | null;
+  wechseln: Wechseln;
+}) {
+  const felder = useCanvasfelder(teil.schluessel);
+  const stand =
+    vorhaben && felder.data
+      ? `${ausgefuellt(vorhaben, felder.data.map((f) => f.feld))} / ${felder.data.length} ${teil.einheit}`
+      : "";
+
+  return (
+    <li>
+      <a
+        href={`/module/${teil.weg}`}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", teil.weg);
+        }}
+      >
+        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
+        {teil.titel}
+        <span className="modul-stand">{stand}</span>
+        <Zeichen name="zeiger" klasse="modul-zeiger" />
+      </a>
+    </li>
+  );
+}
+
 /* --- SPG Academy ---------------------------------------------------------- */
 
 /**
- * Die Leinwand des einen Vorhabens.
+ * Ein Workshop des einen Vorhabens: das Lean Model Canvas als Leinwand, der
+ * Business Plan Lite als Dokument. Oben schaltet man zwischen den Workshops um.
  *
  * **Es gibt genau ein Vorhaben** — „Sopharmis Arzneimittelspender", angelegt
  * von der Migration 0022. Die Seite wählt deshalb nichts aus, sie zeigt es.
  * Das Modell bleibt trotzdem getrennt von den Punkten: Kommt je ein zweites
  * Vorhaben, ist es eine Auswahl in der Oberfläche und kein Umbau der Daten.
  */
-function SpgAcademy({ ich }: { ich: Ich }) {
+function SpgAcademy({
+  ich,
+  modul,
+  teil,
+  wechseln,
+}: {
+  ich: Ich;
+  modul: Modul;
+  teil: Workshop;
+  wechseln: Wechseln;
+}) {
   const vorhaben = useVorhaben();
-  const felder = useCanvasfelder();
+  const felder = useCanvasfelder(teil.schluessel);
   const [offenesFeld, setOffenesFeld] = useState<string | null>(null);
 
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
@@ -136,13 +190,33 @@ function SpgAcademy({ ich }: { ich: Ich }) {
   if (!felder.data) return <Zustand abfrage={felder} erneut={() => felder.refetch()} />;
 
   const eines = vorhaben.data[0] ?? null;
+  const art = teil.schluessel === "canvas" ? "leinwand" : "plan";
 
-  // Fehlt es — weil es jemand am Server entfernt hat —, steht die Leinwand
+  // Die Workshops als Umschalter — dieselbe Form wie die Zeitraumwahl: ein
+  // Zustand, mehrere Werte, einer gilt.
+  const umschalter = (
+    <div className="spannenwahl workshopwahl" role="group" aria-label="Workshop">
+      {modul.teile.map((t, i) => (
+        <button
+          key={t.weg}
+          type="button"
+          aria-pressed={t.weg === teil.weg}
+          onClick={() => wechseln("module", t.weg)}
+        >
+          <span className="zahl">{String(i + 1).padStart(2, "0")}</span>
+          {t.titel}
+        </button>
+      ))}
+    </div>
+  );
+
+  // Fehlt es — weil es jemand am Server entfernt hat —, stehen die Felder
   // trotzdem da, mit allen Fragen, nur ohne Stift. Wiederherstellen kann es
   // ein Admin; aus der Oberfläche heraus legt niemand ein zweites an.
   if (!eines) {
     return (
       <div className="spalte">
+        {umschalter}
         <div className="vorhabenleiste">
           <div className="vorhaben-kopf">
             <b>Das Vorhaben fehlt</b>
@@ -150,6 +224,7 @@ function SpgAcademy({ ich }: { ich: Ich }) {
           </div>
         </div>
         <Leinwand
+          art={art}
           vorhaben={{ id: 0, titel: "", punkte: [], zuletzt: "" }}
           felder={felder.data}
           oeffnen={null}
@@ -158,10 +233,11 @@ function SpgAcademy({ ich }: { ich: Ich }) {
     );
   }
 
-  const zahl = ausgefuellt(eines);
+  const zahl = ausgefuellt(eines, felder.data.map((f) => f.feld));
 
   return (
     <div className="spalte">
+      {umschalter}
       <div className="vorhabenleiste">
         <div className="vorhaben-kopf">
           <b>{eines.titel}</b>
@@ -170,7 +246,7 @@ function SpgAcademy({ ich }: { ich: Ich }) {
               <b className="zahl">
                 {zahl} / {felder.data.length}
               </b>{" "}
-              Felder
+              {teil.einheit}
             </span>
             <span className="balken" aria-hidden="true">
               <i style={{ width: `${(zahl / felder.data.length) * 100}%` }} />
@@ -181,7 +257,10 @@ function SpgAcademy({ ich }: { ich: Ich }) {
         <div className="vorhaben-aktionen">
           {/* Ein Link und kein fetch: Das PDF soll im Download-Ordner landen,
               und genau das tut der Browser mit einem `attachment` von selbst. */}
-          <a className="knopf-still" href={`/api/vorhaben/${eines.id}/pdf/`}>
+          <a
+            className="knopf-still"
+            href={`/api/vorhaben/${eines.id}/pdf/?workshop=${teil.schluessel}`}
+          >
             <Zeichen name="pdf" />
             PDF
           </a>
@@ -189,6 +268,7 @@ function SpgAcademy({ ich }: { ich: Ich }) {
       </div>
 
       <Leinwand
+        art={art}
         vorhaben={eines}
         felder={felder.data}
         oeffnen={ich.darf.bearbeiten ? setOffenesFeld : null}
@@ -223,16 +303,20 @@ function SpgAcademy({ ich }: { ich: Ich }) {
  * in einem Knopf nicht stehen.
  */
 function Leinwand({
+  art,
   vorhaben,
   felder,
   oeffnen,
 }: {
+  /** Die Leinwand des Canvas oder das Dokument des Businessplans — dieselben
+      Felder, nur anders gelegt (siehe `.leinwand` und `.plan`). */
+  art: "leinwand" | "plan";
   vorhaben: Vorhaben;
   felder: Canvasfeld[];
   oeffnen: ((feld: string) => void) | null;
 }) {
   return (
-    <div className="leinwand">
+    <div className={art}>
       {felder.map((f) => {
         const punkte = punkteIn(vorhaben, f.feld);
         return (

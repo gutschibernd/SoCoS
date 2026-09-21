@@ -2,13 +2,24 @@ import { describe, expect, it } from "vitest";
 
 import type { Canvaspunkt, Vorhaben } from "./daten";
 import {
+  MODULWEGE,
   alsEntwuerfe,
   ausgefuellt,
   istGeaendert,
   punkteIn,
   zumSenden,
+  workshopZuWeg,
   zuletztText,
 } from "./module";
+
+describe("die Wege der Module", () => {
+  it("kennt beide Workshops der SPG Academy", () => {
+    expect(MODULWEGE).toEqual(["spg", "spg-businessplan"]);
+    expect(workshopZuWeg("spg-businessplan")?.teil.schluessel).toBe("businessplan");
+    expect(workshopZuWeg("spg")?.modul.titel).toBe("SPG Academy");
+    expect(workshopZuWeg("pitch")).toBeNull();
+  });
+});
 
 const punkt = (id: number, feld: string, text: string, reihenfolge = 0): Canvaspunkt => ({
   id, feld, text, reihenfolge,
@@ -31,7 +42,15 @@ describe("die Leinwand", () => {
   });
 
   it("zählt Felder, nicht Punkte", () => {
-    expect(ausgefuellt(v)).toBe(2);
+    expect(ausgefuellt(v, ["problem", "kunden", "kosten"])).toBe(2);
+  });
+
+  // An einem Vorhaben hängen die Punkte aller Workshops. Das Canvas darf die
+  // Abschnitte des Businessplans nicht mitzählen.
+  it("zählt nur die Felder des Workshops", () => {
+    const mitPlan = { ...v, punkte: [...v.punkte, punkt(9, "summary", "Kurzfassung")] };
+    expect(ausgefuellt(mitPlan, ["problem", "kunden"])).toBe(2);
+    expect(ausgefuellt(mitPlan, ["summary", "markt"])).toBe(1);
   });
 });
 
