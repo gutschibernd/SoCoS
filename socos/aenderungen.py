@@ -49,7 +49,8 @@ VERSIONEN = [
                 "titel": "Jedes Feld sagt, was verlangt ist",
                 "text": (
                     "Im Fenster zu The Problem, Customer Segments, Unique Value "
-                    "Propositions und The Solution steht über den Fragen jetzt die "
+                    "Propositions, The Solution und Unfair Advantage steht über den "
+                    "Fragen jetzt die "
                     "Aufgabe aus den Vorbereitungsvideos — etwa „höchstens drei "
                     "Probleme“ oder „eine Persona anlegen“."
                 ),

@@ -50,7 +50,7 @@ liest es direkt. Wo welches Feld auf der Leinwand steht, sagt nur
 Workshop-Material. „Key Metrics" hat im Workshop keine Frage; die eine ist ergänzt.
 
 Daneben steht `AUFGABEN`: was im Feld verlangt ist, aus den Vorbereitungsvideos
-mitgeschrieben (erst für die Felder 1–4). Die Leitfragen sagen, *worüber* man
+mitgeschrieben (erst für die Felder 1–5). Die Leitfragen sagen, *worüber* man
 nachdenkt, die Aufgabe, *wie* das Ergebnis aussehen soll. Sie steht nur im
 Feldfenster, nicht auf der Leinwand — dort bleibt Platz für die Ergebnisse.
 

@@ -1514,6 +1514,11 @@ AUFGABEN = {
         "Identify the MVP: what you need to build the first prototype.",
         "Plan how you get customer feedback on it.",
     ],
+    Canvasfeld.VORTEIL: [
+        "Something your competitors cannot copy: what protects your business from them?",
+        "Examples: IP and patents, strategic partnerships, data sources.",
+        "Consider what makes your startup unique — team expertise, connections and partnerships.",
+    ],
 }
 
 
