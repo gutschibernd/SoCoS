@@ -1,11 +1,7 @@
 /**
  * Module: zusätzliche Werkzeuge, die mit Projekt und Zeit nichts zu tun haben.
  *
- * `/module` ist die Übersicht aller Module, `/module/spg` die SPG Academy und
- * `/module/spg-4` dort das Vorhaben 4. Das gewählte Vorhaben steht im Weg und
- * nicht im Zustand dieser Ansicht — aus demselben Grund wie bei Kontakten und
- * Meetings (siehe basis/router.ts): Die Zurück-Geste des Geräts soll eine
- * Ebene hoch führen, und eine Leinwand soll man als Link schicken können.
+ * `/module` ist die Übersicht aller Module, `/module/spg` die SPG Academy.
  *
  * **Die Leinwand ist das Ergebnis, nicht die Werkstatt.** Auf ihr steht, was
  * im Workshop herausgekommen ist — Stichpunkte je Feld. Bearbeitet wird ein
@@ -29,20 +25,15 @@ import {
   MODULE,
   alsEntwuerfe,
   ausgefuellt,
-  gewaehltesVorhaben,
   istGeaendert,
   neuerSchluessel,
   punkteIn,
-  vorhabenAusWeg,
-  wegZuVorhaben,
   zuletztText,
   zumSenden,
   type Punktentwurf,
 } from "../basis/module";
 import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
-import { Leerstelle } from "../bausteine/Leerstelle";
-import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
@@ -56,7 +47,7 @@ export function Module({
   unter: string | null;
   wechseln: Wechseln;
 }) {
-  if (unter?.startsWith("spg")) return <SpgAcademy ich={ich} unter={unter} wechseln={wechseln} />;
+  if (unter === "spg") return <SpgAcademy ich={ich} />;
   return <Uebersicht wechseln={wechseln} />;
 }
 
@@ -67,8 +58,7 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
   // nur der Stand darin kommt nach. Eine Seite mit einem Werkzeug darf nicht
   // „Wird geladen …" sagen, bloß weil eine Zahl fehlt.
   const vorhaben = useVorhaben();
-  const liste = vorhaben.data ?? null;
-  const juengstes = liste?.length ? gewaehltesVorhaben(liste, null) : null;
+  const eines = vorhaben.data?.[0] ?? null;
 
   return (
     <div className="modul-kacheln">
@@ -97,17 +87,13 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
                 <span className="zahl">{String(i + 1).padStart(2, "0")}</span>
                 {teil}
                 <span className="modul-stand">
-                  {liste === null
-                    ? ""
-                    : liste.length === 1
-                      ? "1 Vorhaben"
-                      : `${liste.length} Vorhaben`}
+                  {eines ? `${ausgefuellt(eines)} / 9 Felder` : ""}
                 </span>
               </li>
             ))}
           </ul>
           <div className="modul-fuss">
-            <span>{juengstes ? `zuletzt ${zuletztText(juengstes.zuletzt)}` : ""}</span>
+            <span>{eines ? `zuletzt ${zuletztText(eines.zuletzt)}` : ""}</span>
             <span className="modul-oeffnen">
               Öffnen
               <Zeichen name="zeiger" />
@@ -132,152 +118,80 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
 
 /* --- SPG Academy ---------------------------------------------------------- */
 
-type Dialog = { art: "neu" } | { art: "umbenennen" } | { art: "entfernen" } | null;
-
-function SpgAcademy({ ich, unter, wechseln }: { ich: Ich; unter: string; wechseln: Wechseln }) {
+/**
+ * Die Leinwand des einen Vorhabens.
+ *
+ * **Es gibt genau ein Vorhaben** — „Sopharmis Arzneimittelspender", angelegt
+ * von der Migration 0022. Die Seite wählt deshalb nichts aus, sie zeigt es.
+ * Das Modell bleibt trotzdem getrennt von den Punkten: Kommt je ein zweites
+ * Vorhaben, ist es eine Auswahl in der Oberfläche und kein Umbau der Daten.
+ */
+function SpgAcademy({ ich }: { ich: Ich }) {
   const vorhaben = useVorhaben();
   const felder = useCanvasfelder();
   const [offenesFeld, setOffenesFeld] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<Dialog>(null);
 
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
   if (!vorhaben.data) return <Zustand abfrage={vorhaben} erneut={() => vorhaben.refetch()} />;
   if (!felder.data) return <Zustand abfrage={felder} erneut={() => felder.refetch()} />;
 
-  const gewaehlt = gewaehltesVorhaben(vorhaben.data, vorhabenAusWeg(unter));
-  const darf = ich.darf.bearbeiten;
+  const eines = vorhaben.data[0] ?? null;
 
-  const dialoge = (
-    <>
-      {dialog?.art === "neu" && (
-        <Titeldialog
-          titel="Neues Vorhaben"
-          knopf="Anlegen"
-          wert=""
-          schliessen={() => setDialog(null)}
-          speichern={async (titel) => {
-            const neu = await hole<Vorhaben>("/vorhaben/", {
-              method: "POST",
-              body: JSON.stringify({ titel }),
-            });
-            wechseln("module", wegZuVorhaben(neu.id));
-          }}
-        />
-      )}
-      {dialog?.art === "umbenennen" && gewaehlt && (
-        <Titeldialog
-          titel="Vorhaben umbenennen"
-          knopf="Speichern"
-          wert={gewaehlt.titel}
-          schliessen={() => setDialog(null)}
-          speichern={(titel) =>
-            hole(`/vorhaben/${gewaehlt.id}/`, { method: "PATCH", body: JSON.stringify({ titel }) })
-          }
-        />
-      )}
-      {dialog?.art === "entfernen" && gewaehlt && (
-        <Entfernen
-          vorhaben={gewaehlt}
-          schliessen={() => setDialog(null)}
-          weiter={() => wechseln("module", "spg")}
-        />
-      )}
-    </>
-  );
-
-  if (!gewaehlt) {
+  // Fehlt es — weil es jemand am Server entfernt hat —, steht die Leinwand
+  // trotzdem da, mit allen Fragen, nur ohne Stift. Wiederherstellen kann es
+  // ein Admin; aus der Oberfläche heraus legt niemand ein zweites an.
+  if (!eines) {
     return (
-      <>
-        <div className="karte">
-          <Leerstelle
-            was="Noch kein Vorhaben"
-            satz="Ein Vorhaben ist die Idee, die im Workshop ausgearbeitet wird. Es hängt an keinem Projekt."
-            aktion={darf ? { text: "Vorhaben anlegen", tun: () => setDialog({ art: "neu" }) } : undefined}
-          />
+      <div className="spalte">
+        <div className="vorhabenleiste">
+          <div className="vorhaben-kopf">
+            <b>Das Vorhaben fehlt</b>
+            <span>Es wurde entfernt. Ein Admin kann es wiederherstellen.</span>
+          </div>
         </div>
-        {dialoge}
-      </>
+        <Leinwand
+          vorhaben={{ id: 0, titel: "", punkte: [], zuletzt: "" }}
+          felder={felder.data}
+          oeffnen={null}
+        />
+      </div>
     );
   }
 
-  const zahl = ausgefuellt(gewaehlt);
+  const zahl = ausgefuellt(eines);
 
   return (
     <div className="spalte">
       <div className="vorhabenleiste">
-        {/* Umbenennen und Entfernen gehören zu dem Vorhaben, das gewählt ist —
-            deshalb stehen sie als Zeichen direkt am Auswahlfeld und nicht
-            rechts bei den Handlungen, die für die ganze Seite gelten. */}
-        <div className="vorhaben-wahl">
-          <select
-            className="feld"
-            aria-label="Vorhaben"
-            value={gewaehlt.id}
-            onChange={(e) => wechseln("module", wegZuVorhaben(Number(e.target.value)))}
-          >
-            {vorhaben.data.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.titel}
-              </option>
-            ))}
-          </select>
-          {darf && (
-            <button
-              type="button"
-              className="knopf-still knopf-zeichen"
-              aria-label="Vorhaben umbenennen"
-              title="Umbenennen"
-              onClick={() => setDialog({ art: "umbenennen" })}
-            >
-              <Zeichen name="stift" />
-            </button>
-          )}
-          {ich.darf.loeschen && (
-            <button
-              type="button"
-              className="knopf-still knopf-zeichen"
-              aria-label="Vorhaben entfernen"
-              title="Entfernen"
-              onClick={() => setDialog({ art: "entfernen" })}
-            >
-              <Zeichen name="korb" />
-            </button>
-          )}
-        </div>
-
-        <div className="vorhaben-stand">
-          <span>
-            <b className="zahl">
-              {zahl} / {felder.data.length}
-            </b>{" "}
-            Felder
+        <div className="vorhaben-kopf">
+          <b>{eines.titel}</b>
+          <span className="vorhaben-stand">
+            <span>
+              <b className="zahl">
+                {zahl} / {felder.data.length}
+              </b>{" "}
+              Felder
+            </span>
+            <span className="balken" aria-hidden="true">
+              <i style={{ width: `${(zahl / felder.data.length) * 100}%` }} />
+            </span>
+            <span className="vorhaben-zuletzt">zuletzt {zuletztText(eines.zuletzt)}</span>
           </span>
-          <div className="balken" aria-hidden="true">
-            <i style={{ width: `${(zahl / felder.data.length) * 100}%` }} />
-          </div>
-          <span className="vorhaben-zuletzt">zuletzt {zuletztText(gewaehlt.zuletzt)}</span>
         </div>
-
         <div className="vorhaben-aktionen">
           {/* Ein Link und kein fetch: Das PDF soll im Download-Ordner landen,
               und genau das tut der Browser mit einem `attachment` von selbst. */}
-          <a className="knopf-still" href={`/api/vorhaben/${gewaehlt.id}/pdf/`}>
+          <a className="knopf-still" href={`/api/vorhaben/${eines.id}/pdf/`}>
             <Zeichen name="pdf" />
             PDF
           </a>
-          {darf && (
-            <button type="button" className="knopf" onClick={() => setDialog({ art: "neu" })}>
-              <Zeichen name="plus" />
-              Neues Vorhaben
-            </button>
-          )}
         </div>
       </div>
 
       <Leinwand
-        vorhaben={gewaehlt}
+        vorhaben={eines}
         felder={felder.data}
-        oeffnen={darf ? setOffenesFeld : null}
+        oeffnen={ich.darf.bearbeiten ? setOffenesFeld : null}
       />
 
       {offenesFeld && (
@@ -286,13 +200,12 @@ function SpgAcademy({ ich, unter, wechseln }: { ich: Ich; unter: string; wechsel
           // Fenster mit den Punkten des nächsten Feldes, statt die des
           // vorigen im Zustand festzuhalten.
           key={offenesFeld}
-          vorhaben={gewaehlt}
+          vorhaben={eines}
           felder={felder.data}
           feld={offenesFeld}
           oeffnen={setOffenesFeld}
         />
       )}
-      {dialoge}
     </div>
   );
 }
@@ -718,106 +631,6 @@ function Wachsfeld({
       aria-label={beschriftung}
       onChange={(e) => aendern(e.target.value)}
       onKeyDown={taste}
-    />
-  );
-}
-
-/* --- Vorhaben anlegen, umbenennen, entfernen ------------------------------ */
-
-function Titeldialog({
-  titel,
-  knopf,
-  wert,
-  schliessen,
-  speichern,
-}: {
-  titel: string;
-  knopf: string;
-  wert: string;
-  schliessen: () => void;
-  speichern: (titel: string) => Promise<unknown>;
-}) {
-  const neuLaden = useNeuLaden();
-  const [text, setText] = useState(wert);
-  const [laeuft, setLaeuft] = useState(false);
-  const bereit = text.trim() !== "" && text.trim() !== wert;
-
-  async function absenden(e: React.FormEvent) {
-    e.preventDefault();
-    if (!bereit) return;
-    setLaeuft(true);
-    try {
-      await speichern(text.trim());
-      neuLaden();
-      schliessen();
-    } catch {
-      setLaeuft(false);
-    }
-  }
-
-  useEffect(() => {
-    const beiEscape = (e: KeyboardEvent) => e.key === "Escape" && !laeuft && schliessen();
-    window.addEventListener("keydown", beiEscape);
-    return () => window.removeEventListener("keydown", beiEscape);
-  });
-
-  return (
-    <div className="dialog-grund" role="dialog" aria-modal="true" aria-label={titel} onClick={schliessen}>
-      <form className="dialog" onClick={(e) => e.stopPropagation()} onSubmit={absenden}>
-        <h2>{titel}</h2>
-        <label className="profilfeld">
-          <span className="beschriftung-klein">Titel</span>
-          <input
-            className="feld"
-            value={text}
-            maxLength={160}
-            autoFocus
-            placeholder="Worum geht es — z. B. Arzneimittelspender"
-            onChange={(e) => setText(e.target.value)}
-          />
-        </label>
-        <div className="dialog-knoepfe">
-          <button type="button" className="knopf-still" onClick={schliessen}>
-            Abbrechen
-          </button>
-          <button type="submit" className="knopf" disabled={!bereit || laeuft}>
-            {knopf}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-function Entfernen({
-  vorhaben,
-  schliessen,
-  weiter,
-}: {
-  vorhaben: Vorhaben;
-  schliessen: () => void;
-  weiter: () => void;
-}) {
-  const neuLaden = useNeuLaden();
-  const [laeuft, setLaeuft] = useState(false);
-
-  return (
-    <Loeschdialog
-      name={vorhaben.titel}
-      was="Das Vorhaben samt seiner Leinwand"
-      laeuft={laeuft}
-      abbrechen={schliessen}
-      loeschen={async () => {
-        setLaeuft(true);
-        try {
-          await hole(`/vorhaben/${vorhaben.id}/`, { method: "DELETE" });
-          neuLaden();
-          schliessen();
-          weiter();
-        } catch {
-          setLaeuft(false);
-        }
-      }}
     />
   );
 }

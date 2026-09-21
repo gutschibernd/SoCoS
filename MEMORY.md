@@ -21,7 +21,16 @@ Die Module stehen in **einer** Liste (`frontend/src/basis/module.ts`), aus der d
 Leiste und die Übersichtskacheln leben. Neue Module entstehen im Code, nicht in der
 Oberfläche — die Übersicht verweist dafür auf „Wünsche & Fehler".
 
-### Ein Vorhaben hängt an keinem Projekt
+### Es gibt genau ein Vorhaben, und es hängt an keinem Projekt
+
+**Nachtrag, am selben Tag:** In der SPG Academy gibt es nur „Sopharmis
+Arzneimittelspender". Die Migration 0022 legt es an, falls keines da ist; die
+Oberfläche wählt nichts aus, sie zeigt es — samt Leinwand mit allen Fragen, auch
+wenn noch kein Punkt eingetragen ist. Anlegen, Umbenennen und Entfernen gibt es in
+der Oberfläche nicht mehr. Der erste Wurf hatte eine Auswahl, und ohne Vorhaben
+stand statt der Leinwand nur „Noch kein Vorhaben" da — genau das, woran man sieht,
+worum es geht, war damit versteckt. Das Modell `Vorhaben` bleibt getrennt von den
+Punkten: Ein zweites wäre eine Auswahl in der Oberfläche, kein Umbau der Daten.
 
 Im Workshop wird oft über etwas nachgedacht, das noch kein Projekt ist. Ein Verweis
 auf ein Projekt zwänge dazu, zuerst eines anzulegen, und die Projektliste füllte
@@ -63,8 +72,6 @@ auch das nicht, nennt das Feld die fehlenden Punkte, statt still abzuschneiden.
 
 ### Kleinigkeiten
 
-- Das gewählte Vorhaben steht im Weg (`/module/spg-4`). Ohne Auswahl kommt das
-  zuletzt bearbeitete, nicht das erste nach dem Alphabet.
 - „zuletzt" am Vorhaben ist gerechnet (jüngstes `geaendert_am` von Vorhaben und
   Punkten, auch gestrichenen), nicht gespeichert.
 - Das Feldfenster speichert beim Weiterblättern mit, was offen ist. Beim Tippen

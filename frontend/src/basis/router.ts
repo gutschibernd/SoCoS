@@ -92,10 +92,8 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   kontakte: (unter) => unter === "lose" || /^\d+$/.test(unter),
   events: (unter) => /^\d+$/.test(unter),
   meetings: (unter) => /^\d+$/.test(unter),
-  // Ein Modul, und dahinter wahlweise das gewählte Vorhaben: `/module/spg`
-  // oder `/module/spg-4`. Beides in einer Stufe, weil der Router nur eine
-  // kennt — und „schick mir den Link zu dieser Leinwand" soll gehen.
-  module: (unter) => /^spg(-\d+)?$/.test(unter),
+  // Ein Modul: `/module/spg`. Die Liste wächst mit `MODULE` in basis/module.ts.
+  module: (unter) => unter === "spg",
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
   profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),
   doku: (unter) => (DOKUTEILE as readonly string[]).includes(unter),

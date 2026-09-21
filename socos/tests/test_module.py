@@ -210,7 +210,7 @@ class TestEntfernen:
         assert client.delete(f"/api/vorhaben/{vorhaben.pk}/").status_code == 204
 
         assert Canvaspunkt.alle_objekte.get(pk=punkt.pk).ist_geloescht
-        assert not Vorhaben.objects.exists()
+        assert not Vorhaben.objects.filter(pk=vorhaben.pk).exists()
 
 
 class TestPdf:
@@ -246,6 +246,40 @@ class TestPdf:
         from socos.services import leinwand
 
         assert leinwand.dateiname(Vorhaben(titel="Spender für Ärzte")) == "Lean-Canvas_Spender-fuer-Aerzte.pdf"
+
+
+class TestDasEineVorhaben:
+    """
+    Die Migration 0022 legt „Sopharmis Arzneimittelspender" an — aber nur, wenn
+    noch keines da ist. Geprüft an der Funktion selbst und nicht am Bestand:
+    Ein Test mit `transaction=True` leert die Datenbank samt dem, was
+    Migrationen angelegt haben (siehe conftest.py).
+    """
+
+    @staticmethod
+    def _anlegen():
+        from importlib import import_module
+
+        from django.apps import apps
+
+        import_module("socos.migrations.0022_das_eine_vorhaben").anlegen(apps, None)
+
+    @pytest.mark.django_db
+    def test_legt_es_an_wenn_keines_da_ist(self):
+        Vorhaben.objects.all().hart_loeschen()
+
+        self._anlegen()
+
+        assert [v.titel for v in Vorhaben.objects.all()] == ["Sopharmis Arzneimittelspender"]
+
+    @pytest.mark.django_db
+    def test_laesst_ein_vorhandenes_stehen(self):
+        Vorhaben.objects.all().hart_loeschen()
+        Vorhaben.objects.create(titel="Von Hand angelegt")
+
+        self._anlegen()
+
+        assert [v.titel for v in Vorhaben.objects.all()] == ["Von Hand angelegt"]
 
 
 @pytest.mark.django_db(transaction=True)

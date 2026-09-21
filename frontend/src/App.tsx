@@ -70,9 +70,8 @@ export function App() {
   if (!ich.data) return <Zustand abfrage={ich} erneut={() => ich.refetch()} />;
 
   const bearbeiten = ort.seite === "projekt" && ort.unter === "bearbeiten";
-  // Das gewählte Vorhaben hängt am Weg (`spg-4`), die Zeile gilt für alle.
   const kopfzeile =
-    UNTERTITEL[`${ort.seite}/${ort.unter?.replace(/-\d+$/, "")}`] ??
+    UNTERTITEL[`${ort.seite}/${ort.unter}`] ??
     (ort.seite === "start"
       ? { titel: `Hallo ${ich.data.name.split(" ")[0]}`, unter: TITEL.start.unter }
       : TITEL[ort.seite]);

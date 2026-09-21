@@ -321,7 +321,7 @@ function Modulzweig({
   hin: (s: Seite, unter?: string | null) => void;
 }) {
   const offen = ort.seite === "module";
-  const modul = offen ? MODULE.find((m) => ort.unter?.startsWith(m.weg)) : undefined;
+  const modul = offen ? MODULE.find((m) => ort.unter === m.weg) : undefined;
 
   return (
     <>

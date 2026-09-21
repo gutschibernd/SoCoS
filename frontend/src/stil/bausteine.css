@@ -1702,18 +1702,17 @@ a.mini { text-decoration: none; }
   padding: 14px 16px; background: var(--flaeche);
   border: 1px solid var(--rand); border-radius: var(--kante);
 }
-.vorhaben-wahl { display: flex; gap: 6px; flex: 0 1 300px; min-width: 0; }
-.vorhaben-wahl > select { flex: 1 1 auto; min-width: 0; }
-/* Ein Knopf nur mit Zeichen: quadratisch, damit er neben dem Auswahlfeld
-   dieselbe Höhe hat und nicht breiter wirkt als das, was er tut. */
-.knopf-zeichen { width: var(--griff); padding: 0; flex: 0 0 auto; }
+/* Name des Vorhabens, darunter der Stand. */
+.vorhaben-kopf { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 320px; }
+.vorhaben-kopf > b { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.vorhaben-kopf > span:not(.vorhaben-stand) { font-size: 13.5px; color: var(--text-leise); }
 .vorhaben-stand {
-  display: flex; align-items: center; gap: 10px; min-height: var(--griff);
+  display: flex; align-items: center; gap: 10px;
   font-size: 13px; color: var(--text-leise);
 }
 .vorhaben-stand > span { white-space: nowrap; }
 .vorhaben-stand b { font-weight: 500; color: var(--text); }
-.vorhaben-stand .balken { width: 110px; height: 6px; }
+.vorhaben-stand .balken { display: block; width: 110px; height: 6px; }
 .vorhaben-zuletzt { color: var(--text-sehr-leise); white-space: nowrap; }
 .vorhaben-aktionen { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 .vorhaben-aktionen .knopf-still { text-decoration: none; }
@@ -2035,7 +2034,7 @@ a.mini { text-decoration: none; }
      SPG Academy untereinander. Zehn Spalten in 345 px wären je 34 px. */
   .leinwand { display: flex; flex-direction: column; }
   .leinwand-feld { padding: 12px 14px 14px; }
-  .vorhaben-wahl, .vorhaben-stand { flex: 1 1 100%; }
+  .vorhaben-kopf { flex: 1 1 100%; }
   .vorhaben-stand .balken { flex: 1 1 auto; width: auto; }
   .vorhaben-aktionen { margin-left: 0; }
   /* Untereinander statt nebeneinander — und ohne die 132 px je Hälfte, sonst

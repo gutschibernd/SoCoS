@@ -4,11 +4,8 @@ import type { Canvaspunkt, Vorhaben } from "./daten";
 import {
   alsEntwuerfe,
   ausgefuellt,
-  gewaehltesVorhaben,
   istGeaendert,
   punkteIn,
-  vorhabenAusWeg,
-  wegZuVorhaben,
   zumSenden,
   zuletztText,
 } from "./module";
@@ -19,36 +16,6 @@ const punkt = (id: number, feld: string, text: string, reihenfolge = 0): Canvasp
 
 const vorhaben = (id: number, zuletzt: string, punkte: Canvaspunkt[] = []): Vorhaben => ({
   id, titel: `Vorhaben ${id}`, zuletzt, punkte,
-});
-
-describe("der Weg zum Vorhaben", () => {
-  it("liest die Kennung und schreibt sie zurück", () => {
-    expect(vorhabenAusWeg("spg-4")).toBe(4);
-    expect(vorhabenAusWeg("spg")).toBeNull();
-    expect(vorhabenAusWeg(null)).toBeNull();
-    expect(wegZuVorhaben(4)).toBe("spg-4");
-    expect(wegZuVorhaben(null)).toBe("spg");
-  });
-});
-
-describe("gewaehltesVorhaben", () => {
-  const alt = vorhaben(1, "2026-09-01T10:00:00Z");
-  const neu = vorhaben(2, "2026-09-20T10:00:00Z");
-
-  it("nimmt das aus dem Weg, solange es das gibt", () => {
-    expect(gewaehltesVorhaben([alt, neu], 1)).toBe(alt);
-  });
-
-  // Ohne Auswahl will man dort weitermachen, wo zuletzt gearbeitet wurde —
-  // nicht beim ersten nach dem Alphabet.
-  it("sonst das zuletzt bearbeitete", () => {
-    expect(gewaehltesVorhaben([alt, neu], null)).toBe(neu);
-    expect(gewaehltesVorhaben([alt, neu], 99)).toBe(neu);
-  });
-
-  it("gibt nichts zurück, wenn es keines gibt", () => {
-    expect(gewaehltesVorhaben([], null)).toBeNull();
-  });
 });
 
 describe("die Leinwand", () => {

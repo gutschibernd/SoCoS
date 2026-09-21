@@ -691,11 +691,10 @@ function ModuleDoku() {
       <Abschnitt
         zeichen="akademie"
         titel="SPG Academy: das Lean Model Canvas"
-        vorspann="Hier kommen die Ergebnisse aus dem Workshop hin: neun Felder, nummeriert wie in der SPG Academy, je Idee ein Vorhaben."
+        vorspann="Hier kommen die Ergebnisse aus dem Workshop hin: neun Felder, nummeriert wie in der SPG Academy, für das Vorhaben Sopharmis Arzneimittelspender."
       >
         <Schritte
           schritte={[
-            "„Neues Vorhaben“ anlegen und ihm einen Namen geben. Ein Vorhaben hängt an keinem Projekt — es darf eine Idee sein, auf die noch niemand bucht.",
             "Auf ein Feld klicken. Oben steht die Aufgabe aus den Vorbereitungsvideos — was im Feld verlangt ist —, darunter die Fragen aus dem Workshop und dann deine Punkte.",
             "Enter beginnt den nächsten Punkt, Umschalt+Enter bricht innerhalb eines Punktes um. Rückschritt in einer leeren Zeile nimmt sie weg; mit Alt+↑ und Alt+↓ verschiebst du einen Punkt.",
             "Mit den Knöpfen unten im Fenster gehst du zum vorigen oder nächsten Feld. Was offen ist, wird dabei gespeichert.",
@@ -710,11 +709,11 @@ function ModuleDoku() {
           paare={[
             {
               begriff: "Wer was darf",
-              text: "Sehen dürfen alle. Punkte schreiben, streichen und Vorhaben anlegen dürfen Admin und Bearbeiter; ein Leser sieht die Leinwand ohne Stift. Ein ganzes Vorhaben entfernt nur der Admin.",
+              text: "Sehen dürfen alle. Punkte schreiben und streichen dürfen Admin und Bearbeiter; ein Leser sieht die Leinwand ohne Stift.",
             },
             {
-              begriff: "Welches Vorhaben dasteht",
-              text: "Das zuletzt bearbeitete, solange du keines wählst. Die Adresse enthält das gewählte — du kannst sie als Link weitergeben.",
+              begriff: "Ein Vorhaben",
+              text: "In der SPG Academy gibt es genau eines: Sopharmis Arzneimittelspender. Es hängt an keinem Projekt, und die Seite zeigt immer seine Leinwand.",
             },
             {
               begriff: "Ein volles Feld im PDF",

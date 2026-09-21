@@ -40,8 +40,9 @@ VERSIONEN = [
                     "mit den neun Feldern, nummeriert wie in der SPG Academy. Ein "
                     "Klick auf ein Feld öffnet es: Enter beginnt den nächsten "
                     "Punkt, und mit den Pfeilen unten gehst du Feld für Feld weiter. "
-                    "Jede Idee ist ein eigenes Vorhaben, an keinem Projekt, und die "
-                    "Leinwand gibt es auch als PDF."
+                    "Die Leinwand gehört dem Vorhaben Sopharmis Arzneimittelspender "
+                    "und steht immer da — auch leer, mit allen Fragen. Als PDF gibt "
+                    "es sie auch."
                 ),
                 "wo": "module/spg",
             },

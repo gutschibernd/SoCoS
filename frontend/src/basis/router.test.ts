@@ -27,11 +27,10 @@ describe("ausPfad", () => {
     expect(ausPfad("/aufgaben")).toEqual({ seite: "aufgaben", unter: null });
   });
 
-  it("liest das Modul und das gewählte Vorhaben", () => {
+  it("liest das Modul", () => {
     expect(ausPfad("/module")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/spg")).toEqual({ seite: "module", unter: "spg" });
-    expect(ausPfad("/module/spg-4")).toEqual({ seite: "module", unter: "spg-4" });
-    expect(ausPfad("/module/spg-x")).toEqual({ seite: "module", unter: null });
+    expect(ausPfad("/module/spg-4")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/pitch")).toEqual({ seite: "module", unter: null });
   });
 

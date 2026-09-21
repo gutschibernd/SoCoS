@@ -10,7 +10,7 @@ import type { Canvaspunkt, Vorhaben } from "./daten";
 import type { ZeichenName } from "../bausteine/Zeichen";
 
 export type Modul = {
-  /** Der Weg hinter `/module/` — und das Kürzel, mit dem dort ein Vorhaben beginnt. */
+  /** Der Weg hinter `/module/`. */
   weg: "spg";
   titel: string;
   wozu: string;
@@ -28,33 +28,6 @@ export const MODULE: Modul[] = [
     teile: ["Lean Model Canvas"],
   },
 ];
-
-/* --- Der Weg zu einem Vorhaben ------------------------------------------- */
-
-/** `spg-4` → 4, `spg` → null. */
-export function vorhabenAusWeg(unter: string | null): number | null {
-  const treffer = unter?.match(/^spg-(\d+)$/);
-  return treffer ? Number(treffer[1]) : null;
-}
-
-export function wegZuVorhaben(id: number | null): string {
-  return id === null ? "spg" : `spg-${id}`;
-}
-
-/**
- * Welches Vorhaben gezeigt wird. Steht eines im Weg und gibt es das noch, dann
- * das. Sonst das zuletzt bearbeitete — **nicht** das erste nach dem Alphabet:
- * Wer die Seite ohne Auswahl öffnet, will fast immer dort weitermachen, wo
- * zuletzt jemand gearbeitet hat.
- */
-export function gewaehltesVorhaben(liste: Vorhaben[], id: number | null): Vorhaben | null {
-  if (id !== null) {
-    const treffer = liste.find((v) => v.id === id);
-    if (treffer) return treffer;
-  }
-  if (liste.length === 0) return null;
-  return [...liste].sort((a, b) => b.zuletzt.localeCompare(a.zuletzt))[0];
-}
 
 /* --- Die Leinwand --------------------------------------------------------- */
 
