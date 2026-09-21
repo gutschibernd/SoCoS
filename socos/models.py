@@ -1407,3 +1407,148 @@ class Aufgabe(Basismodell):
 
     def __str__(self):
         return self.text
+
+
+# --- Module -----------------------------------------------------------------
+#
+# Zusätzliche Werkzeuge, die mit Projekt und Zeit nichts zu tun haben und
+# deshalb unter „Intern · Module" stehen statt in einer eigenen Rubrik. Sie
+# werden selten gebraucht — die Leiste klappt sie nur auf, wenn man drin ist.
+#
+# Das erste Modul ist die **SPG Academy**: Die Workshops dort werden hier
+# ausgearbeitet, jeder Workshop an einem Vorhaben. Heute gibt es genau einen,
+# das Lean Model Canvas.
+
+
+class Canvasfeld(models.TextChoices):
+    """
+    Die neun Felder des Lean Model Canvas — **in der Reihenfolge der SPG
+    Academy**, und so werden sie auch durchnummeriert.
+
+    Die Namen bleiben englisch, wie im Workshop-Material. Übersetzt hieße
+    „Unfair Advantage" hier etwas anderes als auf der Folie, und dann redet man
+    im Workshop über zwei Felder, die dasselbe sind.
+
+    Die Reihenfolge dieser Liste ist die Nummerierung. Wer sie ändert, ändert
+    die Nummern auf der Leinwand und im PDF mit.
+    """
+
+    PROBLEM = "problem", "The Problem"
+    KUNDEN = "kunden", "Customer Segments"
+    NUTZEN = "nutzen", "Unique Value Propositions"
+    LOESUNG = "loesung", "The Solution"
+    VORTEIL = "vorteil", "Unfair Advantage"
+    KANAELE = "kanaele", "Channels"
+    EINNAHMEN = "einnahmen", "Revenue Streams"
+    KENNZAHLEN = "kennzahlen", "Key Metrics"
+    KOSTEN = "kosten", "Cost Structure"
+
+
+# Die Fragen aus dem Workshop, je Feld. Sie stehen im leeren Feld und über den
+# Punkten, solange man daran schreibt. **Hier und nicht in der Oberfläche,**
+# weil die Leinwand sie sonst an einer zweiten Stelle neben den Feldnamen
+# führte — die Oberfläche holt beides über `/api/vorhaben/felder/`.
+#
+# „Key Metrics" hat im Workshop keine eigene Frage; die eine hier ist ergänzt,
+# damit das Feld nicht als einziges stumm dasteht.
+LEITFRAGEN = {
+    Canvasfeld.PROBLEM: [
+        "What is the customer’s problem you want to solve?",
+        "Who are your competitors and what solutions do they offer?",
+    ],
+    Canvasfeld.KUNDEN: [
+        "Who are your target customers?",
+        "How big is your target market and what’s its growth rate?",
+        "How big is the market potential?",
+    ],
+    Canvasfeld.NUTZEN: [
+        "What are the benefits and the value for the customer?",
+    ],
+    Canvasfeld.LOESUNG: [
+        "What solution to this problem do you offer?",
+    ],
+    Canvasfeld.VORTEIL: [
+        "What is your USP compared to your competitors?",
+        "Which resources, partners and know-how will you need to develop your solution?",
+        "What expertise do you need in your team to deliver your project?",
+    ],
+    Canvasfeld.KANAELE: [
+        "How do you want to reach your customers and which customer channels will you need?",
+        "How will you go to market?",
+    ],
+    Canvasfeld.EINNAHMEN: [
+        "What will be your revenue streams?",
+    ],
+    Canvasfeld.KENNZAHLEN: [
+        "How will you measure that it works?",
+    ],
+    Canvasfeld.KOSTEN: [
+        "What will be your costs?",
+        "How do you finance the development of your product or service?",
+    ],
+}
+
+
+class Vorhaben(Basismodell):
+    """
+    Die Idee, an der ein Workshop der SPG Academy ausgearbeitet wird.
+
+    **Es hängt an keinem Projekt.** Ein Vorhaben ist oft genau das, was noch
+    keines ist: eine Idee, über die man im Workshop nachdenkt, bevor
+    irgendwer Stunden darauf bucht. Ein Verweis auf ein Projekt zwänge dazu,
+    zuerst eines anzulegen — und die Projektliste füllte sich mit Einträgen,
+    auf die nie jemand bucht.
+
+    Das Vorhaben ist mit Absicht vom Workshop getrennt: Kommt ein zweiter
+    Workshop dazu (Pitch, Finanzplan), hängt er am selben Vorhaben, statt dass
+    dieselbe Idee zweimal angelegt wird.
+    """
+
+    titel = models.CharField("Titel", max_length=160)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Vorhaben"
+        verbose_name_plural = "Vorhaben"
+        ordering = ["titel", "id"]
+
+    def __str__(self):
+        return self.titel
+
+    def delete(self, *args, **kwargs):
+        """
+        Die Punkte gehen mit — aus demselben Grund wie die Abschnitte eines
+        Meetings: Weiches Löschen ist ein UPDATE, und `CASCADE` löst dabei nie
+        aus. Erst das Vorhaben, dann die Punkte.
+        """
+        super().delete(*args, **kwargs)
+        for punkt in self.canvaspunkte.filter(geloescht_am__isnull=True):
+            punkt.delete()
+
+
+class Canvaspunkt(Basismodell):
+    """
+    Ein Stichpunkt in einem Feld des Lean Model Canvas.
+
+    **Warum Punkte und nicht ein Text je Feld:** Auf der Leinwand stehen
+    Stichpunkte, und nachgebessert wird einer davon — nicht das ganze Feld.
+    Das Änderungsprotokoll sagt dann, welcher Punkt es war, statt den ganzen
+    alten neben den ganzen neuen Text zu stellen.
+
+    `CASCADE` statt `PROTECT` aus demselben Grund wie beim Protokollabschnitt:
+    Ein Punkt hat außerhalb seines Vorhabens kein Leben.
+    """
+
+    vorhaben = models.ForeignKey(
+        Vorhaben, verbose_name="Vorhaben", on_delete=models.CASCADE, related_name="canvaspunkte"
+    )
+    feld = models.CharField("Feld", max_length=12, choices=Canvasfeld.choices)
+    text = models.TextField("Text")
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Canvas-Punkt"
+        verbose_name_plural = "Canvas-Punkte"
+        ordering = ["vorhaben", "feld", "reihenfolge", "id"]
+
+    def __str__(self):
+        return self.text[:60]

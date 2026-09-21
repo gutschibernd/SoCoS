@@ -2,7 +2,8 @@ import { Fragment, useState } from "react";
 
 import { csrfWert } from "../basis/api";
 import { useLaufend, useNeuLaden, useProjekte, type Ich } from "../basis/daten";
-import type { Seite } from "../basis/router";
+import { MODULE } from "../basis/module";
+import type { Ort, Seite } from "../basis/router";
 import { paketgruppen } from "../basis/start";
 import { clockIn, clockOut } from "../basis/uhr";
 import { alsDauer } from "../basis/zeit";
@@ -37,6 +38,8 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[] }[] = [
       { seite: "projekt", titel: "Projekt", zeichen: "projekt" },
       { seite: "zeit", titel: "Zeit", zeichen: "zeit" },
       { seite: "aufgaben", titel: "Aufgaben", zeichen: "aufgaben" },
+      // Klappt auf, solange man in einem Modul ist — siehe `Modulzweig`.
+      { seite: "module", titel: "Module", zeichen: "module" },
     ],
   },
   {
@@ -84,13 +87,14 @@ const FUSS: Seite[] = ["start", "zeit", "projekt", "kontakte"];
 
 export function Seitenleiste({
   ich,
-  seite,
+  ort,
   wechseln,
 }: {
   ich: Ich;
-  seite: Seite;
-  wechseln: (s: Seite) => void;
+  ort: Ort;
+  wechseln: (s: Seite, unter?: string | null) => void;
 }) {
+  const seite = ort.seite;
   const laufend = useLaufend();
   const projekte = useProjekte();
   const neuLaden = useNeuLaden();
@@ -111,9 +115,9 @@ export function Seitenleiste({
 
   /* Jeder Weg schließt die Schublade. Sonst steht sie nach dem Wechsel offen
      über der Seite, auf die sie gerade geführt hat. */
-  function hin(s: Seite) {
+  function hin(s: Seite, unter: string | null = null) {
     setOffen(false);
-    wechseln(s);
+    wechseln(s, unter);
   }
 
   const uhr = (
@@ -155,20 +159,24 @@ export function Seitenleiste({
           {GRUPPEN.map((gruppe, i) => (
             <Fragment key={gruppe.titel ?? `gruppe-${i}`}>
               {gruppe.titel && <div className="navigation-gruppe">{gruppe.titel}</div>}
-              {gruppe.eintraege.map((eintrag) => (
-                <a
-                  key={eintrag.seite}
-                  href={`/${eintrag.seite}`}
-                  aria-current={seite === eintrag.seite ? "page" : undefined}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    hin(eintrag.seite);
-                  }}
-                >
-                  <Zeichen name={eintrag.zeichen} />
-                  {eintrag.titel}
-                </a>
-              ))}
+              {gruppe.eintraege.map((eintrag) =>
+                eintrag.seite === "module" ? (
+                  <Modulzweig key="module" eintrag={eintrag} ort={ort} hin={hin} />
+                ) : (
+                  <a
+                    key={eintrag.seite}
+                    href={`/${eintrag.seite}`}
+                    aria-current={seite === eintrag.seite ? "page" : undefined}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      hin(eintrag.seite);
+                    }}
+                  >
+                    <Zeichen name={eintrag.zeichen} />
+                    {eintrag.titel}
+                  </a>
+                ),
+              )}
             </Fragment>
           ))}
         </nav>
@@ -286,6 +294,67 @@ export function Seitenleiste({
           speichern={beenden}
           abbrechen={() => setFragtNotiz(false)}
         />
+      )}
+    </>
+  );
+}
+
+/**
+ * „Module" mit seinen Modulen darunter.
+ *
+ * **Aufgeklappt ist der Zweig genau dann, wenn man in einem Modul ist** — kein
+ * gemerkter Zustand. Module braucht man selten, und eine Leiste, die sich
+ * merkt, dass man sie einmal aufgeklappt hat, trägt die Zeilen danach wochenlang
+ * mit sich herum. Ein gemerkter Zustand ist außerdem einer, der falsch sein
+ * kann. Ein Klick auf „Module" führt zur Übersicht und klappt damit auf.
+ *
+ * Steht man in einem Modul, trägt das Modul die Markierung und „Module" nur
+ * einen helleren Ton: Man sieht, wo man ist, und von wo aus man hinkam.
+ */
+function Modulzweig({
+  eintrag,
+  ort,
+  hin,
+}: {
+  eintrag: Eintrag;
+  ort: Ort;
+  hin: (s: Seite, unter?: string | null) => void;
+}) {
+  const offen = ort.seite === "module";
+  const modul = offen ? MODULE.find((m) => ort.unter?.startsWith(m.weg)) : undefined;
+
+  return (
+    <>
+      <a
+        href="/module"
+        aria-current={offen && !modul ? "page" : undefined}
+        aria-expanded={offen}
+        data-elter={modul ? "ja" : undefined}
+        onClick={(e) => {
+          e.preventDefault();
+          hin("module");
+        }}
+      >
+        <Zeichen name={eintrag.zeichen} />
+        {eintrag.titel}
+        <Zeichen name="zeiger" klasse="navigation-klapp" />
+      </a>
+      {offen && (
+        <div className="navigation-zweig">
+          {MODULE.map((m) => (
+            <a
+              key={m.weg}
+              href={`/module/${m.weg}`}
+              aria-current={modul === m ? "page" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                hin("module", m.weg);
+              }}
+            >
+              {m.titel}
+            </a>
+          ))}
+        </div>
       )}
     </>
   );

@@ -20,6 +20,34 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-21",
+        "titel": "Module — und die SPG Academy als erstes",
+        "punkte": [
+            {
+                "titel": "Neu unter Intern: Module",
+                "text": (
+                    "Zusätzliche Werkzeuge stehen jetzt unter Intern · Module. "
+                    "Ein Klick darauf zeigt alle Module auf einen Blick und klappt "
+                    "sie in der Leiste auf. Fehlt eines, meldet es unter "
+                    "Wünsche & Fehler."
+                ),
+                "wo": "module",
+            },
+            {
+                "titel": "SPG Academy: das Lean Model Canvas",
+                "text": (
+                    "Die Ergebnisse aus dem Workshop kommen jetzt auf eine Leinwand "
+                    "mit den neun Feldern, nummeriert wie in der SPG Academy. Ein "
+                    "Klick auf ein Feld öffnet es: Enter beginnt den nächsten "
+                    "Punkt, und mit den Pfeilen unten gehst du Feld für Feld weiter. "
+                    "Jede Idee ist ein eigenes Vorhaben, an keinem Projekt, und die "
+                    "Leinwand gibt es auch als PDF."
+                ),
+                "wo": "module/spg",
+            },
+        ],
+    },
+    {
         "version": "2026-09-18",
         "titel": "Projektphasen statt Bereiche — und das Protokoll am Stück",
         "punkte": [

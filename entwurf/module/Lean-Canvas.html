@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module · Lean Canvas</title>
+<link rel="stylesheet" href="../../statisch/schriften.css">
+<style>
+/* Entwurf „Module / SPG Academy / Lean Model Canvas“ — Werkbank-Palette,
+   Werte gespiegelt aus frontend/src/stil/farben.css. */
+:root {
+  --grund:#fafaf7; --flaeche:#fff; --flaeche-leise:#f3f2ec; --rand:#d2ccbc; --rand-stark:#b0aa99;
+  --text:#171a18; --text-leise:#565c58; --text-sehr-leise:#69706b;
+  --marke:#0d4e52; --marke-hell:#e4eeed; --akzent:#a2552c; --akzent-hell:#f8ede5;
+  --kopf-grund:#0b2a2c; --kopf-text:#e4edec; --kopf-text-leise:#94b3b2; --kopf-aktiv:#123a3d; --kopf-kante:#d98c5c; --kopf-rand:#1b4a4d;
+  --gut:#3d6b44; --gut-hell:#e7efe6;
+  --kante:2px; --griff:44px;
+  --schrift:Archivo,"Helvetica Neue",system-ui,sans-serif; --schrift-zahl:"IBM Plex Mono",ui-monospace,monospace;
+}
+[data-thema="dunkel"] {
+  --grund:#14171a; --flaeche:#1c2124; --flaeche-leise:#23292c; --rand:#303739; --rand-stark:#4a5255;
+  --text:#eceeec; --text-leise:#a9b1ae; --text-sehr-leise:#8c9491;
+  --marke:#66b9b6; --marke-hell:#16302f; --akzent:#d98c5c; --akzent-hell:#2c2019;
+  --kopf-grund:#0a2224; --kopf-aktiv:#103134; --kopf-rand:#17474b;
+  --gut:#86b37d; --gut-hell:#1b281c;
+}
+* { box-sizing:border-box; }
+body { margin:0; font:14px/1.45 var(--schrift); color:var(--text); background:#e9e7e0; -webkit-font-smoothing:antialiased; }
+
+/* Umschalter des Entwurfs — gehört nicht zur Anwendung */
+.werkzeug { display:flex; gap:8px; align-items:center; padding:12px 16px; font-size:12px; color:#565c58; flex-wrap:wrap; }
+.werkzeug button { font:inherit; padding:6px 10px; border:1px solid #b0aa99; background:#fff; border-radius:2px; cursor:pointer; }
+.werkzeug button[aria-pressed="true"] { background:#0b2a2c; color:#fff; border-color:#0b2a2c; }
+.werkzeug .notiz { margin-left:auto; }
+
+.buehne { display:flex; justify-content:safe center; overflow-x:auto; padding:0 16px 32px; }
+.app { flex:0 0 auto; display:flex; width:1280px; height:800px; background:var(--grund); color:var(--text); border:1px solid var(--rand-stark); overflow:hidden; }
+.app[data-groesse="handy"] { width:375px; height:812px; }
+
+/* Leiste */
+.leiste { flex:0 0 232px; display:flex; flex-direction:column; padding:14px 10px 12px; background:var(--kopf-grund); overflow:auto; }
+.marke { display:flex; align-items:center; gap:10px; min-height:var(--griff); padding:0 8px; margin-bottom:10px; color:#fff; font-weight:700; font-size:16px; letter-spacing:-.03em; }
+.marke i { width:20px; height:20px; background:var(--kopf-kante); border-radius:2px; display:block; }
+.gruppe { padding:16px 13px 7px; font-size:10.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--kopf-text-leise); opacity:.72; }
+.nav { position:relative; display:flex; align-items:center; gap:11px; min-height:var(--griff); padding:0 12px 0 13px; border-radius:2px; font-size:13.5px; font-weight:500; color:var(--kopf-text-leise); }
+.nav svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.5; }
+.nav.aktiv { background:var(--kopf-aktiv); color:#fff; }
+.nav.aktiv::before { content:""; position:absolute; left:0; top:7px; bottom:7px; width:3px; background:var(--kopf-kante); }
+.nav.neu::after { content:"neu"; margin-left:auto; font-size:10px; padding:1px 5px; border:1px solid var(--kopf-rand); border-radius:2px; color:var(--kopf-kante); }
+
+/* Inhalt */
+.inhalt { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; }
+.kontext { display:flex; align-items:center; gap:12px; min-height:52px; padding:7px 24px; background:var(--flaeche); border-bottom:1px solid var(--rand); }
+.kontext h1 { margin:0; font-size:16px; font-weight:600; letter-spacing:-.02em; }
+.trenner { width:1px; height:16px; background:var(--rand); }
+.unter { font-size:12.5px; color:var(--text-sehr-leise); }
+.kontext .rechts { margin-left:auto; display:flex; gap:8px; }
+.knopf { font:inherit; font-size:13px; font-weight:500; min-height:36px; padding:0 14px; border-radius:2px; border:1px solid var(--rand-stark); background:var(--flaeche); color:var(--text); display:inline-flex; align-items:center; gap:6px; }
+.knopf.haupt { background:var(--akzent); border-color:var(--akzent); color:#fff; }
+[data-thema="dunkel"] .knopf.haupt { color:#1c1410; }
+
+.leib { flex:1; overflow:auto; padding:20px 24px 24px; display:flex; gap:20px; }
+.haupt-spalte { flex:1; min-width:0; display:flex; flex-direction:column; gap:16px; }
+
+/* Werkstattzeile: welcher Workshop, welches Vorhaben */
+.werkstatt { display:flex; gap:0; border:1px solid var(--rand); background:var(--flaeche); }
+.werkstatt a { padding:10px 16px; font-size:13px; color:var(--text-leise); border-right:1px solid var(--rand); display:flex; gap:8px; align-items:center; }
+.werkstatt a b { font-family:var(--schrift-zahl); font-weight:500; font-size:11.5px; color:var(--text-sehr-leise); }
+.werkstatt a.aktiv { color:var(--text); font-weight:600; box-shadow:inset 0 -2px 0 var(--akzent); }
+.werkstatt a.gesperrt { color:var(--text-sehr-leise); }
+.werkstatt .rest { margin-left:auto; display:flex; align-items:center; gap:10px; padding:0 14px; font-size:12.5px; color:var(--text-sehr-leise); }
+.werkstatt select { font:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--rand); background:var(--flaeche); color:var(--text); border-radius:2px; }
+
+.stand { display:flex; align-items:center; gap:12px; font-size:12.5px; color:var(--text-leise); }
+.stand .balken { flex:0 0 180px; height:4px; background:var(--flaeche-leise); position:relative; }
+.stand .balken i { position:absolute; inset:0 auto 0 0; width:55%; background:var(--marke); }
+.stand .zahl { font-family:var(--schrift-zahl); }
+
+/* Die Leinwand — klassische Lean-Canvas-Anordnung:
+   5 Spalten oben (Problem | Lösung/Kennzahlen | UVP | Vorteil/Kanäle | Kunden), 2 unten */
+.leinwand { display:grid; grid-template-columns:repeat(10,1fr); grid-template-rows:1fr 1fr auto; gap:1px; background:var(--rand); border:1px solid var(--rand); min-height:520px; }
+.feld { background:var(--flaeche); padding:12px 12px 10px; display:flex; flex-direction:column; gap:8px; position:relative; cursor:pointer; min-height:0; }
+.feld:hover { background:var(--grund); }
+.feld.gewaehlt { outline:2px solid var(--akzent); outline-offset:-2px; z-index:1; }
+.feld header { display:flex; align-items:baseline; gap:4px 8px; flex-wrap:wrap; }
+.feld .nr { font-family:var(--schrift-zahl); font-size:11px; color:var(--akzent); font-weight:500; }
+.feld h3 { margin:0; font-size:13px; font-weight:600; letter-spacing:-.01em; }
+.feld ul { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:5px; }
+.feld li { font-size:12.5px; line-height:1.35; padding-left:10px; position:relative; }
+.feld li::before { content:""; position:absolute; left:0; top:7px; width:4px; height:1px; background:var(--text-leise); }
+.feld .fragen { font-size:12px; color:var(--text-sehr-leise); line-height:1.4; }
+.feld .fragen p { margin:0 0 4px; }
+.feld.leer { background:var(--grund); }
+.feld .fuss { margin-top:auto; font-size:11px; color:var(--text-sehr-leise); display:flex; gap:6px; align-items:center; }
+.feld .fuss .punkt { width:6px; height:6px; border-radius:50%; background:var(--gut); }
+.feld.leer .fuss .punkt { background:transparent; border:1px solid var(--rand-stark); }
+
+.f-problem  { grid-column:1/3;  grid-row:1/3; }
+.f-loesung  { grid-column:3/5;  grid-row:1; }
+.f-kennzahl { grid-column:3/5;  grid-row:2; }
+.f-uvp      { grid-column:5/7;  grid-row:1/3; background:var(--akzent-hell); }
+.f-uvp:hover{ background:var(--akzent-hell); }
+.f-vorteil  { grid-column:7/9;  grid-row:1; }
+.f-kanaele  { grid-column:7/9;  grid-row:2; }
+.f-kunden   { grid-column:9/11; grid-row:1/3; }
+.f-kosten   { grid-column:1/6;  grid-row:3; min-height:130px; }
+.f-erloes   { grid-column:6/11; grid-row:3; min-height:130px; }
+
+/* Bearbeitungsspalte rechts */
+.inhalt { position:relative; }
+.bearbeiten { position:absolute; top:52px; right:0; bottom:0; width:380px; background:var(--flaeche); border-left:1px solid var(--rand-stark); display:none; flex-direction:column; z-index:5; }
+.app[data-schublade="offen"] .bearbeiten { display:flex; }
+.bearbeiten .zu { position:absolute; top:8px; right:8px; width:var(--griff); height:var(--griff); border:0; background:none; font-size:20px; color:var(--text-leise); cursor:pointer; }
+.bearbeiten header { padding:14px 16px 12px; border-bottom:1px solid var(--rand); }
+.bearbeiten header .nr { font-family:var(--schrift-zahl); font-size:11px; color:var(--akzent); }
+.bearbeiten h2 { margin:2px 0 0; font-size:15px; font-weight:600; }
+.bearbeiten .koerper { padding:14px 16px; display:flex; flex-direction:column; gap:14px; overflow:auto; flex:1; }
+.bearbeiten .etikett { font-size:11.5px; font-weight:600; color:var(--text-leise); margin-bottom:6px; }
+.frage { display:flex; gap:8px; font-size:12.5px; color:var(--text-leise); padding:6px 0; border-bottom:1px solid var(--flaeche-leise); }
+.frage input { margin:2px 0 0; accent-color:var(--marke); }
+.frage.erledigt { color:var(--text-sehr-leise); text-decoration:line-through; }
+.eintrag { display:flex; gap:6px; align-items:flex-start; }
+.eintrag textarea, .neu-eintrag input { flex:1; font:inherit; font-size:14px; line-height:1.4; padding:8px 10px; border:1px solid var(--rand); border-radius:2px; background:var(--flaeche); color:var(--text); resize:vertical; }
+.eintrag .griff { width:28px; height:36px; display:grid; place-items:center; color:var(--text-sehr-leise); font-size:16px; }
+.neu-eintrag { display:flex; gap:6px; }
+.neu-eintrag input { border-style:dashed; }
+.bearbeiten footer { padding:12px 16px; border-top:1px solid var(--rand); display:flex; gap:8px; justify-content:space-between; font-size:12px; color:var(--text-sehr-leise); align-items:center; }
+
+/* Handy: Leiste weg, Leinwand wird eine Liste in Bearbeitungsreihenfolge */
+.app[data-groesse="handy"] .leiste { display:none; }
+.app[data-groesse="handy"] .kontext { padding:7px 16px; }
+.app[data-groesse="handy"] .kontext .unter, .app[data-groesse="handy"] .trenner, .app[data-groesse="handy"] .kontext .rechts .knopf:not(.haupt) { display:none; }
+.app[data-groesse="handy"] .leib { padding:12px 16px 90px; flex-direction:column; }
+.app[data-groesse="handy"] .bearbeiten { top:0; width:auto; left:0; bottom:64px; border:0; z-index:40; }
+.app[data-groesse="handy"] .werkstatt { overflow-x:auto; scrollbar-width:none; flex:0 0 auto; }
+.app[data-groesse="handy"] .werkstatt .rest { display:none; }
+.app[data-groesse="handy"] .werkstatt a { white-space:nowrap; min-height:var(--griff); }
+.app[data-groesse="handy"] .stand .balken { flex:1; }
+.app[data-groesse="handy"] .leinwand { display:flex; flex-direction:column; min-height:0; }
+.app[data-groesse="handy"] .feld { min-height:var(--griff); }
+.app[data-groesse="handy"] .f-problem { order:1; }
+.app[data-groesse="handy"] .f-kunden { order:2; }
+.app[data-groesse="handy"] .f-uvp { order:3; }
+.app[data-groesse="handy"] .f-loesung { order:4; }
+.app[data-groesse="handy"] .f-vorteil { order:5; }
+.app[data-groesse="handy"] .f-kanaele { order:6; }
+.app[data-groesse="handy"] .f-erloes { order:7; }
+.app[data-groesse="handy"] .f-kennzahl { order:8; }
+.app[data-groesse="handy"] .f-kosten { order:9; }
+.app[data-groesse="handy"] .fussleiste { display:none; }
+.app[data-groesse="handy"] { position:relative; }
+.app[data-groesse="handy"] .fussleiste { display:flex; position:absolute; left:0; right:0; bottom:0; height:64px; background:var(--kopf-grund); padding-bottom:8px; }
+.fussleiste span { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:10.5px; color:var(--kopf-text-leise); gap:3px; }
+.fussleiste svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.5; }
+
+/* Module: ausklappbar unter Intern */
+.nav .pfeil { width:14px; height:14px; margin-left:auto; transition:transform .15s; }
+.nav.klapp[aria-expanded="false"] .pfeil { transform:rotate(-90deg); }
+.nav.klapp[aria-expanded="false"] + .unter-nav { display:none; }
+.unter-nav { display:flex; flex-direction:column; gap:1px; margin:1px 0 2px 21px; border-left:1px solid var(--kopf-rand); }
+.nav.sub { font-size:13px; padding-left:18px; }
+.nav.elter { color:var(--kopf-text); }
+
+/* Seitenwahl des Entwurfs */
+.app[data-seite="uebersicht"] .nur-spg, .app[data-seite="spg"] .nur-uebersicht { display:none !important; }
+.zurueck { font:inherit; font-size:13px; color:var(--text-leise); background:none; border:0; padding:0 4px 0 0; min-height:36px; cursor:pointer; }
+
+/* Übersicht der Module */
+.uebersicht { flex:1; overflow:auto; padding:24px; }
+.kacheln { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.kachel { background:var(--flaeche); border:1px solid var(--rand); display:flex; flex-direction:column; cursor:pointer; min-height:220px; }
+.kachel:hover { border-color:var(--rand-stark); }
+.kachel .oben { display:flex; gap:12px; align-items:flex-start; padding:16px 16px 12px; }
+.kachel .zeichen { width:40px; height:40px; flex:0 0 40px; display:grid; place-items:center; background:var(--marke-hell); color:var(--marke); border-radius:2px; }
+.kachel .zeichen svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.5; }
+.kachel h2 { margin:0; font-size:15px; font-weight:600; letter-spacing:-.01em; }
+.kachel .wozu { font-size:12.5px; color:var(--text-leise); margin-top:2px; }
+.kachel .teile { list-style:none; margin:0; padding:0 16px; border-top:1px solid var(--rand); }
+.kachel .teile li { display:flex; align-items:center; gap:10px; min-height:40px; border-bottom:1px solid var(--flaeche-leise); font-size:13px; }
+.kachel .teile li:last-child { border-bottom:0; }
+.kachel .teile .nr { font-family:var(--schrift-zahl); font-size:11px; color:var(--text-sehr-leise); }
+.kachel .teile .zahl { margin-left:auto; font-family:var(--schrift-zahl); font-size:12px; color:var(--text-leise); }
+.kachel .teile li.spaeter { color:var(--text-sehr-leise); }
+.kachel .unten { margin-top:auto; display:flex; align-items:center; gap:8px; padding:10px 16px; border-top:1px solid var(--rand); font-size:12px; color:var(--text-sehr-leise); }
+.kachel .unten .oeffnen { margin-left:auto; color:var(--akzent); font-weight:600; font-size:13px; }
+.kachel.wunsch { border-style:dashed; background:transparent; align-items:center; justify-content:center; text-align:center; gap:6px; color:var(--text-sehr-leise); font-size:13px; padding:24px; }
+.kachel.wunsch b { color:var(--text-leise); font-weight:600; }
+.kachel.wunsch a { color:var(--marke); }
+.app[data-groesse="handy"] .uebersicht { padding:16px 16px 90px; }
+.app[data-groesse="handy"] .kacheln { grid-template-columns:1fr; }
+.app[data-groesse="handy"] .kachel.wunsch { min-height:120px; }
+
+/* Leser sehen alles, bearbeiten nichts — die Grenze zieht der Server
+   (darf_bearbeiten), die Oberfläche lässt nur die Griffe weg. */
+.app[data-rolle="leser"] .nur-bearbeiter, .app[data-rolle="bearbeiter"] .nur-leser { display:none !important; }
+.app[data-rolle="leser"] .feld { cursor:default; }
+.app[data-rolle="leser"] .feld:hover { background:var(--flaeche); }
+.app[data-rolle="leser"] .feld.leer:hover { background:var(--grund); }
+.app[data-rolle="leser"] .f-uvp:hover { background:var(--akzent-hell); }
+.nurlesen { display:inline-flex; align-items:center; min-height:28px; padding:0 10px; font-size:12px; color:var(--text-leise); border:1px solid var(--rand); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<div class="werkzeug">
+  <button data-g="desktop" aria-pressed="true">1280 × 800</button>
+  <button data-g="handy" aria-pressed="false">375 × 812</button>
+  <span style="width:12px"></span>
+  <button data-t="hell" aria-pressed="true">hell</button>
+  <button data-t="dunkel" aria-pressed="false">dunkel</button>
+  <span style="width:12px"></span>
+  <button data-r="bearbeiter" aria-pressed="true">Admin / Bearbeiter</button>
+  <button data-r="leser" aria-pressed="false">Leser</button>
+  <span class="notiz">Entwurf · Module › SPG Academy › Lean Model Canvas · Beispielinhalt: Arzneimittelspender</span>
+</div>
+
+<div class="buehne">
+<div class="app" id="app" data-groesse="desktop" data-thema="hell" data-schublade="zu" data-seite="uebersicht" data-rolle="bearbeiter">
+
+  <aside class="leiste">
+    <div class="marke"><i></i>SoCoS</div>
+    <div class="gruppe">Intern</div>
+    <a class="nav"><svg viewBox="0 0 16 16"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg>Dashboard</a>
+    <a class="nav"><svg viewBox="0 0 16 16"><path d="M2 3h12M2 8h8M2 13h10"/></svg>Projekt</a>
+    <a class="nav"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>Zeit</a>
+    <a class="nav"><svg viewBox="0 0 16 16"><path d="M3 4l2 2 3-3M3 11l2 2 3-3M10 5h4M10 12h4"/></svg>Aufgaben</a>
+    <a class="nav klapp" id="nav-module" aria-expanded="true"><svg viewBox="0 0 16 16"><path d="M2 2h5v5H2zM9 9h5v5H9zM9 2l3 0 2 2.5-2 2.5H9zM2 9h5v5H2z"/></svg>Module<svg class="pfeil" viewBox="0 0 16 16"><path d="M5 6l3 3 3-3"/></svg></a>
+    <div class="unter-nav">
+      <a class="nav sub" id="nav-spg">SPG Academy</a>
+    </div>
+    <div class="gruppe">Extern</div>
+    <a class="nav"><svg viewBox="0 0 16 16"><circle cx="8" cy="6" r="3"/><path d="M2 14c1-3 3.5-4 6-4s5 1 6 4"/></svg>Kontakte</a>
+    <a class="nav"><svg viewBox="0 0 16 16"><path d="M2 4h12v10H2zM2 7h12M5 2v3M11 2v3"/></svg>Events</a>
+    <a class="nav"><svg viewBox="0 0 16 16"><path d="M2 3h12v8H6l-3 3v-3H2z"/></svg>Meetings</a>
+    <div class="gruppe">Software</div>
+    <a class="nav"><svg viewBox="0 0 16 16"><path d="M3 2h8l2 2v10H3zM6 6h4M6 9h4"/></svg>Doku</a>
+    <a class="nav"><svg viewBox="0 0 16 16"><path d="M2 3h12v8H9l-3 3v-3H2z"/></svg>Wünsche &amp; Fehler</a>
+  </aside>
+
+  <main class="inhalt">
+    <div class="kontext nur-uebersicht">
+      <h1>Module</h1><span class="trenner"></span><span class="unter">Zusätzliche Werkzeuge</span>
+    </div>
+    <div class="kontext nur-spg">
+      <button class="zurueck" id="zurueck">‹ Module</button><span class="trenner"></span>
+      <h1>SPG Academy</h1><span class="trenner"></span><span class="unter">Workshops ausarbeiten</span>
+      <div class="rechts"><button class="knopf">Als PDF</button><button class="knopf haupt nur-bearbeiter">+ Neues Vorhaben</button><span class="nurlesen nur-leser">nur lesen</span></div>
+    </div>
+
+    <section class="uebersicht nur-uebersicht">
+      <div class="kacheln">
+        <article class="kachel" id="kachel-spg">
+          <div class="oben"><span class="zeichen"><svg viewBox="0 0 16 16"><path d="M2 6l6-3 6 3-6 3zM4 7v4c1 1.5 2.5 2 4 2s3-.5 4-2V7"/></svg></span><div><h2>SPG Academy</h2><div class="wozu">Workshop-Aufgaben ausarbeiten</div></div></div>
+          <ul class="teile">
+            <li><span class="nr">01</span>Lean Model Canvas<span class="zahl">5 / 9</span></li>
+            <li class="spaeter"><span class="nr">02</span>Pitch<span class="zahl">—</span></li>
+            <li class="spaeter"><span class="nr">03</span>Finanzplan<span class="zahl">—</span></li>
+          </ul>
+          <div class="unten">2 Vorhaben · zuletzt heute 10:42<span class="oeffnen">Öffnen ›</span></div>
+        </article>
+        <div class="kachel wunsch"><b>Fehlt ein Werkzeug?</b>Neue Module entstehen auf Zuruf —<br><a>unter Wünsche &amp; Fehler melden</a></div>
+      </div>
+    </section>
+
+    <div class="leib nur-spg">
+      <div class="haupt-spalte">
+        <nav class="werkstatt">
+          <a class="aktiv"><b>01</b>Lean Model Canvas</a>
+          <a class="gesperrt"><b>02</b>Pitch</a>
+          <a class="gesperrt"><b>03</b>Finanzplan</a>
+          <div class="rest">Vorhaben <select><option>Arzneimittelspender</option><option>Ideenliste 2027</option></select></div>
+        </nav>
+
+        <div class="stand"><span class="zahl">5 / 9</span> Felder ausgefüllt <span class="balken"><i></i></span> <span>zuletzt Bernd, heute 10:42</span></div>
+
+        <section class="leinwand">
+          <article class="feld f-problem">
+            <header><span class="nr">1</span><h3>The Problem</h3></header>
+            <ul><li>Patienten mit ≥ 5 Wirkstoffen verwechseln Einnahmezeiten</li><li>Pflege verliert täglich Zeit beim Stellen der Wochendosetten</li><li>Keine Rückmeldung an Arzt, ob eingenommen wurde</li></ul>
+            <div class="fragen"><p><b>Heutige Alternativen</b> — Wochendosette, Blister aus der Apotheke, Erinnerungs-Apps</p></div>
+            <div class="fuss"><span class="punkt"></span>4 Punkte · Wettbewerb beantwortet</div>
+          </article>
+
+          <article class="feld f-loesung">
+            <header><span class="nr">4</span><h3>The Solution</h3></header>
+            <ul><li>Spender gibt zur richtigen Zeit die richtige Dosis frei</li><li>Einnahme wird protokolliert und an Pflege gemeldet</li></ul>
+            <div class="fuss"><span class="punkt"></span>2 Punkte</div>
+          </article>
+
+          <article class="feld f-kennzahl leer">
+            <header><span class="nr">8</span><h3>Key Metrics</h3></header>
+            <div class="fragen"><p>Woran messt ihr, dass es funktioniert?</p></div>
+            <div class="fuss"><span class="punkt"></span>offen</div>
+          </article>
+
+          <article class="feld f-uvp">
+            <header><span class="nr">3</span><h3>Unique Value Propositions</h3></header>
+            <ul><li>Kein Stellen mehr, keine Verwechslung — nachweisbar eingenommen</li><li>Pflege spart ~20 min je Patient und Woche</li></ul>
+            <div class="fuss"><span class="punkt"></span>2 Punkte · USP offen</div>
+          </article>
+
+          <article class="feld f-vorteil leer">
+            <header><span class="nr">5</span><h3>Unfair Advantage</h3></header>
+            <div class="fragen"><p>Was ist euer USP gegenüber dem Wettbewerb?</p><p>Welche Expertise braucht das Team?</p><p>Welche Ressourcen, Partner, Know-how?</p></div>
+            <div class="fuss"><span class="punkt"></span>offen</div>
+          </article>
+
+          <article class="feld f-kanaele leer">
+            <header><span class="nr">6</span><h3>Channels</h3></header>
+            <div class="fragen"><p>Wie erreicht ihr eure Kunden, über welche Kanäle?</p><p>Wie geht ihr in den Markt?</p></div>
+            <div class="fuss"><span class="punkt"></span>offen</div>
+          </article>
+
+          <article class="feld f-kunden">
+            <header><span class="nr">2</span><h3>Customer Segments</h3></header>
+            <ul><li>Mobile Pflegedienste (AT, ~1.100 Träger)</li><li>Angehörige, die pflegen</li><li>Krankenkassen als Zahler</li></ul>
+            <div class="fragen"><p><b>Frühe Anwender</b> — Pflegedienste mit Tourenplanung</p><p><b>Markt</b> — noch offen: Größe, Wachstum, Potenzial</p></div>
+            <div class="fuss"><span class="punkt"></span>3 Punkte · Markt fehlt</div>
+          </article>
+
+          <article class="feld f-kosten leer">
+            <header><span class="nr">9</span><h3>Cost Structure</h3></header>
+            <div class="fragen"><p>Welche Kosten fallen an? · Wie finanziert ihr die Entwicklung?</p></div>
+            <div class="fuss"><span class="punkt"></span>offen</div>
+          </article>
+
+          <article class="feld f-erloes">
+            <header><span class="nr">7</span><h3>Revenue Streams</h3></header>
+            <ul><li>Miete je Gerät und Monat, abgerechnet über Pflegedienst</li><li>Erstattung als Hilfsmittel (Ziel)</li></ul>
+            <div class="fuss"><span class="punkt"></span>2 Punkte</div>
+          </article>
+        </section>
+      </div>
+
+    </div>
+
+      <aside class="bearbeiten nur-spg">
+        <header><button class="zu" aria-label="Schließen">×</button><span class="nr">Feld 3 von 9</span><h2>Unique Value Propositions</h2></header>
+        <div class="koerper">
+          <div>
+            <div class="etikett">Leitfragen aus dem Workshop</div>
+            <label class="frage erledigt"><input type="checkbox" checked>Welchen Nutzen, welchen Wert hat der Kunde?</label>
+            <label class="frage"><input type="checkbox">Was ist euer USP gegenüber dem Wettbewerb?</label>
+          </div>
+          <div>
+            <div class="etikett">Punkte</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="eintrag"><span class="griff">⋮</span><textarea rows="2">Kein Stellen mehr, keine Verwechslung — nachweisbar eingenommen</textarea></div>
+              <div class="eintrag"><span class="griff">⋮</span><textarea rows="2">Pflege spart ~20 min je Patient und Woche</textarea></div>
+              <div class="neu-eintrag"><span class="griff" style="width:28px"></span><input placeholder="Neuer Punkt — Eingabe legt an"></div>
+            </div>
+          </div>
+          <div>
+            <div class="etikett">Notiz <span style="font-weight:400;color:var(--text-sehr-leise)">— erscheint nicht auf der Leinwand</span></div>
+            <div class="eintrag"><textarea rows="3" placeholder="Quellen, offene Punkte, Zahlen zum Nachprüfen"></textarea></div>
+          </div>
+        </div>
+        <footer><span>gespeichert · 10:42</span><span><button class="knopf">‹</button> <button class="knopf">Weiter ›</button></span></footer>
+      </aside>
+
+    <nav class="fussleiste">
+      <span><svg viewBox="0 0 16 16"><path d="M2 8l6-5 6 5v6H2z"/></svg>Start</span>
+      <span><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>Zeit</span>
+      <span><svg viewBox="0 0 16 16"><path d="M2 3h12M2 8h8M2 13h10"/></svg>Projekt</span>
+      <span><svg viewBox="0 0 16 16"><circle cx="8" cy="6" r="3"/><path d="M2 14c1-3 3.5-4 6-4s5 1 6 4"/></svg>Kontakte</span>
+      <span style="color:#fff"><svg viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/></svg>Mehr</span>
+    </nav>
+  </main>
+</div>
+</div>
+
+<script>
+const app = document.getElementById("app");
+document.querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+  app.dataset.groesse = b.dataset.g;
+  document.querySelectorAll("[data-g]").forEach(x => x.setAttribute("aria-pressed", x === b));
+});
+document.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
+  app.dataset.thema = b.dataset.t;
+  document.querySelectorAll("[data-t]").forEach(x => x.setAttribute("aria-pressed", x === b));
+});
+document.querySelectorAll("[data-r]").forEach(b => b.onclick = () => {
+  app.dataset.rolle = b.dataset.r; app.dataset.schublade = "zu";
+  document.querySelectorAll(".feld").forEach(x => x.classList.remove("gewaehlt"));
+  document.querySelectorAll("[data-r]").forEach(x => x.setAttribute("aria-pressed", x === b));
+});
+document.querySelectorAll(".feld").forEach(f => f.onclick = () => {
+  if (app.dataset.rolle === "leser") return;
+  document.querySelectorAll(".feld").forEach(x => x.classList.toggle("gewaehlt", x === f));
+  document.querySelector(".bearbeiten h2").textContent = f.querySelector("h3").textContent;
+  document.querySelector(".bearbeiten .nr").textContent = "Feld " + f.querySelector(".nr").textContent + " von 9";
+  app.dataset.schublade = "offen";
+});
+document.querySelector(".zu").onclick = () => {
+  app.dataset.schublade = "zu";
+  document.querySelectorAll(".feld").forEach(x => x.classList.remove("gewaehlt"));
+};
+
+const navM = document.getElementById("nav-module"), navS = document.getElementById("nav-spg");
+function zeige(seite) {
+  app.dataset.seite = seite;
+  navM.classList.toggle("aktiv", seite === "uebersicht");
+  navM.classList.toggle("elter", seite === "spg");
+  navS.classList.toggle("aktiv", seite === "spg");
+  app.dataset.schublade = "zu";
+}
+navM.onclick = () => {
+  const offen = navM.getAttribute("aria-expanded") === "true";
+  if (app.dataset.seite === "uebersicht" && offen) navM.setAttribute("aria-expanded", "false");
+  else { navM.setAttribute("aria-expanded", "true"); zeige("uebersicht"); }
+};
+navS.onclick = () => zeige("spg");
+document.getElementById("kachel-spg").onclick = () => zeige("spg");
+document.getElementById("zurueck").onclick = () => zeige("uebersicht");
+zeige("uebersicht");
+</script>
+</body>
+</html>

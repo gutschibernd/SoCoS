@@ -13,6 +13,7 @@ import { Einstellungen } from "./ansichten/Einstellungen";
 import { Events } from "./ansichten/Events";
 import { Kontakte } from "./ansichten/Kontakte";
 import { Meetings } from "./ansichten/Meetings";
+import { Module } from "./ansichten/Module";
 import { Profil } from "./ansichten/Profil";
 import { Projekt } from "./ansichten/Projekt";
 import { Rueckmeldungen } from "./ansichten/Rueckmeldungen";
@@ -31,6 +32,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   kontakte: { titel: "Kontakte", unter: "Organisationen und Personen" },
   events: { titel: "Events", unter: "Tagungen, Hitlist, wen wir getroffen haben" },
   meetings: { titel: "Meetings", unter: "Vorher planen, mitschreiben, Protokoll" },
+  module: { titel: "Module", unter: "Zusätzliche Werkzeuge" },
   profil: { titel: "Profil", unter: "Deine Stammdaten" },
   einstellungen: { titel: "Einstellungen", unter: "Konten, Protokoll, Sicherung" },
   doku: { titel: "Doku", unter: "Wie SoCoS gemeint ist — kurz" },
@@ -49,6 +51,7 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
     titel: "Ideenliste",
     unter: "Was möglich wäre — noch nicht entschieden",
   },
+  "module/spg": { titel: "SPG Academy", unter: "Lean Model Canvas" },
 };
 
 export function App() {
@@ -67,15 +70,16 @@ export function App() {
   if (!ich.data) return <Zustand abfrage={ich} erneut={() => ich.refetch()} />;
 
   const bearbeiten = ort.seite === "projekt" && ort.unter === "bearbeiten";
+  // Das gewählte Vorhaben hängt am Weg (`spg-4`), die Zeile gilt für alle.
   const kopfzeile =
-    UNTERTITEL[`${ort.seite}/${ort.unter}`] ??
+    UNTERTITEL[`${ort.seite}/${ort.unter?.replace(/-\d+$/, "")}`] ??
     (ort.seite === "start"
       ? { titel: `Hallo ${ich.data.name.split(" ")[0]}`, unter: TITEL.start.unter }
       : TITEL[ort.seite]);
 
   return (
     <div className="geruest">
-      <Seitenleiste ich={ich.data} seite={ort.seite} wechseln={wechseln} />
+      <Seitenleiste ich={ich.data} ort={ort} wechseln={wechseln} />
       <Meldungen />
 
       {/* Was sich geändert hat — einmal je Änderung, gleich nach der
@@ -133,6 +137,9 @@ export function App() {
           )}
           {ort.seite === "meetings" && (
             <Meetings ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+          )}
+          {ort.seite === "module" && (
+            <Module ich={ich.data} unter={ort.unter} wechseln={wechseln} />
           )}
           {ort.seite === "profil" && (
             <Profil ich={ich.data} unter={ort.unter} wechseln={wechseln} />

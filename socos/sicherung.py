@@ -34,6 +34,8 @@ MODELLE_IM_ARCHIV = [
     "socos.Monatskosten",
     "socos.Rueckmeldung",
     "socos.Aufgabe",
+    "socos.Vorhaben",
+    "socos.Canvaspunkt",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
@@ -70,6 +72,9 @@ LOESCHREIHENFOLGE = [
     "socos.Rueckmeldung",
     # Zeigt auf den Nutzer und steht deshalb vor ihm.
     "socos.Aufgabe",
+    # Der Punkt vor seinem Vorhaben.
+    "socos.Canvaspunkt",
+    "socos.Vorhaben",
     "socos.Protokolleintrag",
     "socos.Nutzer",
     "auth.Group",

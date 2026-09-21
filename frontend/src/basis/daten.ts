@@ -311,6 +311,25 @@ export type Meetingzeile = {
   hat_protokoll: boolean;
 };
 
+/** Ein Feld des Lean Model Canvas, wie es der Server beschreibt (`/api/vorhaben/felder/`). */
+export type Canvasfeld = {
+  feld: string;
+  nummer: number;
+  titel: string;
+  leitfragen: string[];
+};
+
+export type Canvaspunkt = { id: number; feld: string; text: string; reihenfolge: number };
+
+/** Ein Vorhaben der SPG Academy samt allen Punkten seiner Leinwand. */
+export type Vorhaben = {
+  id: number;
+  titel: string;
+  punkte: Canvaspunkt[];
+  /** Wann zuletzt daran gearbeitet wurde — gerechnet am Server. */
+  zuletzt: string;
+};
+
 export const useIch = () => useQuery({ queryKey: ["ich"], queryFn: () => hole<Ich>("/ich/") });
 
 /**
@@ -398,6 +417,18 @@ export const useEvents = () =>
 export const useMeetings = () =>
   useQuery({ queryKey: ["meetings"], queryFn: () => hole<Meeting[]>("/meetings/") });
 
+export const useVorhaben = () =>
+  useQuery({ queryKey: ["vorhaben"], queryFn: () => hole<Vorhaben[]>("/vorhaben/") });
+
+/* Die Felder ändern sich nur mit einer neuen Version der Anwendung — sie
+   werden deshalb nicht bei jedem Fensterwechsel neu geholt. */
+export const useCanvasfelder = () =>
+  useQuery({
+    queryKey: ["canvasfelder"],
+    queryFn: () => hole<Canvasfeld[]>("/vorhaben/felder/"),
+    staleTime: Infinity,
+  });
+
 /**
  * Nach jeder Änderung werden **alle** betroffenen Abrufe verworfen.
  *
@@ -410,7 +441,7 @@ export function useNeuLaden() {
   return () => {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
-      "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
+      "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben", "vorhaben",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

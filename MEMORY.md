@@ -7,6 +7,68 @@ betrifft.
 
 ---
 
+## 2026-09-21 — Module und die SPG Academy (`Vorhaben`, `Canvaspunkt`, Migration 0021)
+
+### „Module" steht unter Intern und klappt nur auf, wenn man drin ist
+
+Zusätzliche Werkzeuge, die mit Projekt und Zeit nichts zu tun haben, stehen unter
+**Intern · Module** und nicht in einer eigenen Gruppe der Leiste: Sie werden selten
+gebraucht, und eine vierte Gruppe hätte jeden Tag zwei Zeilen gekostet. Der Zweig
+ist **genau dann offen, wenn man in einem Modul ist** — kein gemerkter Zustand. Ein
+Klick auf „Module" führt zur Übersicht (`/module`) und klappt damit auf.
+
+Die Module stehen in **einer** Liste (`frontend/src/basis/module.ts`), aus der die
+Leiste und die Übersichtskacheln leben. Neue Module entstehen im Code, nicht in der
+Oberfläche — die Übersicht verweist dafür auf „Wünsche & Fehler".
+
+### Ein Vorhaben hängt an keinem Projekt
+
+Im Workshop wird oft über etwas nachgedacht, das noch kein Projekt ist. Ein Verweis
+auf ein Projekt zwänge dazu, zuerst eines anzulegen, und die Projektliste füllte
+sich mit Einträgen, auf die nie jemand bucht. Das Vorhaben ist vom Workshop
+getrennt: Kommt ein zweiter (Pitch, Finanzplan), hängt er am selben Vorhaben.
+
+### Punkte je Feld, nicht ein Text je Feld — und abgeglichen, nicht ersetzt
+
+`POST /api/vorhaben/<id>/feld/` nimmt die ganze Liste eines Feldes. Punkte mit
+`id` werden geändert, ohne `id` angelegt, fehlende weich entfernt. Ersetzen wäre
+kürzer, schriebe aber bei jedem Speichern jeden Punkt einmal als entfernt und einmal
+als neu ins Änderungsprotokoll — auch die unveränderten. Eine `id` aus einem anderen
+Feld wird nicht übernommen, sondern legt einen neuen Punkt an.
+
+**Ein Bearbeiter darf dabei Punkte streichen**, obwohl Löschen sonst dem Admin
+vorbehalten ist: Das ist Arbeit am Text des Feldes, wie ein ersetzter
+Protokollabschnitt eines Meetings. Ein ganzes Vorhaben entfernt nur der Admin.
+
+### Die Felder und Leitfragen stehen am Server
+
+`Canvasfeld` (Reihenfolge = Nummerierung der SPG Academy) und `LEITFRAGEN` stehen in
+`socos/models.py`; die Oberfläche holt beides über `/api/vorhaben/felder/`, das PDF
+liest es direkt. Wo welches Feld auf der Leinwand steht, sagt nur
+`bausteine.css` (über `data-feld`) — und im PDF `ANORDNUNG` in
+`socos/services/leinwand.py`. **Die Namen bleiben englisch**, wie im
+Workshop-Material. „Key Metrics" hat im Workshop keine Frage; die eine ist ergänzt.
+
+### Das PDF zeichnet von Hand
+
+Eine reportlab-Tabelle mit verbundenen Zellen rechnet die Höhe nach der ersten
+Zeile; ein volles Feld schöbe die Leinwand über den Seitenrand. Gezeichnet wird
+deshalb auf die Seite, und was nicht passt, wird bis 6,5 pt kleiner gesetzt. Reicht
+auch das nicht, nennt das Feld die fehlenden Punkte, statt still abzuschneiden.
+
+### Kleinigkeiten
+
+- Das gewählte Vorhaben steht im Weg (`/module/spg-4`). Ohne Auswahl kommt das
+  zuletzt bearbeitete, nicht das erste nach dem Alphabet.
+- „zuletzt" am Vorhaben ist gerechnet (jüngstes `geaendert_am` von Vorhaben und
+  Punkten, auch gestrichenen), nicht gespeichert.
+- Das Feldfenster speichert beim Weiterblättern mit, was offen ist. Beim Tippen
+  speichert es nicht — jede Pause stünde sonst im Änderungsprotokoll.
+- `--text-sehr-leise` kommt auf der Leinwand nicht vor: auf `--akzent-hell` hielte
+  es nur 4,41:1. Geprüft in `test_kontrast.py`.
+
+---
+
 ## 2026-09-18 — Die Stufenleiste ist weg; der Fortschritt ist gebucht gegen Pensum
 
 ### Was raus ist

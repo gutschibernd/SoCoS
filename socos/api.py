@@ -23,11 +23,14 @@ from socos import aenderungen, berechtigung, serializer as ser, sicherung
 from socos.models import (
     Arbeitspaket,
     Aufgabe,
+    Canvasfeld,
+    Canvaspunkt,
     Event,
     Eventziel,
     Fixkosten,
     Kontakt,
     Kontostand,
+    LEITFRAGEN,
     Meeting,
     Meetingabschnitt,
     Monatskosten,
@@ -40,6 +43,7 @@ from socos.models import (
     Rueckmeldung,
     Unteraufgabe,
     Verlaufseintrag,
+    Vorhaben,
     Zeitbuchung,
     auffangpaket,
 )
@@ -490,6 +494,107 @@ class MeetingabschnittViewSet(SocosViewSet):
         return Response(
             ser.MeetingabschnittSerializer(geschwister, many=True).data
         )
+
+
+# --- Module: SPG Academy ----------------------------------------------------
+
+
+class VorhabenViewSet(SocosViewSet):
+    """
+    Die Vorhaben der SPG Academy samt ihrer Leinwand.
+
+    Sehen dürfen alle, bearbeiten Admin und Bearbeiter, ein Vorhaben entfernen
+    nur der Admin — die gewöhnliche Regel aus `berechtigung.py`, keine eigene.
+    """
+
+    serializer_class = ser.VorhabenSerializer
+    queryset = Vorhaben.objects.prefetch_related("canvaspunkte")
+
+    @action(detail=False, methods=["get"])
+    def felder(self, request):
+        """Die neun Felder in der Reihenfolge der SPG Academy, samt Leitfragen."""
+        return Response([
+            {"feld": wert, "nummer": nummer, "titel": titel, "leitfragen": LEITFRAGEN[wert]}
+            for nummer, (wert, titel) in enumerate(Canvasfeld.choices, start=1)
+        ])
+
+    @action(detail=True, methods=["post"])
+    def feld(self, request, pk=None):
+        """
+        Setzt die Punkte **eines** Feldes. Die geschickte Liste ist danach der
+        Inhalt des Feldes, in ihrer Reihenfolge.
+
+        Ein Punkt mit `id` wird geändert, einer ohne angelegt, und was fehlt,
+        wird entfernt (weich, wie alles). **Warum abgeglichen und nicht einfach
+        ersetzt:** Beim Ersetzen stünde nach jedem Speichern jeder Punkt
+        zweimal im Änderungsprotokoll — einmal entfernt, einmal neu angelegt —,
+        auch der, an dem niemand etwas geändert hat. Die Frage „wer hat diesen
+        Satz umgeschrieben" hätte dann keine Antwort mehr.
+
+        **Warum ein Bearbeiter hier Punkte entfernen darf,** obwohl Löschen
+        sonst dem Admin vorbehalten ist: Einen Stichpunkt zu streichen ist
+        Arbeit am Text des Feldes, nicht das Entfernen eines Datensatzes, den
+        jemand vermissen könnte. Der gestrichene Punkt bleibt weich gelöscht
+        und steht im Änderungsprotokoll — so wie ein ersetzter
+        Protokollabschnitt eines Meetings.
+        """
+        vorhaben = self.get_object()
+
+        feld = request.data.get("feld")
+        if feld not in Canvasfeld.values:
+            raise ValidationError({"feld": f"„{feld}“ ist kein Feld des Canvas."})
+
+        roh = request.data.get("punkte")
+        if not isinstance(roh, list):
+            raise ValidationError({"punkte": "Erwartet wird eine Liste von Punkten."})
+        if len(roh) > 60:
+            raise ValidationError({"punkte": "Über 60 Punkte in einem Feld — das ist kein Stichpunkt mehr."})
+
+        vorhanden = {
+            p.pk: p
+            for p in vorhaben.canvaspunkte.filter(feld=feld, geloescht_am__isnull=True)
+        }
+        gewuenscht = []
+        for eintrag in roh:
+            if not isinstance(eintrag, dict):
+                raise ValidationError({"punkte": "Jeder Punkt ist ein Objekt mit einem Text."})
+            text = str(eintrag.get("text") or "").strip()
+            # Eine leere Zeile ist kein Punkt — sie entsteht, wenn jemand
+            # Enter drückt und dann doch nichts schreibt.
+            if not text:
+                continue
+            if len(text) > 2000:
+                raise ValidationError({"punkte": "Ein Punkt ist höchstens 2000 Zeichen lang."})
+            gewuenscht.append((eintrag.get("id"), text))
+
+        with transaction.atomic():
+            behalten = set()
+            for stelle, (kennung, text) in enumerate(gewuenscht):
+                punkt = vorhanden.get(kennung) if isinstance(kennung, int) else None
+                if punkt is None:
+                    Canvaspunkt.objects.create(
+                        vorhaben=vorhaben, feld=feld, text=text, reihenfolge=stelle
+                    )
+                    continue
+                behalten.add(punkt.pk)
+                if punkt.text != text or punkt.reihenfolge != stelle:
+                    punkt.text, punkt.reihenfolge = text, stelle
+                    punkt.save()
+            for kennung, punkt in vorhanden.items():
+                if kennung not in behalten:
+                    punkt.delete()
+
+        return Response(self.get_serializer(self.get_queryset().get(pk=vorhaben.pk)).data)
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        """Die Leinwand als PDF — eine Seite A4 quer, zum Mitnehmen in den Workshop."""
+        from socos.services import leinwand
+
+        vorhaben = self.get_object()
+        antwort = HttpResponse(leinwand.erzeugen(vorhaben), content_type="application/pdf")
+        antwort["Content-Disposition"] = f'attachment; filename="{leinwand.dateiname(vorhaben)}"'
+        return antwort
 
 
 # --- Finanzen ---------------------------------------------------------------

@@ -13,6 +13,7 @@ from socos import berechtigung
 from socos.models import (
     Arbeitspaket,
     Aufgabe,
+    Canvaspunkt,
     Event,
     Eventziel,
     Fixkosten,
@@ -30,6 +31,7 @@ from socos.models import (
     Rueckmeldung,
     Unteraufgabe,
     Verlaufseintrag,
+    Vorhaben,
     Zeitbuchung,
 )
 from socos.services import auswertung, zeit as zeitdienst
@@ -626,3 +628,47 @@ class AufgabeSerializer(serializers.ModelSerializer):
         if not text:
             raise serializers.ValidationError("Ohne Text ist es keine Aufgabe.")
         return text
+
+
+# --- Module: SPG Academy ----------------------------------------------------
+
+
+class CanvaspunktSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Canvaspunkt
+        fields = ["id", "feld", "text", "reihenfolge"]
+
+
+class VorhabenSerializer(serializers.ModelSerializer):
+    """
+    Ein Vorhaben samt allen Punkten seiner Leinwand — in einem Stück.
+
+    Die Punkte kommen mit, weil die Leinwand sie alle auf einmal zeigt und es
+    nur eine Handvoll Vorhaben gibt. Geschrieben werden sie nicht hier, sondern
+    feldweise über `POST /api/vorhaben/<id>/feld/`.
+    """
+
+    punkte = serializers.SerializerMethodField()
+    zuletzt = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Vorhaben
+        fields = ["id", "titel", "punkte", "zuletzt"]
+
+    def get_punkte(self, vorhaben):
+        # Nur die nicht gelöschten — über die Beziehung käme sonst auch weich
+        # Gelöschtes mit, weil Django dafür den Basis-Manager nimmt.
+        menge = [p for p in vorhaben.canvaspunkte.all() if p.geloescht_am is None]
+        menge.sort(key=lambda p: (p.feld, p.reihenfolge, p.id))
+        return CanvaspunktSerializer(menge, many=True).data
+
+    def get_zuletzt(self, vorhaben):
+        """
+        Wann zuletzt daran gearbeitet wurde — auch ein entfernter Punkt zählt.
+
+        Gerechnet, nicht gespeichert: Ein Feld am Vorhaben müsste bei jedem
+        Punkt mitgeschrieben werden, und genau das vergisst der nächste Weg,
+        der einen Punkt ändert.
+        """
+        stempel = [vorhaben.geaendert_am] + [p.geaendert_am for p in vorhaben.canvaspunkte.all()]
+        return max(stempel)

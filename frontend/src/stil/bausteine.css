@@ -78,6 +78,21 @@
   border-radius: 0 var(--kante) var(--kante) 0; background: var(--kopf-kante);
 }
 
+/* Der Zweig „Module": aufgeklappt, solange man in einem Modul ist (siehe
+   Seitenleiste.tsx). Die Kante der Markierung sitzt auf der Linie des Zweigs
+   — dieselbe Kupferkante wie oben, nur eine Ebene tiefer. */
+.navigation-klapp {
+  margin-left: auto; width: 0.9em; height: 0.9em; opacity: 0.7;
+  transition: transform 0.15s;
+}
+.navigation a[aria-expanded="true"] .navigation-klapp { transform: rotate(90deg); }
+.navigation a[data-elter="ja"] { color: var(--kopf-text); }
+.navigation-zweig {
+  display: flex; flex-direction: column; gap: 1px;
+  margin: 1px 0 4px 21px; border-left: 1px solid var(--kopf-rand);
+}
+.navigation-zweig a { padding-left: 17px; font-size: 13px; }
+
 /* Die einzige Stelle der Anwendung, an der Versalien bleiben: zwei Wörter,
    nie Fließtext, und sie ordnen eine Liste statt etwas zu benennen. */
 .navigation-gruppe {
@@ -1623,6 +1638,208 @@ a.mini { text-decoration: none; }
 /* Der Ort unter dem Titel in der Meetingliste. */
 .unterzeile { font-size: 12px; color: var(--text-sehr-leise); margin-top: 2px; }
 
+/* --- Module --------------------------------------------------------------- */
+/*
+ * Die Übersicht: eine Kachel je Modul, darin seine Teile mit Stand. Die ganze
+ * Kachel ist der Link — dieselbe Überlegung wie bei den Kacheln der Startseite,
+ * nur als Anker, weil darin eine Liste steht, und eine Liste darf in keinem
+ * Knopf stehen.
+ */
+.modul-kacheln {
+  display: grid; gap: 16px; align-items: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.modul-kachel {
+  display: flex; flex-direction: column;
+  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante);
+  color: var(--text); text-decoration: none;
+}
+.modul-kachel:hover { border-color: var(--akzent); }
+.modul-kachel:hover .modul-oeffnen { color: var(--akzent); }
+.modul-kachel:focus-visible { outline: 2px solid var(--akzent); outline-offset: 1px; }
+.modul-kopf { display: flex; gap: 12px; align-items: flex-start; padding: 16px; }
+.modul-siegel {
+  flex: 0 0 auto; width: 40px; height: 40px; display: grid; place-items: center;
+  border: 1px solid var(--marke-rand); border-radius: var(--kante);
+  background: var(--marke-hell); color: var(--marke);
+}
+.modul-siegel .zeichen { width: 20px; height: 20px; }
+.modul-kopf b { display: block; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.modul-kopf em {
+  display: block; margin-top: 2px;
+  font-style: normal; font-size: 13.5px; color: var(--text-leise);
+}
+.modul-teile { list-style: none; margin: 0; padding: 0 16px; border-top: 1px solid var(--rand); }
+.modul-teile li {
+  display: flex; align-items: center; gap: 10px; min-height: 42px;
+  font-size: 14px; border-bottom: 1px solid var(--rand);
+}
+.modul-teile li:last-child { border-bottom: 0; }
+.modul-teile .zahl { font-size: 12px; color: var(--text-sehr-leise); }
+.modul-stand { margin-left: auto; font-size: 12.5px; color: var(--text-leise); }
+.modul-fuss {
+  display: flex; align-items: center; gap: 8px; min-height: var(--griff); padding: 0 16px;
+  border-top: 1px solid var(--rand); font-size: 12.5px; color: var(--text-sehr-leise);
+}
+/* Grün, weil es ein Verweis ist — das Kupfer kommt erst beim Überfahren. */
+.modul-oeffnen {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 13.5px; font-weight: 600; color: var(--marke);
+}
+.modul-oeffnen .zeichen { width: 0.9em; height: 0.9em; }
+.modul-wunsch {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 16px; border: 1px dashed var(--rand-stark); border-radius: var(--kante);
+  font-size: 14px; color: var(--text-leise);
+}
+.modul-wunsch b { color: var(--text); font-size: 15px; font-weight: 600; }
+.modul-wunsch p { margin: 0 0 10px; }
+
+/* Die Leiste über der Leinwand: welches Vorhaben, wie weit, was man damit tun
+   kann. Die Knöpfe stehen rechts und rutschen am Handy in eigene Zeilen. */
+.vorhabenleiste {
+  display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap;
+  padding: 14px 16px; background: var(--flaeche);
+  border: 1px solid var(--rand); border-radius: var(--kante);
+}
+.vorhaben-wahl { display: flex; gap: 6px; flex: 0 1 300px; min-width: 0; }
+.vorhaben-wahl > select { flex: 1 1 auto; min-width: 0; }
+/* Ein Knopf nur mit Zeichen: quadratisch, damit er neben dem Auswahlfeld
+   dieselbe Höhe hat und nicht breiter wirkt als das, was er tut. */
+.knopf-zeichen { width: var(--griff); padding: 0; flex: 0 0 auto; }
+.vorhaben-stand {
+  display: flex; align-items: center; gap: 10px; min-height: var(--griff);
+  font-size: 13px; color: var(--text-leise);
+}
+.vorhaben-stand > span { white-space: nowrap; }
+.vorhaben-stand b { font-weight: 500; color: var(--text); }
+.vorhaben-stand .balken { width: 110px; height: 6px; }
+.vorhaben-zuletzt { color: var(--text-sehr-leise); white-space: nowrap; }
+.vorhaben-aktionen { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.vorhaben-aktionen .knopf-still { text-decoration: none; }
+
+/*
+ * Die Leinwand in der Anordnung des Lean Canvas: zehn Spalten, zwei hohe
+ * Zeilen, eine flachere. Die Felder tragen `data-feld`, und wo welches steht,
+ * sagt nur diese Stelle — nicht das Markup, das kommt in der Reihenfolge der
+ * SPG Academy (und wird am Handy genau so untereinander gezeigt).
+ *
+ * Getrennt wird durch Haarlinien: Das Raster hat den Grund in --rand und einen
+ * Pixel Abstand, die Felder decken den Rest.
+ *
+ * Kontraste (hell / dunkel), gerechnet auf jedem Grund, auf dem sie stehen —
+ * geprüft in socos/tests/test_kontrast.py:
+ *   --text-leise (Leitfragen)   Fläche 6,85 / 7,42 · Seitengrund 6,55 / 8,21 ·
+ *                               akzent-hell 5,95 / 7,22
+ *   --akzent (Nummer)           Fläche 5,42 / 6,08 · Seitengrund 5,19 / 6,73 ·
+ *                               akzent-hell 4,71 / 5,92
+ * `--text-sehr-leise` kommt auf der Leinwand bewusst nicht vor: Auf
+ * akzent-hell hielte es nur 4,41:1.
+ */
+.leinwand {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-template-rows: minmax(200px, auto) minmax(200px, auto) minmax(150px, auto);
+  gap: 1px; background: var(--rand);
+  border: 1px solid var(--rand); border-radius: var(--kante); overflow: hidden;
+}
+.leinwand-feld {
+  position: relative; min-width: 0;
+  padding: 12px 14px 16px; background: var(--flaeche);
+}
+.leinwand-feld[data-leer="ja"] { background: var(--grund); }
+/* Das Nutzenversprechen steht in der Mitte und ist das, worum sich die
+   anderen acht drehen — es trägt als einziges einen Grund. */
+.leinwand-feld[data-feld="nutzen"] { background: var(--akzent-hell); }
+
+.leinwand-feld[data-feld="problem"]    { grid-column: 1 / 3;  grid-row: 1 / 3; }
+.leinwand-feld[data-feld="loesung"]    { grid-column: 3 / 5;  grid-row: 1; }
+.leinwand-feld[data-feld="kennzahlen"] { grid-column: 3 / 5;  grid-row: 2; }
+.leinwand-feld[data-feld="nutzen"]     { grid-column: 5 / 7;  grid-row: 1 / 3; }
+.leinwand-feld[data-feld="vorteil"]    { grid-column: 7 / 9;  grid-row: 1; }
+.leinwand-feld[data-feld="kanaele"]    { grid-column: 7 / 9;  grid-row: 2; }
+.leinwand-feld[data-feld="kunden"]     { grid-column: 9 / 11; grid-row: 1 / 3; }
+.leinwand-feld[data-feld="kosten"]     { grid-column: 1 / 6;  grid-row: 3; }
+.leinwand-feld[data-feld="einnahmen"]  { grid-column: 6 / 11; grid-row: 3; }
+
+.leinwand-kopf {
+  display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px;
+  font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em;
+}
+.leinwand-nummer {
+  font-family: var(--schrift-zahl); font-size: 11.5px; font-weight: 500; color: var(--akzent);
+}
+/* Der Knopf sitzt auf der Überschrift und spannt sich über das ganze Feld. */
+.leinwand-griff {
+  padding: 0; border: 0; background: none; color: inherit;
+  font: inherit; text-align: left; cursor: pointer;
+}
+.leinwand-griff::after { content: ""; position: absolute; inset: 0; }
+.leinwand-griff:focus-visible { outline: none; }
+.leinwand-feld:has(.leinwand-griff):hover,
+.leinwand-feld:has(.leinwand-griff:focus-visible) {
+  outline: 2px solid var(--akzent); outline-offset: -2px; z-index: 1;
+}
+.leinwand-stift {
+  align-self: center; margin-left: auto; width: 14px; height: 14px;
+  color: var(--akzent); opacity: 0; transition: opacity 0.12s;
+}
+.leinwand-feld:hover .leinwand-stift,
+.leinwand-feld:focus-within .leinwand-stift { opacity: 1; }
+/* Ohne Zeigegerät gibt es kein Überfahren — dann steht der Stift immer da,
+   sonst sähe am Tablet niemand, dass man hineintippen kann. */
+@media (hover: none) { .leinwand-stift { opacity: 1; } }
+
+.leinwand-punkte, .leinwand-fragen {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.leinwand-punkte li, .leinwand-fragen li {
+  position: relative; padding-left: 12px; overflow-wrap: anywhere;
+}
+.leinwand-punkte li { font-size: 13.5px; line-height: 1.45; }
+.leinwand-punkte li::before {
+  content: ""; position: absolute; left: 0; top: 0.72em;
+  width: 5px; height: 1px; background: var(--text-leise);
+}
+.leinwand-fragen li { font-size: 12.5px; line-height: 1.45; color: var(--text-leise); }
+.leinwand-fragen li::before { content: "?"; position: absolute; left: 0; font-weight: 600; }
+
+/* Das Fenster zu einem Feld. */
+.feldfenster { max-width: 620px; }
+.feldfenster h2 { display: flex; align-items: baseline; gap: 10px; }
+.feld-leitfragen {
+  list-style: none; margin: 14px 0 0; padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--flaeche-leise); border-radius: var(--kante);
+  font-size: 13px; line-height: 1.45; color: var(--text-leise);
+}
+.punkt-liste {
+  list-style: none; margin: 14px 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.punkt-zeile { display: flex; gap: 4px; align-items: flex-start; }
+.punkt-eingabe { flex: 1 1 auto; resize: none; overflow: hidden; line-height: 1.45; }
+.punkt-griffe { flex: 0 0 auto; display: flex; }
+.punkt-griff {
+  width: 34px; height: var(--griff); display: grid; place-items: center;
+  padding: 0; border: 1px solid transparent; border-radius: var(--kante);
+  background: none; color: var(--text-sehr-leise); cursor: pointer;
+  font-size: 14px; opacity: 0;
+}
+/* Die Griffe erscheinen an der Zeile, an der man ist — zehn Zeilen mit je drei
+   Zeichen wären sonst ein Muster, das den Text übertönt. */
+.punkt-zeile:hover .punkt-griff, .punkt-zeile:focus-within .punkt-griff { opacity: 1; }
+@media (hover: none) { .punkt-griff { opacity: 1; } }
+.punkt-griff:hover { color: var(--akzent); border-color: var(--rand-stark); }
+.punkt-griff:disabled { color: var(--rand-stark); border-color: transparent; cursor: default; }
+.punkt-neu { margin-top: 10px; }
+.feld-blaettern {
+  display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--rand);
+}
+.feld-blaettern > :last-child { margin-left: auto; }
+
 /* ==========================================================================
    Schmaler Rechner (bis 1200 px): vier Kennzahlen werden zwei mal zwei
    ==========================================================================
@@ -1640,7 +1857,7 @@ a.mini { text-decoration: none; }
   /* Dieselbe Frage wie eine Zeile darüber: Drei Spalten werden hier zu schmal
      — bei den Kacheln bricht zuerst der Titel um, dann der Satz auf vier
      Zeilen. */
-  .kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kacheln, .modul-kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ==========================================================================
@@ -1796,7 +2013,15 @@ a.mini { text-decoration: none; }
     text-align: left; flex: 0 0 auto;
   }
 
-  .raster-4, .raster-3, .raster-2, .kacheln, .doku-wege { grid-template-columns: 1fr; }
+  .raster-4, .raster-3, .raster-2, .kacheln, .modul-kacheln, .doku-wege { grid-template-columns: 1fr; }
+
+  /* Die Leinwand wird zur Liste — dieselben Felder, in der Reihenfolge der
+     SPG Academy untereinander. Zehn Spalten in 345 px wären je 34 px. */
+  .leinwand { display: flex; flex-direction: column; }
+  .leinwand-feld { padding: 12px 14px 14px; }
+  .vorhaben-wahl, .vorhaben-stand { flex: 1 1 100%; }
+  .vorhaben-stand .balken { flex: 1 1 auto; width: auto; }
+  .vorhaben-aktionen { margin-left: 0; }
   /* Untereinander statt nebeneinander — und ohne die 132 px je Hälfte, sonst
      wäre diese eine Kachel doppelt so hoch wie jede andere. */
   .kachel[data-teile="2"] { grid-template-columns: 1fr; }

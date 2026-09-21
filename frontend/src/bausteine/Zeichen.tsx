@@ -44,7 +44,9 @@ export type ZeichenName =
   | "mehr"
   | "buch"
   | "sprechblase"
-  | "idee";
+  | "idee"
+  | "module"
+  | "akademie";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -121,6 +123,10 @@ const PFADE: Record<ZeichenName, string> = {
      18 px ineinanderlaufen, und übrig bleibt ein Fleck mit Strichen. Der Kreis
      bleibt ein Kreis. */
   idee: "M12 4a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M9.5 17.5h5M10.7 20h2.6",
+  // Vier Bausteine, einer davon gedreht: Werkzeuge, die man dazusteckt.
+  module: "M4 4h6.5v6.5H4zM4 13.5h6.5V20H4zM13.5 13.5H20V20h-6.5zM16.75 4L20 7.25l-3.25 3.25-3.25-3.25z",
+  // Der Doktorhut — für die SPG Academy.
+  akademie: "M4 9.5L12 5.5l8 4-8 4zM7.5 11.5v4c1.2 1.5 2.7 2.5 4.5 2.5s3.3-1 4.5-2.5v-4M20 9.5v5",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

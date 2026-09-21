@@ -31,6 +31,7 @@ const TEILE: { teil: Dokuteil; titel: string }[] = [
   { teil: "kontakte", titel: "Kontakte" },
   { teil: "events", titel: "Events" },
   { teil: "meetings", titel: "Meetings" },
+  { teil: "module", titel: "Module" },
   { teil: "geld", titel: "Geld & Runway" },
   { teil: "rechte", titel: "Rollen & Sicherung" },
   { teil: "aenderungen", titel: "Änderungen" },
@@ -73,6 +74,7 @@ export function Doku({
         {gewaehlt === "kontakte" && <KontakteDoku />}
         {gewaehlt === "events" && <EventsDoku />}
         {gewaehlt === "meetings" && <MeetingsDoku />}
+        {gewaehlt === "module" && <ModuleDoku />}
         {gewaehlt === "geld" && <GeldDoku />}
         {gewaehlt === "rechte" && <RechteDoku />}
         {gewaehlt === "aenderungen" && <AenderungenDoku />}
@@ -212,6 +214,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, je Person." },
+            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge, z. B. die SPG Academy." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
@@ -655,6 +658,67 @@ function MeetingsDoku() {
             {
               begriff: "Kurze Notiz statt Meeting",
               text: "Für ein Telefonat von drei Sätzen ist ein Meeting zu viel. Das bleibt ein Verlaufseintrag beim Kontakt.",
+            },
+          ]}
+        />
+      </Abschnitt>
+    </>
+  );
+}
+
+function ModuleDoku() {
+  return (
+    <>
+      <Abschnitt
+        zeichen="module"
+        titel="Module — was nicht zu Projekt und Zeit gehört"
+        vorspann="Zusätzliche Werkzeuge stehen unter Intern · Module. Die Leiste klappt sie nur auf, solange du in einem Modul bist."
+      >
+        <Begriffe
+          paare={[
+            {
+              begriff: "Die Übersicht",
+              text: "Ein Klick auf „Module“ zeigt jedes Modul als Kachel: wofür es da ist, welche Teile es hat und wie weit sie sind.",
+            },
+            {
+              begriff: "Ein Modul fehlt",
+              text: "Module entstehen im Code, nicht in der Oberfläche. Wer eines braucht, meldet es unter Wünsche & Fehler.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="akademie"
+        titel="SPG Academy: das Lean Model Canvas"
+        vorspann="Hier kommen die Ergebnisse aus dem Workshop hin: neun Felder, nummeriert wie in der SPG Academy, je Idee ein Vorhaben."
+      >
+        <Schritte
+          schritte={[
+            "„Neues Vorhaben“ anlegen und ihm einen Namen geben. Ein Vorhaben hängt an keinem Projekt — es darf eine Idee sein, auf die noch niemand bucht.",
+            "Auf ein Feld klicken. Oben stehen die Fragen aus dem Workshop, darunter schreibst du die Punkte.",
+            "Enter beginnt den nächsten Punkt, Umschalt+Enter bricht innerhalb eines Punktes um. Rückschritt in einer leeren Zeile nimmt sie weg; mit Alt+↑ und Alt+↓ verschiebst du einen Punkt.",
+            "Mit den Knöpfen unten im Fenster gehst du zum vorigen oder nächsten Feld. Was offen ist, wird dabei gespeichert.",
+            "„PDF“ gibt die Leinwand als eine Seite A4 quer aus — zum Mitnehmen in den Workshop.",
+          ]}
+        />
+        <Merke>
+          Gespeichert wird mit „Speichern“ oder beim Weiterblättern, nicht beim Tippen. Schließt du
+          das Fenster mit offenen Änderungen, wird nachgefragt.
+        </Merke>
+        <Begriffe
+          paare={[
+            {
+              begriff: "Wer was darf",
+              text: "Sehen dürfen alle. Punkte schreiben, streichen und Vorhaben anlegen dürfen Admin und Bearbeiter; ein Leser sieht die Leinwand ohne Stift. Ein ganzes Vorhaben entfernt nur der Admin.",
+            },
+            {
+              begriff: "Welches Vorhaben dasteht",
+              text: "Das zuletzt bearbeitete, solange du keines wählst. Die Adresse enthält das gewählte — du kannst sie als Link weitergeben.",
+            },
+            {
+              begriff: "Ein volles Feld im PDF",
+              text: "Was nicht in seinen Kasten passt, wird kleiner gesetzt. Reicht das nicht, steht am Ende des Feldes, wie viele Punkte fehlen.",
             },
           ]}
         />
