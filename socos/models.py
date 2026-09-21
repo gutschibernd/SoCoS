@@ -1519,6 +1519,13 @@ AUFGABEN = {
         "Examples: IP and patents, strategic partnerships, data sources.",
         "Consider what makes your startup unique — team expertise, connections and partnerships.",
     ],
+    Canvasfeld.KANAELE: [
+        "Consider online and offline, direct and indirect channels (e.g. retailers).",
+        "Where do your customers already spend time — and would come across your product "
+        "along the way?",
+        "Design the complete customer journey.",
+        "Start early enough.",
+    ],
 }
 
 
