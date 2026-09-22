@@ -716,6 +716,14 @@ function ModuleDoku() {
               text: "In der SPG Academy gibt es genau eines: Sopharmis Arzneimittelspender. Es hängt an keinem Projekt, und die Seite zeigt immer seine Leinwand.",
             },
             {
+              begriff: "Personas",
+              text: "Im Fenster zu Customer Segments, unter den Punkten: „+ Persona“ legt einen Steckbrief an — eine erfundene Person mit Alter, Geschlecht, Einkommen, Beruf, Wohnort, Haushalt, Bedürfnissen und Problemen, dazu ob sie Nutzer, Kunde oder beides ist. Ein Klick auf eine Persona öffnet ihren Steckbrief. Sie wird für sich gespeichert, unabhängig von den Punkten. Entfernen darf sie nur der Admin.",
+            },
+            {
+              begriff: "Product und Market",
+              text: "Die gestrichelte Linie in der Mitte teilt die Leinwand: links, was das Produkt betrifft, rechts den Markt. Die Zeile darunter sagt es noch einmal.",
+            },
+            {
               begriff: "Business Plan Lite",
               text: "Der zweite Workshop, oben umzuschalten. Acht Abschnitte statt neun Felder, untereinander wie ein Dokument, bearbeitet genauso. Das PDF fließt über so viele Seiten, wie der Plan braucht; ein leerer Abschnitt steht dort als „noch offen“.",
             },

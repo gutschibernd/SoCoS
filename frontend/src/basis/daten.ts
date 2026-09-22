@@ -323,11 +323,30 @@ export type Canvasfeld = {
 
 export type Canvaspunkt = { id: number; feld: string; text: string; reihenfolge: number };
 
+/** Ein Steckbrief zu Customer Segments — eine erfundene Person. */
+export type Persona = {
+  id: number;
+  vorhaben: number;
+  name: string;
+  rolle: "nutzer" | "kunde" | "beides";
+  alter: number | null;
+  geschlecht: string;
+  wohnort: string;
+  beruf: string;
+  haushalt: string;
+  /** Netto im Monat, als Zeichenkette wie jedes Geld in der API. */
+  einkommen: string | null;
+  beduerfnisse: string;
+  probleme: string;
+  reihenfolge: number;
+};
+
 /** Ein Vorhaben der SPG Academy samt allen Punkten seiner Leinwand. */
 export type Vorhaben = {
   id: number;
   titel: string;
   punkte: Canvaspunkt[];
+  personas: Persona[];
   /** Wann zuletzt daran gearbeitet wurde — gerechnet am Server. */
   zuletzt: string;
 };

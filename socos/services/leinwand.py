@@ -87,7 +87,7 @@ def _feld(leinwand, x, y, breite, hoehe, nummer, titel, texte, hervorheben):
     innen_breite = breite - 2 * POLSTER
     platz = oben - 2.5 * mm - (y + POLSTER)
     if not texte:
-        return
+        return oben - 2.5 * mm
 
     for groesse in GROESSEN:
         absaetze = _absaetze(texte, groesse)
@@ -114,6 +114,8 @@ def _feld(leinwand, x, y, breite, hoehe, nummer, titel, texte, hervorheben):
             x + POLSTER, y + POLSTER,
             f"… und {rest} weitere{'r' if rest == 1 else ''} Punkt{'' if rest == 1 else 'e'} — siehe SoCoS",
         )
+        return y + POLSTER
+    return cursor
 
 
 def erzeugen(vorhaben):
@@ -140,10 +142,16 @@ def erzeugen(vorhaben):
     punkte = {}
     for p in vorhaben.canvaspunkte.filter(geloescht_am__isnull=True).order_by("reihenfolge", "id"):
         punkte.setdefault(p.feld, []).append(p.text)
+    personas = list(vorhaben.personas.filter(geloescht_am__isnull=True).order_by("reihenfolge", "id"))
+    # Im Feld selbst steht je Persona eine Zeile; der ganze Steckbrief folgt
+    # auf der zweiten Seite. Eine Leinwand mit drei Steckbriefen im Feld
+    # Customer Segments hätte für die Punkte keinen Platz mehr.
+    punkte.setdefault(Canvasfeld.KUNDEN, []).extend(f"Persona: {persona_kurz(p)}" for p in personas)
 
-    # Das Raster: zwei hohe Zeilen oben, eine flachere unten.
+    # Das Raster: zwei hohe Zeilen oben, eine flachere unten. Darunter die
+    # Zeile „Product | Market" — deshalb beginnt das Raster höher.
     links, rechts = RAND_SEITE, breite - RAND_SEITE
-    unten, oben = 16 * mm, hoehe - 30 * mm
+    unten, oben = 24 * mm, hoehe - 30 * mm
     spalte = (rechts - links) / 10
     zeilen = [0.39, 0.39, 0.22]
     gesamt = oben - unten
@@ -155,10 +163,31 @@ def erzeugen(vorhaben):
         sp, ze, b, h = ANORDNUNG[wert]
         x = links + sp * spalte
         y = kanten[ze + h]
-        _feld(
+        textende = _feld(
             leinwand, x, y, b * spalte, kanten[ze] - y,
             nummer, titel, punkte.get(wert, []), wert == Canvasfeld.NUTZEN,
         )
+        if wert == Canvasfeld.NUTZEN:
+            # Die Mittellinie teilt die Leinwand in Product und Market. Im
+            # Nutzenversprechen läuft sie nur unter dem Text — quer durch die
+            # Sätze wäre sie ein Strich, über den man beim Lesen stolpert.
+            mitte = links + 5 * spalte
+            leinwand.setStrokeColor(AKZENT)
+            leinwand.setLineWidth(0.6)
+            leinwand.setDash(2, 2)
+            leinwand.line(mitte, y, mitte, max(y, textende - 2 * mm))
+            leinwand.setDash()
+
+    # Die Zeile darunter, mit etwas Abstand: links Product, rechts Market.
+    zeile_oben, zeile_unten = unten - 3 * mm, unten - 9 * mm
+    leinwand.setStrokeColor(RAND)
+    leinwand.setLineWidth(0.6)
+    leinwand.rect(links, zeile_unten, rechts - links, zeile_oben - zeile_unten, stroke=1, fill=0)
+    leinwand.line(links + 5 * spalte, zeile_unten, links + 5 * spalte, zeile_oben)
+    leinwand.setFont("Helvetica-Bold", 8.5)
+    leinwand.setFillColor(LEISE)
+    for text, von in (("Product", links), ("Market", links + 5 * spalte)):
+        leinwand.drawCentredString(von + 2.5 * spalte, zeile_unten + 2 * mm, text)
 
     leinwand.setFont("Helvetica", 8)
     leinwand.setFillColor(LEISE)
@@ -166,8 +195,72 @@ def erzeugen(vorhaben):
         RAND_SEITE, 9 * mm, f"Erstellt am {timezone.localtime():%d.%m.%Y um %H:%M} · SoCoS"
     )
     leinwand.showPage()
+
+    if personas:
+        _steckbriefe(leinwand, vorhaben, personas)
+
     leinwand.save()
     return puffer.getvalue()
+
+
+def euro(betrag):
+    """1400 → „1 400 €", 1400.50 → „1 400,50 €" — de-AT wie die Oberfläche,
+    mit geschütztem Leerzeichen, damit die Zahl nicht umbricht."""
+    ganz = int(betrag)
+    text = f"{ganz:,}".replace(",", "\u00a0")
+    cent = int(round((betrag - ganz) * 100))
+    return f"{text},{cent:02d} €" if cent else f"{text} €"
+
+
+def persona_kurz(persona):
+    """„Maria Huber, 78, Pensionistin" — so viel, wie davon eingetragen ist."""
+    teile = [persona.name]
+    if persona.alter is not None:
+        teile.append(str(persona.alter))
+    if persona.beruf:
+        teile.append(persona.beruf)
+    return ", ".join(teile) + f" ({persona.get_rolle_display()})"
+
+
+def _steckbriefe(leinwand, vorhaben, personas):
+    """Die zweite Seite: je Persona ein Steckbrief, untereinander."""
+    from reportlab.platypus import Frame, Spacer
+
+    breite, hoehe = landscape(A4)
+    stil_titel = ParagraphStyle("st", fontName="Helvetica-Bold", fontSize=15, leading=19, textColor=TEXT)
+    stil_name = ParagraphStyle(
+        "sn", fontName="Helvetica-Bold", fontSize=11, leading=14, textColor=TEXT, spaceBefore=4 * mm
+    )
+    stil_daten = ParagraphStyle("sd", fontName="Helvetica", fontSize=8.5, leading=12, textColor=LEISE)
+    stil_text = ParagraphStyle("sx", fontName="Helvetica", fontSize=9, leading=12.5, textColor=TEXT)
+
+    inhalt = [Paragraph(f"Personas · {escape(vorhaben.titel)}", stil_titel), Spacer(1, 2 * mm)]
+    for p in personas:
+        daten = [p.get_rolle_display()]
+        if p.alter is not None:
+            daten.append(f"{p.alter} Jahre")
+        daten += [x for x in (p.geschlecht, p.wohnort, p.beruf, p.haushalt) if x]
+        if p.einkommen is not None:
+            daten.append(f"{euro(p.einkommen)} netto im Monat")
+        inhalt.append(Paragraph(escape(p.name), stil_name))
+        inhalt.append(Paragraph(escape(" · ".join(daten)), stil_daten))
+        for titel, text in (("Bedürfnisse und Ziele", p.beduerfnisse), ("Probleme und Frust", p.probleme)):
+            if text:
+                inhalt.append(Paragraph(f"<b>{titel}:</b> {escape(text).replace(chr(10), '<br/>')}", stil_text))
+
+    # `addFromList` nimmt aus der Liste, was auf die Seite passt, und lässt den
+    # Rest stehen. Ohne die Schleife verschwänden überzählige Steckbriefe
+    # still — und das PDF sähe trotzdem vollständig aus.
+    while inhalt:
+        Frame(RAND_SEITE, 16 * mm, breite - 2 * RAND_SEITE, hoehe - 30 * mm, showBoundary=0).addFromList(
+            inhalt, leinwand
+        )
+        leinwand.setFont("Helvetica", 8)
+        leinwand.setFillColor(LEISE)
+        leinwand.drawString(
+            RAND_SEITE, 9 * mm, f"Erstellt am {timezone.localtime():%d.%m.%Y um %H:%M} · SoCoS"
+        )
+        leinwand.showPage()
 
 
 def plan_erzeugen(vorhaben):

@@ -25,6 +25,7 @@ from socos.models import (
     Nutzer,
     Organisation,
     Pensum,
+    Persona,
     Projekt,
     Projektphase,
     Protokolleintrag,
@@ -639,6 +640,15 @@ class CanvaspunktSerializer(serializers.ModelSerializer):
         fields = ["id", "feld", "text", "reihenfolge"]
 
 
+class PersonaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Persona
+        fields = [
+            "id", "vorhaben", "name", "rolle", "alter", "geschlecht", "wohnort", "beruf",
+            "haushalt", "einkommen", "beduerfnisse", "probleme", "reihenfolge",
+        ]
+
+
 class VorhabenSerializer(serializers.ModelSerializer):
     """
     Ein Vorhaben samt allen Punkten seiner Leinwand — in einem Stück.
@@ -649,11 +659,12 @@ class VorhabenSerializer(serializers.ModelSerializer):
     """
 
     punkte = serializers.SerializerMethodField()
+    personas = serializers.SerializerMethodField()
     zuletzt = serializers.SerializerMethodField()
 
     class Meta:
         model = Vorhaben
-        fields = ["id", "titel", "punkte", "zuletzt"]
+        fields = ["id", "titel", "punkte", "personas", "zuletzt"]
 
     def get_punkte(self, vorhaben):
         # Nur die nicht gelöschten — über die Beziehung käme sonst auch weich
@@ -661,6 +672,11 @@ class VorhabenSerializer(serializers.ModelSerializer):
         menge = [p for p in vorhaben.canvaspunkte.all() if p.geloescht_am is None]
         menge.sort(key=lambda p: (p.feld, p.reihenfolge, p.id))
         return CanvaspunktSerializer(menge, many=True).data
+
+    def get_personas(self, vorhaben):
+        menge = [p for p in vorhaben.personas.all() if p.geloescht_am is None]
+        menge.sort(key=lambda p: (p.reihenfolge, p.id))
+        return PersonaSerializer(menge, many=True).data
 
     def get_zuletzt(self, vorhaben):
         """
@@ -670,5 +686,9 @@ class VorhabenSerializer(serializers.ModelSerializer):
         Punkt mitgeschrieben werden, und genau das vergisst der nächste Weg,
         der einen Punkt ändert.
         """
-        stempel = [vorhaben.geaendert_am] + [p.geaendert_am for p in vorhaben.canvaspunkte.all()]
+        stempel = (
+            [vorhaben.geaendert_am]
+            + [p.geaendert_am for p in vorhaben.canvaspunkte.all()]
+            + [p.geaendert_am for p in vorhaben.personas.all()]
+        )
         return max(stempel)

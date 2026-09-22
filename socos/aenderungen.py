@@ -20,6 +20,37 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-22",
+        "titel": "Personas, eine Mittellinie und mehr Platz",
+        "punkte": [
+            {
+                "titel": "Personas bei Customer Segments",
+                "text": (
+                    "Im Fenster zu Customer Segments legst du jetzt Personas an — "
+                    "Steckbriefe erfundener Personen mit Alter, Geschlecht, "
+                    "Einkommen, Beruf, Wohnort, Bedürfnissen und Problemen, und "
+                    "ob sie Nutzer oder Kunde sind. Auf der Leinwand stehen sie "
+                    "unter den Punkten, im PDF auf einer eigenen Seite."
+                ),
+                "wo": "module/spg",
+            },
+            {
+                "titel": "Product links, Market rechts",
+                "text": (
+                    "Eine gestrichelte Linie teilt die Leinwand in der Mitte, und "
+                    "darunter sagt eine Zeile, was sie trennt: links das Produkt, "
+                    "rechts der Markt."
+                ),
+                "wo": "module/spg",
+            },
+            {
+                "titel": "Größeres Fenster zum Bearbeiten",
+                "text": "Das Fenster zu einem Feld ist deutlich breiter — lange Punkte stehen in einer Zeile.",
+                "wo": "module/spg",
+            },
+        ],
+    },
+    {
         "version": "2026-09-21",
         "titel": "Module — und die SPG Academy als erstes",
         "punkte": [

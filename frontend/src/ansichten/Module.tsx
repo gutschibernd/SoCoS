@@ -18,6 +18,7 @@ import {
   useVorhaben,
   type Canvasfeld,
   type Ich,
+  type Persona,
   type Vorhaben,
 } from "../basis/daten";
 import { melden } from "../basis/meldungen";
@@ -27,6 +28,10 @@ import {
   ausgefuellt,
   istGeaendert,
   neuerSchluessel,
+  ROLLEN,
+  betragAusEingabe,
+  betragZumBearbeiten,
+  personaKurz,
   punkteIn,
   zuletztText,
   workshopZuWeg,
@@ -37,6 +42,7 @@ import {
 } from "../basis/module";
 import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
+import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
@@ -225,7 +231,7 @@ function SpgAcademy({
         </div>
         <Leinwand
           art={art}
-          vorhaben={{ id: 0, titel: "", punkte: [], zuletzt: "" }}
+          vorhaben={{ id: 0, titel: "", punkte: [], personas: [], zuletzt: "" }}
           felder={felder.data}
           oeffnen={null}
         />
@@ -284,6 +290,7 @@ function SpgAcademy({
           felder={felder.data}
           feld={offenesFeld}
           oeffnen={setOffenesFeld}
+          darfLoeschen={ich.darf.loeschen}
         />
       )}
     </div>
@@ -315,16 +322,20 @@ function Leinwand({
   felder: Canvasfeld[];
   oeffnen: ((feld: string) => void) | null;
 }) {
-  return (
+  const raster = (
     <div className={art}>
       {felder.map((f) => {
         const punkte = punkteIn(vorhaben, f.feld);
+        // Die Personas gehören zu Customer Segments und stehen dort unter den
+        // Punkten — mit Namen und dem Nötigsten, der Steckbrief ist im Fenster.
+        const personas = f.feld === "kunden" ? vorhaben.personas : [];
+        const leer = punkte.length === 0 && personas.length === 0;
         return (
           <section
             key={f.feld}
             className="leinwand-feld"
             data-feld={f.feld}
-            data-leer={punkte.length ? "nein" : "ja"}
+            data-leer={leer ? "ja" : "nein"}
           >
             <h3 className="leinwand-kopf">
               <span className="leinwand-nummer">{f.nummer}</span>
@@ -337,22 +348,54 @@ function Leinwand({
               )}
               {oeffnen && <Zeichen name="stift" klasse="leinwand-stift" />}
             </h3>
-            {punkte.length > 0 ? (
-              <ul className="leinwand-punkte">
-                {punkte.map((p) => (
-                  <li key={p.id}>{p.text}</li>
-                ))}
-              </ul>
-            ) : (
+            {leer ? (
               <ul className="leinwand-fragen">
                 {f.leitfragen.map((frage) => (
                   <li key={frage}>{frage}</li>
                 ))}
               </ul>
+            ) : (
+              <>
+                {punkte.length > 0 && (
+                  <ul className="leinwand-punkte">
+                    {punkte.map((p) => (
+                      <li key={p.id}>{p.text}</li>
+                    ))}
+                  </ul>
+                )}
+                {personas.length > 0 && (
+                  <ul className="leinwand-personas">
+                    {personas.map((p) => (
+                      <li key={p.id}>
+                        <Zeichen name="kontakte" />
+                        <span>
+                          <b>{p.name}</b>
+                          {personaKurz(p) && <em>{personaKurz(p)}</em>}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
             )}
           </section>
         );
       })}
+    </div>
+  );
+
+  if (art === "plan") return raster;
+
+  // Unter der Leinwand, mit etwas Abstand, die Zeile, die sagt, was die
+  // Mittellinie teilt: links das Produkt, rechts der Markt. Am Handy, wo die
+  // Felder untereinander stehen, gibt es keine Mitte — dort fällt sie weg.
+  return (
+    <div className="leinwand-block">
+      {raster}
+      <div className="leinwand-achse" aria-hidden="true">
+        <span>Product</span>
+        <span>Market</span>
+      </div>
     </div>
   );
 }
@@ -374,13 +417,17 @@ function Feldfenster({
   felder,
   feld,
   oeffnen,
+  darfLoeschen,
 }: {
   vorhaben: Vorhaben;
   felder: Canvasfeld[];
   feld: string;
   oeffnen: (feld: string | null) => void;
+  /** Für den Steckbrief einer Persona: Entfernen darf nur der Admin. */
+  darfLoeschen: boolean;
 }) {
   const neuLaden = useNeuLaden();
+  const [persona, setPersona] = useState<Persona | "neu" | null>(null);
   const gespeichert = punkteIn(vorhaben, feld);
   const [entwuerfe, setEntwuerfe] = useState<Punktentwurf[]>(() => alsEntwuerfe(gespeichert));
   const [laeuft, setLaeuft] = useState(false);
@@ -484,6 +531,8 @@ function Feldfenster({
   useEffect(() => {
     const beiEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // Steht der Steckbrief darüber, gehört das Escape ihm.
+      if (persona !== null) return;
       if (fragtVerwerfen) setFragtVerwerfen(false);
       else if (!laeuft) zurueck();
     };
@@ -602,6 +651,44 @@ function Feldfenster({
               Punkt
             </button>
 
+            {/* Die Personas stehen nur bei Customer Segments. Sie werden für
+                sich gespeichert, im Steckbrief — unabhängig von den Punkten
+                darüber, die erst mit „Speichern" gehen. */}
+            {feld === "kunden" && (
+              <div className="persona-bereich">
+                <div className="persona-kopf">
+                  <span className="beschriftung-klein">Personas</span>
+                  <button type="button" className="knopf-still" onClick={() => setPersona("neu")}>
+                    <Zeichen name="plus" />
+                    Persona
+                  </button>
+                </div>
+                {vorhaben.personas.length === 0 ? (
+                  <p className="persona-leer">
+                    Noch keine Persona. Ein Steckbrief ist eine erfundene Person mit Alter,
+                    Einkommen und Bedürfnissen, gegen die ihr jeden Entwurf prüft.
+                  </p>
+                ) : (
+                  <ul className="persona-liste">
+                    {vorhaben.personas.map((p) => (
+                      <li key={p.id}>
+                        <button type="button" className="persona-karte" onClick={() => setPersona(p)}>
+                          <Zeichen name="kontakte" />
+                          <span>
+                            <b>{p.name}</b>
+                            <em>{personaKurz(p) || "Steckbrief ergänzen"}</em>
+                          </span>
+                          <span className="persona-rolle">
+                            {ROLLEN.find((r) => r.wert === p.rolle)?.text}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
             {/* Weiterblättern speichert, was offen ist. Wer die neun Felder
                 der Reihe nach durchgeht, soll nicht vor jedem Feld „Speichern"
                 drücken müssen — und nicht bei jedem gefragt werden. */}
@@ -634,6 +721,15 @@ function Feldfenster({
           </div>
         </div>
       </div>
+
+      {persona !== null && (
+        <Personafenster
+          vorhaben={vorhaben}
+          persona={persona === "neu" ? null : persona}
+          darfLoeschen={darfLoeschen}
+          schliessen={() => setPersona(null)}
+        />
+      )}
 
       {fragtVerwerfen && (
         <div className="dialog-grund" role="dialog" aria-modal="true">
@@ -695,12 +791,30 @@ function Wachsfeld({
 }) {
   const ref = useRef<HTMLTextAreaElement | null>(null);
 
-  useLayoutEffect(() => {
+  const anpassen = () => {
     const el = ref.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight + 2}px`;
-  }, [wert]);
+  };
+
+  useLayoutEffect(anpassen, [wert]);
+
+  // Auch wenn sich die Breite ändert — Fenster schmaler, Handy gedreht —,
+  // bricht der Text anders um. Ohne das stünde ein Punkt nach dem Drehen
+  // halb abgeschnitten da, bis jemand hineintippt.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let breite = el.clientWidth;
+    const beobachter = new ResizeObserver(() => {
+      if (el.clientWidth === breite) return;
+      breite = el.clientWidth;
+      anpassen();
+    });
+    beobachter.observe(el);
+    return () => beobachter.disconnect();
+  }, []);
 
   return (
     <textarea
@@ -716,5 +830,285 @@ function Wachsfeld({
       onChange={(e) => aendern(e.target.value)}
       onKeyDown={taste}
     />
+  );
+}
+
+/* --- Eine Persona --------------------------------------------------------- */
+
+type Steckbrief = {
+  name: string;
+  rolle: Persona["rolle"];
+  alter: string;
+  geschlecht: string;
+  wohnort: string;
+  beruf: string;
+  haushalt: string;
+  einkommen: string;
+  beduerfnisse: string;
+  probleme: string;
+};
+
+function alsSteckbrief(p: Persona | null): Steckbrief {
+  return {
+    name: p?.name ?? "",
+    rolle: p?.rolle ?? "beides",
+    alter: p?.alter != null ? String(p.alter) : "",
+    geschlecht: p?.geschlecht ?? "",
+    wohnort: p?.wohnort ?? "",
+    beruf: p?.beruf ?? "",
+    haushalt: p?.haushalt ?? "",
+    einkommen: betragZumBearbeiten(p?.einkommen ?? null),
+    beduerfnisse: p?.beduerfnisse ?? "",
+    probleme: p?.probleme ?? "",
+  };
+}
+
+/**
+ * Der Steckbrief einer Persona — eine erfundene Person, für die das Produkt
+ * gedacht ist. Ein Fenster über dem Feldfenster, mit eigenem Speichern: Eine
+ * Persona ist ein Datensatz für sich, kein Punkt im Feld.
+ *
+ * Alter und Einkommen werden hier geprüft und nicht erst am Server, damit
+ * „achtzig" nicht als Fehlermeldung von oben kommt, sondern am Feld steht.
+ */
+function Personafenster({
+  vorhaben,
+  persona,
+  darfLoeschen,
+  schliessen,
+}: {
+  vorhaben: Vorhaben;
+  persona: Persona | null;
+  darfLoeschen: boolean;
+  schliessen: () => void;
+}) {
+  const neuLaden = useNeuLaden();
+  const anfang = alsSteckbrief(persona);
+  const [brief, setBrief] = useState<Steckbrief>(anfang);
+  const [laeuft, setLaeuft] = useState(false);
+  const [fragtLoeschen, setFragtLoeschen] = useState(false);
+  const [fragtVerwerfen, setFragtVerwerfen] = useState(false);
+
+  const setze = (teil: Partial<Steckbrief>) => setBrief((alt) => ({ ...alt, ...teil }));
+  const geaendert = (Object.keys(anfang) as (keyof Steckbrief)[]).some((k) => anfang[k] !== brief[k]);
+
+  const alter = brief.alter.trim() === "" ? null : Number(brief.alter);
+  const alterFalsch = alter !== null && (!Number.isInteger(alter) || alter < 0 || alter > 120);
+  const einkommen = betragAusEingabe(brief.einkommen);
+  const einkommenFalsch = einkommen === undefined;
+  const bereit = brief.name.trim() !== "" && !alterFalsch && !einkommenFalsch && geaendert;
+
+  async function speichern() {
+    if (!bereit) return;
+    setLaeuft(true);
+    const daten = {
+      vorhaben: vorhaben.id,
+      name: brief.name.trim(),
+      rolle: brief.rolle,
+      alter,
+      geschlecht: brief.geschlecht.trim(),
+      wohnort: brief.wohnort.trim(),
+      beruf: brief.beruf.trim(),
+      haushalt: brief.haushalt.trim(),
+      einkommen,
+      beduerfnisse: brief.beduerfnisse.trim(),
+      probleme: brief.probleme.trim(),
+    };
+    try {
+      await hole(persona ? `/personas/${persona.id}/` : "/personas/", {
+        method: persona ? "PATCH" : "POST",
+        body: JSON.stringify(persona ? daten : { ...daten, reihenfolge: vorhaben.personas.length }),
+      });
+      neuLaden();
+      melden("gut", `Die Persona „${daten.name}“ ist gespeichert.`);
+      schliessen();
+    } catch {
+      setLaeuft(false);
+    }
+  }
+
+  async function loeschen() {
+    if (!persona) return;
+    setLaeuft(true);
+    try {
+      await hole(`/personas/${persona.id}/`, { method: "DELETE" });
+      neuLaden();
+      schliessen();
+    } catch {
+      setLaeuft(false);
+      setFragtLoeschen(false);
+    }
+  }
+
+  const zurueck = () => (geaendert ? setFragtVerwerfen(true) : schliessen());
+
+  useEffect(() => {
+    const beiEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || fragtLoeschen) return;
+      if (fragtVerwerfen) setFragtVerwerfen(false);
+      else if (!laeuft) zurueck();
+    };
+    window.addEventListener("keydown", beiEscape);
+    return () => window.removeEventListener("keydown", beiEscape);
+  });
+
+  const feld = (
+    name: keyof Steckbrief,
+    beschriftung: string,
+    weiteres: React.InputHTMLAttributes<HTMLInputElement> = {},
+  ) => (
+    <label className="profilfeld">
+      <span className="beschriftung-klein">{beschriftung}</span>
+      <input
+        className="feld"
+        value={brief[name]}
+        onChange={(e) => setze({ [name]: e.target.value } as Partial<Steckbrief>)}
+        {...weiteres}
+      />
+    </label>
+  );
+
+  return (
+    <>
+      <div
+        className="dialog-grund"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Persona"
+        onClick={zurueck}
+      >
+        <div className="dialog dialog-arbeit personafenster" onClick={(e) => e.stopPropagation()}>
+          <div className="dialog-kopf">
+            <div className="dialog-kopf-text">
+              <h2>{persona ? persona.name : "Neue Persona"}</h2>
+              {geaendert && <span className="dialog-offen">Nicht gespeichert</span>}
+            </div>
+            <div className="dialog-knoepfe">
+              <button type="button" className="knopf-still" onClick={zurueck} disabled={laeuft}>
+                Abbrechen
+              </button>
+              <button type="button" className="knopf" onClick={speichern} disabled={laeuft || !bereit}>
+                Speichern
+              </button>
+            </div>
+          </div>
+
+          <div className="dialog-koerper">
+            <div className="persona-felder">
+              {feld("name", "Name", { autoFocus: !persona, placeholder: "z. B. Maria Huber", maxLength: 120 })}
+              <label className="profilfeld">
+                <span className="beschriftung-klein">Rolle</span>
+                <select
+                  className="feld"
+                  value={brief.rolle}
+                  onChange={(e) => setze({ rolle: e.target.value as Persona["rolle"] })}
+                >
+                  {ROLLEN.map((r) => (
+                    <option key={r.wert} value={r.wert}>
+                      {r.text}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="profilfeld">
+                <span className="beschriftung-klein">Alter</span>
+                <input
+                  className="feld"
+                  inputMode="numeric"
+                  value={brief.alter}
+                  placeholder="Jahre"
+                  aria-invalid={alterFalsch}
+                  onChange={(e) => setze({ alter: e.target.value })}
+                />
+                {alterFalsch && <span className="feldhinweis feld-falsch">Eine ganze Zahl zwischen 0 und 120.</span>}
+              </label>
+              {feld("geschlecht", "Geschlecht", { placeholder: "z. B. weiblich", maxLength: 40 })}
+              {feld("wohnort", "Wohnort", { placeholder: "z. B. Graz, eigene Wohnung", maxLength: 120 })}
+              {feld("beruf", "Beruf", { placeholder: "z. B. Pensionistin", maxLength: 120 })}
+              {feld("haushalt", "Familie und Haushalt", { placeholder: "z. B. verwitwet, Tochter im Ort", maxLength: 160 })}
+              <label className="profilfeld">
+                <span className="beschriftung-klein">Einkommen netto im Monat</span>
+                <input
+                  className="feld"
+                  inputMode="decimal"
+                  value={brief.einkommen}
+                  placeholder="€"
+                  aria-invalid={einkommenFalsch}
+                  onChange={(e) => setze({ einkommen: e.target.value })}
+                />
+                {einkommenFalsch && <span className="feldhinweis feld-falsch">Ein Betrag in Euro, z. B. 1.450.</span>}
+              </label>
+              <label className="profilfeld persona-breit">
+                <span className="beschriftung-klein">Bedürfnisse und Ziele</span>
+                <textarea
+                  className="feld"
+                  rows={3}
+                  value={brief.beduerfnisse}
+                  placeholder="Was will sie erreichen? Was ist ihr wichtig?"
+                  onChange={(e) => setze({ beduerfnisse: e.target.value })}
+                />
+              </label>
+              <label className="profilfeld persona-breit">
+                <span className="beschriftung-klein">Probleme und Frust</span>
+                <textarea
+                  className="feld"
+                  rows={3}
+                  value={brief.probleme}
+                  placeholder="Was hält sie auf? Woran scheitert sie heute?"
+                  onChange={(e) => setze({ probleme: e.target.value })}
+                />
+              </label>
+            </div>
+
+            {persona && darfLoeschen && (
+              <div className="persona-fuss">
+                <button type="button" className="knopf-still" onClick={() => setFragtLoeschen(true)}>
+                  <Zeichen name="korb" />
+                  Persona entfernen
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {fragtLoeschen && persona && (
+        <Loeschdialog
+          name={persona.name}
+          was="Die Persona"
+          laeuft={laeuft}
+          abbrechen={() => setFragtLoeschen(false)}
+          loeschen={loeschen}
+        />
+      )}
+
+      {fragtVerwerfen && (
+        <div className="dialog-grund" role="dialog" aria-modal="true">
+          <div className="dialog">
+            <h2>Noch nicht gespeichert</h2>
+            <p>Am Steckbrief ist etwas geändert. Wer jetzt schließt, hat wieder den Stand von vorher.</p>
+            <div className="dialog-knoepfe">
+              <button type="button" className="knopf-still" onClick={() => setFragtVerwerfen(false)}>
+                Weiter bearbeiten
+              </button>
+              <button type="button" className="knopf-still" onClick={schliessen}>
+                Verwerfen
+              </button>
+              <button
+                type="button"
+                className="knopf"
+                disabled={laeuft || !bereit}
+                onClick={() => {
+                  setFragtVerwerfen(false);
+                  speichern();
+                }}
+              >
+                Speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

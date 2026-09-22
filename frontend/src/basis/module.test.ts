@@ -4,6 +4,10 @@ import type { Canvaspunkt, Vorhaben } from "./daten";
 import {
   MODULWEGE,
   alsEntwuerfe,
+  alsEuro,
+  betragAusEingabe,
+  betragZumBearbeiten,
+  personaKurz,
   ausgefuellt,
   istGeaendert,
   punkteIn,
@@ -26,7 +30,7 @@ const punkt = (id: number, feld: string, text: string, reihenfolge = 0): Canvasp
 });
 
 const vorhaben = (id: number, zuletzt: string, punkte: Canvaspunkt[] = []): Vorhaben => ({
-  id, titel: `Vorhaben ${id}`, zuletzt, punkte,
+  id, titel: `Vorhaben ${id}`, zuletzt, punkte, personas: [],
 });
 
 describe("die Leinwand", () => {
@@ -96,5 +100,35 @@ describe("zuletztText", () => {
     expect(zuletztText(new Date(2026, 8, 21, 10, 42).toISOString(), jetzt)).toBe("heute 10:42");
     expect(zuletztText(new Date(2026, 8, 20, 16, 5).toISOString(), jetzt)).toBe("gestern 16:05");
     expect(zuletztText(new Date(2026, 8, 3, 9, 0).toISOString(), jetzt)).toBe("03.09.2026");
+  });
+});
+
+describe("Personas", () => {
+  it("liest einen Betrag, wie man ihn tippt", () => {
+    expect(betragAusEingabe("1.450")).toBe("1450.00");
+    expect(betragAusEingabe("1450,50 €")).toBe("1450.50");
+    expect(betragAusEingabe("  ")).toBeNull();
+    expect(betragAusEingabe("viel")).toBeUndefined();
+    expect(betragAusEingabe("-3")).toBeUndefined();
+  });
+
+  it("schreibt ihn zurück, wie man ihn liest", () => {
+    // de-AT wie überall in SoCoS: Der Tausendertrenner ist ein geschütztes
+    // Leerzeichen, kein Punkt.
+    expect(alsEuro("1450.00")).toMatch(/^1\s450 €$/);
+    expect(alsEuro("1450.50")).toMatch(/^1\s450,50 €$/);
+    expect(betragZumBearbeiten("1450.00")).toBe("1450");
+    expect(betragZumBearbeiten("1450.50")).toBe("1450,50");
+    expect(betragZumBearbeiten(null)).toBe("");
+  });
+
+  it("fasst nur zusammen, was eingetragen ist", () => {
+    const p = {
+      id: 1, vorhaben: 1, name: "Maria", rolle: "nutzer" as const, alter: 78, geschlecht: "",
+      wohnort: "", beruf: "Pensionistin", haushalt: "", einkommen: null, beduerfnisse: "",
+      probleme: "", reihenfolge: 0,
+    };
+    expect(personaKurz(p)).toBe("78 Jahre · Pensionistin");
+    expect(personaKurz({ ...p, alter: null, beruf: "" })).toBe("");
   });
 });

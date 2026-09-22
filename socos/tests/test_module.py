@@ -13,7 +13,9 @@ import re
 import pytest
 from django.core.management import call_command
 
-from socos.models import Canvasfeld, Canvaspunkt, Protokolleintrag, Vorhaben
+from decimal import Decimal
+
+from socos.models import Canvasfeld, Canvaspunkt, Persona, Protokolleintrag, Vorhaben
 
 
 @pytest.fixture
@@ -118,6 +120,80 @@ class TestBusinessPlanLite:
         assert antwort.status_code == 200
         assert antwort.content.startswith(b"%PDF")
         assert 'filename="Business-Plan-Lite_Arzneimittelspender.pdf"' in antwort["Content-Disposition"]
+
+
+class TestPersonas:
+    @pytest.mark.django_db
+    def test_ein_bearbeiter_legt_einen_steckbrief_an(self, client, bearbeiter, vorhaben):
+        client.force_login(bearbeiter)
+
+        antwort = client.post(
+            "/api/personas/",
+            {"vorhaben": vorhaben.pk, "name": "Maria Huber", "rolle": "nutzer", "alter": 78,
+             "einkommen": "1450.00"},
+            content_type="application/json",
+        )
+
+        assert antwort.status_code == 201
+        # Geld geht als Zeichenkette hinaus, wie überall in der API.
+        assert antwort.json()["einkommen"] == "1450.00"
+        assert Persona.objects.get().einkommen == Decimal("1450.00")
+
+    @pytest.mark.django_db
+    def test_die_personas_kommen_mit_dem_vorhaben(self, client, leser, vorhaben):
+        Persona.objects.create(vorhaben=vorhaben, name="Thomas", rolle="kunde")
+        client.force_login(leser)
+
+        daten = next(v for v in client.get("/api/vorhaben/").json() if v["id"] == vorhaben.pk)
+
+        assert [p["name"] for p in daten["personas"]] == ["Thomas"]
+
+    @pytest.mark.django_db
+    def test_ein_leser_legt_keine_an(self, client, leser, vorhaben):
+        client.force_login(leser)
+
+        antwort = client.post(
+            "/api/personas/", {"vorhaben": vorhaben.pk, "name": "X"}, content_type="application/json"
+        )
+
+        assert antwort.status_code == 403
+
+    @pytest.mark.django_db
+    def test_entfernen_darf_nur_der_admin(self, client, bearbeiter, admin_nutzer, vorhaben):
+        p = Persona.objects.create(vorhaben=vorhaben, name="Weg")
+        client.force_login(bearbeiter)
+        assert client.delete(f"/api/personas/{p.pk}/").status_code == 403
+
+        client.force_login(admin_nutzer)
+        assert client.delete(f"/api/personas/{p.pk}/").status_code == 204
+        assert Persona.alle_objekte.get(pk=p.pk).ist_geloescht
+
+    @pytest.mark.django_db
+    def test_das_vorhaben_nimmt_seine_personas_mit(self, vorhaben):
+        p = Persona.objects.create(vorhaben=vorhaben, name="Maria")
+
+        vorhaben.delete()
+
+        assert Persona.alle_objekte.get(pk=p.pk).ist_geloescht
+
+    @pytest.mark.django_db
+    def test_im_pdf_folgt_eine_seite_mit_den_steckbriefen(self, vorhaben):
+        from socos.services import leinwand
+
+        Persona.objects.create(
+            vorhaben=vorhaben, name="Maria & <Huber>", alter=78, einkommen=Decimal("1450.50"),
+            beduerfnisse="Zu Hause bleiben.",
+        )
+
+        daten = leinwand.erzeugen(vorhaben)
+
+        assert len(re.findall(rb"/Type /Page(?!s)", daten)) == 2
+
+    def test_der_betrag_im_pdf(self):
+        from socos.services import leinwand
+
+        assert leinwand.euro(Decimal("1450.00")) == "1\u00a0450 €"
+        assert leinwand.euro(Decimal("1450.50")) == "1\u00a0450,50 €"
 
 
 class TestFeldSetzen:
@@ -334,6 +410,7 @@ def test_vorhaben_und_punkte_wandern_durch_die_sicherung(tmp_path, settings, bea
     settings.MEDIA_ROOT.mkdir()
     vorhaben = Vorhaben.objects.create(titel="Spender")
     Canvaspunkt.objects.create(vorhaben=vorhaben, feld=Canvasfeld.PROBLEM, text="Verwechslung")
+    Persona.objects.create(vorhaben=vorhaben, name="Maria", einkommen=Decimal("1450.00"))
     weg = Canvaspunkt.objects.create(vorhaben=vorhaben, feld=Canvasfeld.PROBLEM, text="Gestrichen")
     weg.delete()
 
@@ -343,5 +420,6 @@ def test_vorhaben_und_punkte_wandern_durch_die_sicherung(tmp_path, settings, bea
 
     wieder_da = Vorhaben.objects.get(titel="Spender")
     assert [p.text for p in Canvaspunkt.objects.filter(vorhaben=wieder_da)] == ["Verwechslung"]
+    assert Persona.objects.get(vorhaben=wieder_da).einkommen == Decimal("1450.00")
     # Auch das Gestrichene ist Bestand — das Protokoll verweist darauf.
     assert Canvaspunkt.alle_objekte.filter(text="Gestrichen").exists()

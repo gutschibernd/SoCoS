@@ -81,6 +81,29 @@ Punkte aller Workshops, und ohne das zählte das Canvas die Abschnitte des Plans
 
 Das PDF des Plans fließt (platypus), das des Canvas bleibt eine feste Seite.
 
+### Personas (`Persona`, Migration 0024) — ein eigenes Modell
+
+Steckbriefe zu Customer Segments: Name, Rolle (Nutzer · Kunde · beides — die
+Aufgabe verlangt die Unterscheidung), Alter, Geschlecht, Wohnort, Beruf, Haushalt,
+Einkommen, Bedürfnisse, Probleme. **Ein eigenes Modell und kein Punkt**, weil ein
+Steckbrief Felder hat, nach denen man ihn liest; ein Freitext hätte bei jeder Persona
+eine andere Reihenfolge. Das Einkommen ist `Decimal` (netto im Monat) wie jedes Geld.
+
+Die Personas sind **erfunden** und fallen deshalb nicht unter „Personendaten aus
+`daten/`". Gespeichert werden sie für sich im Steckbrief, nicht mit dem Speichern der
+Punkte; entfernen darf sie nur der Admin — die gewöhnliche Regel.
+
+Im PDF steht im Feld je Persona eine Zeile, der ganze Steckbrief folgt auf eigenen
+Seiten (so vielen, wie es braucht — `addFromList` verwirft sonst still den Rest).
+
+### Die Mittellinie ist ein Hintergrund, kein Pseudoelement
+
+Die Linie Product | Market läuft durch die Mitte des Nutzenversprechens, hinter dem
+Text. Der erste Versuch war ein `::before` mit `z-index: -1` in einem isolierten
+Feld; das hing am Stapelkontext. Jetzt ist sie ein Hintergrundbild des Feldes
+(ein Pixel breit, senkrecht wiederholt), und Überschrift und Listen decken sie mit
+dem Grund ab — den eigenen Hintergrund malt der Browser immer unter die Inhalte.
+
 ### Das PDF zeichnet von Hand
 
 Eine reportlab-Tabelle mit verbundenen Zellen rechnet die Höhe nach der ersten

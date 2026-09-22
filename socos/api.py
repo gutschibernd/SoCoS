@@ -21,25 +21,26 @@ from rest_framework.response import Response
 
 from socos import aenderungen, berechtigung, serializer as ser, sicherung
 from socos.models import (
+    AUFGABEN,
+    LEITFRAGEN,
+    WORKSHOPS,
     Arbeitspaket,
     Aufgabe,
     Canvasfeld,
     Canvaspunkt,
-    Planabschnitt,
     Event,
     Eventziel,
     Fixkosten,
     Kontakt,
     Kontostand,
-    AUFGABEN,
-    LEITFRAGEN,
-    WORKSHOPS,
     Meeting,
     Meetingabschnitt,
     Monatskosten,
     Nutzer,
     Organisation,
     Pensum,
+    Persona,
+    Planabschnitt,
     Projekt,
     Projektphase,
     Protokolleintrag,
@@ -511,7 +512,7 @@ class VorhabenViewSet(SocosViewSet):
     """
 
     serializer_class = ser.VorhabenSerializer
-    queryset = Vorhaben.objects.prefetch_related("canvaspunkte")
+    queryset = Vorhaben.objects.prefetch_related("canvaspunkte", "personas")
 
     @action(detail=False, methods=["get"])
     def felder(self, request):
@@ -620,6 +621,16 @@ class VorhabenViewSet(SocosViewSet):
         antwort = HttpResponse(daten, content_type="application/pdf")
         antwort["Content-Disposition"] = f'attachment; filename="{name}"'
         return antwort
+
+
+class PersonaViewSet(SocosViewSet):
+    """
+    Die Steckbriefe zu Customer Segments. Die gewöhnliche Regel: sehen alle,
+    anlegen und ändern Admin und Bearbeiter, entfernen nur der Admin.
+    """
+
+    serializer_class = ser.PersonaSerializer
+    queryset = Persona.objects.all()
 
 
 # --- Finanzen ---------------------------------------------------------------

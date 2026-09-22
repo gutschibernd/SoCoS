@@ -1625,6 +1625,8 @@ class Vorhaben(Basismodell):
         super().delete(*args, **kwargs)
         for punkt in self.canvaspunkte.filter(geloescht_am__isnull=True):
             punkt.delete()
+        for persona in self.personas.filter(geloescht_am__isnull=True):
+            persona.delete()
 
 
 class Canvaspunkt(Basismodell):
@@ -1662,3 +1664,58 @@ class Canvaspunkt(Basismodell):
 
     def __str__(self):
         return self.text[:60]
+
+
+class Personarolle(models.TextChoices):
+    """
+    Die Aufgabe zu Customer Segments verlangt, Nutzer und Kunde zu
+    unterscheiden — beim Arzneimittelspender ist das selten dieselbe Person:
+    Die Patientin nimmt ein, der Pflegedienst oder die Kasse zahlt.
+    """
+
+    NUTZER = "nutzer", "Nutzer"
+    KUNDE = "kunde", "Kunde"
+    BEIDES = "beides", "Nutzer und Kunde"
+
+
+class Persona(Basismodell):
+    """
+    Ein Steckbrief: eine erfundene Person mit bestimmten Bedürfnissen, gegen
+    die man jeden Entwurf prüft („würde es für sie funktionieren?"). Gehört zu
+    Customer Segments des Lean Model Canvas.
+
+    **Erfunden, nicht erhoben.** Hier steht niemand, den es gibt — deshalb
+    fällt das nicht unter die Regel, dass Personendaten aus `daten/` kommen.
+    Wer eine echte Person einträgt, gehört in die Kontakte.
+
+    Alter und Einkommen sind Zahlen und kein Freitext, damit sie sich im
+    Steckbrief gleich lesen. Das Einkommen ist `Decimal` wie jedes Geld in
+    SoCoS, gemeint ist netto im Monat.
+    """
+
+    vorhaben = models.ForeignKey(
+        Vorhaben, verbose_name="Vorhaben", on_delete=models.CASCADE, related_name="personas"
+    )
+    name = models.CharField("Name", max_length=120)
+    rolle = models.CharField(
+        "Rolle", max_length=8, choices=Personarolle.choices, default=Personarolle.BEIDES
+    )
+    alter = models.PositiveSmallIntegerField("Alter", null=True, blank=True)
+    geschlecht = models.CharField("Geschlecht", max_length=40, blank=True)
+    wohnort = models.CharField("Wohnort", max_length=120, blank=True)
+    beruf = models.CharField("Beruf", max_length=120, blank=True)
+    haushalt = models.CharField("Familie und Haushalt", max_length=160, blank=True)
+    einkommen = models.DecimalField(
+        "Einkommen netto im Monat", max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    beduerfnisse = models.TextField("Bedürfnisse und Ziele", blank=True)
+    probleme = models.TextField("Probleme und Frust", blank=True)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Persona"
+        verbose_name_plural = "Personas"
+        ordering = ["vorhaben", "reihenfolge", "id"]
+
+    def __str__(self):
+        return self.name

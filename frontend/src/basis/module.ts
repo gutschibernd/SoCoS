@@ -6,7 +6,7 @@
  * der Übersicht noch keine Kachel, und niemand sähe warum.
  */
 
-import type { Canvaspunkt, Vorhaben } from "./daten";
+import type { Canvaspunkt, Persona, Vorhaben } from "./daten";
 import type { ZeichenName } from "../bausteine/Zeichen";
 
 /** Ein Workshop in einem Modul — ein Teil mit eigenem Weg und eigenen Feldern. */
@@ -125,4 +125,46 @@ export function zuletztText(iso: string, jetzt = new Date()): string {
   if (tag(d) === tag(jetzt)) return `heute ${uhr}`;
   if (tag(d) === tag(gestern)) return `gestern ${uhr}`;
   return d.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+/* --- Personas -------------------------------------------------------------- */
+
+export const ROLLEN: { wert: Persona["rolle"]; text: string }[] = [
+  { wert: "nutzer", text: "Nutzer" },
+  { wert: "kunde", text: "Kunde" },
+  { wert: "beides", text: "Nutzer und Kunde" },
+];
+
+/**
+ * „1.450" oder „1450,50" → "1450.00" / "1450.50" für die API; leer → null.
+ * `undefined`, wenn es keine Zahl ist — dann sagt das Feld das, statt still
+ * etwas anderes zu speichern.
+ */
+export function betragAusEingabe(text: string): string | null | undefined {
+  const roh = text.replace(/€/g, "").replace(/\s/g, "");
+  if (!roh) return null;
+  const zahl = Number(roh.replace(/\./g, "").replace(",", "."));
+  if (!Number.isFinite(zahl) || zahl < 0) return undefined;
+  return zahl.toFixed(2);
+}
+
+/** "1450.00" → „1 450 €", "1450.50" → „1 450,50 €" — de-AT wie das Dashboard. */
+export function alsEuro(betrag: string): string {
+  const zahl = Number(betrag);
+  const ganz = Number.isInteger(zahl);
+  return `${zahl.toLocaleString("de-AT", {
+    minimumFractionDigits: ganz ? 0 : 2,
+    maximumFractionDigits: 2,
+  })} €`;
+}
+
+/** Der Betrag so, wie er im Eingabefeld steht: "1450.50" → „1450,50". */
+export function betragZumBearbeiten(betrag: string | null): string {
+  if (betrag === null) return "";
+  return betrag.replace(/\.00$/, "").replace(".", ",");
+}
+
+/** „78 · Pensionistin · Graz" — so viel, wie davon eingetragen ist. */
+export function personaKurz(p: Persona): string {
+  return [p.alter !== null ? `${p.alter} Jahre` : "", p.beruf, p.wohnort].filter(Boolean).join(" · ");
 }
