@@ -25,6 +25,7 @@ from socos.models import (
     LEITFRAGEN,
     WORKSHOPS,
     Arbeitspaket,
+    Abschnittstand,
     Aufgabe,
     Canvasfeld,
     Canvaspunkt,
@@ -556,9 +557,12 @@ class VorhabenViewSet(SocosViewSet):
         """
         vorhaben = self.get_object()
 
+        # Nur das Canvas. Der Business Plan Lite wird nicht hier geschrieben,
+        # sondern im Dokument, das abgegeben wird — hier steht nur sein Stand
+        # (siehe `stand`).
         feld = request.data.get("feld")
-        if feld not in Canvasfeld.values + Planabschnitt.values:
-            raise ValidationError({"feld": f"„{feld}“ ist kein Feld eines Workshops."})
+        if feld not in Canvasfeld.values:
+            raise ValidationError({"feld": f"„{feld}“ ist kein Feld des Canvas."})
 
         roh = request.data.get("punkte")
         if not isinstance(roh, list):
@@ -602,24 +606,41 @@ class VorhabenViewSet(SocosViewSet):
 
         return Response(self.get_serializer(self.get_queryset().get(pk=vorhaben.pk)).data)
 
+    @action(detail=True, methods=["post"])
+    def stand(self, request, pk=None):
+        """
+        Setzt den Stand **eines** Abschnitts des Business Plan Lite:
+        `{"abschnitt": "markt", "stand": "entwurf"}`.
+
+        Eine eigene Aktion statt eines PATCH auf `planstand`: Zwei, die
+        gleichzeitig verschiedene Abschnitte weiterdrehen, schickten sonst
+        jeder das ganze Wörterbuch — und der zweite überschriebe still den
+        ersten.
+        """
+        abschnitt = request.data.get("abschnitt")
+        if abschnitt not in Planabschnitt.values:
+            raise ValidationError({"abschnitt": f"„{abschnitt}“ ist kein Abschnitt des Plans."})
+        stand = request.data.get("stand")
+        if stand not in Abschnittstand.values:
+            raise ValidationError({"stand": f"„{stand}“ ist kein Stand."})
+
+        vorhaben = self.get_object()
+        with transaction.atomic():
+            vorhaben = Vorhaben.objects.select_for_update().get(pk=vorhaben.pk)
+            if vorhaben.planstand.get(abschnitt, Abschnittstand.OFFEN) != stand:
+                vorhaben.planstand = {**vorhaben.planstand, abschnitt: stand}
+                vorhaben.save()
+
+        return Response(self.get_serializer(self.get_queryset().get(pk=vorhaben.pk)).data)
+
     @action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):
-        """
-        Ein Workshop als PDF. Das Canvas als eine Seite A4 quer, der Business
-        Plan Lite als fließendes Dokument (`?workshop=businessplan`).
-        """
+        """Die Leinwand als PDF — eine Seite A4 quer, zum Mitnehmen in den Workshop."""
         from socos.services import leinwand
 
         vorhaben = self.get_object()
-        workshop = request.query_params.get("workshop", "canvas")
-        if workshop not in WORKSHOPS:
-            raise ValidationError({"workshop": f"„{workshop}“ ist kein Workshop der SPG Academy."})
-        if workshop == "businessplan":
-            daten, name = leinwand.plan_erzeugen(vorhaben), leinwand.dateiname(vorhaben, "Business-Plan-Lite")
-        else:
-            daten, name = leinwand.erzeugen(vorhaben), leinwand.dateiname(vorhaben)
-        antwort = HttpResponse(daten, content_type="application/pdf")
-        antwort["Content-Disposition"] = f'attachment; filename="{name}"'
+        antwort = HttpResponse(leinwand.erzeugen(vorhaben), content_type="application/pdf")
+        antwort["Content-Disposition"] = f'attachment; filename="{leinwand.dateiname(vorhaben)}"'
         return antwort
 
 

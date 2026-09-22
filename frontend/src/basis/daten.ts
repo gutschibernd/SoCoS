@@ -81,6 +81,8 @@ export type Aufgabe = {
   person_name: string;
   prioritaet: "hoch" | "mittel" | "gering";
   erledigt: boolean;
+  /** "2026-10-12" oder null — die meisten Zettel haben keine. */
+  frist: string | null;
   ist_idee: boolean;
   erstellt_am: string;
   geaendert_am: string;
@@ -321,6 +323,8 @@ export type Canvasfeld = {
   leitfragen: string[];
 };
 
+export type Abschnittstand = "offen" | "entwurf" | "fertig";
+
 export type Canvaspunkt = { id: number; feld: string; text: string; reihenfolge: number };
 
 /** Ein Steckbrief zu Customer Segments — eine erfundene Person. */
@@ -347,6 +351,8 @@ export type Vorhaben = {
   titel: string;
   punkte: Canvaspunkt[];
   personas: Persona[];
+  /** Stand je Abschnitt des Business Plan Lite. Was fehlt, ist offen. */
+  planstand: Record<string, Abschnittstand>;
   /** Wann zuletzt daran gearbeitet wurde — gerechnet am Server. */
   zuletzt: string;
 };

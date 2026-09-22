@@ -21,7 +21,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-22",
-        "titel": "Personas, eine Mittellinie und mehr Platz",
+        "titel": "Personas, Mittellinie, Business Plan als Überblick",
         "punkte": [
             {
                 "titel": "Personas bei Customer Segments",
@@ -47,6 +47,25 @@ VERSIONEN = [
                 "titel": "Größeres Fenster zum Bearbeiten",
                 "text": "Das Fenster zu einem Feld ist deutlich breiter — lange Punkte stehen in einer Zeile.",
                 "wo": "module/spg",
+            },
+            {
+                "titel": "Business Plan Lite: Überblick statt Schreibfläche",
+                "text": (
+                    "Geschrieben wird der Plan im Dokument, das abgegeben wird. In "
+                    "SoCoS stehen jetzt die drei Abgaben — 12.10., 27.10. und final "
+                    "am 19.11. — und je Abschnitt, was hineingehört und ob er offen, "
+                    "im Entwurf oder fertig ist. Ein Tipp auf den Stand dreht ihn weiter."
+                ),
+                "wo": "module/spg-businessplan",
+            },
+            {
+                "titel": "Aufgaben mit Frist",
+                "text": (
+                    "Die drei Abgaben stehen unter Allgemein auf der Tafel, mit Datum "
+                    "und wie viele Tage bleiben. In der letzten Woche wird die Frist "
+                    "dunkel, danach rot."
+                ),
+                "wo": "aufgaben",
             },
         ],
     },

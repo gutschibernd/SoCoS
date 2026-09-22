@@ -32,6 +32,7 @@ from socos.models import (
     Projekt,
     Protokolleintrag,
     Verlaufseintrag,
+    Vorhaben,
 )
 
 
@@ -403,7 +404,8 @@ def test_die_aufgabentafel_wandert_mit(tmp_path, medien, bearbeiter):
     beides: die Aufgabe **mit** Person und die allgemeine ohne.
     """
     Aufgabe.objects.create(
-        person=bearbeiter, text="Vertrag gegenzeichnen", prioritaet="hoch"
+        person=bearbeiter, text="Vertrag gegenzeichnen", prioritaet="hoch",
+        frist=date(2026, 10, 12),
     )
     Aufgabe.objects.create(text="Kaffee bestellen", erledigt=True)
 
@@ -416,6 +418,7 @@ def test_die_aufgabentafel_wandert_mit(tmp_path, medien, bearbeiter):
     meine = Aufgabe.objects.get(text="Vertrag gegenzeichnen")
     assert meine.person.email == bearbeiter.email
     assert meine.prioritaet == "hoch"
+    assert meine.frist == date(2026, 10, 12)
 
     allgemein = Aufgabe.objects.get(text="Kaffee bestellen")
     assert allgemein.person is None
@@ -473,3 +476,18 @@ def test_pensen_und_phasenlaufzeit_wandern_mit(tmp_path, medien, bearbeiter):
     assert pensum.stunden == Decimal("270.00")
     assert pensum.person.email == bearbeiter.email
     assert "kritischen Pfad" in pensum.paket.beschreibung
+
+
+@pytest.mark.django_db(transaction=True)
+def test_stand_des_business_plan_wandert_mit(tmp_path, medien):
+    """Der Stand je Abschnitt ist ein Feld am Vorhaben — er muss mit ihm zurückkommen."""
+    vorhaben = Vorhaben.objects.create(titel="Spender", planstand={"markt": "entwurf", "summary": "fertig"})
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+
+    vorhaben.planstand = {}
+    vorhaben.save()
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    assert Vorhaben.objects.get(titel="Spender").planstand == {"markt": "entwurf", "summary": "fertig"}

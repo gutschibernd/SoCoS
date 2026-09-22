@@ -60,7 +60,7 @@ export type Spalte = {
 };
 
 /**
- * Erst nach Priorität, dann **das Neueste zuerst**.
+ * Erst nach Priorität, dann nach Frist, dann **das Neueste zuerst**.
  *
  * Warum nicht das Älteste zuerst, wie man es von einer Abarbeitungsliste
  * kennt: Das Feld zum Schreiben steht oben. Eine gerade eingetippte Zeile, die
@@ -75,6 +75,14 @@ export function sortiere(aufgaben: Aufgabe[]): Aufgabe[] {
   return [...aufgaben].sort((a, b) => {
     const unterschied = prioritaetsrang(a.prioritaet) - prioritaetsrang(b.prioritaet);
     if (unterschied !== 0) return unterschied;
+    // Bei gleicher Priorität drängt, was eine Frist hat — die frühere zuerst.
+    // Die Frist schlägt die Priorität aber nicht: Die setzt man von Hand, und
+    // wer „hoch" tippt, meint es.
+    if (a.frist !== b.frist) {
+      if (a.frist === null) return 1;
+      if (b.frist === null) return -1;
+      return a.frist < b.frist ? -1 : 1;
+    }
     if (a.erstellt_am !== b.erstellt_am) return a.erstellt_am < b.erstellt_am ? 1 : -1;
     return b.id - a.id;
   });
@@ -159,4 +167,37 @@ export function spalten(
     bauen(null, "Allgemein", "", ""),
     ...geordnet.map((m) => bauen(m.id, m.name, m.initialen, m.farbe)),
   ];
+}
+
+/** Ganze Kalendertage von `heute` bis zum Datum `"JJJJ-MM-TT"` — negativ, wenn es vorbei ist. */
+export function tageBis(datum: string, heute = new Date()): number {
+  const [j, m, t] = datum.split("-").map(Number);
+  // Beide auf Mitternacht in UTC, damit die Umstellung auf Winterzeit am
+  // 25. Oktober keinen Tag verschluckt: Zwischen zwei Ortsmitternächten
+  // liegen dort 25 Stunden.
+  const ziel = Date.UTC(j, m - 1, t);
+  const start = Date.UTC(heute.getFullYear(), heute.getMonth(), heute.getDate());
+  return Math.round((ziel - start) / 86_400_000);
+}
+
+/**
+ * Die Frist, wie sie neben einer Aufgabe steht: „12.10. · in 20 Tagen",
+ * „heute", „morgen", „3 Tage drüber". Das Datum steht immer dabei — „in 20
+ * Tagen" allein zwingt zum Nachrechnen, sobald man es jemandem weitersagt.
+ */
+export function fristText(frist: string, heute = new Date()): { text: string; drueber: boolean; bald: boolean } {
+  const [, m, t] = frist.split("-");
+  const datum = `${t}.${m}.`;
+  const tage = tageBis(frist, heute);
+  const wann =
+    tage === 0
+      ? "heute"
+      : tage === 1
+        ? "morgen"
+        : tage > 1
+          ? `in ${tage} Tagen`
+          : tage === -1
+            ? "1 Tag drüber"
+            : `${-tage} Tage drüber`;
+  return { text: `${datum} · ${wann}`, drueber: tage < 0, bald: tage >= 0 && tage <= 7 };
 }

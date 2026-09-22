@@ -1486,9 +1486,21 @@ a.mini { text-decoration: none; }
   font-size: 14.5px; line-height: 1.4; text-align: left;
   overflow-wrap: anywhere;
 }
+/* Text und Frist darunter. Die Mitte nimmt die Breite, nicht der Text selbst. */
+.aufgabe-mitte { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 /* Aufgeklappt ist es ein gewöhnliches Feld — es darf nur nicht die Breite des
    Prioritätsknopfes an sich reißen. */
-.aufgabe > .feld { flex: 1 1 auto; min-width: 0; margin-top: 0; padding: 6px 8px; }
+.aufgabe-mitte > .feld { flex: 1 1 auto; min-width: 0; margin-top: 0; padding: 6px 8px; }
+/* Die Frist: leise, solange sie weit weg ist, dunkel in der letzten Woche,
+   in der Warnfarbe, wenn sie vorbei ist. */
+.aufgabe-frist {
+  display: inline-flex; align-items: center; gap: 5px; margin: -6px 0 8px;
+  font-family: var(--schrift-zahl); font-size: 11.5px; color: var(--text-leise);
+  white-space: nowrap;
+}
+.aufgabe-frist .zeichen { width: 12px; height: 12px; }
+.aufgabe-frist[data-lage="bald"] { color: var(--text); font-weight: 600; }
+.aufgabe-frist[data-lage="drueber"] { color: var(--warnung); font-weight: 600; }
 .aufgabe[data-erledigt="ja"] .aufgabe-text {
   text-decoration: line-through; color: var(--text-sehr-leise);
 }
@@ -1859,17 +1871,54 @@ a.mini { text-decoration: none; }
 .leinwand-fragen li::before { content: "?"; position: absolute; left: 0; font-weight: 600; }
 
 /*
- * Der Business Plan Lite: dieselben Felder wie die Leinwand, aber als Dokument
- * untereinander — ein Plan liest sich von oben nach unten. Zwei Spalten ab
- * 1200 px: Acht Abschnitte in einer Spalte wären bei dieser Breite Zeilen von
- * einem Meter Länge, und die liest niemand.
+ * Der Business Plan Lite: je Abschnitt, was hineingehört und wie weit er ist.
+ * Zwei Spalten ab 1200 px: Acht Abschnitte in einer Spalte wären bei dieser
+ * Breite Zeilen von einem Meter Länge, und die liest niemand.
  */
 .plan {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px; background: var(--rand);
   border: 1px solid var(--rand); border-radius: var(--kante); overflow: hidden;
 }
-.plan .leinwand-feld { min-height: 150px; }
+.plan .leinwand-feld { min-height: 120px; }
+.plan .leinwand-kopf { align-items: center; }
+
+/* Der Stand eines Abschnitts: ein Knopf mit seinem Wort, dieselben Farbpaare
+   wie Priorität und Zielstand — kein neuer Ton, der gegen jeden Grund neu
+   gerechnet werden müsste. */
+.planstand {
+  flex: 0 0 auto; margin-left: auto; min-height: var(--griff); padding: 3px 10px;
+  border: 1px solid transparent; border-radius: var(--kante); cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 600;
+}
+.planstand:hover:not(:disabled) { border-color: var(--rand-stark); }
+.planstand:disabled { cursor: default; }
+.planstand[data-stand="offen"]   { background: var(--ruhend-hell); color: var(--text-leise); }
+.planstand[data-stand="entwurf"] { background: var(--marke-hell);  color: var(--marke); }
+.planstand[data-stand="fertig"]  { background: var(--gut-hell);    color: var(--gut); }
+/* Punkte aus der Zeit, als der Plan hier geschrieben wurde — unter den
+   Fragen, abgesetzt durch eine Haarlinie. */
+.plan-notizen { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rand); }
+
+/* Die drei Abgaben über dem Plan. Die nächste trägt die Marke, was vorbei
+   ist, tritt zurück — die Zahl daneben sagt, wie viel Zeit bleibt. */
+.abgaben {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px; background: var(--rand);
+  border: 1px solid var(--rand); border-radius: var(--kante); overflow: hidden;
+}
+.abgaben li {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 14px; background: var(--flaeche);
+}
+.abgaben b { font-size: 13.5px; font-weight: 600; }
+.abgaben .zahl { font-size: 12.5px; color: var(--text-leise); }
+.abgaben li[data-lage="naechste"] { background: var(--marke-hell); }
+.abgaben li[data-lage="naechste"] b,
+.abgaben li[data-lage="naechste"] .zahl { color: var(--marke); }
+.abgaben li[data-lage="vorbei"] b,
+.abgaben li[data-lage="vorbei"] .zahl { color: var(--text-sehr-leise); }
 /* Bei einer ungeraden Zahl füllt der letzte Abschnitt die Zeile, statt ein
    leeres Feld im Raster zu lassen. */
 .plan .leinwand-feld:last-child:nth-child(odd) { grid-column: 1 / -1; }
@@ -2099,8 +2148,9 @@ a.mini { text-decoration: none; }
      zuerst über die volle Breite, die Griffe darunter — der Pfeil und der
      Haken rechts, wo der Daumen liegt. */
   .ideenliste .aufgabe { flex-wrap: wrap; padding: 6px 0; }
-  .ideenliste .aufgabe > .aufgabe-text,
-  .ideenliste .aufgabe > .feld { order: -1; flex: 1 1 100%; min-height: 0; }
+  .ideenliste .aufgabe > .aufgabe-mitte { order: -1; flex: 1 1 100%; }
+  .ideenliste .aufgabe-mitte > .aufgabe-text,
+  .ideenliste .aufgabe-mitte > .feld { min-height: 0; }
   .ideenliste .idee-uebernehmen { margin-left: auto; }
 
   /* Platz für Uhr und Fußleiste am Fuß der Seite. Ohne das liegt die letzte
@@ -2153,6 +2203,7 @@ a.mini { text-decoration: none; }
   .leinwand .leinwand-feld[data-feld="nutzen"] { background: var(--akzent-hell); }
   .persona-liste, .persona-felder { grid-template-columns: minmax(0, 1fr); }
   .plan .leinwand-feld { min-height: 0; }
+  .abgaben { grid-template-columns: minmax(0, 1fr); }
   .leinwand-feld { padding: 12px 14px 14px; }
   .vorhaben-kopf { flex: 1 1 100%; }
   .vorhaben-stand .balken { flex: 1 1 auto; width: auto; }

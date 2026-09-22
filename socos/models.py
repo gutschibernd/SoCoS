@@ -1360,9 +1360,14 @@ class Aufgabe(Basismodell):
     Ein eigenes Feld „ist_allgemein" daneben wäre ein zweiter Zustand für
     dieselbe Auskunft, und beide könnten sich widersprechen.
 
-    Fällig-Datum, Beschreibung, Anhänge, wer es abgehakt hat: alles bewusst
-    nicht. Wer wann was geändert hat, steht ohnehin im Änderungsprotokoll —
-    dafür braucht die Tafel kein eigenes Feld.
+    Beschreibung, Anhänge, wer es abgehakt hat: alles bewusst nicht. Wer wann
+    was geändert hat, steht ohnehin im Änderungsprotokoll — dafür braucht die
+    Tafel kein eigenes Feld.
+
+    **Die Frist ist freiwillig und die Ausnahme.** Sie kam mit den Abgaben
+    des Business Plan Lite: Ein Termin, den ein Dritter setzt, gehört auf die
+    Tafel, und ohne Datum stünde dort „Version 1 abgeben" neben „Version 2
+    abgeben", und keiner sähe, welche drängt. Die meisten Zettel haben keine.
 
     **`ist_idee` macht aus derselben Zeile einen Punkt der Ideenliste.** Kein
     eigenes Modell `Idee` daneben: Eine Idee ist genau das, was eine Aufgabe
@@ -1390,6 +1395,7 @@ class Aufgabe(Basismodell):
         default=Aufgabenprioritaet.MITTEL,
     )
     erledigt = models.BooleanField("erledigt", default=False)
+    frist = models.DateField("Frist", null=True, blank=True)
     ist_idee = models.BooleanField(
         "Idee",
         default=False,
@@ -1549,6 +1555,21 @@ class Planabschnitt(models.TextChoices):
     TIPPS = "tipps", "Tips & Tricks"
 
 
+class Abschnittstand(models.TextChoices):
+    """
+    Wo ein Abschnitt des Business Plan Lite steht. Geschrieben wird der Plan
+    **nicht** in SoCoS, sondern im Dokument, das abgegeben wird — hier steht
+    nur, was hineingehört und wie weit es ist.
+
+    Drei Stufen wie bei der Priorität einer Aufgabe, und aus demselben Grund:
+    Sie werden mit einem Klick weitergedreht.
+    """
+
+    OFFEN = "offen", "offen"
+    ENTWURF = "entwurf", "Entwurf"
+    FERTIG = "fertig", "fertig"
+
+
 # Die Workshops der SPG Academy und ihre Felder. Der Schlüssel steht im Weg der
 # Schnittstelle (`/api/vorhaben/felder/?workshop=…`).
 WORKSHOPS = {"canvas": Canvasfeld, "businessplan": Planabschnitt}
@@ -1604,9 +1625,20 @@ class Vorhaben(Basismodell):
     Das Vorhaben ist mit Absicht vom Workshop getrennt: Kommt ein zweiter
     Workshop dazu (Pitch, Finanzplan), hängt er am selben Vorhaben, statt dass
     dieselbe Idee zweimal angelegt wird.
+
+    **`planstand` ist ein JSON-Feld und kein eigenes Modell:** acht Wörter
+    „offen/Entwurf/fertig" an einem Vorhaben. Ein Modell dafür hieße Sicherung,
+    Löschweitergabe und Abgleich für acht Wörter; so wandern sie mit dem
+    Vorhaben mit, und das Protokoll zeigt alt → neu wie bei jedem Feld.
     """
 
     titel = models.CharField("Titel", max_length=160)
+    planstand = models.JSONField(
+        "Stand des Business Plan Lite",
+        default=dict,
+        blank=True,
+        help_text="Je Abschnitt offen, Entwurf oder fertig. Was fehlt, ist offen.",
+    )
 
     class Meta(Basismodell.Meta):
         verbose_name = "Vorhaben"

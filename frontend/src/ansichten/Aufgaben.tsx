@@ -2,8 +2,7 @@
  * Die Tafel — Spalten nebeneinander, in jeder eine Liste. Und eine Ebene
  * darunter die **Ideenliste**.
  *
- * **Was die Tafel bewusst nicht kann:** kein Fälligkeitsdatum, keine
- * Beschreibung, keine Zuordnung zu einem Arbeitspaket, kein Verschieben
+ * **Was die Tafel bewusst nicht kann:** keine Beschreibung, keine Zuordnung zu einem Arbeitspaket, kein Verschieben
  * zwischen Spalten per Ziehen. Wer einen Punkt woanders braucht, hakt ihn ab
  * und schreibt ihn dort neu — zwei Sekunden, und dafür gibt es keine zweite
  * Projektansicht neben der Projektansicht.
@@ -27,6 +26,7 @@ import { useEffect, useState } from "react";
 
 import { hole } from "../basis/api";
 import {
+  fristText,
   ideen,
   naechstePrioritaet,
   prioritaetstext,
@@ -477,12 +477,20 @@ function Zeile({
           Ruhezustand ist es ein Text, der **umbricht**: In einer Spalte von
           280 px ist eine Zeile, die nach 30 Zeichen abgeschnitten wird, keine
           Aufgabe mehr, sondern ein Rätsel. */}
-      <Feldtext
-        wert={aufgabe.text}
-        aendern={darfSchreiben && !aufgabe.erledigt}
-        klasse="aufgabe-text"
-        speichern={(neu) => speichern(aufgabe, { text: neu })}
-      />
+      <div className="aufgabe-mitte">
+        <Feldtext
+          wert={aufgabe.text}
+          aendern={darfSchreiben && !aufgabe.erledigt}
+          klasse="aufgabe-text"
+          speichern={(neu) => speichern(aufgabe, { text: neu })}
+        />
+        {/* Die Frist steht nur da, wo es eine gibt — und nur, solange die
+            Aufgabe offen ist: „3 Tage drüber" an etwas Erledigtem wäre ein
+            Alarm, der nichts mehr bedeutet. Gesetzt wird sie nicht hier; die
+            Tafel bleibt bei drei Griffen, und die Fristen, die es gibt, setzt
+            ein Dritter. */}
+        {aufgabe.frist && !aufgabe.erledigt && <Frist frist={aufgabe.frist} />}
+      </div>
 
       {/* Nur auf der Ideenliste, und nur solange die Idee offen ist: derselbe
           Datensatz zieht auf die Tafel um. Kein Abtippen, keine neue Kennung —
@@ -513,5 +521,15 @@ function Zeile({
         <Zeichen name="haken" />
       </button>
     </li>
+  );
+}
+
+function Frist({ frist }: { frist: string }) {
+  const { text, drueber, bald } = fristText(frist);
+  return (
+    <span className="aufgabe-frist" data-lage={drueber ? "drueber" : bald ? "bald" : "spaeter"}>
+      <Zeichen name="zeit" />
+      {text}
+    </span>
   );
 }

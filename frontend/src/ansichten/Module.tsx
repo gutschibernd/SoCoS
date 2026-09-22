@@ -21,9 +21,15 @@ import {
   type Persona,
   type Vorhaben,
 } from "../basis/daten";
+import { fristText } from "../basis/aufgaben";
 import { melden } from "../basis/meldungen";
 import {
   MODULE,
+  STAENDE,
+  abgaben,
+  fertigeAbschnitte,
+  naechsterStand,
+  standVon,
   alsEntwuerfe,
   ausgefuellt,
   istGeaendert,
@@ -144,7 +150,7 @@ function Teilzeile({
   const felder = useCanvasfelder(teil.schluessel);
   const stand =
     vorhaben && felder.data
-      ? `${ausgefuellt(vorhaben, felder.data.map((f) => f.feld))} / ${felder.data.length} ${teil.einheit}`
+      ? `${zaehlen(teil, vorhaben, felder.data)} / ${felder.data.length} ${teil.einheit}`
       : "";
 
   return (
@@ -165,11 +171,23 @@ function Teilzeile({
   );
 }
 
+/**
+ * Was ein Workshop als erledigt zählt: beim Canvas ein Feld mit Punkten, beim
+ * Business Plan Lite ein Abschnitt, der auf „fertig" steht — geschrieben wird
+ * der Plan ja nicht hier.
+ */
+function zaehlen(teil: Workshop, vorhaben: Vorhaben, felder: Canvasfeld[]): number {
+  const namen = felder.map((f) => f.feld);
+  return teil.schluessel === "businessplan"
+    ? fertigeAbschnitte(vorhaben, namen)
+    : ausgefuellt(vorhaben, namen);
+}
+
 /* --- SPG Academy ---------------------------------------------------------- */
 
 /**
  * Ein Workshop des einen Vorhabens: das Lean Model Canvas als Leinwand, der
- * Business Plan Lite als Dokument. Oben schaltet man zwischen den Workshops um.
+ * Business Plan Lite als Überblick über Abgaben und Stand. Oben schaltet man zwischen den Workshops um.
  *
  * **Es gibt genau ein Vorhaben** — „Sopharmis Arzneimittelspender", angelegt
  * von der Migration 0022. Die Seite wählt deshalb nichts aus, sie zeigt es.
@@ -229,17 +247,16 @@ function SpgAcademy({
             <span>Es wurde entfernt. Ein Admin kann es wiederherstellen.</span>
           </div>
         </div>
-        <Leinwand
-          art={art}
-          vorhaben={{ id: 0, titel: "", punkte: [], personas: [], zuletzt: "" }}
-          felder={felder.data}
-          oeffnen={null}
-        />
+        {art === "plan" ? (
+          <Planueberblick vorhaben={LEER} abschnitte={felder.data} darfSetzen={false} />
+        ) : (
+          <Leinwand vorhaben={LEER} felder={felder.data} oeffnen={null} />
+        )}
       </div>
     );
   }
 
-  const zahl = ausgefuellt(eines, felder.data.map((f) => f.feld));
+  const zahl = zaehlen(teil, eines, felder.data);
 
   return (
     <div className="spalte">
@@ -253,6 +270,7 @@ function SpgAcademy({
                 {zahl} / {felder.data.length}
               </b>{" "}
               {teil.einheit}
+              {art === "plan" && " fertig"}
             </span>
             <span className="balken" aria-hidden="true">
               <i style={{ width: `${(zahl / felder.data.length) * 100}%` }} />
@@ -260,25 +278,29 @@ function SpgAcademy({
             <span className="vorhaben-zuletzt">zuletzt {zuletztText(eines.zuletzt)}</span>
           </span>
         </div>
-        <div className="vorhaben-aktionen">
-          {/* Ein Link und kein fetch: Das PDF soll im Download-Ordner landen,
-              und genau das tut der Browser mit einem `attachment` von selbst. */}
-          <a
-            className="knopf-still"
-            href={`/api/vorhaben/${eines.id}/pdf/?workshop=${teil.schluessel}`}
-          >
-            <Zeichen name="pdf" />
-            PDF
-          </a>
-        </div>
+        {/* Nur das Canvas hat ein PDF. Der Plan wird im Dokument
+            geschrieben, das abgegeben wird — das ist sein PDF. */}
+        {art === "leinwand" && (
+          <div className="vorhaben-aktionen">
+            {/* Ein Link und kein fetch: Das PDF soll im Download-Ordner landen,
+                und genau das tut der Browser mit einem `attachment` von selbst. */}
+            <a className="knopf-still" href={`/api/vorhaben/${eines.id}/pdf/`}>
+              <Zeichen name="pdf" />
+              PDF
+            </a>
+          </div>
+        )}
       </div>
 
-      <Leinwand
-        art={art}
-        vorhaben={eines}
-        felder={felder.data}
-        oeffnen={ich.darf.bearbeiten ? setOffenesFeld : null}
-      />
+      {art === "plan" ? (
+        <Planueberblick vorhaben={eines} abschnitte={felder.data} darfSetzen={ich.darf.bearbeiten} />
+      ) : (
+        <Leinwand
+          vorhaben={eines}
+          felder={felder.data}
+          oeffnen={ich.darf.bearbeiten ? setOffenesFeld : null}
+        />
+      )}
 
       {offenesFeld && (
         <Feldfenster
@@ -297,6 +319,101 @@ function SpgAcademy({
   );
 }
 
+/** Das Vorhaben, solange es fehlt: alle Felder da, nichts eingetragen. */
+const LEER: Vorhaben = { id: 0, titel: "", punkte: [], personas: [], planstand: {}, zuletzt: "" };
+
+/* --- Business Plan Lite ---------------------------------------------------- */
+
+/**
+ * Der Business Plan Lite als Überblick: die drei Abgaben, darunter je
+ * Abschnitt, was hineingehört und wie weit er ist.
+ *
+ * **Geschrieben wird der Plan nicht hier**, sondern im Dokument, das
+ * abgegeben wird. Ein zweiter Ort für denselben Text liefe dem Dokument
+ * hinterher, und beim Abgeben gälte doch nur das Dokument. Hier steht nur,
+ * was der Plan braucht und wo er steht.
+ *
+ * Der Stand dreht sich mit einem Tipp weiter wie die Priorität einer Aufgabe:
+ * offen → Entwurf → fertig. Abgehakt werden die Abgaben auf der Tafel.
+ */
+function Planueberblick({
+  vorhaben,
+  abschnitte,
+  darfSetzen,
+}: {
+  vorhaben: Vorhaben;
+  abschnitte: Canvasfeld[];
+  darfSetzen: boolean;
+}) {
+  const neuLaden = useNeuLaden();
+
+  async function weiterdrehen(abschnitt: string) {
+    try {
+      await hole(`/vorhaben/${vorhaben.id}/stand/`, {
+        method: "POST",
+        body: JSON.stringify({ abschnitt, stand: naechsterStand(standVon(vorhaben, abschnitt)) }),
+      });
+      neuLaden();
+    } catch {
+      // `hole` hat den Grund schon gemeldet; der Stand bleibt, wie er war.
+    }
+  }
+
+  return (
+    <>
+      <ol className="abgaben" aria-label="Abgaben">
+        {abgaben().map((a) => (
+          <li key={a.titel} data-lage={a.lage}>
+            <b>{a.titel}</b>
+            <span className="zahl">{fristText(a.frist).text}</span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="plan">
+        {abschnitte.map((f) => {
+          const stand = standVon(vorhaben, f.feld);
+          const text = STAENDE.find((s) => s.wert === stand)?.text ?? stand;
+          // Punkte aus der Zeit, als der Plan noch hier geschrieben wurde.
+          // Sie bleiben sichtbar, statt still zu verschwinden.
+          const punkte = punkteIn(vorhaben, f.feld);
+          return (
+            <section key={f.feld} className="leinwand-feld" data-feld={f.feld} data-stand={stand}>
+              <h3 className="leinwand-kopf">
+                <span className="leinwand-nummer">{f.nummer}</span>
+                {f.titel}
+                <button
+                  type="button"
+                  className="planstand"
+                  data-stand={stand}
+                  disabled={!darfSetzen}
+                  title={darfSetzen ? "Tippen dreht weiter: offen → Entwurf → fertig" : undefined}
+                  aria-label={`${f.titel}: ${text}${darfSetzen ? " — tippen zum Ändern" : ""}`}
+                  onClick={() => weiterdrehen(f.feld)}
+                >
+                  {text}
+                </button>
+              </h3>
+              <ul className="leinwand-fragen">
+                {f.leitfragen.map((frage) => (
+                  <li key={frage}>{frage}</li>
+                ))}
+              </ul>
+              {punkte.length > 0 && (
+                <ul className="leinwand-punkte plan-notizen">
+                  {punkte.map((p) => (
+                    <li key={p.id}>{p.text}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 /* --- Die Leinwand --------------------------------------------------------- */
 
 /**
@@ -310,20 +427,16 @@ function SpgAcademy({
  * in einem Knopf nicht stehen.
  */
 function Leinwand({
-  art,
   vorhaben,
   felder,
   oeffnen,
 }: {
-  /** Die Leinwand des Canvas oder das Dokument des Businessplans — dieselben
-      Felder, nur anders gelegt (siehe `.leinwand` und `.plan`). */
-  art: "leinwand" | "plan";
   vorhaben: Vorhaben;
   felder: Canvasfeld[];
   oeffnen: ((feld: string) => void) | null;
 }) {
   const raster = (
-    <div className={art}>
+    <div className="leinwand">
       {felder.map((f) => {
         const punkte = punkteIn(vorhaben, f.feld);
         // Die Personas gehören zu Customer Segments und stehen dort unter den
@@ -383,8 +496,6 @@ function Leinwand({
       })}
     </div>
   );
-
-  if (art === "plan") return raster;
 
   // Unter der Leinwand, mit etwas Abstand, die Zeile, die sagt, was die
   // Mittellinie teilt: links das Produkt, rechts der Markt. Am Handy, wo die

@@ -615,7 +615,7 @@ class AufgabeSerializer(serializers.ModelSerializer):
         model = Aufgabe
         fields = [
             "id", "text", "person", "person_name", "prioritaet", "erledigt",
-            "ist_idee", "erstellt_am", "geaendert_am",
+            "frist", "ist_idee", "erstellt_am", "geaendert_am",
         ]
         read_only_fields = ["id", "erstellt_am", "geaendert_am"]
 
@@ -655,7 +655,8 @@ class VorhabenSerializer(serializers.ModelSerializer):
 
     Die Punkte kommen mit, weil die Leinwand sie alle auf einmal zeigt und es
     nur eine Handvoll Vorhaben gibt. Geschrieben werden sie nicht hier, sondern
-    feldweise über `POST /api/vorhaben/<id>/feld/`.
+    feldweise über `POST /api/vorhaben/<id>/feld/`, der Stand des Business Plan
+    Lite über `POST /api/vorhaben/<id>/stand/`.
     """
 
     punkte = serializers.SerializerMethodField()
@@ -664,7 +665,8 @@ class VorhabenSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Vorhaben
-        fields = ["id", "titel", "punkte", "personas", "zuletzt"]
+        fields = ["id", "titel", "punkte", "personas", "planstand", "zuletzt"]
+        read_only_fields = ["planstand"]
 
     def get_punkte(self, vorhaben):
         # Nur die nicht gelöschten — über die Beziehung käme sonst auch weich

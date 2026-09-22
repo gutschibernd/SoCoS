@@ -13,9 +13,10 @@ import re
 import pytest
 from django.core.management import call_command
 
+from datetime import date
 from decimal import Decimal
 
-from socos.models import Canvasfeld, Canvaspunkt, Persona, Protokolleintrag, Vorhaben
+from socos.models import Aufgabe, Canvasfeld, Canvaspunkt, Persona, Protokolleintrag, Vorhaben
 
 
 @pytest.fixture
@@ -27,6 +28,14 @@ def _feld(client, vorhaben, feld, punkte):
     return client.post(
         f"/api/vorhaben/{vorhaben.pk}/feld/",
         {"feld": feld, "punkte": punkte},
+        content_type="application/json",
+    )
+
+
+def _stand(client, vorhaben, abschnitt, stand):
+    return client.post(
+        f"/api/vorhaben/{vorhaben.pk}/stand/",
+        {"abschnitt": abschnitt, "stand": stand},
         content_type="application/json",
     )
 
@@ -102,24 +111,62 @@ class TestBusinessPlanLite:
         assert client.get("/api/vorhaben/felder/?workshop=pitch").status_code == 400
 
     @pytest.mark.django_db
-    def test_ein_abschnitt_nimmt_punkte_wie_ein_feld(self, client, bearbeiter, vorhaben):
+    def test_der_plan_wird_nicht_hier_geschrieben(self, client, bearbeiter, vorhaben):
+        # Geschrieben wird er im Dokument, das abgegeben wird — hier steht nur
+        # der Stand. Punkte in einen Abschnitt nimmt der Server nicht an.
         client.force_login(bearbeiter)
 
-        antwort = _feld(client, vorhaben, "summary", [{"text": "Ein Spender, der Einnahmen nachweist."}])
+        antwort = _feld(client, vorhaben, "summary", [{"text": "Ein Spender."}])
 
-        assert antwort.status_code == 200
-        assert [p.text for p in _aktive(vorhaben, "summary")] == ["Ein Spender, der Einnahmen nachweist."]
+        assert antwort.status_code == 400
+        assert not _aktive(vorhaben, "summary")
 
     @pytest.mark.django_db
-    def test_der_plan_als_pdf(self, client, leser, vorhaben):
-        Canvaspunkt.objects.create(vorhaben=vorhaben, feld="markt", text="~1.100 Träger & <mehr>")
-        client.force_login(leser)
+    def test_der_stand_eines_abschnitts(self, client, bearbeiter, vorhaben):
+        client.force_login(bearbeiter)
 
-        antwort = client.get(f"/api/vorhaben/{vorhaben.pk}/pdf/?workshop=businessplan")
+        antwort = _stand(client, vorhaben, "markt", "entwurf")
 
         assert antwort.status_code == 200
-        assert antwort.content.startswith(b"%PDF")
-        assert 'filename="Business-Plan-Lite_Arzneimittelspender.pdf"' in antwort["Content-Disposition"]
+        assert antwort.json()["planstand"] == {"markt": "entwurf"}
+        _stand(client, vorhaben, "summary", "fertig")
+        vorhaben.refresh_from_db()
+        # Der zweite Abschnitt kommt dazu, statt den ersten zu ersetzen.
+        assert vorhaben.planstand == {"markt": "entwurf", "summary": "fertig"}
+
+    @pytest.mark.django_db
+    def test_der_stand_steht_im_protokoll(self, client, bearbeiter, vorhaben):
+        client.force_login(bearbeiter)
+
+        _stand(client, vorhaben, "markt", "fertig")
+
+        eintrag = Protokolleintrag.objects.filter(modell="socos.Vorhaben", objekt_id=vorhaben.pk).latest("id")
+        assert eintrag.aenderungen["planstand"] == {"alt": {}, "neu": {"markt": "fertig"}}
+
+    @pytest.mark.django_db
+    def test_unbekannter_abschnitt_oder_stand(self, client, bearbeiter, vorhaben):
+        client.force_login(bearbeiter)
+
+        assert _stand(client, vorhaben, "problem", "fertig").status_code == 400
+        assert _stand(client, vorhaben, "markt", "halb").status_code == 400
+
+    @pytest.mark.django_db
+    def test_ein_leser_setzt_keinen_stand(self, client, leser, vorhaben):
+        client.force_login(leser)
+
+        assert _stand(client, vorhaben, "markt", "fertig").status_code == 403
+
+    @pytest.mark.django_db
+    def test_die_abgaben_stehen_auf_der_tafel(self):
+        # Die Migration 0025 schreibt die drei Abgaben mit ihrer Frist auf
+        # die Tafel, in die Spalte „Allgemein".
+        abgaben = Aufgabe.objects.filter(text__startswith="Business Plan Lite").order_by("frist")
+
+        assert [(a.frist, a.person_id) for a in abgaben] == [
+            (date(2026, 10, 12), None),
+            (date(2026, 10, 27), None),
+            (date(2026, 11, 19), None),
+        ]
 
 
 class TestPersonas:

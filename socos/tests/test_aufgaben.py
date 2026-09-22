@@ -15,6 +15,15 @@ import pytest
 from socos.models import Aufgabe, Aufgabenprioritaet, Protokolleintrag
 
 
+@pytest.fixture(autouse=True)
+def leere_tafel(db):
+    """
+    Die Migration 0025 schreibt die Abgaben des Business Plan Lite auf die
+    Tafel. Hier wird die Tafel selbst geprüft, und die zählt ab null.
+    """
+    Aufgabe.objects.all().hart_loeschen()
+
+
 @pytest.mark.django_db
 def test_bearbeiter_darf_anlegen_und_abhaken(client, bearbeiter):
     """Anna trägt ein und hakt ab — beides ohne Adminrecht."""
@@ -212,3 +221,16 @@ def test_das_uebernehmen_steht_im_protokoll(client, bearbeiter):
     ).first()
     assert eintrag is not None
     assert eintrag.aenderungen["ist_idee"] == {"alt": True, "neu": False}
+
+
+@pytest.mark.django_db
+def test_die_frist_ist_freiwillig(client, bearbeiter):
+    client.force_login(bearbeiter)
+
+    ohne = client.post("/api/aufgaben/", {"text": "Ohne Termin"}, content_type="application/json")
+    mit = client.post(
+        "/api/aufgaben/", {"text": "Mit Termin", "frist": "2026-10-12"}, content_type="application/json"
+    )
+
+    assert ohne.json()["frist"] is None
+    assert mit.json()["frist"] == "2026-10-12"

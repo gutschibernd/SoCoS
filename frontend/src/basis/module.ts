@@ -6,7 +6,8 @@
  * der Übersicht noch keine Kachel, und niemand sähe warum.
  */
 
-import type { Canvaspunkt, Persona, Vorhaben } from "./daten";
+import { tageBis } from "./aufgaben";
+import type { Abschnittstand, Canvaspunkt, Persona, Vorhaben } from "./daten";
 import type { ZeichenName } from "../bausteine/Zeichen";
 
 /** Ein Workshop in einem Modul — ein Teil mit eigenem Weg und eigenen Feldern. */
@@ -72,6 +73,66 @@ export function punkteIn(vorhaben: Vorhaben, feld: string): Canvaspunkt[] {
 export function ausgefuellt(vorhaben: Vorhaben, felder: string[]): number {
   const belegt = new Set(vorhaben.punkte.map((p) => p.feld));
   return felder.filter((f) => belegt.has(f)).length;
+}
+
+/* --- Business Plan Lite ---------------------------------------------------- */
+
+/**
+ * Die drei Abgaben des Business Plan Lite, wie die SPG Academy sie setzt.
+ *
+ * Sie stehen außerdem als Aufgaben mit Frist auf der Tafel (Migration 0025) —
+ * dort werden sie abgehakt. **Hier** steht nur der Fahrplan: Verschiebt die
+ * Academy eine Abgabe, wird sie hier und auf der Tafel geändert.
+ */
+export const PLANVERSIONEN: { titel: string; frist: string }[] = [
+  { titel: "Version 1", frist: "2026-10-12" },
+  { titel: "Version 2", frist: "2026-10-27" },
+  { titel: "Finale Abgabe", frist: "2026-11-19" },
+];
+
+export type Abgabe = {
+  titel: string;
+  frist: string;
+  tage: number;
+  /** Vorbei, die nächste, die jetzt ansteht, oder eine danach. */
+  lage: "vorbei" | "naechste" | "spaeter";
+};
+
+/** Die Abgaben mit ihrem Abstand zu heute. Die erste, die nicht vorbei ist, ist die nächste. */
+export function abgaben(heute = new Date()): Abgabe[] {
+  let naechsteVergeben = false;
+  return PLANVERSIONEN.map((v) => {
+    const tage = tageBis(v.frist, heute);
+    let lage: Abgabe["lage"] = "vorbei";
+    if (tage >= 0) {
+      lage = naechsteVergeben ? "spaeter" : "naechste";
+      naechsteVergeben = true;
+    }
+    return { ...v, tage, lage };
+  });
+}
+
+/** Die Reihenfolge ist der Weg, den ein Abschnitt geht — und die Reihenfolge des Weiterdrehens. */
+export const STAENDE: { wert: Abschnittstand; text: string }[] = [
+  { wert: "offen", text: "offen" },
+  { wert: "entwurf", text: "Entwurf" },
+  { wert: "fertig", text: "fertig" },
+];
+
+/** Der Stand eines Abschnitts — was nie gesetzt wurde, ist offen. */
+export function standVon(vorhaben: Vorhaben, abschnitt: string): Abschnittstand {
+  return vorhaben.planstand[abschnitt] ?? "offen";
+}
+
+/** Ein Tipp dreht weiter: offen → Entwurf → fertig → offen. */
+export function naechsterStand(jetzt: Abschnittstand): Abschnittstand {
+  const i = STAENDE.findIndex((s) => s.wert === jetzt);
+  return STAENDE[(i + 1) % STAENDE.length].wert;
+}
+
+/** Wie viele der genannten Abschnitte fertig sind. */
+export function fertigeAbschnitte(vorhaben: Vorhaben, abschnitte: string[]): number {
+  return abschnitte.filter((a) => standVon(vorhaben, a) === "fertig").length;
 }
 
 /* --- Ein Feld bearbeiten -------------------------------------------------- */

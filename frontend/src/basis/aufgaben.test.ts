@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ideen, naechstePrioritaet, sortiere, spalten } from "./aufgaben";
+import { fristText, ideen, naechstePrioritaet, sortiere, spalten, tageBis } from "./aufgaben";
 import type { Aufgabe, Teammitglied } from "./daten";
 
 function aufgabe(teil: Partial<Aufgabe> & { id: number }): Aufgabe {
@@ -10,6 +10,7 @@ function aufgabe(teil: Partial<Aufgabe> & { id: number }): Aufgabe {
     person_name: "",
     prioritaet: "mittel",
     erledigt: false,
+    frist: null,
     ist_idee: false,
     erstellt_am: "2026-09-01T08:00:00Z",
     geaendert_am: "2026-09-01T08:00:00Z",
@@ -69,6 +70,17 @@ describe("Sortierung", () => {
       aufgabe({ id: 3, erstellt_am: "2026-09-02T08:00:00Z" }),
     ];
     expect(sortiere(liste).map((a) => a.id)).toEqual([2, 3, 1]);
+  });
+
+  it("stellt bei gleicher Priorität die frühere Frist nach oben, ohne Frist nach hinten", () => {
+    const liste = [
+      aufgabe({ id: 1, erstellt_am: "2026-09-09T08:00:00Z" }),
+      aufgabe({ id: 2, frist: "2026-11-19" }),
+      aufgabe({ id: 3, frist: "2026-10-12" }),
+      aufgabe({ id: 4, prioritaet: "hoch" }),
+    ];
+    // Die Frist schlägt die Priorität nicht: 4 ist hoch und steht oben.
+    expect(sortiere(liste).map((a) => a.id)).toEqual([4, 3, 2, 1]);
   });
 
   it("sortiert nicht in der übergebenen Liste", () => {
@@ -160,5 +172,29 @@ describe("Ideenliste", () => {
     const { offen, vomTisch } = ideen(liste);
     expect(offen.map((a) => a.id)).toEqual([3]);
     expect(vomTisch.map((a) => a.id)).toEqual([2, 1]);
+  });
+});
+
+describe("Frist", () => {
+  const heute = new Date(2026, 8, 22, 15, 30);
+
+  it("zählt Kalendertage, nicht Stunden", () => {
+    expect(tageBis("2026-09-22", heute)).toBe(0);
+    expect(tageBis("2026-09-23", heute)).toBe(1);
+    expect(tageBis("2026-10-12", heute)).toBe(20);
+    expect(tageBis("2026-09-20", heute)).toBe(-2);
+  });
+
+  // Am 25. Oktober hat der Tag 25 Stunden. Über die Umstellung hinweg darf
+  // kein Tag verloren gehen.
+  it("verliert über die Zeitumstellung keinen Tag", () => {
+    expect(tageBis("2026-10-27", new Date(2026, 9, 24, 23, 0))).toBe(3);
+  });
+
+  it("schreibt das Datum immer dazu", () => {
+    expect(fristText("2026-10-12", heute)).toEqual({ text: "12.10. · in 20 Tagen", drueber: false, bald: false });
+    expect(fristText("2026-09-23", heute).text).toBe("23.09. · morgen");
+    expect(fristText("2026-09-22", heute)).toMatchObject({ text: "22.09. · heute", bald: true });
+    expect(fristText("2026-09-19", heute)).toMatchObject({ text: "19.09. · 3 Tage drüber", drueber: true });
   });
 });

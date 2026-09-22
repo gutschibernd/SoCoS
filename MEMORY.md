@@ -7,6 +7,51 @@ betrifft.
 
 ---
 
+## 2026-09-22 — Business Plan Lite als Überblick, Aufgaben mit Frist (Migration 0025)
+
+### Der Plan wird nicht in SoCoS geschrieben
+
+Geschrieben wird er im Dokument, das bei der SPG Academy abgegeben wird. Ein
+zweiter Ort für denselben Text liefe ihm hinterher, und beim Abgeben gälte doch
+nur das Dokument. SoCoS zeigt je Abschnitt die Leitfragen („was hinein muss") und
+einen Stand. Das Feldfenster und das PDF des Plans sind weg; `feld` nimmt nur
+noch Canvas-Felder an. Punkte, die schon in einem Abschnitt standen, bleiben
+sichtbar (unter den Fragen), statt still zu verschwinden.
+
+### Der Stand ist ein JSON-Feld am Vorhaben (`Vorhaben.planstand`)
+
+`{"markt": "entwurf", …}`, was fehlt, ist offen. Kein eigenes Modell: acht
+Wörter, für die sonst Sicherung, Löschweitergabe und Abgleich nachgezogen werden
+müssten. Mit dem Vorhaben wandert es ins Archiv, und das Protokoll zeigt alt → neu
+wie bei jedem Feld. Gesetzt wird es über `POST /vorhaben/<id>/stand/` — **ein**
+Abschnitt je Aufruf unter `select_for_update`. Ein PATCH mit dem ganzen
+Wörterbuch hieße: Zwei drehen gleichzeitig verschiedene Abschnitte weiter, und der
+Zweite überschreibt den Ersten.
+
+### Die Abgaben stehen zweimal da, und das ist Absicht
+
+Als Fahrplan in `basis/module.ts` (`PLANVERSIONEN`: 12.10., 27.10., 19.11.2026) —
+dort zeigt die Plan-Seite, welche die nächste ist. Und als drei Aufgaben mit Frist
+unter „Allgemein" auf der Tafel (angelegt von Migration 0025), wo sie abgehakt
+werden. Die Plan-Seite liest die Aufgaben nicht: Eine Verbindung über den Text
+einer Aufgabe bräche beim ersten Umformulieren. **Verschiebt die Academy eine
+Abgabe, wird sie an beiden Stellen geändert** — in `module.ts` und an der Aufgabe.
+Die Frist ist über die API schreibbar (`PATCH /api/aufgaben/<id>/`), aber in der
+Oberfläche nicht, und `Aufgabe` steht nicht im Django-Admin.
+
+### `Aufgabe.frist` — die Tafel bekommt doch ein Datum
+
+Bisher bewusst nicht (siehe 2026-09-14). Mit den Abgaben kam der erste Termin,
+den ein Dritter setzt; ohne Datum stünde „Version 1 abgeben" neben „Version 2
+abgeben", und keiner sähe, welche drängt. Die Frist ist freiwillig und wird **auf
+der Tafel nicht gesetzt** — die bleibt bei drei Griffen. Kommt ein zweiter Fall,
+der eine Frist von Hand braucht, ist das der Anlass für ein Eingabefeld.
+
+Sortiert wird: Priorität, dann Frist (frühere zuerst, ohne Frist hinten), dann
+das Neueste. Die Frist schlägt die Priorität nicht — die setzt man von Hand.
+Tage werden über UTC-Mitternacht gezählt: Am 25. Oktober hat der Tag 25 Stunden,
+und zwei Ortsmitternächte ergäben dort 1,04 Tage.
+
 ## 2026-09-21 — Module und die SPG Academy (`Vorhaben`, `Canvaspunkt`, Migration 0021)
 
 ### „Module" steht unter Intern und klappt nur auf, wenn man drin ist
@@ -80,6 +125,8 @@ das Mitgeschriebene einen Ort hat.
 Punkte aller Workshops, und ohne das zählte das Canvas die Abschnitte des Plans mit.
 
 Das PDF des Plans fließt (platypus), das des Canvas bleibt eine feste Seite.
+**Überholt am 2026-09-22:** Der Plan wird nicht mehr in SoCoS geschrieben, das
+PDF des Plans ist weg (siehe oben).
 
 ### Personas (`Persona`, Migration 0024) — ein eigenes Modell
 
@@ -511,7 +558,8 @@ ist der billigere Fehler.
 
 ### Was die Tafel bewusst nicht hat
 
-Kein Fälligkeitsdatum, keine Beschreibung, kein Verweis auf ein Arbeitspaket,
+Kein Fälligkeitsdatum (seit 2026-09-22 doch eine freiwillige Frist, siehe dort),
+keine Beschreibung, kein Verweis auf ein Arbeitspaket,
 kein Verschieben zwischen Spalten, kein Feld „erledigt von". Das Letzte braucht
 sie nicht: Das Änderungsprotokoll hängt an jedem Fachmodell und damit auch hier
 (`test_aufgaben.py` prüft genau das).

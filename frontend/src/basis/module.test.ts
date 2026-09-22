@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { Canvaspunkt, Vorhaben } from "./daten";
 import {
   MODULWEGE,
+  abgaben,
+  fertigeAbschnitte,
+  naechsterStand,
+  standVon,
   alsEntwuerfe,
   alsEuro,
   betragAusEingabe,
@@ -30,7 +34,7 @@ const punkt = (id: number, feld: string, text: string, reihenfolge = 0): Canvasp
 });
 
 const vorhaben = (id: number, zuletzt: string, punkte: Canvaspunkt[] = []): Vorhaben => ({
-  id, titel: `Vorhaben ${id}`, zuletzt, punkte, personas: [],
+  id, titel: `Vorhaben ${id}`, zuletzt, punkte, personas: [], planstand: {},
 });
 
 describe("die Leinwand", () => {
@@ -130,5 +134,34 @@ describe("Personas", () => {
     };
     expect(personaKurz(p)).toBe("78 Jahre · Pensionistin");
     expect(personaKurz({ ...p, alter: null, beruf: "" })).toBe("");
+  });
+});
+
+describe("Business Plan Lite", () => {
+  it("findet die nächste Abgabe", () => {
+    const heute = new Date(2026, 9, 20);
+    expect(abgaben(heute).map((a) => [a.titel, a.lage, a.tage])).toEqual([
+      ["Version 1", "vorbei", -8],
+      ["Version 2", "naechste", 7],
+      ["Finale Abgabe", "spaeter", 30],
+    ]);
+  });
+
+  // Am Tag der Abgabe ist sie noch die nächste, nicht schon vorbei.
+  it("zählt den Abgabetag noch mit", () => {
+    expect(abgaben(new Date(2026, 9, 12, 18, 0))[0]).toMatchObject({ lage: "naechste", tage: 0 });
+  });
+
+  it("hat nach der letzten keine nächste mehr", () => {
+    expect(abgaben(new Date(2026, 10, 20)).every((a) => a.lage === "vorbei")).toBe(true);
+  });
+
+  it("nimmt einen nie gesetzten Abschnitt als offen und dreht im Kreis", () => {
+    const v = { ...vorhaben(1, "2026-09-20T10:00:00Z"), planstand: { markt: "fertig" as const, summary: "entwurf" as const } };
+    expect(standVon(v, "firma")).toBe("offen");
+    expect(fertigeAbschnitte(v, ["markt", "summary", "firma"])).toBe(1);
+    expect(naechsterStand("offen")).toBe("entwurf");
+    expect(naechsterStand("entwurf")).toBe("fertig");
+    expect(naechsterStand("fertig")).toBe("offen");
   });
 });

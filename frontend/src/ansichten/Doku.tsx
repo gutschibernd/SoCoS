@@ -355,6 +355,14 @@ function AufgabenDoku() {
             "Der Haken rechts legt die Zeile ins Erledigte am Fuß der Spalte. Ein zweiter Tipp dort holt sie zurück.",
           ]}
         />
+        <Begriffe
+          paare={[
+            {
+              begriff: "Frist",
+              text: "Manche Aufgaben tragen ein Datum darunter, etwa die Abgaben des Business Plan Lite. In der letzten Woche wird es dunkel, danach rot. Bei gleicher Priorität steht die frühere Frist oben. Auf der Tafel selbst setzt man keine Frist.",
+            },
+          ]}
+        />
         <p className="doku-text">
           Den Text ändert man, indem man hineintippt und woanders hinklickt — die Zeile
           <b> ist</b> das Eingabefeld.
@@ -725,7 +733,15 @@ function ModuleDoku() {
             },
             {
               begriff: "Business Plan Lite",
-              text: "Der zweite Workshop, oben umzuschalten. Acht Abschnitte statt neun Felder, untereinander wie ein Dokument, bearbeitet genauso. Das PDF fließt über so viele Seiten, wie der Plan braucht; ein leerer Abschnitt steht dort als „noch offen“.",
+              text: "Der zweite Workshop, oben umzuschalten. Geschrieben wird der Plan nicht hier, sondern im Dokument, das abgegeben wird. SoCoS zeigt oben die drei Abgaben — Version 1 am 12.10., Version 2 am 27.10., die finale Fassung am 19.11. — und darunter je Abschnitt die Fragen, die er beantworten muss.",
+            },
+            {
+              begriff: "Stand eines Abschnitts",
+              text: "Rechts neben dem Titel: offen, Entwurf oder fertig. Ein Tipp dreht weiter. Oben zählt SoCoS, wie viele Abschnitte fertig sind.",
+            },
+            {
+              begriff: "Die Abgaben",
+              text: "Sie stehen außerdem als Aufgaben mit Frist unter „Allgemein“ auf der Tafel. Abgehakt wird dort.",
             },
             {
               begriff: "Ein volles Feld im PDF",
