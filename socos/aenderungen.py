@@ -61,11 +61,21 @@ VERSIONEN = [
             {
                 "titel": "Aufgaben mit Frist",
                 "text": (
-                    "Die drei Abgaben stehen unter Allgemein auf der Tafel, mit Datum "
-                    "und wie viele Tage bleiben. In der letzten Woche wird die Frist "
-                    "dunkel, danach rot."
+                    "Ein Tipp auf eine Aufgabe öffnet ein kleines Fenster: Dort änderst "
+                    "du den Text und setzt eine Frist. Die Frist steht unter der Aufgabe, "
+                    "mit Datum und wie viele Tage bleiben — in der letzten Woche dunkel, "
+                    "danach rot. Die drei Abgaben des Business Plan Lite stehen schon "
+                    "mit Frist unter Allgemein."
                 ),
                 "wo": "aufgaben",
+            },
+            {
+                "titel": "Business Plan Lite: was hinein muss",
+                "text": (
+                    "Je Abschnitt stehen jetzt Stichworte aus der Vorlage der SPG — "
+                    "was er abdecken muss — und wie viele Seiten er haben soll."
+                ),
+                "wo": "module/spg-businessplan",
             },
         ],
     },

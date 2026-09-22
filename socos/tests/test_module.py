@@ -105,6 +105,16 @@ class TestBusinessPlanLite:
         assert all(f["leitfragen"] for f in felder)
 
     @pytest.mark.django_db
+    def test_der_umfang_aus_der_vorlage_kommt_mit(self, client, leser):
+        client.force_login(leser)
+
+        felder = {f["feld"]: f for f in client.get("/api/vorhaben/felder/?workshop=businessplan").json()}
+
+        assert felder["markt"]["umfang"] == "2 pages"
+        # Tips & Tricks ist kein Kapitel und hat deshalb keinen Umfang.
+        assert felder["tipps"]["umfang"] == ""
+
+    @pytest.mark.django_db
     def test_ein_unbekannter_workshop_ist_ein_fehler(self, client, leser):
         client.force_login(leser)
 

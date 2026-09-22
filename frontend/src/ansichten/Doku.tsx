@@ -359,13 +359,13 @@ function AufgabenDoku() {
           paare={[
             {
               begriff: "Frist",
-              text: "Manche Aufgaben tragen ein Datum darunter, etwa die Abgaben des Business Plan Lite. In der letzten Woche wird es dunkel, danach rot. Bei gleicher Priorität steht die frühere Frist oben. Auf der Tafel selbst setzt man keine Frist.",
+              text: "Tippe auf eine Aufgabe, und im Fenster setzt du ein Datum — oder nimmst es mit „Ohne Frist“ wieder weg. Es steht dann unter der Aufgabe, in der letzten Woche dunkel, danach rot. Bei gleicher Priorität steht die frühere Frist oben.",
             },
           ]}
         />
         <p className="doku-text">
-          Den Text ändert man, indem man hineintippt und woanders hinklickt — die Zeile
-          <b> ist</b> das Eingabefeld.
+          Ein Tipp auf den Text öffnet ein kleines Fenster, in dem du ihn änderst und eine Frist
+          setzt. Mit Enter oder „Speichern“ ist es übernommen, Escape bricht ab.
         </p>
       </Abschnitt>
 
@@ -733,7 +733,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Business Plan Lite",
-              text: "Der zweite Workshop, oben umzuschalten. Geschrieben wird der Plan nicht hier, sondern im Dokument, das abgegeben wird. SoCoS zeigt oben die drei Abgaben — Version 1 am 12.10., Version 2 am 27.10., die finale Fassung am 19.11. — und darunter je Abschnitt die Fragen, die er beantworten muss.",
+              text: "Der zweite Workshop, oben umzuschalten. Geschrieben wird der Plan nicht hier, sondern im Dokument, das abgegeben wird. SoCoS zeigt oben die drei Abgaben — Version 1 am 12.10., Version 2 am 27.10., die finale Fassung am 19.11. — und darunter je Abschnitt in Stichworten aus der Vorlage der SPG, was er abdecken muss, und wie viele Seiten er haben soll.",
             },
             {
               begriff: "Stand eines Abschnitts",

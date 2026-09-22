@@ -23,6 +23,7 @@ from socos import aenderungen, berechtigung, serializer as ser, sicherung
 from socos.models import (
     AUFGABEN,
     LEITFRAGEN,
+    UMFANG,
     WORKSHOPS,
     Arbeitspaket,
     Abschnittstand,
@@ -531,6 +532,7 @@ class VorhabenViewSet(SocosViewSet):
                 "titel": titel,
                 "aufgabe": AUFGABEN.get(wert, []),
                 "leitfragen": LEITFRAGEN[wert],
+                "umfang": UMFANG.get(wert, ""),
             }
             for nummer, (wert, titel) in enumerate(WORKSHOPS[workshop].choices, start=1)
         ])

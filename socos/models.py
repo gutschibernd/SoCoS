@@ -1574,42 +1574,75 @@ class Abschnittstand(models.TextChoices):
 # Schnittstelle (`/api/vorhaben/felder/?workshop=…`).
 WORKSHOPS = {"canvas": Canvasfeld, "businessplan": Planabschnitt}
 
-# Leitfragen zum Business Plan Lite. Sie sind aus der Kursbeschreibung
-# abgeleitet („a concise executive summary", „market research"), nicht aus den
-# Videos — die Aufgaben daraus kommen wie beim Canvas nach, sobald sie
-# mitgeschrieben sind.
+# Was in jeden Abschnitt des Business Plan Lite gehört — kurz gefasst aus der
+# Vorlage der SPG („Structure example & guidelines", sieben Seiten). Bewusst
+# nur Stichworte: Die Vorlage liegt beim Schreiben ohnehin daneben, und hier
+# soll man mit einem Blick sehen, was ein Abschnitt abdecken muss.
 LEITFRAGEN.update({
     Planabschnitt.SUMMARY: [
-        "What is your business in a few sentences — problem, solution, customers?",
-        "What do you need, and what will you achieve with it?",
+        "Key points of all chapters — clear, concise, strong language",
+        "Goal: convince investors and funding bodies to provide capital",
+        "Write it last",
     ],
     Planabschnitt.PRODUKTE: [
-        "What exactly do you offer, and how far along is it?",
-        "How does it stand out from existing solutions?",
+        "Products and services, modules if any",
+        "USP vs. competition — and competitive disadvantages",
+        "IP strategy: patents, copyrights, trademarks",
+        "Status (idea – POC – prototype – MVP – market-ready), TRL 0–9",
+        "Timeline to market, pricing",
+        "Focus on the customer need and the benefits",
     ],
     Planabschnitt.MARKT: [
-        "How big is your target market, and how fast is it growing?",
-        "Who are your competitors, and which data backs your numbers?",
+        "Market size: TAM, SAM, SOM — growth (CAGR) and trends",
+        "Target groups: B2C or B2B, segmented",
+        "Competitors, direct and indirect: price, USP, size, location, market share",
+        "Market entry barriers",
+        "Positioning (positioning cross)",
     ],
     Planabschnitt.VERTRIEB: [
-        "How will customers learn about your product, and how will you sell it?",
-        "What does it cost to win a customer?",
+        "Price: model, margin, what competitors charge",
+        "Place: where it is sold, share of sales per place",
+        "Promotion: website, SEO, social media — and the budget",
+        "Sales channels: direct or via partners",
+        "Sales goals: start of sales, cash flow needed",
     ],
     Planabschnitt.FIRMA: [
-        "What is your legal form, and who owns the company?",
-        "Who is in the team, and which expertise is still missing?",
+        "Name, (planned) founding date, legal form, who holds which shares",
+        "Headquarters, external partners with pros and cons",
+        "Team: expertise, roles, responsibilities per business area",
+        "Missing know-how and how to close the gap",
+        "Mentors, advisors, investors",
     ],
     Planabschnitt.SDG: [
-        "Which of the UN Sustainable Development Goals does your business contribute to, and how?",
+        "Which SDGs, how — with targets and indicators",
+        "Any negative impact on an SDG?",
+        "Contribution through own operations, where it matters most",
     ],
     Planabschnitt.FINANZEN: [
-        "What are your expected costs and revenues over the next years?",
-        "How much funding do you need, and where will it come from?",
+        "Costs and revenues for five years (SPG Startup Budget File)",
+        "One-time start-up costs and investments, incl. legal and tax advice",
+        "Ongoing costs: staff, marketing, infrastructure, development",
+        "Capital requirement with a buffer",
+        "Financing strategy and funding programmes",
     ],
     Planabschnitt.TIPPS: [
-        "What do you want to keep in mind while writing the plan?",
+        "Readable for non-experts: clear structure, graphics, e.g. pitch-deck design",
+        "Decisive language — no subjunctive",
+        "Reader's shoes: is there a common thread?",
+        "Market research: \"X market size pdf\", Statista (free in the TU Graz WLAN), Google Trends",
     ],
 })
+
+# Wie lang ein Abschnitt laut Vorlage sein soll. Steht neben dem Titel.
+UMFANG = {
+    Planabschnitt.SUMMARY: "1 page",
+    Planabschnitt.PRODUKTE: "1–2 pages",
+    Planabschnitt.MARKT: "2 pages",
+    Planabschnitt.VERTRIEB: "1–2 pages",
+    Planabschnitt.FIRMA: "1 page",
+    Planabschnitt.SDG: "1 page",
+    Planabschnitt.FINANZEN: "1–2 pages",
+}
 
 
 class Vorhaben(Basismodell):

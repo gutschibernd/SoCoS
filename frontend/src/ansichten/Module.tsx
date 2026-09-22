@@ -326,7 +326,8 @@ const LEER: Vorhaben = { id: 0, titel: "", punkte: [], personas: [], planstand: 
 
 /**
  * Der Business Plan Lite als Überblick: die drei Abgaben, darunter je
- * Abschnitt, was hineingehört und wie weit er ist.
+ * Abschnitt, was laut Vorlage der SPG hineingehört, wie lang er sein soll und
+ * wie weit er ist.
  *
  * **Geschrieben wird der Plan nicht hier**, sondern im Dokument, das
  * abgegeben wird. Ein zweiter Ort für denselben Text liefe dem Dokument
@@ -382,6 +383,7 @@ function Planueberblick({
               <h3 className="leinwand-kopf">
                 <span className="leinwand-nummer">{f.nummer}</span>
                 {f.titel}
+                {f.umfang && <span className="plan-umfang">{f.umfang}</span>}
                 <button
                   type="button"
                   className="planstand"
@@ -394,9 +396,11 @@ function Planueberblick({
                   {text}
                 </button>
               </h3>
-              <ul className="leinwand-fragen">
-                {f.leitfragen.map((frage) => (
-                  <li key={frage}>{frage}</li>
+              {/* Was hinein muss, kurz aus der Vorlage der SPG — Stichworte,
+                  keine Fragen, deshalb mit Strich und nicht mit „?". */}
+              <ul className="leinwand-punkte plan-ziele">
+                {f.leitfragen.map((ziel) => (
+                  <li key={ziel}>{ziel}</li>
                 ))}
               </ul>
               {punkte.length > 0 && (

@@ -1491,6 +1491,17 @@ a.mini { text-decoration: none; }
 /* Aufgeklappt ist es ein gewöhnliches Feld — es darf nur nicht die Breite des
    Prioritätsknopfes an sich reißen. */
 .aufgabe-mitte > .feld { flex: 1 1 auto; min-width: 0; margin-top: 0; padding: 6px 8px; }
+/* Das Fenster zu einer Aufgabe: Text und Frist untereinander. */
+.aufgabendialog { display: flex; flex-direction: column; gap: 12px; }
+.aufgabendialog h2 { margin-bottom: 0; }
+.aufgabendialog .profilfeld { margin-bottom: 0; }
+/* Der Text öffnet ein Fenster und ist kein Eingabefeld mehr — also kein Textcursor. */
+.aufgabe .inline-aendern.aufgabe-text { cursor: pointer; }
+.aufgabendialog-frist { display: flex; gap: 8px; align-items: center; }
+.aufgabendialog-frist .feld { flex: 1 1 auto; min-width: 0; margin-top: 0; }
+.aufgabendialog-frist .knopf-still { flex: 0 0 auto; }
+.aufgabendialog .dialog-knoepfe { margin-top: 4px; }
+
 /* Die Frist: leise, solange sie weit weg ist, dunkel in der letzten Woche,
    in der Warnfarbe, wenn sie vorbei ist. */
 .aufgabe-frist {
@@ -1896,6 +1907,12 @@ a.mini { text-decoration: none; }
 .planstand[data-stand="offen"]   { background: var(--ruhend-hell); color: var(--text-leise); }
 .planstand[data-stand="entwurf"] { background: var(--marke-hell);  color: var(--marke); }
 .planstand[data-stand="fertig"]  { background: var(--gut-hell);    color: var(--gut); }
+/* Der Umfang laut Vorlage, leise hinter dem Titel. */
+.plan-umfang {
+  font-family: var(--schrift-zahl); font-size: 11.5px; font-weight: 400;
+  color: var(--text-leise); white-space: nowrap;
+}
+.plan-ziele li { font-size: 13px; color: var(--text-leise); }
 /* Punkte aus der Zeit, als der Plan hier geschrieben wurde — unter den
    Fragen, abgesetzt durch eine Haarlinie. */
 .plan-notizen { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rand); }

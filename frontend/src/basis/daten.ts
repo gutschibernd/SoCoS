@@ -321,6 +321,8 @@ export type Canvasfeld = {
   /** Was im Feld verlangt ist, aus den Vorbereitungsvideos — oft leer. */
   aufgabe: string[];
   leitfragen: string[];
+  /** Wie lang der Abschnitt laut Vorlage sein soll („1–2 pages") — beim Canvas leer. */
+  umfang: string;
 };
 
 export type Abschnittstand = "offen" | "entwurf" | "fertig";

@@ -36,16 +36,24 @@ unter „Allgemein" auf der Tafel (angelegt von Migration 0025), wo sie abgehakt
 werden. Die Plan-Seite liest die Aufgaben nicht: Eine Verbindung über den Text
 einer Aufgabe bräche beim ersten Umformulieren. **Verschiebt die Academy eine
 Abgabe, wird sie an beiden Stellen geändert** — in `module.ts` und an der Aufgabe.
-Die Frist ist über die API schreibbar (`PATCH /api/aufgaben/<id>/`), aber in der
-Oberfläche nicht, und `Aufgabe` steht nicht im Django-Admin.
+Die Frist setzt man im Fenster, das ein Tipp auf die Aufgabe öffnet.
 
 ### `Aufgabe.frist` — die Tafel bekommt doch ein Datum
 
 Bisher bewusst nicht (siehe 2026-09-14). Mit den Abgaben kam der erste Termin,
 den ein Dritter setzt; ohne Datum stünde „Version 1 abgeben" neben „Version 2
-abgeben", und keiner sähe, welche drängt. Die Frist ist freiwillig und wird **auf
-der Tafel nicht gesetzt** — die bleibt bei drei Griffen. Kommt ein zweiter Fall,
-der eine Frist von Hand braucht, ist das der Anlass für ein Eingabefeld.
+abgeben", und keiner sähe, welche drängt. Die Frist ist freiwillig.
+
+**Anlegen bleibt eine Zeile und Enter.** Text und Frist ändert man in einem
+kleinen Fenster, das ein Tipp auf die Aufgabe öffnet — es ersetzt das Ändern an
+Ort und Stelle (`Feldtext`) auf der Tafel. Ein Datumsfeld in jeder Zeile oder
+in der Neuzeile stünde jedem im Weg, der keine Frist braucht, und das sind die
+meisten. Auf der Ideenliste hat das Fenster kein Fristfeld: Eine Idee, die bis
+zu einem Tag entschieden sein muss, ist schon eine Aufgabe.
+
+Die Stichworte je Abschnitt des Plans und der Seitenumfang (`UMFANG`) sind aus
+der Vorlage der SPG („Business Plan Lite — Structure example & guidelines")
+zusammengefasst und stehen in `LEITFRAGEN` wie beim Canvas.
 
 Sortiert wird: Priorität, dann Frist (frühere zuerst, ohne Frist hinten), dann
 das Neueste. Die Frist schlägt die Priorität nicht — die setzt man von Hand.

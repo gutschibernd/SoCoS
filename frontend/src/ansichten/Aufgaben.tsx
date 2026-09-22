@@ -36,7 +36,6 @@ import {
 import type { Seite } from "../basis/router";
 import { useAufgaben, useNeuLaden, useTeam, type Aufgabe, type Ich } from "../basis/daten";
 import { Zustand } from "../basis/Zustand";
-import { Feldtext } from "../bausteine/Feldtext";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
 
@@ -446,6 +445,7 @@ function Zeile({
      ab, wo sie steht. Eine zweite Zeilenkomponente daneben ginge beim nächsten
      neuen Feld auseinander, und auffallen würde es an der selteneren der
      beiden Listen zuerst nicht. */
+  const [bearbeiten, setBearbeiten] = useState(false);
   const haken = aufgabe.ist_idee
     ? { zurueck: "Wieder auf die Liste", weg: "Vom Tisch" }
     : { zurueck: "Wieder offen", weg: "Erledigt" };
@@ -478,19 +478,35 @@ function Zeile({
           280 px ist eine Zeile, die nach 30 Zeichen abgeschnitten wird, keine
           Aufgabe mehr, sondern ein Rätsel. */}
       <div className="aufgabe-mitte">
-        <Feldtext
-          wert={aufgabe.text}
-          aendern={darfSchreiben && !aufgabe.erledigt}
-          klasse="aufgabe-text"
-          speichern={(neu) => speichern(aufgabe, { text: neu })}
-        />
+        {/* Ein Tipp auf den Text öffnet ein kleines Fenster mit Text und
+            Frist. Anlegen bleibt eine Zeile und Enter — wer eine Frist
+            braucht, tippt danach auf die Aufgabe. So bleibt der schnelle Weg
+            schnell, und das seltene Feld steht nicht jedem im Weg. */}
+        {darfSchreiben && !aufgabe.erledigt ? (
+          <button
+            type="button"
+            className="inline-aendern aufgabe-text"
+            title="Zum Bearbeiten tippen"
+            onClick={() => setBearbeiten(true)}
+          >
+            {aufgabe.text}
+          </button>
+        ) : (
+          <span className="aufgabe-text">{aufgabe.text}</span>
+        )}
         {/* Die Frist steht nur da, wo es eine gibt — und nur, solange die
             Aufgabe offen ist: „3 Tage drüber" an etwas Erledigtem wäre ein
-            Alarm, der nichts mehr bedeutet. Gesetzt wird sie nicht hier; die
-            Tafel bleibt bei drei Griffen, und die Fristen, die es gibt, setzt
-            ein Dritter. */}
+            Alarm, der nichts mehr bedeutet. */}
         {aufgabe.frist && !aufgabe.erledigt && <Frist frist={aufgabe.frist} />}
       </div>
+
+      {bearbeiten && (
+        <Aufgabendialog
+          aufgabe={aufgabe}
+          speichern={speichern}
+          schliessen={() => setBearbeiten(false)}
+        />
+      )}
 
       {/* Nur auf der Ideenliste, und nur solange die Idee offen ist: derselbe
           Datensatz zieht auf die Tafel um. Kein Abtippen, keine neue Kennung —
@@ -531,5 +547,93 @@ function Frist({ frist }: { frist: string }) {
       <Zeichen name="zeit" />
       {text}
     </span>
+  );
+}
+
+/**
+ * Das kleine Fenster zu einer Aufgabe: Text und Frist.
+ *
+ * Die Frist nur auf der Tafel, nicht auf der Ideenliste — eine Idee, die bis
+ * zu einem Tag entschieden sein muss, ist schon eine Aufgabe.
+ */
+function Aufgabendialog({
+  aufgabe,
+  speichern,
+  schliessen,
+}: {
+  aufgabe: Aufgabe;
+  speichern: (aufgabe: Aufgabe, daten: Partial<Aufgabe>) => Promise<void>;
+  schliessen: () => void;
+}) {
+  const [text, setText] = useState(aufgabe.text);
+  const [frist, setFrist] = useState(aufgabe.frist ?? "");
+  const [laeuft, setLaeuft] = useState(false);
+
+  useEffect(() => {
+    const taste = (e: KeyboardEvent) => e.key === "Escape" && schliessen();
+    window.addEventListener("keydown", taste);
+    return () => window.removeEventListener("keydown", taste);
+  }, [schliessen]);
+
+  async function abschicken(e: React.FormEvent) {
+    e.preventDefault();
+    if (!text.trim() || laeuft) return;
+    setLaeuft(true);
+    try {
+      await speichern(aufgabe, {
+        text: text.trim(),
+        ...(aufgabe.ist_idee ? {} : { frist: frist || null }),
+      });
+      schliessen();
+    } catch {
+      // `hole` hat den Grund schon gemeldet. Das Fenster bleibt offen, damit
+      // das Getippte nicht verloren geht.
+      setLaeuft(false);
+    }
+  }
+
+  return (
+    <div className="dialog-grund" role="dialog" aria-modal="true" onClick={schliessen}>
+      <form className="dialog aufgabendialog" onClick={(e) => e.stopPropagation()} onSubmit={abschicken}>
+        <h2>{aufgabe.ist_idee ? "Idee bearbeiten" : "Aufgabe bearbeiten"}</h2>
+        <label className="profilfeld">
+          <span className="beschriftung-klein">{aufgabe.ist_idee ? "Idee" : "Aufgabe"}</span>
+          <input
+            className="feld"
+            value={text}
+            maxLength={250}
+            autoFocus
+            onChange={(e) => setText(e.target.value)}
+          />
+        </label>
+        {!aufgabe.ist_idee && (
+          <label className="profilfeld">
+            <span className="beschriftung-klein">Frist</span>
+            <span className="aufgabendialog-frist">
+              <input
+                type="date"
+                className="feld"
+                value={frist}
+                onChange={(e) => setFrist(e.target.value)}
+              />
+              {/* Am iPhone hat das Datumsfeld kein Kreuz zum Leeren. */}
+              {frist && (
+                <button type="button" className="knopf-still" onClick={() => setFrist("")}>
+                  Ohne Frist
+                </button>
+              )}
+            </span>
+          </label>
+        )}
+        <div className="dialog-knoepfe">
+          <button type="button" className="knopf-still" onClick={schliessen}>
+            Abbrechen
+          </button>
+          <button type="submit" className="knopf" disabled={!text.trim() || laeuft}>
+            Speichern
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
