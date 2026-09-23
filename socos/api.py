@@ -15,6 +15,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
+from django.utils.http import content_disposition_header
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -792,6 +793,13 @@ class NutzerViewSet(SocosViewSet):
             menge = menge.filter(is_active=True)
         return menge
 
+    def perform_create(self, serializer):
+        # Ein Konto anzulegen ist Nutzerverwaltung — ohne diese Prüfung käme
+        # ein Bearbeiter über die gewöhnliche Regel (POST = bearbeiten) daran.
+        if not berechtigung.darf_nutzer_verwalten(self.request.user):
+            raise PermissionDenied("Konten legt ein Admin an.")
+        serializer.save()
+
     def perform_update(self, serializer):
         # Sein Profil bearbeitet jeder selbst; fremde nur der Admin.
         if serializer.instance != self.request.user and not berechtigung.ist_admin(
@@ -1020,8 +1028,11 @@ def zeitnachweis(request):
     # `attachment`, nicht `inline`: Der Nachweis wird abgelegt und verschickt,
     # nicht überflogen. Ein PDF, das sich im Tab öffnet, muss man erst wieder
     # von Hand speichern.
-    antwort["Content-Disposition"] = (
-        f'attachment; filename="{nachweis.dateiname(monat, person)}"'
+    #
+    # Über Djangos Helfer und nicht als f-String: Der Dateiname enthält den
+    # Namen der Person, und ein Anführungszeichen darin bräche den Kopf auf.
+    antwort["Content-Disposition"] = content_disposition_header(
+        True, nachweis.dateiname(monat, person)
     )
     return antwort
 

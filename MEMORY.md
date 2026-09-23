@@ -7,6 +7,38 @@ betrifft.
 
 ---
 
+## 2026-09-23 — Sicherheitsprüfung
+
+Code von Hand durchgesehen, dazu `check --deploy`, `pip-audit`, `bandit` und
+`npm audit`. Behoben, jeweils mit Test in `socos/tests/test_sicherheit.py`:
+
+- **Abhängigkeiten:** Django 5.2.7 → 5.2.17, DRF → 3.17.2, pytest → 9.0.3.
+  61 bekannte Lücken, danach keine. `npm audit --omit=dev` ist sauber; die
+  Meldung zu `vitest` betrifft nur den Testläufer, die Behebung wäre der
+  Sprung auf vitest 4 und steht noch aus.
+- **Das Änderungsprotokoll zeigte fremde Stammdaten.** Es hält alt → neu je
+  Feld fest und ist für alle lesbar — Adresse und Geburtsdatum, die der
+  Nutzer-Serializer verbirgt, standen dort im Klartext. Jetzt filtert der
+  `ProtokollSerializer` mit **derselben** Liste (`NutzerSerializer.STAMMDATEN`).
+  Wer dem Nutzer ein neues privates Feld gibt, trägt es dort ein.
+- **Ein Bearbeiter konnte per `POST /api/nutzer/` Konten anlegen.** Die
+  gewöhnliche Regel sagt „POST = bearbeiten"; Konten sind aber
+  Nutzerverwaltung. `perform_create` prüft jetzt `darf_nutzer_verwalten`.
+- **`/healthz/` gab die Treibermeldung nach außen** (Rechner, Adresse,
+  Datenbanknutzer). Der Grund steht jetzt nur noch im Server-Protokoll.
+- **Content-Disposition im Zeitnachweis** über `content_disposition_header`,
+  weil der Dateiname den Personennamen enthält.
+- **Content-Security-Policy** (`socos/sicherheitskoepfe.py`): `script-src
+  'self'` ohne `unsafe-inline`. Dafür ist das Skript der Anmeldeseite nach
+  `statisch/anmelden.js` gewandert. **Kein eingebettetes Skript mehr, nirgends**
+  — ein Test sieht in `anmelden.html` nach. Geprüft: Anmeldung, Anwendung,
+  Admin, API-Ansicht ohne Verstoß.
+
+Bewusst offen gelassen: Sitzungsdauer (Django-Vorgabe zwei Wochen) und eine
+Obergrenze für die Anfragegröße in Caddy (die Sicherung kann groß werden).
+
+---
+
 ## 2026-09-23 — Anhänge am Meeting, und ein neuer Auftrag an das LLM (Migration 0026)
 
 ### `Meetinganhang`: die Datei unter `MEDIA_ROOT`, der Mailtext daneben

@@ -40,6 +40,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Die Content-Security-Policy. Warum hier und nicht im Caddyfile, steht
+    # in der Datei selbst.
+    "socos.sicherheitskoepfe.SicherheitskoepfeMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",

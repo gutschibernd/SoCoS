@@ -1,10 +1,14 @@
 """Ansichten außerhalb der API."""
 
+import logging
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.cache import never_cache
+
+logger = logging.getLogger(__name__)
 
 
 @never_cache
@@ -26,9 +30,13 @@ def healthz(request):
         with connection.cursor() as zeiger:
             zeiger.execute("SELECT 1")
             zeiger.fetchone()
-    except Exception as fehler:  # noqa: BLE001 — der Grund gehört in die Antwort
+    except Exception:  # noqa: BLE001 — jeder Fehler heißt hier „krank"
+        # Der Grund ins Server-Protokoll, nicht in die Antwort: /healthz/ ist
+        # ohne Anmeldung auch von außen erreichbar, und die Fehlermeldung des
+        # Treibers nennt Rechnername, Adresse und Datenbanknutzer.
+        logger.exception("Healthcheck: Datenbank nicht erreichbar")
         return JsonResponse(
-            {"status": "krank", "grund": f"Datenbank nicht erreichbar: {fehler}"},
+            {"status": "krank", "grund": "Datenbank nicht erreichbar"},
             status=503,
         )
     return JsonResponse({"status": "gesund"})

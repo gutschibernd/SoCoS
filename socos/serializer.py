@@ -46,6 +46,10 @@ class NutzerSerializer(serializers.ModelSerializer):
     ein ungenanntes Feld.
     """
 
+    #: Was nur man selbst und der Admin sieht. Das Änderungsprotokoll liest
+    #: dieselbe Liste — sonst stünde die neue Adresse dort für alle im Klartext.
+    STAMMDATEN = ("strasse", "ort", "geburtsdatum")
+
     rolle = serializers.SerializerMethodField()
 
     class Meta:
@@ -66,7 +70,7 @@ class NutzerSerializer(serializers.ModelSerializer):
         daten = super().to_representation(instanz)
         anfragender = self.context.get("request").user if self.context.get("request") else None
         if not berechtigung.darf_stammdaten_sehen(anfragender, instanz):
-            for feld in ("strasse", "ort", "geburtsdatum"):
+            for feld in self.STAMMDATEN:
                 daten.pop(feld, None)
         return daten
 
@@ -566,6 +570,25 @@ class ProtokollSerializer(serializers.ModelSerializer):
             "id", "zeitpunkt", "nutzer_text", "modell", "objekt_id",
             "objekt_text", "aktion", "aenderungen",
         ]
+
+    def to_representation(self, eintrag):
+        """
+        Das Protokoll hält jede Änderung am Nutzer mit alt → neu fest — auch
+        Adresse und Geburtsdatum. Gelesen werden darf es von allen; die
+        Stammdaten darin nur, wer sie auch am Nutzer selbst sähe.
+        """
+        daten = super().to_representation(eintrag)
+        if eintrag.modell != Nutzer._meta.label or not daten.get("aenderungen"):
+            return daten
+        anfrage = self.context.get("request")
+        betroffen = Nutzer(pk=int(eintrag.objekt_id))
+        if not berechtigung.darf_stammdaten_sehen(anfrage.user if anfrage else None, betroffen):
+            daten["aenderungen"] = {
+                feld: wert
+                for feld, wert in daten["aenderungen"].items()
+                if feld not in NutzerSerializer.STAMMDATEN
+            }
+        return daten
 
 
 # --- Wünsche und Fehler -----------------------------------------------------

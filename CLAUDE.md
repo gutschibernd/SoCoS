@@ -138,6 +138,11 @@ im Ernstfall, unter Zeitdruck, wenn das Original schon weg ist.
   Kein Verweis auf `fonts.googleapis.com`: Der meldet bei jedem Seitenaufruf die
   IP des Nutzers an einen Dritten, und in einem MedTech-Umfeld ist das kein
   theoretisches Argument. Ein neuer Schnitt kommt als woff2 dazu, nicht als Link.
+- **Kein eingebettetes `<script>`**, auch nicht in einer Django-Vorlage. Die
+  Content-Security-Policy (`socos/sicherheitskoepfe.py`) lässt nur Skripte vom
+  eigenen Ursprung zu; ein eingebettetes läuft einfach nicht, und die Seite
+  steht still, ohne dass ein Test es merkt. Skripte kommen als Datei nach
+  `statisch/`.
 - **Die Marke hat eine Geometrie, und die steht in `socos/marke.py`.** Favicon,
   ICO, Apple-Touch-Icon und der PDF-Kopf kommen von dort; Kopfleiste und
   Anmeldeseite binden `statisch/favicon.svg` als Bild ein. Wer das Zeichen
