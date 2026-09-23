@@ -4,11 +4,13 @@ import {
   abschnitteAusText,
   auftragFuerLLM,
   besteTreffer,
+  groesse,
+  mailkopf,
   passtMeeting,
   teileNachZeit,
   wann,
 } from "./meetings";
-import type { Kontakt, Meeting } from "./daten";
+import type { Kontakt, Meeting, Meetinganhang } from "./daten";
 
 function meeting(teil: Partial<Meeting> = {}): Meeting {
   return {
@@ -26,6 +28,20 @@ function meeting(teil: Partial<Meeting> = {}): Meeting {
     vorbereitung: "",
     mitschrift: "",
     abschnitte: [],
+    anhaenge: [],
+    ...teil,
+  };
+}
+
+function anhang(teil: Partial<Meetinganhang> = {}): Meetinganhang {
+  return {
+    id: 1,
+    meeting: 1,
+    name: "klient.eml",
+    groesse: 1000,
+    art: "email",
+    text: "",
+    erstellt_am: "2026-09-19T17:00:00Z",
     ...teil,
   };
 }
@@ -88,7 +104,45 @@ describe("auftragFuerLLM", () => {
 
     expect(auftrag).toContain("Berger: Antrag bis Ende Oktober");
     expect(auftrag).toContain("Erfinde nichts");
-    expect(auftrag).toContain("## Überschrift");
+    expect(auftrag).toContain('"## Überschrift"');
+  });
+
+  /* Die erste Fassung verlangte „nichts weglassen, auch den halben Satz" —
+     bei einem Transkript ein Protokoll voller Begrüßung. Vollständig heißt
+     jetzt: jede Zahl, Frist und Zusage. */
+  it("verlangt inhaltliche Vollständigkeit, nicht jedes Füllwort", () => {
+    const auftrag = auftragFuerLLM(meeting({ mitschrift: "x" }));
+
+    expect(auftrag).toContain("jede Zahl, jeder Betrag, jede Frist und jede Zusage");
+    expect(auftrag).toContain("Smalltalk");
+    expect(auftrag).not.toContain("auch der halbe Satz");
+  });
+
+  it("gibt Kurzfassung, Themenabschnitte und Aufgaben mit Wer und Wann vor", () => {
+    const auftrag = auftragFuerLLM(meeting({ mitschrift: "x" }));
+
+    expect(auftrag).toContain("## Kurzfassung");
+    expect(auftrag).toContain("ein Abschnitt je Thema");
+    expect(auftrag).toContain('"- Wer: Was — bis wann"');
+    // Abschnitte stehen in SoCoS als reiner Text.
+    expect(auftrag).toContain("keine Tabellen, kein Fettdruck");
+  });
+
+  /* Ein Transkript hört „Sofarmis". Mit Firma, Rollen und Häusern im Rahmen
+     kann das Modell das richtigstellen, statt es zu übernehmen. */
+  it("liefert die richtigen Schreibweisen: Firma, Rolle und Haus", () => {
+    const auftrag = auftragFuerLLM(
+      meeting({
+        mitschrift: "x",
+        personen: [
+          { id: 1, name: "Julia Richter", funktion: "Steuerberaterin", organisation_name: "Taxletics" },
+        ],
+      }),
+    );
+
+    expect(auftrag).toContain("Sopharmis Medical Solutions FlexCo");
+    expect(auftrag).toContain("Julia Richter (Steuerberaterin, Taxletics)");
+    expect(auftrag).toContain("Transkripte verhören sich");
   });
 
   /* Die Vorbereitung ist der Plan, nicht das Gespräch. Sie geht mit, aber in
@@ -102,19 +156,66 @@ describe("auftragFuerLLM", () => {
 
     expect(auftrag).toContain("--- VORBEREITUNG (vorher geschrieben, kein Gesprächsinhalt) ---");
     expect(auftrag).toContain("Preis drücken");
-    expect(auftrag).toContain("Die Vorbereitung ist der Plan, nicht das Gespräch");
-    expect(auftrag).toContain("Nicht zur Sprache gekommen");
+    expect(auftrag).toContain("Nichts daraus wird zu etwas, das besprochen");
+    expect(auftrag).toContain("## Nicht zur Sprache gekommen");
     // Der Plan steht vor dem Gespräch, nicht mittendrin.
     expect(auftrag.indexOf("--- ENDE DER VORBEREITUNG ---")).toBeLessThan(
       auftrag.indexOf("--- MITSCHRIFT ---"),
     );
   });
 
-  it("erwähnt ohne Vorbereitung auch keine", () => {
+  it("legt den Text einer E-Mail als Unterlage bei, gekennzeichnet als Hintergrund", () => {
+    const auftrag = auftragFuerLLM(
+      meeting({
+        mitschrift: "x",
+        anhaenge: [
+          anhang({ text: "Betreff: Neuer Klient\n\nBH: EUR 90,00/h" }),
+          anhang({ id: 2, name: "Pass.pdf", art: "datei", text: "" }),
+        ],
+      }),
+    );
+
+    expect(auftrag).toContain(
+      '--- UNTERLAGE 1: E-Mail „klient.eml“ (Hintergrund, kein Gesprächsinhalt) ---',
+    );
+    expect(auftrag).toContain("BH: EUR 90,00/h");
+    expect(auftrag).toContain("gilt das Gespräch");
+    // Eine Datei ohne Text: nur ihr Name, kein leerer Block.
+    expect(auftrag).toContain("Inhalt liegt nicht bei): Pass.pdf");
+    expect(auftrag).not.toContain("UNTERLAGE 2");
+    expect(auftrag.indexOf("--- ENDE DER UNTERLAGE 1 ---")).toBeLessThan(
+      auftrag.indexOf("--- MITSCHRIFT ---"),
+    );
+  });
+
+  it("erwähnt ohne Vorbereitung und Unterlagen auch keine", () => {
     const auftrag = auftragFuerLLM(meeting({ vorbereitung: "  ", mitschrift: "kurz" }));
 
     expect(auftrag).not.toContain("VORBEREITUNG");
+    expect(auftrag).not.toContain("UNTERLAGE");
     expect(auftrag).not.toContain("Nicht zur Sprache gekommen");
+  });
+});
+
+describe("mailkopf", () => {
+  it("liest Absender ohne Adresse, Datum und Betreff", () => {
+    const kopf = mailkopf(
+      "Von: Gabriel Platzer <gabriel@example.invalid>\nAn: x\nDatum: 19.09.2026 19:08\nBetreff: Neuer Klient\n\nVon: im Zitat <z@x>",
+    );
+
+    expect(kopf).toEqual({ von: "Gabriel Platzer", datum: "19.09.2026 19:08", betreff: "Neuer Klient" });
+  });
+
+  it("lässt fehlende Zeilen leer", () => {
+    expect(mailkopf("")).toEqual({ von: "", datum: "", betreff: "" });
+  });
+});
+
+describe("groesse", () => {
+  it("zeigt Byte, Kilobyte und Megabyte", () => {
+    expect(groesse(512)).toBe("512 B");
+    expect(groesse(740 * 1024)).toBe("740 KB");
+    expect(groesse(16.4 * 1024 * 1024)).toBe("16,4 MB");
   });
 });
 
@@ -139,7 +240,7 @@ function kontakt(teil: Partial<Kontakt> & Pick<Kontakt, "id" | "name">): Kontakt
 
 describe("besteTreffer", () => {
   const leute = [
-    kontakt({ id: 1, name: "Berger", organisation_name: "Förderstelle Nord" }),
+    kontakt({ id: 1, name: "Berger", funktion: "", organisation_name: "Förderstelle Nord" }),
     kontakt({ id: 2, name: "Lieberwirth", organisation_name: "Klinikum Süd" }),
     kontakt({ id: 3, name: "Anna Bergmann", funktion: "Programmleitung" }),
     kontakt({ id: 4, name: "Nordmann", organisation_name: "Klinikum Süd" }),
@@ -229,9 +330,15 @@ describe("passtMeeting", () => {
   });
 
   it("findet über die Person und ihr Haus", () => {
-    const m = meeting({ personen: [{ id: 3, name: "Berger", organisation_name: "Förderstelle" }] });
+    const m = meeting({ personen: [{ id: 3, name: "Berger", funktion: "", organisation_name: "Förderstelle" }] });
 
     expect(passtMeeting(m, "förder")).toBe(true);
+  });
+
+  it("findet auch, was in einer angehängten Mail steht", () => {
+    const m = meeting({ anhaenge: [anhang({ text: "BH: EUR 90,00/h" })] });
+
+    expect(passtMeeting(m, "90,00")).toBe(true);
   });
 
   it("lässt bei leerer Suche alles durch", () => {

@@ -287,7 +287,7 @@ export type Meeting = {
   uhrzeit: string | null;
   ort: string;
   kontakte: number[];
-  personen: { id: number; name: string; organisation_name: string }[];
+  personen: { id: number; name: string; funktion: string; organisation_name: string }[];
   organisationen: number[];
   haeuser: { id: number; name: string }[];
   teilnehmer: number[];
@@ -295,6 +295,21 @@ export type Meeting = {
   vorbereitung: string;
   mitschrift: string;
   abschnitte: Meetingabschnitt[];
+  anhaenge: Meetinganhang[];
+};
+
+/**
+ * Eine Datei am Meeting. Bei einer E-Mail steht ihr Text daneben (Kopf,
+ * Inhalt, Namen der Anhänge) — ausgelesen beim Hochladen, am Server.
+ */
+export type Meetinganhang = {
+  id: number;
+  meeting: number;
+  name: string;
+  groesse: number;
+  art: "email" | "datei";
+  text: string;
+  erstellt_am: string;
 };
 
 export type Meetingabschnitt = {

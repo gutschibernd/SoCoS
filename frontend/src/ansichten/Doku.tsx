@@ -601,6 +601,7 @@ function MeetingsDoku() {
             "Meeting anlegen, sobald der Termin steht — Titel, Tag, Uhrzeit. Personen und Häuser kannst du später nachtragen.",
             "In „Vorbereitung“ eintragen, was wir aus dem Termin holen wollen. Das bleibt danach stehen: Daran misst sich, ob wir es bekommen haben.",
             "Während des Meetings in „Mitschrift“ tippen. Stichworte reichen — das Feld speichert sich von selbst, es gibt keinen Knopf dafür.",
+            "Die Mail oder Unterlagen zum Termin unter „Anhänge“ anhängen — eine E-Mail am besten als .eml.",
             "Danach „Für ein LLM kopieren“ drücken, den Text bei einem Sprachmodell einfügen, das Ergebnis zurück in das Feld darunter und „Als Protokoll übernehmen“.",
             "Das Protokoll steht dann oben, in Abschnitten; Vorbereitung und Mitschrift klappen darunter zu. Jede Überschrift und jeder Text ist einzeln änderbar, Abschnitte lassen sich verschieben und ergänzen.",
             "„Verwerfen“ am Protokoll macht das Übernehmen rückgängig: Die Abschnitte gehen weg, Mitschrift und Vorbereitung stehen wieder oben, und du kannst neu aufbereiten.",
@@ -622,11 +623,19 @@ function MeetingsDoku() {
           paare={[
             {
               begriff: "Was mitkopiert wird",
-              text: "Die Mitschrift, die Vorbereitung, der Rahmen (Titel, Tag, wer dabei war) und der Auftrag samt Regeln: nichts erfinden, nichts weglassen, Unklares unklar lassen, keine Einleitung. Mit „Auftrag ansehen“ kannst du nachlesen, was da steht.",
+              text: "Die Mitschrift, die Vorbereitung, der Text angehängter E-Mails, der Rahmen (Titel, Tag, wer dabei war — mit Rolle und Haus) und der Auftrag samt Regeln: nichts erfinden, inhaltlich nichts weglassen, Unklares unklar lassen. Mit „Auftrag ansehen“ kannst du nachlesen, was da steht.",
+            },
+            {
+              begriff: "Was zurückkommt",
+              text: "Eine Kurzfassung, dann ein Abschnitt je Thema in der Reihenfolge des Gesprächs, Entschiedenes darin mit „Entschieden:“ markiert. Danach offene Fragen und die Aufgaben, je Zeile „Wer: Was — bis wann“. Was nicht gesagt wurde, steht dort als „offen“.",
+            },
+            {
+              begriff: "Transkripte statt Stichworte",
+              text: "Geht auch: Ein automatisches Transkript darf in die Mitschrift. Das Modell lässt Begrüßung und Füllwörter weg, aber keine Zahl, Frist oder Zusage. Namen schreibt es so, wie sie bei den Personen eingetragen sind — trag die Beteiligten also vorher nach, sonst bleibt aus „Sopharmis“ ein „Sofarmis“.",
             },
             {
               begriff: "Die Vorbereitung ist als Plan gekennzeichnet",
-              text: "Sie steht in einem eigenen Block, und der Auftrag sagt dem Modell: Das ist der Plan, nicht das Gespräch. Daraus wird nichts „besprochen“ oder „zugesagt“, was nicht in der Mitschrift steht. Was geplant war und nicht zur Sprache kam, landet als Stichwort in einem letzten Abschnitt „Nicht zur Sprache gekommen“ — daran siehst du, ob ihr bekommen habt, wofür ihr hingegangen seid.",
+              text: "Sie steht in einem eigenen Block, und der Auftrag sagt dem Modell: Das ist der Plan, nicht das Gespräch. Daraus wird nichts „besprochen“ oder „zugesagt“, was nicht in der Mitschrift steht. Was geplant war und nicht zur Sprache kam, landet als Stichwort in einem letzten Abschnitt „Nicht zur Sprache gekommen“ — daran siehst du, ob ihr bekommen habt, wofür ihr hingegangen seid. Für angehängte Mails gilt dasselbe: Hintergrund, kein Gesprächsinhalt.",
             },
             {
               begriff: "Wie zerlegt wird",
@@ -639,6 +648,33 @@ function MeetingsDoku() {
             {
               begriff: "Verwerfen",
               text: "Der Knopf oben am Protokoll nimmt alle Abschnitte weg — auch was daran von Hand geändert wurde — und stellt die Seite so hin wie vor dem Übernehmen. Für einen einzelnen falschen Satz ist das der falsche Weg: Den änderst du im Abschnitt selbst.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="brief"
+        titel="Anhänge: Dateien und E-Mails"
+        vorspann="Zwischen Vorbereitung und Mitschrift hängt, was zum Termin gehört — meist die Mail, die dazu geführt hat."
+      >
+        <Begriffe
+          paare={[
+            {
+              begriff: "Anhängen",
+              text: "„Datei oder E-Mail“ drücken oder die Datei auf die Karte ziehen. Mehrere auf einmal gehen auch. Bis 40 MB je Datei.",
+            },
+            {
+              begriff: "E-Mails als .eml",
+              text: "Zieh die Mail aus Apple Mail oder Outlook auf die Karte (oder „Sichern als …“ → .eml). Dann liest SoCoS Absender, Datum, Betreff und Text; „Text“ klappt ihn auf, und beim Aufbereiten geht er als Hintergrund mit. Eine Mail als PDF ist nur eine Datei.",
+            },
+            {
+              begriff: "Was in der Mail hängt",
+              text: "Die Anhänge einer Mail bleiben in der .eml und kommen beim Herunterladen mit. Gelesen werden nur ihre Namen — ihr Inhalt geht nicht in den Auftrag an das LLM.",
+            },
+            {
+              begriff: "Herunterladen und entfernen",
+              text: "Ein Klick auf den Namen lädt die Datei herunter. Entfernen darf ein Admin; die Datei bleibt dabei auf dem Server und steht in der Sicherung.",
             },
           ]}
         />

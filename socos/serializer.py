@@ -20,6 +20,7 @@ from socos.models import (
     Kontakt,
     Kontostand,
     Meeting,
+    Meetinganhang,
     Meetingabschnitt,
     Monatskosten,
     Nutzer,
@@ -462,6 +463,19 @@ class MeetingabschnittSerializer(serializers.ModelSerializer):
         fields = ["id", "meeting", "ueberschrift", "text", "reihenfolge"]
 
 
+class MeetinganhangSerializer(serializers.ModelSerializer):
+    """
+    Nur lesend, bis auf das Meeting. Name, Größe, Art und Text setzt das
+    Hochladen selbst (siehe `MeetinganhangViewSet.create`) — sie beschreiben
+    die Datei, und die kommt nicht als JSON.
+    """
+
+    class Meta:
+        model = Meetinganhang
+        fields = ["id", "meeting", "name", "groesse", "art", "text", "erstellt_am"]
+        read_only_fields = ["name", "groesse", "art", "text", "erstellt_am"]
+
+
 class MeetingSerializer(serializers.ModelSerializer):
     """
     Ein Meeting samt Protokoll und den Namen der Beteiligten.
@@ -472,6 +486,7 @@ class MeetingSerializer(serializers.ModelSerializer):
     """
 
     abschnitte = serializers.SerializerMethodField()
+    anhaenge = serializers.SerializerMethodField()
     personen = serializers.SerializerMethodField()
     haeuser = serializers.SerializerMethodField()
     teilnehmer_namen = serializers.SerializerMethodField()
@@ -482,7 +497,7 @@ class MeetingSerializer(serializers.ModelSerializer):
             "id", "titel", "datum", "uhrzeit", "ort",
             "kontakte", "personen", "organisationen", "haeuser",
             "teilnehmer", "teilnehmer_namen",
-            "vorbereitung", "mitschrift", "abschnitte",
+            "vorbereitung", "mitschrift", "abschnitte", "anhaenge",
         ]
 
     def get_abschnitte(self, meeting):
@@ -493,11 +508,19 @@ class MeetingSerializer(serializers.ModelSerializer):
         )
         return MeetingabschnittSerializer(menge, many=True, context=self.context).data
 
+    def get_anhaenge(self, meeting):
+        menge = meeting.anhaenge.filter(geloescht_am__isnull=True)
+        return MeetinganhangSerializer(menge, many=True, context=self.context).data
+
     def get_personen(self, meeting):
         return [
             {
                 "id": k.id,
                 "name": k.name,
+                # Die Rolle geht in den Auftrag an das LLM: „Julia (Steuer-
+                # beraterin)" ordnet einen Satz im Transkript anders ein als
+                # bloß „Julia".
+                "funktion": k.funktion,
                 # Das Haus dahinter — ohne es steht in der Zeile ein Name, den
                 # ein halbes Jahr später niemand mehr einordnet.
                 "organisation_name": k.organisation.name if k.organisation else "",

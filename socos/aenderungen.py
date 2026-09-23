@@ -20,6 +20,33 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-23",
+        "titel": "Anhänge am Meeting, besseres Protokoll aus dem LLM",
+        "punkte": [
+            {
+                "titel": "Dateien und E-Mails am Meeting",
+                "text": (
+                    "Unter „Anhänge“ hängst du Dateien an ein Meeting — per Knopf "
+                    "oder indem du sie auf die Karte ziehst. Eine E-Mail als .eml "
+                    "(aus Apple Mail oder Outlook einfach herausziehen) zeigt Absender, "
+                    "Datum und ihren Text gleich an."
+                ),
+                "wo": "meetings",
+            },
+            {
+                "titel": "Der LLM-Auftrag ist neu",
+                "text": (
+                    "Das Protokoll kommt jetzt mit Kurzfassung, einem Abschnitt je "
+                    "Thema und Aufgaben mit Wer und bis wann. Namen schreibt das "
+                    "Modell nach den eingetragenen Personen und ihren Rollen, und der "
+                    "Text angehängter Mails geht als Hintergrund mit — was darin "
+                    "erbeten wurde und im Termin nicht vorkam, steht am Ende."
+                ),
+                "wo": "meetings",
+            },
+        ],
+    },
+    {
         "version": "2026-09-22",
         "titel": "Personas, Mittellinie, Business Plan als Überblick",
         "punkte": [

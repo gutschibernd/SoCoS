@@ -1,6 +1,6 @@
 """
-Meetings: Protokoll, Reihenfolge, Löschen — und was bewusst *nicht* im
-Änderungsprotokoll steht.
+Meetings: Protokoll, Reihenfolge, Löschen, Anhänge — und was bewusst *nicht*
+im Änderungsprotokoll steht.
 
 Geprüft wird, was entschieden wurde, nicht Django: dass ein Meeting an nichts
 hängen muss, dass das Einspielen eines Protokolls das alte ersetzt statt es zu
@@ -9,16 +9,21 @@ Mitschrift nicht bei jedem Tastendruck einen Protokolleintrag schreibt.
 """
 
 from datetime import date
+from email.message import EmailMessage
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 
 from socos.models import (
     Kontakt,
     Meeting,
+    Meetinganhang,
     Meetingabschnitt,
     Organisation,
     Protokolleintrag,
 )
+from socos.services.mailtext import html_zu_text
 
 
 @pytest.fixture
@@ -68,7 +73,12 @@ class TestAnlegen:
 
         assert antwort.status_code == 200
         assert antwort.json()["personen"] == [
-            {"id": person.pk, "name": "Berger", "organisation_name": "Förderstelle Nord"}
+            {
+                "id": person.pk,
+                "name": "Berger",
+                "funktion": "Programmleitung",
+                "organisation_name": "Förderstelle Nord",
+            }
         ]
         assert antwort.json()["haeuser"] == [{"id": haus.pk, "name": "Förderstelle Nord"}]
 
@@ -345,3 +355,153 @@ class TestAenderungsprotokoll:
         ).first()
         assert eintrag is not None
         assert eintrag.aenderungen["text"]["neu"] == "Deckelung bei 40.000"
+
+
+# --- Anhänge ----------------------------------------------------------------
+
+@pytest.fixture
+def medien(tmp_path, settings):
+    settings.MEDIA_ROOT = tmp_path / "medien"
+    settings.MEDIA_ROOT.mkdir()
+    return settings.MEDIA_ROOT
+
+
+def _mail(html=False):
+    """Eine Mail wie die vom Steuerberater: HTML, ein PDF im Anhang."""
+    nachricht = EmailMessage()
+    nachricht["From"] = "Gabriel Platzer <gabriel@example.invalid>"
+    nachricht["To"] = "bernd@example.invalid"
+    nachricht["Subject"] = "Neuer Klient"
+    nachricht["Date"] = "Sat, 19 Sep 2026 17:08:52 +0000"
+    if html:
+        nachricht.set_content("<html><head><style>p{}</style></head><body><p>Lieber&nbsp;Bernd,</p>"
+                              "<ul><li>Steuernummer</li><li>UID</li></ul></body></html>", subtype="html")
+    else:
+        nachricht.set_content("Lieber Bernd,\n\nBH: EUR 90,00/h\n")
+    nachricht.add_attachment(b"%PDF-1.4 geheim", maintype="application", subtype="pdf",
+                             filename="Pass_Gutschi.pdf")
+    return nachricht.as_bytes()
+
+
+class TestAnhaenge:
+    @pytest.mark.django_db
+    def test_eine_mail_kommt_mit_ihrem_text(self, client, bearbeiter, meeting, medien):
+        client.force_login(bearbeiter)
+
+        antwort = client.post(
+            "/api/meetinganhaenge/",
+            {"meeting": meeting.pk, "datei": SimpleUploadedFile("klient.eml", _mail())},
+        )
+
+        assert antwort.status_code == 201, antwort.content
+        daten = antwort.json()
+        assert daten["art"] == "email"
+        assert daten["name"] == "klient.eml"
+        assert "Betreff: Neuer Klient" in daten["text"]
+        assert "Von: Gabriel Platzer" in daten["text"]
+        assert "BH: EUR 90,00/h" in daten["text"]
+        # Der Name des Anhangs ja, sein Inhalt nie: Darin stehen Ausweise.
+        assert "Anhänge: Pass_Gutschi.pdf" in daten["text"]
+        assert "geheim" not in daten["text"]
+        # Und das Meeting liefert ihn mit.
+        meetingdaten = client.get(f"/api/meetings/{meeting.pk}/").json()
+        assert [a["name"] for a in meetingdaten["anhaenge"]] == ["klient.eml"]
+
+    def test_html_wird_zu_lesbarem_text(self):
+        text = html_zu_text("<head><style>p{}</style></head><p>Lieber&nbsp;Bernd,</p><ul><li>UID</li></ul>")
+
+        assert "p{}" not in text
+        assert "Lieber\xa0Bernd," in text
+        assert "- UID" in text
+
+    @pytest.mark.django_db
+    def test_eine_html_mail_verliert_ihre_auszeichnung(self, client, bearbeiter, meeting, medien):
+        client.force_login(bearbeiter)
+
+        daten = client.post(
+            "/api/meetinganhaenge/",
+            {"meeting": meeting.pk, "datei": SimpleUploadedFile("klient.eml", _mail(html=True))},
+        ).json()
+
+        assert "Lieber Bernd," in daten["text"]
+        assert "- Steuernummer" in daten["text"]
+        assert "<p>" not in daten["text"] and "<li>" not in daten["text"]
+
+    @pytest.mark.django_db
+    def test_eine_andere_datei_wird_nur_abgelegt(self, client, bearbeiter, meeting, medien):
+        client.force_login(bearbeiter)
+
+        daten = client.post(
+            "/api/meetinganhaenge/",
+            {"meeting": meeting.pk, "datei": SimpleUploadedFile("angebot.pdf", b"%PDF-1.4")},
+        ).json()
+
+        assert daten["art"] == "datei"
+        assert daten["text"] == ""
+        assert daten["groesse"] == 8
+
+    @pytest.mark.django_db
+    def test_herunterladen_liefert_die_datei_unter_ihrem_namen(
+        self, client, leser, meeting, medien
+    ):
+        anhang = Meetinganhang(meeting=meeting, name="Angebot März.pdf", groesse=8)
+        anhang.datei.save("angebot.pdf", SimpleUploadedFile("angebot.pdf", b"%PDF-1.4"), save=False)
+        anhang.save()
+        client.force_login(leser)
+
+        antwort = client.get(f"/api/meetinganhaenge/{anhang.pk}/datei/")
+
+        assert antwort.status_code == 200
+        assert b"".join(antwort.streaming_content) == b"%PDF-1.4"
+        # Immer als Download — nie im Browser unter unserem Ursprung geöffnet.
+        assert antwort["Content-Disposition"].startswith("attachment")
+
+    @pytest.mark.django_db
+    def test_ein_leser_laedt_nichts_hoch(self, client, leser, meeting, medien):
+        client.force_login(leser)
+
+        antwort = client.post(
+            "/api/meetinganhaenge/",
+            {"meeting": meeting.pk, "datei": SimpleUploadedFile("a.pdf", b"x")},
+        )
+
+        assert antwort.status_code == 403
+
+    @pytest.mark.django_db
+    def test_ohne_datei_gibt_es_keinen_anhang(self, client, bearbeiter, meeting, medien):
+        client.force_login(bearbeiter)
+
+        antwort = client.post("/api/meetinganhaenge/", {"meeting": meeting.pk})
+
+        assert antwort.status_code == 400
+        assert not Meetinganhang.objects.exists()
+
+    @pytest.mark.django_db
+    def test_ein_entferntes_meeting_nimmt_seine_anhaenge_mit(self, meeting, medien):
+        anhang = Meetinganhang(meeting=meeting, name="a.pdf")
+        anhang.datei.save("a.pdf", SimpleUploadedFile("a.pdf", b"x"), save=False)
+        anhang.save()
+
+        meeting.delete()
+
+        assert not Meetinganhang.objects.filter(pk=anhang.pk).exists()
+        assert Meetinganhang.alle_objekte.filter(pk=anhang.pk).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_anhaenge_wandern_durch_die_sicherung(tmp_path, medien, bearbeiter):
+    """Eintrag **und** Datei — ein Anhang ohne seine Datei ist ein toter Link."""
+    meeting = Meeting.objects.create(titel="Steuerberatung", datum=date(2026, 9, 22))
+    anhang = Meetinganhang(meeting=meeting, name="klient.eml", art="email", text="Betreff: X")
+    anhang.datei.save("klient.eml", SimpleUploadedFile("klient.eml", b"Subject: X"), save=False)
+    anhang.save()
+    pfad = anhang.datei.path
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    wieder_da = Meetinganhang.objects.get(meeting__titel="Steuerberatung")
+    assert wieder_da.text == "Betreff: X"
+    assert wieder_da.datei.path == pfad
+    assert wieder_da.datei.read() == b"Subject: X"

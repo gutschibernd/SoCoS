@@ -82,7 +82,11 @@ export async function hole<T>(pfad: string, optionen: RequestInit = {}): Promise
     credentials: "same-origin",
     headers: {
       Accept: "application/json",
-      ...(optionen.body ? { "Content-Type": "application/json" } : {}),
+      // Bei FormData setzt der Browser den Typ selbst — samt der Grenze
+      // zwischen den Teilen, ohne die der Server die Datei nicht findet.
+      ...(optionen.body && !(optionen.body instanceof FormData)
+        ? { "Content-Type": "application/json" }
+        : {}),
       ...(schreibend ? { "X-CSRFToken": csrfWert() } : {}),
       ...optionen.headers,
     },

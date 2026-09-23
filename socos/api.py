@@ -12,11 +12,12 @@ from pathlib import Path
 
 from django.contrib.auth import logout
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
 from socos import aenderungen, berechtigung, serializer as ser, sicherung
@@ -25,6 +26,7 @@ from socos.models import (
     LEITFRAGEN,
     UMFANG,
     WORKSHOPS,
+    Anhangart,
     Arbeitspaket,
     Abschnittstand,
     Aufgabe,
@@ -36,6 +38,7 @@ from socos.models import (
     Kontakt,
     Kontostand,
     Meeting,
+    Meetinganhang,
     Meetingabschnitt,
     Monatskosten,
     Nutzer,
@@ -386,7 +389,7 @@ class MeetingViewSet(SocosViewSet):
 
     serializer_class = ser.MeetingSerializer
     queryset = Meeting.objects.prefetch_related(
-        "kontakte__organisation", "organisationen", "teilnehmer", "abschnitte"
+        "kontakte__organisation", "organisationen", "teilnehmer", "abschnitte", "anhaenge"
     )
 
     @action(detail=True, methods=["post"])
@@ -500,6 +503,91 @@ class MeetingabschnittViewSet(SocosViewSet):
         return Response(
             ser.MeetingabschnittSerializer(geschwister, many=True).data
         )
+
+
+# Eine Mail mit ein paar Ausweiskopien im Anhang hat schnell 20 MB; ein
+# Video aus dem Meeting hätte das Zehnfache und gehört nicht hierher.
+ANHANG_HOECHSTENS = 40 * 1024 * 1024
+
+
+class MeetinganhangViewSet(SocosViewSet):
+    """
+    Dateien am Meeting: hochladen, herunterladen, entfernen.
+
+    Kein Ändern: Eine Datei ersetzt man, indem man die neue hochlädt und die
+    alte entfernt. Ein PATCH auf „Name" wäre eine zweite Wahrheit neben dem,
+    was in der Datei steht.
+    """
+
+    serializer_class = ser.MeetinganhangSerializer
+    queryset = Meetinganhang.objects.select_related("meeting")
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    http_method_names = ["get", "post", "delete", "head", "options"]
+
+    def get_queryset(self):
+        menge = super().get_queryset()
+        if meeting := self.request.query_params.get("meeting"):
+            menge = menge.filter(meeting_id=meeting)
+        return menge
+
+    def create(self, request, *args, **kwargs):
+        from socos.services import mailtext
+
+        try:
+            meeting = Meeting.objects.get(pk=request.data.get("meeting"))
+        except (Meeting.DoesNotExist, ValueError, TypeError):
+            raise ValidationError({"meeting": "Dieses Meeting gibt es nicht."})
+
+        datei = request.FILES.get("datei")
+        if datei is None:
+            raise ValidationError({"datei": "Es kam keine Datei an."})
+        if datei.size > ANHANG_HOECHSTENS:
+            raise ValidationError(
+                {"datei": f"„{datei.name}“ ist größer als {ANHANG_HOECHSTENS // (1024 * 1024)} MB."}
+            )
+
+        art, text = Anhangart.DATEI, ""
+        anfang = datei.read(4000)
+        datei.seek(0)
+        if mailtext.ist_mail(datei.name, anfang):
+            try:
+                text = mailtext.mailtext(datei.read())
+                art = Anhangart.EMAIL
+            except mailtext.KeineMail:
+                # Dann liegt sie eben als Datei da. Abgelehnt wird nichts, nur
+                # weil der Text nicht herauskommt — die Datei selbst ist das,
+                # was aufbewahrt werden soll.
+                pass
+            datei.seek(0)
+
+        anhang = Meetinganhang(
+            meeting=meeting,
+            name=datei.name[:255],
+            groesse=datei.size,
+            art=art,
+            text=text,
+        )
+        anhang.datei.save(datei.name, datei, save=False)
+        anhang.save()
+        return Response(self.get_serializer(anhang).data, status=201)
+
+    @action(detail=True, methods=["get"])
+    def datei(self, request, pk=None):
+        """
+        Die Datei selbst — hinter der Anmeldung, nicht unter `/medien/`.
+
+        Immer als Download, auch bei PDF und Bild: Eine .eml oder ein HTML-
+        Anhang, im Browser unter unserem Ursprung geöffnet, liefe mit der
+        Sitzung dessen, der klickt.
+        """
+        anhang = self.get_object()
+        try:
+            griff = anhang.datei.open("rb")
+        except FileNotFoundError:
+            raise ValidationError({"datei": "Die Datei fehlt auf dem Server."})
+        antwort = FileResponse(griff, as_attachment=True, filename=anhang.name)
+        antwort["X-Content-Type-Options"] = "nosniff"
+        return antwort
 
 
 # --- Module: SPG Academy ----------------------------------------------------

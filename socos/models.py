@@ -1143,19 +1143,22 @@ class Meeting(Basismodell):
 
     def delete(self, *args, **kwargs):
         """
-        Die Abschnitte gehen mit.
+        Abschnitte und Anhänge gehen mit.
 
         **Warum das hier von Hand steht:** Weiches Löschen ist für die
         Datenbank ein UPDATE — `on_delete=CASCADE` löst dabei nie aus. Ohne
         diese Zeilen bliebe das Protokoll eines entfernten Meetings als Satz
         Abschnitte zurück, die auf nichts Sichtbares mehr zeigen.
 
-        Erst das Meeting, dann die Abschnitte: Wehrt sich das Meeting gegen das
-        Löschen, bleiben sie unangetastet.
+        Erst das Meeting, dann was daran hängt: Wehrt sich das Meeting gegen
+        das Löschen, bleibt alles unangetastet. Die Dateien der Anhänge bleiben
+        auf der Platte — weich gelöscht heißt wiederherstellbar.
         """
         super().delete(*args, **kwargs)
         for abschnitt in self.abschnitte.filter(geloescht_am__isnull=True):
             abschnitt.delete()
+        for anhang in self.anhaenge.filter(geloescht_am__isnull=True):
+            anhang.delete()
 
 
 class Meetingabschnitt(Basismodell):
@@ -1189,6 +1192,52 @@ class Meetingabschnitt(Basismodell):
 
     def __str__(self):
         return self.ueberschrift or (self.text[:40] or "Abschnitt")
+
+
+class Anhangart(models.TextChoices):
+    EMAIL = "email", "E-Mail"
+    DATEI = "datei", "Datei"
+
+
+class Meetinganhang(Basismodell):
+    """
+    Eine Datei am Meeting — meist die E-Mail, die zum Termin geführt hat.
+
+    **Die Datei liegt unter `MEDIA_ROOT`** und wandert damit in die Sicherung.
+    Ausgeliefert wird sie nur über `/api/meetinganhaenge/<id>/datei/`, hinter
+    der Anmeldung: `/medien/` bedient am Server niemand, und das soll so
+    bleiben — in einer Mail an den Steuerberater hängen Ausweiskopien.
+
+    **Bei einer E-Mail steht ihr Text daneben** (`text`: Absender, Datum,
+    Betreff, Inhalt, die Namen ihrer Anhänge). Ausgelesen wird einmal beim
+    Hochladen, nicht bei jedem Anzeigen: Der Text geht in den Auftrag an das
+    LLM und in die Suche, und beides läuft über die Liste aller Meetings. Eine
+    Mail je Meeting bei jedem Laden neu zu zerlegen, hieße, für eine Liste
+    Anhänge von zwanzig Megabyte zu lesen, um drei Zeilen zu zeigen.
+
+    Andere Dateien (PDF, Bilder) werden nur abgelegt. Ihren Text auszulesen
+    bräuchte eine Bibliothek je Format; das kommt, wenn es jemand vermisst.
+    """
+
+    meeting = models.ForeignKey(
+        Meeting, verbose_name="Meeting", on_delete=models.CASCADE, related_name="anhaenge"
+    )
+    datei = models.FileField("Datei", upload_to="meetings/%Y/%m/", max_length=300)
+    # Der Name, unter dem die Datei hochkam. Der Dateiname auf der Platte ist
+    # davon abgeleitet, aber nicht derselbe: Django hängt bei Gleichnamigem
+    # Zeichen an, und die will beim Herunterladen niemand sehen.
+    name = models.CharField("Name", max_length=255)
+    groesse = models.PositiveBigIntegerField("Größe in Byte", default=0)
+    art = models.CharField("Art", max_length=10, choices=Anhangart.choices, default=Anhangart.DATEI)
+    text = models.TextField("Ausgelesener Text", blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Meetinganhang"
+        verbose_name_plural = "Meetinganhänge"
+        ordering = ["meeting", "erstellt_am", "id"]
+
+    def __str__(self):
+        return self.name
 
 
 # --- Finanzen ---------------------------------------------------------------

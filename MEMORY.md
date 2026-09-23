@@ -7,6 +7,58 @@ betrifft.
 
 ---
 
+## 2026-09-23 — Anhänge am Meeting, und ein neuer Auftrag an das LLM (Migration 0026)
+
+### `Meetinganhang`: die Datei unter `MEDIA_ROOT`, der Mailtext daneben
+
+Eine Datei je Zeile, `upload_to="meetings/%Y/%m/"` — **unter `MEDIA_ROOT`**, damit
+sie mit dem Medienordner in die Sicherung wandert. Das Modell steht in
+`MODELLE_IM_ARCHIV` und vor `Meeting` in der Löschreihenfolge; ein Test schickt
+Eintrag und Datei durch Ausfuhr und Einfuhr.
+
+**Ausgeliefert wird nur über `GET /api/meetinganhaenge/<id>/datei/`**, hinter der
+Anmeldung und immer als Download. `/medien/` bedient am Server niemand, und das
+bleibt so: In der ersten Mail, die hier hing (Steuerberater), steckten
+Ausweiskopien. Als Download, nie im Browser geöffnet, weil eine .eml oder ein
+HTML-Anhang unter unserem Ursprung mit der Sitzung dessen liefe, der klickt.
+
+**Eine .eml wird beim Hochladen gelesen** (`socos/services/mailtext.py`): Kopf,
+Inhalt (Klartext, sonst HTML ohne Auszeichnung), die *Namen* ihrer Anhänge —
+deren Inhalt nie. Das Ergebnis steht in `Meetinganhang.text`. Einmal beim
+Hochladen und nicht beim Anzeigen, weil der Text in die Suche und den Auftrag
+geht, und beides läuft über die Liste aller Meetings. Kein PDF-Text: Das bräuchte
+eine Bibliothek je Format, und vermisst hat es noch niemand.
+
+Kein PATCH: Eine Datei ersetzt man durch eine neue. `Meeting.delete()` nimmt die
+Anhänge weich mit; die Dateien bleiben auf der Platte.
+
+`hole()` setzt bei `FormData` keinen JSON-Typ mehr — der Browser setzt ihn samt
+Grenze selbst.
+
+### Der Auftrag an das LLM, zweite Fassung
+
+Die erste Fassung taugte für Stichworte und scheiterte an einem Transkript:
+
+- „Nichts weglassen, auch den halben Satz" ergab Protokolle voller Begrüßung.
+  Jetzt: **inhaltlich** vollständig — jede Zahl, Frist, Zusage —, Füllwerk darf
+  weg.
+- Feste Abschnitte (Besprochen / Entscheidungen / …) zerrissen jedes Thema.
+  Jetzt: **Kurzfassung, ein Abschnitt je Thema** (Entschiedenes darin mit
+  „Entschieden:"), Offene Fragen, **Aufgaben als „Wer: Was — bis wann"**.
+- Hörfehler wurden übernommen („Sofarmis"). Jetzt stehen im Rahmen unsere Firma
+  (`UNSERE_FIRMA`), die Rolle und das Haus jeder Person, und eine Regel, Namen
+  danach zu schreiben — Unsicheres als „unklar:".
+- Tabellen und Fettdruck kamen als Zeichensalat an, weil Abschnitte reiner Text
+  sind. Jetzt ausdrücklich verboten.
+
+**Mailtexte gehen als UNTERLAGE mit**, getrennt und mit derselben Regel wie die
+Vorbereitung: Hintergrund, nie Gesprächsinhalt; bei Widerspruch gilt das
+Gespräch, und der Widerspruch steht dabei. „Nicht zur Sprache gekommen" erfasst
+jetzt auch, was in einer Mail erbeten wurde und im Termin nicht vorkam — genau
+dafür hängt die Mail am Meeting.
+
+---
+
 ## 2026-09-22 — Business Plan Lite als Überblick, Aufgaben mit Frist (Migration 0025)
 
 ### Der Plan wird nicht in SoCoS geschrieben

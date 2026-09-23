@@ -19,6 +19,10 @@
  * glatt klingt. „Verwerfen" am Protokoll dreht das um: Die Abschnitte gehen
  * (weich) weg, und die Seite steht wieder so da wie vor dem Übernehmen.
  *
+ * **Anhänge** stehen zwischen Vorbereitung und Mitschrift — meist die Mail,
+ * die zum Termin geführt hat. Als .eml hochgeladen, kennt SoCoS ihren Text,
+ * und er geht beim Aufbereiten als Unterlage mit.
+ *
  * **Ein Meeting hängt an nichts** (siehe `Meeting` in socos/models.py): Es
  * lässt sich anlegen, bevor feststeht, wer kommt. Personen und Häuser werden
  * nachgetragen — die Karte fragt danach, solange keines eingetragen ist, denn
@@ -29,7 +33,7 @@
  * basis/router.ts).
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 
 import { hole } from "../basis/api";
 import {
@@ -50,6 +54,8 @@ import {
   abschnitteAusText,
   auftragFuerLLM,
   besteTreffer,
+  groesse,
+  mailkopf,
   passtMeeting,
   teileNachZeit,
   wann,
@@ -419,8 +425,9 @@ function Meetingseite({
 
   const hatProtokoll = meeting.abschnitte.length > 0;
 
-  // Vorbereitung und Mitschrift bleiben in ihrer Reihenfolge — ob oben oder
-  // zugeklappt unter dem Protokoll.
+  // Vorbereitung, Anhänge und Mitschrift bleiben in ihrer Reihenfolge — ob
+  // oben oder unter dem Protokoll. Die Anhänge klappen nie zu: Sie sind eine
+  // kurze Liste, und die Mail zum Termin sucht man auch danach noch.
   const quellen = (
     <>
       <Vorbereitungskarte
@@ -429,6 +436,7 @@ function Meetingseite({
         neuLaden={neuLaden}
         zugeklappt={hatProtokoll}
       />
+      <Anhangkarte meeting={meeting} ich={ich} neuLaden={neuLaden} zumLoeschen={zumLoeschen} />
       <Mitschriftkarte meeting={meeting} ich={ich} neuLaden={neuLaden} zugeklappt={hatProtokoll} />
     </>
   );
@@ -883,6 +891,162 @@ function Vorbereitungskarte({
 }
 
 /**
+ * Dateien am Meeting — meist die Mail, die zum Termin geführt hat.
+ *
+ * **Eine E-Mail als .eml hochladen, nicht als PDF:** Nur dann kennt SoCoS
+ * ihren Text, zeigt ihn hier und legt ihn beim Aufbereiten als Unterlage bei.
+ * Aus Apple Mail oder Outlook lässt sich eine Mail einfach auf die Karte
+ * ziehen; sie kommt dann als .eml.
+ *
+ * Heruntergeladen wird über die API, hinter der Anmeldung — nicht über einen
+ * offenen Pfad unter `/medien/`.
+ */
+function Anhangkarte({
+  meeting,
+  ich,
+  neuLaden,
+  zumLoeschen,
+}: {
+  meeting: Meeting;
+  ich: Ich;
+  neuLaden: () => void;
+  zumLoeschen: (auftrag: Loeschauftrag) => void;
+}) {
+  const [laeuft, setLaeuft] = useState(false);
+  const [darueber, setDarueber] = useState(false);
+  const [offen, setOffen] = useState<number | null>(null);
+  const eingabe = useRef<HTMLInputElement>(null);
+
+  async function hochladen(liste: FileList | null) {
+    // Erst kopieren: Das Leeren des Feldes unten leert auch diese Liste.
+    const dateien = Array.from(liste ?? []);
+    if (dateien.length === 0 || !ich.darf.bearbeiten) return;
+    setLaeuft(true);
+    let angekommen = 0;
+    try {
+      for (const datei of dateien) {
+        const inhalt = new FormData();
+        inhalt.append("meeting", String(meeting.id));
+        inhalt.append("datei", datei);
+        await hole("/meetinganhaenge/", { method: "POST", body: inhalt });
+        angekommen += 1;
+      }
+      melden(
+        "gut",
+        angekommen === 1
+          ? `„${dateien[0].name}“ hängt am Meeting.`
+          : `${angekommen} Dateien hängen am Meeting.`,
+      );
+    } catch {
+      // `hole` hat den Grund schon gemeldet. Was bis dahin ankam, bleibt.
+    } finally {
+      setLaeuft(false);
+      if (eingabe.current) eingabe.current.value = "";
+      neuLaden();
+    }
+  }
+
+  const ziehen = ich.darf.bearbeiten
+    ? {
+        onDragOver: (e: DragEvent) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDarueber(true);
+        },
+        onDragLeave: () => setDarueber(false),
+        onDrop: (e: DragEvent) => {
+          e.preventDefault();
+          setDarueber(false);
+          hochladen(e.dataTransfer.files);
+        },
+      }
+    : {};
+
+  return (
+    <div className={darueber ? "karte anhangkarte anhangkarte-darueber" : "karte anhangkarte"} {...ziehen}>
+      <div className="kartenkopf">
+        <h2>Anhänge</h2>
+        {ich.darf.bearbeiten && (
+          <label className={laeuft ? "knopf-still anhang-waehlen laeuft" : "knopf-still anhang-waehlen"}>
+            <Zeichen name="plus" />
+            {laeuft ? "Lädt hoch …" : "Datei oder E-Mail"}
+            <input
+              ref={eingabe}
+              type="file"
+              multiple
+              disabled={laeuft}
+              onChange={(e) => hochladen(e.target.files)}
+            />
+          </label>
+        )}
+      </div>
+
+      {meeting.anhaenge.length === 0 ? (
+        <p className="tabellen-hinweis" style={{ margin: 0 }}>
+          {ich.darf.bearbeiten
+            ? "Noch nichts angehängt. Eine E-Mail als .eml (oder hierher gezogen) bringt ihren Text mit — er geht beim Aufbereiten als Hintergrund mit."
+            : "Noch nichts angehängt."}
+        </p>
+      ) : (
+        <ul className="anhaenge">
+          {meeting.anhaenge.map((a) => {
+            const kopf = a.art === "email" ? mailkopf(a.text) : null;
+            const unter = kopf
+              ? [kopf.von, kopf.datum].filter(Boolean).join(" · ")
+              : "";
+            return (
+              <li key={a.id} className="anhang">
+                <div className="anhang-zeile">
+                  <Zeichen name={a.art === "email" ? "brief" : "pdf"} />
+                  <div className="anhang-was">
+                    <a className="anhang-name" href={`/api/meetinganhaenge/${a.id}/datei/`}>
+                      {kopf?.betreff || a.name}
+                    </a>
+                    <span className="unterzeile">
+                      {unter && `${unter} · `}
+                      <span className="zahl">{groesse(a.groesse)}</span>
+                    </span>
+                  </div>
+                  <div className="anhang-knoepfe">
+                    {a.text && (
+                      <button
+                        type="button"
+                        className="mini"
+                        aria-expanded={offen === a.id}
+                        onClick={() => setOffen(offen === a.id ? null : a.id)}
+                      >
+                        {offen === a.id ? "Text zu" : "Text"}
+                      </button>
+                    )}
+                    {ich.darf.loeschen && (
+                      <button
+                        type="button"
+                        className="mini"
+                        aria-label={`${a.name} entfernen`}
+                        onClick={() =>
+                          zumLoeschen({
+                            pfad: `/meetinganhaenge/${a.id}/`,
+                            name: a.name,
+                            was: "Der Anhang",
+                          })
+                        }
+                      >
+                        <Zeichen name="kreuz" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {offen === a.id && <div className="anhang-text">{a.text}</div>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
  * Die Mitschrift und der Weg über ein LLM — eine Karte, weil beides dasselbe
  * Stück Arbeit ist: das Rohe hinein, das Lesbare heraus.
  *
@@ -938,6 +1102,19 @@ function Mitschriftkarte({
   );
 }
 
+/** Was der Kopierknopf mitnimmt — in Worten, damit man es vorher sieht. */
+function mitgehend(meeting: Meeting): string {
+  const mails = meeting.anhaenge.filter((a) => a.text.trim()).length;
+  return [
+    "Mitschrift",
+    meeting.vorbereitung.trim() ? "Vorbereitung" : "",
+    mails === 1 ? "die angehängte Mail" : mails > 1 ? `${mails} angehängte Mails` : "",
+    "wer dabei war",
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
 /**
  * Der Weg über ein Sprachmodell: hinaus mit dem Auftrag, herein mit dem
  * Ergebnis.
@@ -960,7 +1137,7 @@ function Aufbereitung({ meeting, neuLaden }: { meeting: Meeting; neuLaden: () =>
   async function kopieren() {
     try {
       await navigator.clipboard.writeText(auftrag);
-      melden("gut", "Auftrag, Mitschrift und Vorbereitung liegen in der Zwischenablage.");
+      melden("gut", `In der Zwischenablage: Auftrag, ${mitgehend(meeting)}.`);
     } catch {
       // Ohne HTTPS oder ohne Erlaubnis gibt es keine Zwischenablage. Dann
       // steht der Text eben da und wird von Hand markiert — besser als ein
@@ -992,10 +1169,7 @@ function Aufbereitung({ meeting, neuLaden }: { meeting: Meeting; neuLaden: () =>
     <div className="aufbereitung">
       <span className="beschriftung-klein">Aus der Mitschrift ein Protokoll machen</span>
       <p className="tabellen-hinweis" style={{ marginTop: 0 }}>
-        Der Knopf legt Mitschrift und Vorbereitung samt Auftrag in die Zwischenablage — die Regeln
-        darin sagen dem Modell, dass es nichts erfinden und nichts weglassen darf und dass der
-        Plan kein Gesprächsinhalt ist. Das Ergebnis kommt in das Feld darunter; SoCoS zerlegt es
-        an den Überschriften in Abschnitte, die danach einzeln änderbar sind.
+        Geht mit: {mitgehend(meeting)}.
       </p>
 
       <div className="feld-reihe">

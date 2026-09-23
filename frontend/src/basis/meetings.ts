@@ -27,6 +27,8 @@ export function passtMeeting(meeting: Meeting, suche: string): boolean {
     meeting.vorbereitung,
     meeting.mitschrift,
     ...meeting.abschnitte.map((a) => `${a.ueberschrift} ${a.text}`),
+    // Auch in der Mail, die zum Termin geführt hat — „wo stand der Stundensatz?"
+    ...meeting.anhaenge.map((a) => `${a.name} ${a.text}`),
   ];
   return felder.join(" ").toLowerCase().includes(wort);
 }
@@ -100,6 +102,25 @@ export function teileNachZeit(
   };
 }
 
+/** „740 KB", „16,4 MB" — genug, um zu sehen, ob da die Mail mit den Ausweisen hängt. */
+export function groesse(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toLocaleString("de-AT", { maximumFractionDigits: 1 })} MB`;
+}
+
+/**
+ * Von wem und wann eine angehängte Mail ist — aus den Kopfzeilen, die der
+ * Server beim Hochladen vor ihren Text setzt (`socos/services/mailtext.py`).
+ * Der Name ohne Adresse: In der Zeile unter dem Dateinamen zählt, wer es war.
+ */
+export function mailkopf(text: string): { von: string; datum: string; betreff: string } {
+  const zeile = (name: string) =>
+    text.match(new RegExp(`^${name}: (.*)$`, "m"))?.[1]?.trim() ?? "";
+  const von = zeile("Von").replace(/\s*<[^>]*>\s*$/, "").replace(/^"(.*)"$/, "$1");
+  return { von, datum: zeile("Datum"), betreff: zeile("Betreff") };
+}
+
 /** „14.10.2026" oder „14.10.2026, 14:30" — die Uhrzeit nur, wenn es eine gibt. */
 export function wann(meeting: Pick<Meeting, "datum" | "uhrzeit">): string {
   const tag = new Date(`${meeting.datum}T00:00:00`).toLocaleDateString("de-AT", {
@@ -115,6 +136,13 @@ export function wann(meeting: Pick<Meeting, "datum" | "uhrzeit">): string {
 /* --- Der Weg über ein LLM ------------------------------------------------- */
 
 /**
+ * Wie wir heißen. Steht im Auftrag, weil ein Transkript den Namen verhört —
+ * aus „Sopharmis" wird „Sofarmis", und das Modell schreibt es dann zwanzigmal
+ * so ins Protokoll.
+ */
+export const UNSERE_FIRMA = "Sopharmis Medical Solutions FlexCo";
+
+/**
  * Der Auftrag, der mit der Mitschrift in die Zwischenablage geht.
  *
  * **Warum die Regeln hier stehen und nicht im Kopf des Nutzers:** Ein Protokoll
@@ -125,66 +153,134 @@ export function wann(meeting: Pick<Meeting, "datum" | "uhrzeit">): string {
  * Gegenlesen am wenigsten auf: Der erfundene Satz ist der, der sich am besten
  * liest.
  *
- * Die **Vorbereitung geht mit — aber in einem eigenen Block, mit eigener
- * Regel.** Sie ist der Plan, nicht das Gespräch, und genau das ist die Gefahr:
- * Läge sie unmarkiert daneben, machte das Modell aus „wollten wir ansprechen"
- * still ein „wurde besprochen", im fertigen Protokoll nicht mehr zu
- * unterscheiden. Deshalb steht sie getrennt, und die Regel sagt, wofür sie da
- * ist: Zusammenhang, Namen, Abkürzungen — und ein Abschnitt darüber, was vom
- * Plan *nicht* zur Sprache kam. Das ist das, woran sich die Vorbereitung
- * hinterher misst.
+ * **Was die erste Fassung falsch machte** und diese deshalb anders macht:
+ *
+ * - „Lass nichts weg, auch den halben Satz" — bei Stichworten richtig, bei
+ *   einem Transkript ein Protokoll voller Begrüßung und Wiederholung. Jetzt:
+ *   *inhaltlich* vollständig, jede Zahl, Frist und Zusage; Füllwerk darf weg.
+ * - Feste Abschnitte „Besprochen, Entscheidungen, …" zerrissen jedes Thema in
+ *   drei Teile. Jetzt: ein Abschnitt je Thema, das Entschiedene darin markiert,
+ *   davor eine Kurzfassung, danach die Aufgaben mit Wer und Wann.
+ * - Keine Schreibweisen: Das Modell übernahm jeden Hörfehler des Transkripts.
+ *   Jetzt steht der Rahmen mit Rollen und Häusern da und die Regel, Namen
+ *   danach zu schreiben.
+ * - Markdown-Tabellen und Fettdruck, die in SoCoS als Zeichensalat ankommen,
+ *   weil Abschnitte als reiner Text stehen.
+ *
+ * **Vorbereitung und Unterlagen gehen mit — getrennt, mit eigener Regel.** Sie
+ * sind Plan und Hintergrund, nicht das Gespräch, und genau das ist die
+ * Gefahr: Lägen sie unmarkiert daneben, machte das Modell aus „wollten wir
+ * ansprechen" oder „schreibt der Steuerberater" still ein „wurde besprochen".
+ * Was davon *nicht* zur Sprache kam, bekommt einen eigenen Abschnitt — daran
+ * misst sich die Vorbereitung hinterher.
+ *
+ * Unterlagen sind die Anhänge, deren Text SoCoS kennt (E-Mails). Von allen
+ * anderen geht nur der Name mit.
  */
 export function auftragFuerLLM(meeting: Meeting): string {
+  const vorbereitung = meeting.vorbereitung.trim();
+  const unterlagen = meeting.anhaenge.filter((a) => a.text.trim());
+  const nurNamen = meeting.anhaenge.filter((a) => !a.text.trim());
+  const mitHintergrund = Boolean(vorbereitung || unterlagen.length);
+
+  const person = (p: Meeting["personen"][number]) => {
+    const dazu = [p.funktion, p.organisation_name].filter(Boolean).join(", ");
+    return dazu ? `${p.name} (${dazu})` : p.name;
+  };
+
   const rahmen = [
-    `Titel: ${meeting.titel}`,
-    `Datum: ${wann(meeting)}`,
-    meeting.ort ? `Ort: ${meeting.ort}` : "",
-    meeting.teilnehmer_namen.length ? `Von uns: ${meeting.teilnehmer_namen.join(", ")}` : "",
-    meeting.personen.length
-      ? `Von außen: ${meeting.personen
-          .map((p) => (p.organisation_name ? `${p.name} (${p.organisation_name})` : p.name))
+    `- Titel: ${meeting.titel}`,
+    `- Datum: ${wann(meeting)}`,
+    meeting.ort ? `- Ort: ${meeting.ort}` : "",
+    `- Unsere Firma: ${UNSERE_FIRMA}`,
+    meeting.teilnehmer_namen.length ? `- Von uns: ${meeting.teilnehmer_namen.join(", ")}` : "",
+    meeting.personen.length ? `- Von außen: ${meeting.personen.map(person).join("; ")}` : "",
+    meeting.haeuser.length
+      ? `- Organisationen: ${meeting.haeuser.map((h) => h.name).join(", ")}`
+      : "",
+    nurNamen.length
+      ? `- Weitere Dateien am Meeting (nur der Name, Inhalt liegt nicht bei): ${nurNamen
+          .map((a) => a.name)
           .join(", ")}`
       : "",
-    meeting.haeuser.length ? `Organisationen: ${meeting.haeuser.map((h) => h.name).join(", ")}` : "",
   ].filter(Boolean);
 
-  const vorbereitung = meeting.vorbereitung.trim();
-
-  return `Du bekommst die rohe Mitschrift einer Besprechung${vorbereitung ? " und die Vorbereitung, die vorher dazu geschrieben wurde" : ""}. Mach daraus ein lesbares Protokoll.
-
-Regeln:
-1. Erfinde nichts. Keine Ergebnisse, Zahlen, Namen, Termine oder Zusagen, die nicht in der Mitschrift stehen. Lieber eine kurze Zeile als ein runder Satz.
-2. Lass nichts weg. Jeder Punkt der Mitschrift kommt vor, auch der halbe Satz.
-3. Deute nicht. Was unklar ist, bleibt unklar — schreib "unklar:" davor, statt es glattzuziehen.
-4. Keine Einleitung, kein Fazit, keine Höflichkeit von dir. Nur das Protokoll.
-5. Gliedere in Abschnitte. Jeder Abschnitt beginnt mit einer Überschrift in einer eigenen Zeile, eingeleitet mit zwei Rauten:
-
-## Überschrift
-
-   Darunter der Text: kurze Absätze oder Aufzählungen mit "- ". Keine weiteren Überschriften innerhalb eines Abschnitts.
-6. Sinnvolle Abschnitte, soweit die Mitschrift etwas dazu hergibt: Anlass, Besprochen, Entscheidungen, Offene Punkte, Nächste Schritte. Bei nächsten Schritten steht dahinter, wer und bis wann — aber nur, wenn es dasteht.${
+  const quellen = [
+    "- MITSCHRIFT: Stichworte oder ein automatisches Transkript. Die einzige Quelle dafür, was besprochen, entschieden oder zugesagt wurde.",
     vorbereitung
-      ? `
-7. Die Vorbereitung ist der Plan, nicht das Gespräch. Sie hilft dir, Namen, Abkürzungen und den Zusammenhang der Mitschrift zu verstehen — aber nichts daraus wird zu etwas, das besprochen, entschieden oder zugesagt wurde, solange es nicht in der Mitschrift steht. Was in der Vorbereitung vorkommt und in der Mitschrift nicht, kommt als Stichwort in einen letzten Abschnitt "Nicht zur Sprache gekommen".
-8. Antworte auf Deutsch und ausschließlich mit dem Protokoll.`
-      : `
-7. Antworte auf Deutsch und ausschließlich mit dem Protokoll.`
-  }
+      ? "- VORBEREITUNG: vorher geschrieben — was wir aus dem Termin holen wollten. Der Plan, nicht das Gespräch."
+      : "",
+    unterlagen.length
+      ? "- UNTERLAGEN: E-Mails rund um den Termin. Hintergrund, nicht das Gespräch."
+      : "",
+    "- RAHMEN: Titel, Tag und wer dabei war — maßgeblich dafür, wie Namen geschrieben werden.",
+  ].filter(Boolean);
 
-Rahmen:
+  const regeln = [
+    "Erfinde nichts. Kein Ergebnis, keine Zahl, kein Name, keine Frist und keine Zusage, die nicht in der Mitschrift steht. Lieber eine knappe Zeile als ein runder Satz.",
+    "Bleib inhaltlich vollständig: Jede Aussage mit Gehalt, jede Zahl, jeder Betrag, jede Frist und jede Zusage kommt vor. Weglassen darfst du nur Begrüßung, Smalltalk, Füllwörter und Wiederholungen.",
+    'Unklares bleibt unklar. Was sich nicht eindeutig lesen lässt, widersprüchlich ist oder nur halb gesagt wurde, bekommt "unklar:" davor — nicht glätten, nicht raten.',
+    `Transkripte verhören sich. Namen von Personen und Firmen und Fachbegriffe schreibst du so, wie sie im Rahmen${unterlagen.length ? " und in den Unterlagen" : ""} stehen. Ist ein Wort offensichtlich falsch erkannt und das richtige sicher, verbessere es still; ist es nicht sicher, schreib "unklar:" und das Gehörte in Anführungszeichen.`,
+    "Wer etwas gesagt hat oder übernimmt, schreibst du nur dazu, wenn es aus der Mitschrift hervorgeht.",
+    mitHintergrund
+      ? `${[vorbereitung ? "Vorbereitung" : "", unterlagen.length ? "Unterlagen" : ""].filter(Boolean).join(" und ")} helfen dir, Zusammenhang, Namen und Abkürzungen zu verstehen. Nichts daraus wird zu etwas, das besprochen, entschieden oder zugesagt wurde, solange es nicht in der Mitschrift steht. Widersprechen sich Mitschrift und ${unterlagen.length ? "Unterlage" : "Vorbereitung"} (andere Zahl, andere Frist, anderer Name), gilt das Gespräch — und der Widerspruch steht als "unklar:" dabei.`
+      : "",
+  ].filter(Boolean);
+
+  const aufbau = [
+    "## Kurzfassung",
+    "Drei bis fünf Sätze: worum es ging, was herausgekommen ist, was als Nächstes passiert.",
+    "",
+    "## (ein Abschnitt je Thema)",
+    'In der Reihenfolge des Gesprächs. Die Überschrift nennt das Thema ("Einbringung der Geräte"), nicht die Art ("Besprochen"). Darin knappe Aufzählungen mit "- ". Was entschieden wurde, beginnt mit "Entschieden:".',
+    "",
+    "## Offene Fragen",
+    "Nur wenn es welche gibt: was ungeklärt blieb, und bei wem es liegt, falls das gesagt wurde.",
+    "",
+    "## Aufgaben",
+    'Eine Zeile je Aufgabe: "- Wer: Was — bis wann". Fehlt Wer oder Wann in der Mitschrift, steht dort "offen".',
+    ...(mitHintergrund
+      ? [
+          "",
+          "## Nicht zur Sprache gekommen",
+          `Was ${[vorbereitung ? "in der Vorbereitung als Ziel oder Frage stand" : "", unterlagen.length ? "in den Unterlagen erbeten oder angekündigt wurde" : ""].filter(Boolean).join(" oder ")} und in der Mitschrift nicht vorkommt — als Stichwort. Gibt es nichts, lass den Abschnitt weg.`,
+        ]
+      : []),
+  ];
+
+  const bloecke = [
+    vorbereitung
+      ? `--- VORBEREITUNG (vorher geschrieben, kein Gesprächsinhalt) ---\n${vorbereitung}\n--- ENDE DER VORBEREITUNG ---`
+      : "",
+    ...unterlagen.map(
+      (a, i) =>
+        `--- UNTERLAGE ${i + 1}: ${a.art === "email" ? "E-Mail" : "Datei"} „${a.name}“ (Hintergrund, kein Gesprächsinhalt) ---\n${a.text.trim()}\n--- ENDE DER UNTERLAGE ${i + 1} ---`,
+    ),
+    `--- MITSCHRIFT ---\n${meeting.mitschrift.trim()}\n--- ENDE DER MITSCHRIFT ---`,
+  ].filter(Boolean);
+
+  return `Du schreibst das Protokoll einer Besprechung von ${UNSERE_FIRMA}. Es wird abgelegt und später von jemandem gelesen, der nicht dabei war: Es muss ohne Rückfrage verständlich sein und darf nichts behaupten, was nicht gesagt wurde.
+
+WAS DU BEKOMMST
+${quellen.join("\n")}
+
+REGELN
+${regeln.map((r, i) => `${i + 1}. ${r}`).join("\n")}
+
+AUFBAU
+Das Protokoll besteht aus Abschnitten. Jeder beginnt mit einer eigenen Zeile "## Überschrift". In dieser Reihenfolge:
+
+${aufbau.join("\n")}
+
+FORM
+- Überschriften nur für die Abschnitte, immer mit "##". Keine anderen Überschriften (#, ###), keine Tabellen, kein Fettdruck, kein Codeblock — das Protokoll wird als reiner Text angezeigt.
+- Deutsch, sachlich, knapp. Ganze Sätze nur in der Kurzfassung.
+- Antworte ausschließlich mit dem Protokoll: keine Einleitung, keine Rückfrage, kein Schlusswort.
+
+RAHMEN
 ${rahmen.join("\n")}
-${
-  vorbereitung
-    ? `
---- VORBEREITUNG (vorher geschrieben, kein Gesprächsinhalt) ---
-${vorbereitung}
---- ENDE DER VORBEREITUNG ---
-`
-    : ""
-}
---- MITSCHRIFT ---
-${meeting.mitschrift.trim()}
---- ENDE DER MITSCHRIFT ---`;
+
+${bloecke.join("\n\n")}`;
 }
 
 export type Abschnittsentwurf = { ueberschrift: string; text: string };

@@ -29,6 +29,9 @@ MODELLE_IM_ARCHIV = [
     "socos.Eventziel",
     "socos.Meeting",
     "socos.Meetingabschnitt",
+    # Die Dateien selbst liegen unter MEDIA_ROOT und wandern mit dem
+    # Medienordner; hier steht, zu welchem Meeting sie gehören.
+    "socos.Meetinganhang",
     "socos.Kontostand",
     "socos.Fixkosten",
     "socos.Monatskosten",
@@ -52,6 +55,7 @@ LOESCHREIHENFOLGE = [
     # Der Abschnitt vor dem Meeting, das Meeting vor Kontakt und Organisation:
     # Es zeigt auf beide (als Menge), und die Zwischentabellen hängen an ihm.
     "socos.Meetingabschnitt",
+    "socos.Meetinganhang",
     "socos.Meeting",
     # Der Kontakt steht **vor** dem Event, seit er mit `kennengelernt_auf` auf
     # eines zeigt. Andersherum hielte PROTECT beim Leeren dagegen, und das
