@@ -103,3 +103,7 @@ def test_anmeldeseite_bettet_kein_skript_ein():
 
     quelle = (settings.WURZEL / "vorlagen" / "anmelden.html").read_text(encoding="utf-8")
     assert not re.search(r"<script(?![^>]*\bsrc=)[^>]*>", quelle)
+
+
+def test_sitzung_haelt_fuenf_tage(settings):
+    assert settings.SESSION_COOKIE_AGE == 5 * 24 * 60 * 60

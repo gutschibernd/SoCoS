@@ -24,6 +24,14 @@ VERSIONEN = [
         "titel": "Anhänge am Meeting, besseres Protokoll aus dem LLM",
         "punkte": [
             {
+                "titel": "Alle fünf Tage neu anmelden",
+                "text": (
+                    "Eine Anmeldung hält jetzt fünf Tage statt zwei Wochen. Danach "
+                    "fragt SoCoS wieder nach dem Passwort — damit ein verlorenes "
+                    "oder offen liegendes Gerät nicht lange Zugang hat."
+                ),
+            },
+            {
                 "titel": "Dateien und E-Mails am Meeting",
                 "text": (
                     "Unter „Anhänge“ hängst du Dateien an ein Meeting — per Knopf "

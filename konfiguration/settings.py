@@ -212,6 +212,12 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_HTTPONLY = True
 
+# Fünf Tage ab der Anmeldung, dann neu anmelden. Djangos Vorgabe sind zwei
+# Wochen — für ein Werkzeug mit Personen- und Kundendaten zu lang, falls ein
+# Gerät verlorengeht oder offen herumliegt. Fünf Tage heißt: einmal pro
+# Arbeitswoche, nicht jeden Morgen.
+SESSION_COOKIE_AGE = 5 * 24 * 60 * 60
+
 # Das CSRF-Cookie muss für JavaScript lesbar sein: das Frontend schickt seinen
 # Wert als X-CSRFToken zurück. Es ist kein Geheimnis — es beweist nur, dass die
 # Anfrage aus der eigenen Seite kommt.
