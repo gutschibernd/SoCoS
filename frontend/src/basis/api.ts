@@ -45,8 +45,10 @@ export class ApiFehler extends Error {
  * Start liegen"), manchmal aber nur ein Statuscode. Dann steht hier ein Satz,
  * der sagt, was zu tun ist.
  */
-function lesbarerGrund(fehler: ApiFehler): string {
+export function lesbarerGrund(fehler: ApiFehler): string {
   if (fehler.istVerwehrt) return "Dafür fehlt dir die Berechtigung.";
+  // Kommt von Caddy, nicht von Django — ohne JSON und ohne Grund darin.
+  if (fehler.status === 413) return "Die Datei ist zu groß für den Server (höchstens 12 MB).";
   if (fehler.istInVerwendung) {
     const verwendet = (fehler.daten as { verwendet_von?: string[] })?.verwendet_von;
     return verwendet?.length
@@ -95,7 +97,14 @@ export async function hole<T>(pfad: string, optionen: RequestInit = {}): Promise
   if (antwort.status === 204) return undefined as T;
 
   const text = await antwort.text();
-  const daten = text ? JSON.parse(text) : null;
+  // Nicht jede Antwort kommt von Django: Der Proxy davor antwortet bei einer
+  // zu großen Anfrage mit Klartext. Ein Parserfehler verdeckte dann den Grund.
+  let daten = null;
+  try {
+    daten = text ? JSON.parse(text) : null;
+  } catch {
+    if (antwort.ok) throw new ApiFehler(antwort.status, null, null, "Antwort ist kein JSON.");
+  }
 
   if (!antwort.ok) {
     const code = daten && typeof daten === "object" ? (daten.code ?? null) : null;

@@ -107,3 +107,21 @@ def test_anmeldeseite_bettet_kein_skript_ein():
 
 def test_sitzung_haelt_fuenf_tage(settings):
     assert settings.SESSION_COOKIE_AGE == 5 * 24 * 60 * 60
+
+
+def test_caddy_begrenzt_anfragen_ausser_beim_einspielen():
+    """
+    Die Grenze im Caddyfile muss über der für Anhänge liegen, sonst sähe man
+    statt „zu groß, höchstens 12 MB" nur eine nackte 413 — und das Einspielen
+    einer Sicherung darf gar keine haben.
+    """
+    import re
+
+    from django.conf import settings
+
+    from socos.api import ANHANG_HOECHSTENS
+
+    caddy = (settings.WURZEL / "betrieb" / "Caddyfile").read_text(encoding="utf-8")
+    assert "@begrenzt not path /api/sicherung/einspielen/" in caddy
+    grenze = int(re.search(r"request_body @begrenzt \{\s*max_size (\d+)MB", caddy).group(1))
+    assert ANHANG_HOECHSTENS < grenze * 1000 * 1000 < ANHANG_HOECHSTENS + 1024 * 1024

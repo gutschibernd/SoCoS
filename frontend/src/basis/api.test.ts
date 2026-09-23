@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ApiFehler } from "./api";
+import { ApiFehler, lesbarerGrund } from "./api";
 
 describe("ApiFehler", () => {
   it("unterscheidet 'nicht angemeldet' von 'nicht berechtigt'", () => {
@@ -18,5 +18,11 @@ describe("ApiFehler", () => {
   it("erkennt 409 als 'wird noch verwendet'", () => {
     expect(new ApiFehler(409, "in_verwendung", null, "").istInVerwendung).toBe(true);
     expect(new ApiFehler(400, null, null, "").istInVerwendung).toBe(false);
+  });
+});
+
+describe("lesbarerGrund", () => {
+  it("übersetzt die 413 des Proxys in einen Satz", () => {
+    expect(lesbarerGrund(new ApiFehler(413, null, null, "Fehler 413"))).toMatch(/zu groß/);
   });
 });

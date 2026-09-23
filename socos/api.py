@@ -507,9 +507,15 @@ class MeetingabschnittViewSet(SocosViewSet):
         )
 
 
-# Eine Mail mit ein paar Ausweiskopien im Anhang hat schnell 20 MB; ein
-# Video aus dem Meeting hätte das Zehnfache und gehört nicht hierher.
-ANHANG_HOECHSTENS = 40 * 1024 * 1024
+# 12 MB je Datei. Eine Mail mit großen Anhängen passt trotzdem: Beim
+# Hochladen lassen sich ihre Anhänge weglassen, dann bleibt nur der Text.
+#
+# Caddy lässt knapp darüber nichts mehr durch (`request_body` im Caddyfile,
+# 13 MB wegen der Hülle des Formulars). Die Grenze hier ist die, deren Meldung
+# man zu sehen bekommt; die dort schützt davor, dass jemand den Server mit
+# einer riesigen Anfrage beschäftigt. Wer sie ändert, ändert beide — und
+# den Satz zur 413 in frontend/src/basis/api.ts und in der Doku.
+ANHANG_HOECHSTENS = 12 * 1024 * 1024
 
 
 class MeetinganhangViewSet(SocosViewSet):

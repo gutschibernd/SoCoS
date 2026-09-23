@@ -34,8 +34,18 @@ Code von Hand durchgesehen, dazu `check --deploy`, `pip-audit`, `bandit` und
   — ein Test sieht in `anmelden.html` nach. Geprüft: Anmeldung, Anwendung,
   Admin, API-Ansicht ohne Verstoß.
 
-Bewusst offen gelassen: Sitzungsdauer (Django-Vorgabe zwei Wochen) und eine
-Obergrenze für die Anfragegröße in Caddy (die Sicherung kann groß werden).
+Danach, auf Wunsch:
+
+- **Sitzung hält fünf Tage** (`SESSION_COOKIE_AGE`), nicht Djangos zwei Wochen.
+- **vitest 4** — damit ist auch `npm audit` ohne Meldung.
+- **Anfragen höchstens 13 MB** (`request_body` im Caddyfile), Anhänge
+  höchstens 12 MB (`ANHANG_HOECHSTENS`). Die Caddy-Grenze liegt knapp darüber,
+  damit man bei einer zu großen Datei Djangos Satz sieht und nicht die nackte
+  413. **Ausgenommen ist nur `/api/sicherung/einspielen/`** — ausdrücklich
+  ohne Grenze: Das Archiv wächst mit allen Anhängen, und eine Grenze dort
+  fiele erst auf, wenn man die Sicherung braucht. `deploy.sh` lädt Caddy
+  **nicht** neu; nach einer Änderung am Caddyfile von Hand
+  `caddy reload` im Proxy-Stack.
 
 ---
 

@@ -662,7 +662,7 @@ function MeetingsDoku() {
           paare={[
             {
               begriff: "Anhängen",
-              text: "„Datei oder E-Mail“ drücken oder die Datei auf die Karte ziehen. Mehrere auf einmal gehen auch. Bis 40 MB je Datei.",
+              text: "„Datei oder E-Mail“ drücken oder die Datei auf die Karte ziehen. Mehrere auf einmal gehen auch. Bis 12 MB je Datei; bei einer größeren Mail die Anhänge weglassen.",
             },
             {
               begriff: "E-Mails als .eml",

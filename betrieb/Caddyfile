@@ -19,6 +19,19 @@ socos.test.sopharmis.com {
 	# sperrte ein einziger Angreifer alle Nutzer gleichzeitig aus.
 	#
 	# Ausführlich in SERVER.md, festgehalten in socos/tests/test_axes.py.
+	# Höchstens 13 MB je Anfrage — eine Datei bis 12 MB samt Formularhülle
+	# (siehe ANHANG_HOECHSTENS in socos/api.py). Ohne Grenze kann jeder,
+	# auch ohne Anmeldung, den Server mit einer riesigen Anfrage beschäftigen.
+	#
+	# Ausgenommen ist allein das Einspielen einer Sicherung: Das Archiv
+	# enthält alle Anhänge und wächst mit ihnen. Eine Grenze dort fiele
+	# erst auf, wenn man die Sicherung braucht. Der Weg steht nur einem
+	# Admin offen (`darf_sichern`).
+	@begrenzt not path /api/sicherung/einspielen/
+	request_body @begrenzt {
+		max_size 13MB
+	}
+
 	reverse_proxy socos:8000
 
 	log {

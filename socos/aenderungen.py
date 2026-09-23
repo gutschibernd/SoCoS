@@ -24,6 +24,15 @@ VERSIONEN = [
         "titel": "Anhänge am Meeting, besseres Protokoll aus dem LLM",
         "punkte": [
             {
+                "titel": "Anhänge bis 12 MB",
+                "text": (
+                    "Eine Datei am Meeting darf jetzt höchstens 12 MB groß sein. "
+                    "Ist eine Mail größer, lass beim Hochladen ihre Anhänge weg — "
+                    "dann wird nur die Mail selbst abgelegt."
+                ),
+                "wo": "meetings",
+            },
+            {
                 "titel": "Alle fünf Tage neu anmelden",
                 "text": (
                     "Eine Anmeldung hält jetzt fünf Tage statt zwei Wochen. Danach "
