@@ -29,6 +29,19 @@ Hochladen und nicht beim Anzeigen, weil der Text in die Suche und den Auftrag
 geht, und beides läuft über die Liste aller Meetings. Kein PDF-Text: Das bräuchte
 eine Bibliothek je Format, und vermisst hat es noch niemand.
 
+**Anhänge einer Mail fallen auf Wunsch am Server weg** (`anhaenge=ohne` beim
+Hochladen, `mailtext.ohne_anhaenge`). Gefragt wird in der Oberfläche, und nur
+wenn die Mail welche hat — erkannt grob an `filename=` im Rohtext
+(`mailHatAnhaenge`); die Probe schlägt eher zu oft an als zu selten, und ohne
+Frage geht die Mail unverändert hoch. Weggelassen wird **vor** dem Ablegen, nicht
+danach: Die Mail an den Steuerberater trug Ausweiskopien, und die sollen gar nicht
+erst auf die Platte. Was wegfiel, steht im Text („Anhänge (nicht mit abgelegt)"),
+sonst liest sich „siehe Anhang" wie ein Versehen. Mit dem Logo der Signatur schrumpfte
+die Mail von 16 MB auf 46 KB.
+
+Eine Mail öffnet ein Fenster (Kopf, Text, Herunterladen), jede andere Datei lädt
+direkt herunter.
+
 Kein PATCH: Eine Datei ersetzt man durch eine neue. `Meeting.delete()` nimmt die
 Anhänge weich mit; die Dateien bleiben auf der Platte.
 

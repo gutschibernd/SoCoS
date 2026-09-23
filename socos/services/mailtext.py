@@ -42,14 +42,60 @@ def ist_mail(name, inhalt_anfang):
     return bool(re.search(r"^From:", kopf, re.M) and re.search(r"^(Subject|Date):", kopf, re.M))
 
 
-def mailtext(roh: bytes) -> str:
+def _lesen(roh):
     try:
         nachricht = BytesParser(policy=policy.default).parsebytes(roh)
     except Exception as fehler:  # noqa: BLE001 — jede Art Kaputt heißt dasselbe
         raise KeineMail(str(fehler))
-
     if not (nachricht.get("From") or nachricht.get("Subject")):
         raise KeineMail("Weder Absender noch Betreff — das ist keine E-Mail.")
+    return nachricht
+
+
+def _ist_anhang(teil):
+    """
+    Alles, was einen Dateinamen trägt und kein Teil des Textes ist — auch das
+    Logo in der Signatur (`inline` mit Namen). Es wegzulassen kostet nichts
+    Lesbares und macht die Mail oft um die Hälfte kleiner.
+    """
+    if teil.is_multipart():
+        return False
+    return teil.is_attachment() or bool(teil.get_filename())
+
+
+def ohne_anhaenge(roh: bytes) -> tuple[bytes, list[str]]:
+    """
+    Dieselbe Mail ohne ihre Anhänge — und die Namen dessen, was wegfiel.
+
+    **Warum das am Server passiert und nicht im Mailprogramm:** Wer eine Mail
+    aus Apple Mail herauszieht, bekommt sie ganz. Die Frage „Anhänge mit?"
+    stellt sich erst hier, beim Ablegen — und ein Ausweis im Anhang soll
+    gar nicht erst auf die Platte, auch nicht für einen Augenblick.
+
+    Kopf und Text bleiben unangetastet; nur die Teile mit Dateinamen fallen
+    aus ihren Behältern.
+    """
+    nachricht = _lesen(roh)
+    weg = []
+
+    def ausduennen(teil):
+        if not teil.is_multipart():
+            return
+        bleiben = []
+        for kind in teil.get_payload():
+            if _ist_anhang(kind):
+                weg.append(kind.get_filename() or kind.get_content_type())
+            else:
+                ausduennen(kind)
+                bleiben.append(kind)
+        teil.set_payload(bleiben)
+
+    ausduennen(nachricht)
+    return nachricht.as_bytes(), weg
+
+
+def mailtext(roh: bytes, weggelassen=()) -> str:
+    nachricht = _lesen(roh)
 
     zeilen = []
     for kopf, beschriftung in (("From", "Von"), ("To", "An"), ("Cc", "Cc")):
@@ -66,6 +112,10 @@ def mailtext(roh: bytes) -> str:
     ]
     if anhaenge:
         zeilen.append(f"Anhänge: {', '.join(anhaenge)}")
+    if weggelassen:
+        # Dass es sie gab, gehört zur Mail — „siehe Anhang" im Text liest sich
+        # sonst wie ein Versehen des Absenders.
+        zeilen.append(f"Anhänge (nicht mit abgelegt): {', '.join(weggelassen)}")
 
     text = f"{chr(10).join(zeilen)}\n\n{_inhalt(nachricht)}".strip()
     if len(text) > HOECHSTENS:

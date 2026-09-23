@@ -45,6 +45,7 @@ import {
   type Ich,
   type Kontakt,
   type Meeting,
+  type Meetinganhang,
   type Meetingabschnitt,
   type Organisation,
   type Teammitglied,
@@ -55,7 +56,10 @@ import {
   auftragFuerLLM,
   besteTreffer,
   groesse,
+  istMaildatei,
+  mailHatAnhaenge,
   mailkopf,
+  mailTeilen,
   passtMeeting,
   teileNachZeit,
   wann,
@@ -894,9 +898,14 @@ function Vorbereitungskarte({
  * Dateien am Meeting — meist die Mail, die zum Termin geführt hat.
  *
  * **Eine E-Mail als .eml hochladen, nicht als PDF:** Nur dann kennt SoCoS
- * ihren Text, zeigt ihn hier und legt ihn beim Aufbereiten als Unterlage bei.
- * Aus Apple Mail oder Outlook lässt sich eine Mail einfach auf die Karte
- * ziehen; sie kommt dann als .eml.
+ * ihren Text, zeigt ihn im Fenster und legt ihn beim Aufbereiten als
+ * Unterlage bei. Aus Apple Mail oder Outlook lässt sich eine Mail einfach auf
+ * die Karte ziehen; sie kommt dann als .eml.
+ *
+ * **Hat eine Mail Anhänge, wird vorher gefragt**, ob sie mit sollen. Die Mail
+ * an den Steuerberater trug Ausweiskopien und wog 16 MB; ohne Anhänge sind es
+ * 46 KB, und was darin hing, steht trotzdem im Text. Weggelassen wird am
+ * Server, bevor etwas abgelegt ist.
  *
  * Heruntergeladen wird über die API, hinter der Anmeldung — nicht über einen
  * offenen Pfad unter `/medien/`.
@@ -914,13 +923,26 @@ function Anhangkarte({
 }) {
   const [laeuft, setLaeuft] = useState(false);
   const [darueber, setDarueber] = useState(false);
-  const [offen, setOffen] = useState<number | null>(null);
+  const [gezeigt, setGezeigt] = useState<Meetinganhang | null>(null);
+  const [frage, setFrage] = useState<{ dateien: File[]; mails: string[] } | null>(null);
   const eingabe = useRef<HTMLInputElement>(null);
 
   async function hochladen(liste: FileList | null) {
-    // Erst kopieren: Das Leeren des Feldes unten leert auch diese Liste.
+    // Erst kopieren: Das Leeren des Feldes leert auch diese Liste.
     const dateien = Array.from(liste ?? []);
+    if (eingabe.current) eingabe.current.value = "";
     if (dateien.length === 0 || !ich.darf.bearbeiten) return;
+
+    const mitAnhang: string[] = [];
+    for (const datei of dateien) {
+      if (istMaildatei(datei) && mailHatAnhaenge(await datei.text())) mitAnhang.push(datei.name);
+    }
+    if (mitAnhang.length > 0) return setFrage({ dateien, mails: mitAnhang });
+    senden(dateien, false);
+  }
+
+  async function senden(dateien: File[], ohneAnhaenge: boolean) {
+    setFrage(null);
     setLaeuft(true);
     let angekommen = 0;
     try {
@@ -928,6 +950,7 @@ function Anhangkarte({
         const inhalt = new FormData();
         inhalt.append("meeting", String(meeting.id));
         inhalt.append("datei", datei);
+        if (ohneAnhaenge) inhalt.append("anhaenge", "ohne");
         await hole("/meetinganhaenge/", { method: "POST", body: inhalt });
         angekommen += 1;
       }
@@ -941,7 +964,6 @@ function Anhangkarte({
       // `hole` hat den Grund schon gemeldet. Was bis dahin ankam, bleibt.
     } finally {
       setLaeuft(false);
-      if (eingabe.current) eingabe.current.value = "";
       neuLaden();
     }
   }
@@ -991,57 +1013,121 @@ function Anhangkarte({
         <ul className="anhaenge">
           {meeting.anhaenge.map((a) => {
             const kopf = a.art === "email" ? mailkopf(a.text) : null;
-            const unter = kopf
-              ? [kopf.von, kopf.datum].filter(Boolean).join(" · ")
-              : "";
+            const unter = kopf ? [kopf.von, kopf.datum].filter(Boolean).join(" · ") : "";
+            const inhalt = (
+              <>
+                <span className="anhang-name">{kopf?.betreff || a.name}</span>
+                <span className="unterzeile">
+                  {unter && `${unter} · `}
+                  <span className="zahl">{groesse(a.groesse)}</span>
+                </span>
+              </>
+            );
             return (
               <li key={a.id} className="anhang">
-                <div className="anhang-zeile">
-                  <Zeichen name={a.art === "email" ? "brief" : "pdf"} />
-                  <div className="anhang-was">
-                    <a className="anhang-name" href={`/api/meetinganhaenge/${a.id}/datei/`}>
-                      {kopf?.betreff || a.name}
-                    </a>
-                    <span className="unterzeile">
-                      {unter && `${unter} · `}
-                      <span className="zahl">{groesse(a.groesse)}</span>
-                    </span>
-                  </div>
-                  <div className="anhang-knoepfe">
-                    {a.text && (
-                      <button
-                        type="button"
-                        className="mini"
-                        aria-expanded={offen === a.id}
-                        onClick={() => setOffen(offen === a.id ? null : a.id)}
-                      >
-                        {offen === a.id ? "Text zu" : "Text"}
-                      </button>
-                    )}
-                    {ich.darf.loeschen && (
-                      <button
-                        type="button"
-                        className="mini"
-                        aria-label={`${a.name} entfernen`}
-                        onClick={() =>
-                          zumLoeschen({
-                            pfad: `/meetinganhaenge/${a.id}/`,
-                            name: a.name,
-                            was: "Der Anhang",
-                          })
-                        }
-                      >
-                        <Zeichen name="kreuz" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {offen === a.id && <div className="anhang-text">{a.text}</div>}
+                <Zeichen name={a.art === "email" ? "brief" : "pdf"} />
+                {/* Eine Mail öffnet ihr Fenster, jede andere Datei lädt
+                    herunter: Eine PDF zeigt der Rechner besser als wir. */}
+                {a.art === "email" ? (
+                  <button type="button" className="anhang-was" onClick={() => setGezeigt(a)}>
+                    {inhalt}
+                  </button>
+                ) : (
+                  <a className="anhang-was" href={`/api/meetinganhaenge/${a.id}/datei/`}>
+                    {inhalt}
+                  </a>
+                )}
+                {ich.darf.loeschen && (
+                  <button
+                    type="button"
+                    className="mini"
+                    aria-label={`${a.name} entfernen`}
+                    onClick={() =>
+                      zumLoeschen({ pfad: `/meetinganhaenge/${a.id}/`, name: a.name, was: "Der Anhang" })
+                    }
+                  >
+                    <Zeichen name="kreuz" />
+                  </button>
+                )}
               </li>
             );
           })}
         </ul>
       )}
+
+      {gezeigt && <Maildialog anhang={gezeigt} schliessen={() => setGezeigt(null)} />}
+
+      {frage && (
+        <div className="dialog-grund" role="dialog" aria-modal="true" onClick={() => setFrage(null)}>
+          <div className="dialog" onClick={(e) => e.stopPropagation()}>
+            <h2>Anhänge mitnehmen?</h2>
+            <p>
+              {frage.mails.length === 1
+                ? `„${frage.mails[0]}“ hat Anhänge.`
+                : `${frage.mails.length} der Mails haben Anhänge.`}{" "}
+              Ohne sie wird nur die Mail mit ihrem Text abgelegt; welche Anhänge es gab, steht
+              dann im Text.
+            </p>
+            <div className="dialog-knoepfe">
+              <button type="button" className="knopf-still" onClick={() => setFrage(null)}>
+                Abbrechen
+              </button>
+              <button type="button" className="knopf-still" onClick={() => senden(frage.dateien, false)}>
+                Mit Anhängen
+              </button>
+              <button type="button" className="knopf" onClick={() => senden(frage.dateien, true)}>
+                Ohne Anhänge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Eine angehängte Mail zum Lesen: Kopf, Text, und der Weg zur Datei. */
+function Maildialog({ anhang, schliessen }: { anhang: Meetinganhang; schliessen: () => void }) {
+  const { kopf, inhalt } = mailTeilen(anhang.text);
+  const betreff = kopf.find((k) => k.name === "Betreff")?.wert || anhang.name;
+
+  useEffect(() => {
+    const beiTaste = (e: KeyboardEvent) => e.key === "Escape" && schliessen();
+    window.addEventListener("keydown", beiTaste);
+    return () => window.removeEventListener("keydown", beiTaste);
+  }, [schliessen]);
+
+  return (
+    <div className="dialog-grund" role="dialog" aria-modal="true" aria-label={betreff} onClick={schliessen}>
+      <div className="dialog dialog-arbeit" onClick={(e) => e.stopPropagation()}>
+        <div className="dialog-kopf">
+          <div className="dialog-kopf-text">
+            <h2>{betreff}</h2>
+          </div>
+          <div className="dialog-knoepfe">
+            <a className="knopf-still" href={`/api/meetinganhaenge/${anhang.id}/datei/`}>
+              <Zeichen name="pdf" />
+              Herunterladen
+            </a>
+            <button type="button" className="knopf" onClick={schliessen}>
+              Schließen
+            </button>
+          </div>
+        </div>
+        <div className="dialog-koerper">
+          <dl className="mailkopf">
+            {kopf
+              .filter((k) => k.name !== "Betreff")
+              .map((k) => (
+                <div key={k.name}>
+                  <dt>{k.name}</dt>
+                  <dd>{k.wert}</dd>
+                </div>
+              ))}
+          </dl>
+          <div className="mailinhalt">{inhalt || "Die Mail hat keinen Text."}</div>
+        </div>
+      </div>
     </div>
   );
 }

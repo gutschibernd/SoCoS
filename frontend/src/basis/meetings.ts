@@ -121,6 +121,44 @@ export function mailkopf(text: string): { von: string; datum: string; betreff: s
   return { von, datum: zeile("Datum"), betreff: zeile("Betreff") };
 }
 
+/** Eine .eml — am Namen, oder am Typ, den manche Mailprogramme beim Ziehen setzen. */
+export function istMaildatei(datei: { name: string; type: string }): boolean {
+  return datei.name.toLowerCase().endsWith(".eml") || datei.type === "message/rfc822";
+}
+
+/**
+ * Ob eine Mail Anhänge hat — nur, um zu wissen, ob gefragt werden muss.
+ *
+ * **Grob mit Absicht:** Ein Teil mit Dateinamen trägt `filename=` im Kopf,
+ * ein Mailtext ohne Anhang nie. Zerlegt wird die Mail am Server; hier genügt
+ * es, keinen zu fragen, der nichts anzuhängen hat. Irrt sich die Probe, steht
+ * eine Frage zu viel da — nie ein Ausweis zu viel auf dem Server, denn ohne
+ * Frage geht die Mail so hoch, wie sie ist, und die Probe schlägt eher zu oft
+ * an als zu selten.
+ */
+export function mailHatAnhaenge(roh: string): boolean {
+  return /\bfilename\*?(?:\d+\*?)?\s*=/i.test(roh);
+}
+
+/**
+ * Den Text einer angehängten Mail in Kopf und Inhalt teilen — der Server
+ * schreibt die Kopfzeilen vor die erste Leerzeile (`socos/services/mailtext.py`).
+ */
+export function mailTeilen(text: string): {
+  kopf: { name: string; wert: string }[];
+  inhalt: string;
+} {
+  const grenze = text.indexOf("\n\n");
+  const oben = grenze < 0 ? text : text.slice(0, grenze);
+  const inhalt = grenze < 0 ? "" : text.slice(grenze + 2).trim();
+  const kopf = oben
+    .split("\n")
+    .map((zeile) => zeile.match(/^([^:]{1,40}): (.*)$/))
+    .filter((t): t is RegExpMatchArray => Boolean(t))
+    .map((t) => ({ name: t[1], wert: t[2] }));
+  return { kopf, inhalt };
+}
+
 /** „14.10.2026" oder „14.10.2026, 14:30" — die Uhrzeit nur, wenn es eine gibt. */
 export function wann(meeting: Pick<Meeting, "datum" | "uhrzeit">): string {
   const tag = new Date(`${meeting.datum}T00:00:00`).toLocaleDateString("de-AT", {

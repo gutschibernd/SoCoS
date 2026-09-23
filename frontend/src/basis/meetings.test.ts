@@ -5,7 +5,10 @@ import {
   auftragFuerLLM,
   besteTreffer,
   groesse,
+  istMaildatei,
+  mailHatAnhaenge,
   mailkopf,
+  mailTeilen,
   passtMeeting,
   teileNachZeit,
   wann,
@@ -208,6 +211,38 @@ describe("mailkopf", () => {
 
   it("lässt fehlende Zeilen leer", () => {
     expect(mailkopf("")).toEqual({ von: "", datum: "", betreff: "" });
+  });
+});
+
+describe("mailHatAnhaenge", () => {
+  it("erkennt einen Teil mit Dateinamen, auch gefaltet und kodiert", () => {
+    expect(mailHatAnhaenge('Content-Disposition: attachment;\n filename="Pass.pdf"')).toBe(true);
+    expect(mailHatAnhaenge("Content-Disposition: attachment; filename*=utf-8''P%C3%A4ss.pdf")).toBe(true);
+  });
+
+  it("fragt bei einer Mail ohne Anhang nicht", () => {
+    expect(mailHatAnhaenge("Subject: Hallo\nContent-Type: text/plain\n\nLieber Bernd")).toBe(false);
+  });
+});
+
+describe("istMaildatei", () => {
+  it("erkennt eine Mail am Namen oder am Typ", () => {
+    expect(istMaildatei({ name: "Klient.EML", type: "" })).toBe(true);
+    expect(istMaildatei({ name: "Klient", type: "message/rfc822" })).toBe(true);
+    expect(istMaildatei({ name: "angebot.pdf", type: "application/pdf" })).toBe(false);
+  });
+});
+
+describe("mailTeilen", () => {
+  it("trennt die Kopfzeilen vom Inhalt", () => {
+    const teile = mailTeilen("Von: Gabriel <g@x>\nBetreff: Neu\n\nLieber Bernd,\n\nVon: im Zitat");
+
+    expect(teile.kopf).toEqual([
+      { name: "Von", wert: "Gabriel <g@x>" },
+      { name: "Betreff", wert: "Neu" },
+    ]);
+    // Ein „Von:" im Zitat gehört zum Inhalt, nicht zum Kopf.
+    expect(teile.inhalt).toBe("Lieber Bernd,\n\nVon: im Zitat");
   });
 });
 

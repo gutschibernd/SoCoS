@@ -1645,26 +1645,34 @@ a.mini { text-decoration: none; }
 .anhang-waehlen:focus-within { outline: 2px solid var(--marke); outline-offset: 2px; }
 .anhang-waehlen.laeuft { cursor: progress; color: var(--text-leise); }
 .anhaenge { list-style: none; margin: 0; padding: 0; }
-.anhang { border-bottom: 1px solid var(--rand); }
+.anhang {
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--rand);
+}
 .anhang:last-child { border-bottom: 0; }
-.anhang-zeile {
-  display: flex; align-items: center; gap: 10px; padding: 6px 0; min-height: var(--griff);
+.anhang > svg { flex: 0 0 auto; color: var(--text-leise); }
+/* Name und Zeile darunter sind *ein* Griff — so ist er so hoch wie die
+   Zeile und nicht bloß wie ein Wort. */
+.anhang-was {
+  flex: 1 1 auto; min-width: 0; min-height: var(--griff); padding: 6px 0;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+  background: none; border: 0; cursor: pointer; text-align: left;
+  font: inherit; color: inherit; text-decoration: none;
 }
-.anhang-zeile > svg { flex: 0 0 auto; color: var(--text-leise); }
-.anhang-was { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-.anhang-name {
-  color: var(--marke); font-weight: 600; text-decoration: none;
-  overflow-wrap: anywhere;
+.anhang-name { color: var(--marke); font-weight: 600; overflow-wrap: anywhere; }
+.anhang-was:hover .anhang-name { text-decoration: underline; }
+
+/* Die Mail im Fenster: Kopf als zwei Spalten, darunter der Text so, wie er
+   kam — Zeilen bleiben Zeilen. */
+.mailkopf {
+  display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px;
+  margin: 12px 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--rand);
+  font-size: 13px;
 }
-.anhang-name:hover { text-decoration: underline; }
-.anhang-knoepfe { display: flex; gap: 6px; flex: 0 0 auto; }
-/* Der Text einer Mail: zum Nachlesen, nicht zum Ändern. Begrenzt, weil ein
-   langer Verlauf sonst die Mitschrift darunter aus dem Bild schiebt. */
-.anhang-text {
-  white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.55;
-  max-height: 420px; overflow: auto; margin: 0 0 12px; padding: 10px 12px;
-  background: var(--flaeche-leise); color: var(--text); border-radius: var(--kante);
-}
+.mailkopf > div { display: contents; }
+.mailkopf dt { color: var(--text-leise); }
+.mailkopf dd { margin: 0; overflow-wrap: anywhere; }
+.mailinhalt { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.6; }
 
 .abschnitt { padding: 14px 0; border-bottom: 1px solid var(--rand); }
 .abschnitt:last-child { border-bottom: 0; padding-bottom: 0; }

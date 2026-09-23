@@ -666,15 +666,15 @@ function MeetingsDoku() {
             },
             {
               begriff: "E-Mails als .eml",
-              text: "Zieh die Mail aus Apple Mail oder Outlook auf die Karte (oder „Sichern als …“ → .eml). Dann liest SoCoS Absender, Datum, Betreff und Text; „Text“ klappt ihn auf, und beim Aufbereiten geht er als Hintergrund mit. Eine Mail als PDF ist nur eine Datei.",
+              text: "Zieh die Mail aus Apple Mail oder Outlook auf die Karte (oder „Sichern als …“ → .eml). Dann liest SoCoS Absender, Datum, Betreff und Text; ein Klick auf die Mail zeigt sie in einem Fenster, und beim Aufbereiten geht ihr Text als Hintergrund mit. Eine Mail als PDF ist nur eine Datei.",
             },
             {
               begriff: "Was in der Mail hängt",
-              text: "Die Anhänge einer Mail bleiben in der .eml und kommen beim Herunterladen mit. Gelesen werden nur ihre Namen — ihr Inhalt geht nicht in den Auftrag an das LLM.",
+              text: "Hat die Mail selbst Anhänge, fragt SoCoS beim Hochladen: mit oder ohne. Ohne wird nur die Mail abgelegt, und im Text steht, welche Anhänge es gab — richtig für Ausweiskopien und alles, was nicht auf den Server soll. Mit bleiben sie in der .eml und kommen beim Herunterladen mit. In den Auftrag an das LLM gehen in keinem Fall mehr als ihre Namen.",
             },
             {
               begriff: "Herunterladen und entfernen",
-              text: "Ein Klick auf den Namen lädt die Datei herunter. Entfernen darf ein Admin; die Datei bleibt dabei auf dem Server und steht in der Sicherung.",
+              text: "Eine Datei lädt ein Klick auf ihren Namen herunter, eine Mail der Knopf in ihrem Fenster. Entfernen darf ein Admin; die Datei bleibt dabei auf dem Server und steht in der Sicherung.",
             },
           ]}
         />

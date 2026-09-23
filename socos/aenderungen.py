@@ -34,6 +34,24 @@ VERSIONEN = [
                 "wo": "meetings",
             },
             {
+                "titel": "Mails öffnen sich im Fenster",
+                "text": (
+                    "Ein Klick auf eine angehängte Mail zeigt sie in einem Fenster — "
+                    "Absender, Empfänger, Datum und Text, daneben der Knopf zum "
+                    "Herunterladen."
+                ),
+                "wo": "meetings",
+            },
+            {
+                "titel": "Anhänge einer Mail: mit oder ohne",
+                "text": (
+                    "Hat eine Mail selbst Anhänge, fragt SoCoS beim Hochladen, ob sie "
+                    "mit sollen. Ohne sie wird nur die Mail abgelegt — welche Anhänge "
+                    "es gab, steht dann in ihrem Text."
+                ),
+                "wo": "meetings",
+            },
+            {
                 "titel": "Der LLM-Auftrag ist neu",
                 "text": (
                     "Das Protokoll kommt jetzt mit Kurzfassung, einem Abschnitt je "

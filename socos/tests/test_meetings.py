@@ -505,3 +505,54 @@ def test_anhaenge_wandern_durch_die_sicherung(tmp_path, medien, bearbeiter):
     assert wieder_da.text == "Betreff: X"
     assert wieder_da.datei.path == pfad
     assert wieder_da.datei.read() == b"Subject: X"
+
+
+class TestMailOhneAnhaenge:
+    @pytest.mark.django_db
+    def test_ohne_anhaenge_bleibt_nur_die_mail(self, client, bearbeiter, meeting, medien):
+        """Der Ausweis im Anhang soll gar nicht erst auf die Platte."""
+        client.force_login(bearbeiter)
+
+        daten = client.post(
+            "/api/meetinganhaenge/",
+            {
+                "meeting": meeting.pk,
+                "datei": SimpleUploadedFile("klient.eml", _mail()),
+                "anhaenge": "ohne",
+            },
+        ).json()
+
+        anhang = Meetinganhang.objects.get(pk=daten["id"])
+        abgelegt = anhang.datei.read()
+        assert b"Pass_Gutschi.pdf" not in abgelegt
+        assert daten["groesse"] == len(abgelegt)
+        # Kopf und Text sind noch da, und dass es einen Anhang gab, auch.
+        assert "BH: EUR 90,00/h" in daten["text"]
+        assert "Anhänge (nicht mit abgelegt): Pass_Gutschi.pdf" in daten["text"]
+
+    @pytest.mark.django_db
+    def test_mit_anhaengen_bleibt_die_mail_ganz(self, client, bearbeiter, meeting, medien):
+        client.force_login(bearbeiter)
+        roh = _mail()
+
+        daten = client.post(
+            "/api/meetinganhaenge/",
+            {"meeting": meeting.pk, "datei": SimpleUploadedFile("klient.eml", roh)},
+        ).json()
+
+        assert Meetinganhang.objects.get(pk=daten["id"]).datei.read() == roh
+
+    @pytest.mark.django_db
+    def test_ohne_anhaenge_laesst_andere_dateien_in_ruhe(self, client, bearbeiter, meeting, medien):
+        client.force_login(bearbeiter)
+
+        daten = client.post(
+            "/api/meetinganhaenge/",
+            {
+                "meeting": meeting.pk,
+                "datei": SimpleUploadedFile("angebot.pdf", b"%PDF-1.4"),
+                "anhaenge": "ohne",
+            },
+        ).json()
+
+        assert Meetinganhang.objects.get(pk=daten["id"]).datei.read() == b"%PDF-1.4"

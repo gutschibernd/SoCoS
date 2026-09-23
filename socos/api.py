@@ -11,6 +11,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from django.contrib.auth import logout
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
@@ -546,28 +547,37 @@ class MeetinganhangViewSet(SocosViewSet):
                 {"datei": f"„{datei.name}“ ist größer als {ANHANG_HOECHSTENS // (1024 * 1024)} MB."}
             )
 
-        art, text = Anhangart.DATEI, ""
+        # `anhaenge=ohne`: Die Oberfläche hat gefragt, und die Antwort war,
+        # dass die Anhänge einer Mail nicht mit abgelegt werden.
+        ohne = request.data.get("anhaenge") == "ohne"
+
+        art, text, inhalt = Anhangart.DATEI, "", datei
         anfang = datei.read(4000)
         datei.seek(0)
         if mailtext.ist_mail(datei.name, anfang):
             try:
-                text = mailtext.mailtext(datei.read())
+                roh = datei.read()
+                weg = []
+                if ohne:
+                    roh, weg = mailtext.ohne_anhaenge(roh)
+                    inhalt = ContentFile(roh)
+                text = mailtext.mailtext(roh, weggelassen=weg)
                 art = Anhangart.EMAIL
             except mailtext.KeineMail:
                 # Dann liegt sie eben als Datei da. Abgelehnt wird nichts, nur
                 # weil der Text nicht herauskommt — die Datei selbst ist das,
                 # was aufbewahrt werden soll.
-                pass
+                inhalt = datei
             datei.seek(0)
 
         anhang = Meetinganhang(
             meeting=meeting,
             name=datei.name[:255],
-            groesse=datei.size,
+            groesse=inhalt.size,
             art=art,
             text=text,
         )
-        anhang.datei.save(datei.name, datei, save=False)
+        anhang.datei.save(datei.name, inhalt, save=False)
         anhang.save()
         return Response(self.get_serializer(anhang).data, status=201)
 
