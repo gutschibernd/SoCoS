@@ -43,9 +43,11 @@ Danach, auf Wunsch:
   damit man bei einer zu großen Datei Djangos Satz sieht und nicht die nackte
   413. **Ausgenommen ist nur `/api/sicherung/einspielen/`** — ausdrücklich
   ohne Grenze: Das Archiv wächst mit allen Anhängen, und eine Grenze dort
-  fiele erst auf, wenn man die Sicherung braucht. `deploy.sh` lädt Caddy
-  **nicht** neu; nach einer Änderung am Caddyfile von Hand
-  `caddy reload` im Proxy-Stack.
+  fiele erst auf, wenn man die Sicherung braucht. `deploy.sh` fasst Caddy
+  **nicht** an. Und ein `caddy reload` genügt nicht: Das Caddyfile ist als
+  Einzeldatei eingehängt, und nach `git pull` sieht der Container weiter die
+  alte. Container neu anlegen, siehe betrieb/LIESMICH.md. Am Server geprüft:
+  14 MB → 413 von Caddy, 5 MB gehen durch.
 
 ---
 

@@ -82,6 +82,18 @@ Ausfall unterscheiden kann, darf das nicht.
 > Skript zieht sich selbst mit; der laufende Lauf führt noch die alte Fassung
 > zu Ende. Deshalb steht sein Rumpf in einer Gruppe `{ … }`.
 
+**`deploy.sh` fasst Caddy nicht an.** Nach einer Änderung am `Caddyfile`
+zuerst die neue Datei prüfen, dann den Container **neu anlegen** — ein
+`caddy reload` genügt nicht (siehe „Fallen" unten):
+
+```bash
+docker run --rm -v "$PWD/betrieb/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+```
+
+```bash
+docker compose -f betrieb/proxy.yml up -d --force-recreate caddy
+```
+
 Zurück auf einen früheren Stand geht von Hand:
 
 ```bash
@@ -129,13 +141,20 @@ sie danach weg.
 Und: **Ein Restore ohne Test ist kein Backup.** Einmal durchspielen, bevor die
 ersten echten Daten drin sind, und das Datum in die Tabelle in SERVER.md.
 
-## Zwei Fallen, die man nicht sieht
+## Drei Fallen, die man nicht sieht
 
 **Kein `ports:` in `anwendung.yml`.** Docker schreibt eigene iptables-Regeln und
 geht an `ufw` vorbei — ein veröffentlichter Port hinge im offenen Internet, auch
 wenn `ufw` ihn sperrt. Daran hängt zusätzlich `SECURE_PROXY_SSL_HEADER`: Wäre
 gunicorn direkt erreichbar, könnte jeder `X-Forwarded-Proto` selbst mitschicken
 und Django hielte eine unverschlüsselte Anfrage für eine verschlüsselte.
+
+**Das `Caddyfile` ist als einzelne Datei eingehängt.** `git pull` ersetzt sie
+durch eine neue Datei; der laufende Container hängt aber an der alten und sieht
+die Änderung nie. `caddy reload` und sogar `caddy validate` im Container laden
+und prüfen dann still die **alte** Fassung und melden Erfolg. Erst ein neu
+angelegter Container sieht die neue. So geschehen am 2026-09-23 mit der
+Größengrenze.
 
 **Das Volume `proxy_caddy-daten` enthält die Zertifikate.** Wer es wegwirft,
 holt sich alles neu — und läuft in die Ausstellungsgrenze.
