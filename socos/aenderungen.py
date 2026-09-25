@@ -20,6 +20,22 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-25",
+        "titel": "SPG Academy: Vision Statement",
+        "punkte": [
+            {
+                "titel": "Das Vision Statement",
+                "text": (
+                    "Die SPG Academy hat einen dritten Teil: einen Satz mit drei "
+                    "Lücken — „Our Vision is …, hereby we want to help … by "
+                    "building …“. Die Vision ist schon eingetragen; wem wir helfen "
+                    "und womit, füllst du unter „Bearbeiten“ aus."
+                ),
+                "wo": "module/spg-vision",
+            },
+        ],
+    },
+    {
         "version": "2026-09-23",
         "titel": "Anhänge am Meeting, besseres Protokoll aus dem LLM",
         "punkte": [

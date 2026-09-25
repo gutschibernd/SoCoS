@@ -7,7 +7,7 @@
  */
 
 import { tageBis } from "./aufgaben";
-import type { Abschnittstand, Canvaspunkt, Persona, Vorhaben } from "./daten";
+import type { Abschnittstand, Canvaspunkt, Persona, Vorhaben, Workshopschluessel } from "./daten";
 import type { ZeichenName } from "../bausteine/Zeichen";
 
 /** Ein Workshop in einem Modul — ein Teil mit eigenem Weg und eigenen Feldern. */
@@ -16,8 +16,8 @@ export type Workshop = {
   weg: string;
   titel: string;
   /** Wie die Schnittstelle ihn nennt (`/api/vorhaben/felder/?workshop=…`). */
-  schluessel: "canvas" | "businessplan";
-  /** Was er zählt: „9 Felder", „8 Abschnitte". */
+  schluessel: Workshopschluessel;
+  /** Was er zählt: „9 Felder", „8 Abschnitte", „3 Teile". */
   einheit: string;
 };
 
@@ -40,6 +40,7 @@ export const MODULE: Modul[] = [
     teile: [
       { weg: "spg", titel: "Lean Model Canvas", schluessel: "canvas", einheit: "Felder" },
       { weg: "spg-businessplan", titel: "Business Plan Lite", schluessel: "businessplan", einheit: "Abschnitte" },
+      { weg: "spg-vision", titel: "Vision Statement", schluessel: "vision", einheit: "Teile" },
     ],
   },
 ];
@@ -133,6 +134,16 @@ export function naechsterStand(jetzt: Abschnittstand): Abschnittstand {
 /** Wie viele der genannten Abschnitte fertig sind. */
 export function fertigeAbschnitte(vorhaben: Vorhaben, abschnitte: string[]): number {
   return abschnitte.filter((a) => standVon(vorhaben, a) === "fertig").length;
+}
+
+/* --- Vision Statement ------------------------------------------------------ */
+
+/**
+ * Ein Teil ohne Satzzeichen am Ende. Der Satz setzt Komma und Punkt selbst —
+ * wer „… zu Hause." einträgt, bekäme sonst „zu Hause., hereby".
+ */
+export function ohneSatzende(text: string): string {
+  return text.trim().replace(/[\s.,;:]+$/, "");
 }
 
 /* --- Ein Feld bearbeiten -------------------------------------------------- */

@@ -734,7 +734,7 @@ function ModuleDoku() {
 
       <Abschnitt
         zeichen="akademie"
-        titel="SPG Academy: Lean Model Canvas und Business Plan Lite"
+        titel="SPG Academy: Lean Model Canvas, Business Plan Lite und Vision Statement"
         vorspann="Hier kommen die Ergebnisse aus dem Workshop hin: neun Felder, nummeriert wie in der SPG Academy, für das Vorhaben Sopharmis Arzneimittelspender."
       >
         <Schritte
@@ -778,6 +778,10 @@ function ModuleDoku() {
             {
               begriff: "Die Abgaben",
               text: "Sie stehen außerdem als Aufgaben mit Frist unter „Allgemein“ auf der Tafel. Abgehakt wird dort.",
+            },
+            {
+              begriff: "Vision Statement",
+              text: "Der dritte Workshop, oben umzuschalten: ein Satz mit drei Lücken — „Our Vision is …, hereby we want to help … by building …“. Unter „Bearbeiten“ füllst du die Lücken aus; die Seite zeigt danach den ganzen Satz, eine offene Lücke als Strich. Ein Punkt am Ende deines Textes fällt weg, das Satzzeichen setzt SoCoS selbst.",
             },
             {
               begriff: "Ein volles Feld im PDF",

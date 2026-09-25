@@ -54,6 +54,7 @@ from socos.models import (
     Rueckmeldung,
     Unteraufgabe,
     Verlaufseintrag,
+    Visionsteil,
     Vorhaben,
     Zeitbuchung,
     auffangpaket,
@@ -625,7 +626,9 @@ class VorhabenViewSet(SocosViewSet):
     def felder(self, request):
         """
         Die Felder eines Workshops in der Reihenfolge der SPG Academy, samt
-        Aufgabe und Leitfragen. `?workshop=canvas` (Vorgabe) oder `businessplan`.
+        Aufgabe und Leitfragen. `?workshop=canvas` (Vorgabe), `businessplan`
+        oder `vision`. Die Teile des Vision Statement haben keine Leitfragen —
+        ihr Titel ist das Stück Satz, das davor steht.
         """
         workshop = request.query_params.get("workshop", "canvas")
         if workshop not in WORKSHOPS:
@@ -636,7 +639,7 @@ class VorhabenViewSet(SocosViewSet):
                 "nummer": nummer,
                 "titel": titel,
                 "aufgabe": AUFGABEN.get(wert, []),
-                "leitfragen": LEITFRAGEN[wert],
+                "leitfragen": LEITFRAGEN.get(wert, []),
                 "umfang": UMFANG.get(wert, ""),
             }
             for nummer, (wert, titel) in enumerate(WORKSHOPS[workshop].choices, start=1)
@@ -664,12 +667,12 @@ class VorhabenViewSet(SocosViewSet):
         """
         vorhaben = self.get_object()
 
-        # Nur das Canvas. Der Business Plan Lite wird nicht hier geschrieben,
-        # sondern im Dokument, das abgegeben wird — hier steht nur sein Stand
-        # (siehe `stand`).
+        # Canvas und Vision Statement. Der Business Plan Lite wird nicht hier
+        # geschrieben, sondern im Dokument, das abgegeben wird — hier steht nur
+        # sein Stand (siehe `stand`).
         feld = request.data.get("feld")
-        if feld not in Canvasfeld.values:
-            raise ValidationError({"feld": f"„{feld}“ ist kein Feld des Canvas."})
+        if feld not in Canvasfeld.values + Visionsteil.values:
+            raise ValidationError({"feld": f"„{feld}“ ist kein Feld, das hier geschrieben wird."})
 
         roh = request.data.get("punkte")
         if not isinstance(roh, list):
@@ -693,6 +696,12 @@ class VorhabenViewSet(SocosViewSet):
             if len(text) > 2000:
                 raise ValidationError({"punkte": "Ein Punkt ist höchstens 2000 Zeichen lang."})
             gewuenscht.append((eintrag.get("id"), text))
+
+        # Eine Lücke im Satz nimmt einen Text auf, keine Liste. Zwei Punkte
+        # darin könnte die Oberfläche nur hintereinanderkleben, und welcher
+        # vorn steht, entschiede die Reihenfolge — die dort niemand sieht.
+        if feld in Visionsteil.values and len(gewuenscht) > 1:
+            raise ValidationError({"punkte": "Ein Teil des Vision Statement ist ein Text, keine Liste."})
 
         with transaction.atomic():
             behalten = set()

@@ -253,6 +253,82 @@ class TestPersonas:
         assert leinwand.euro(Decimal("1450.50")) == "1\u00a0450,50 €"
 
 
+class TestVisionStatement:
+    @pytest.mark.django_db
+    def test_drei_teile_in_der_reihenfolge_des_satzes(self, client, leser):
+        client.force_login(leser)
+
+        felder = client.get("/api/vorhaben/felder/?workshop=vision").json()
+
+        assert [f["titel"] for f in felder] == [
+            "Our Vision is",
+            "hereby we want to help",
+            "by building",
+        ]
+        assert [f["leitfragen"] for f in felder] == [[], [], []]
+
+    @pytest.mark.django_db
+    def test_ein_teil_wird_geschrieben_und_umgeschrieben(self, client, bearbeiter, vorhaben):
+        client.force_login(bearbeiter)
+        _feld(client, vorhaben, "wem", [{"text": "Pflegebedürftige"}])
+        erster = _aktive(vorhaben, "wem")[0]
+
+        _feld(client, vorhaben, "wem", [{"id": erster.pk, "text": "Pflegebedürftige zu Hause"}])
+
+        # Derselbe Punkt, umgeschrieben — im Protokoll steht alt → neu.
+        assert [(p.pk, p.text) for p in _aktive(vorhaben, "wem")] == [
+            (erster.pk, "Pflegebedürftige zu Hause")
+        ]
+
+    @pytest.mark.django_db
+    def test_eine_luecke_nimmt_nur_einen_text(self, client, bearbeiter, vorhaben):
+        client.force_login(bearbeiter)
+
+        antwort = _feld(client, vorhaben, "vision", [{"text": "Eins"}, {"text": "Zwei"}])
+
+        assert antwort.status_code == 400
+        assert _aktive(vorhaben, "vision") == []
+
+    @pytest.mark.django_db
+    def test_eine_leere_luecke_entfernt_den_teil(self, client, bearbeiter, vorhaben):
+        client.force_login(bearbeiter)
+        _feld(client, vorhaben, "womit", [{"text": "einen Spender"}])
+
+        _feld(client, vorhaben, "womit", [])
+
+        assert _aktive(vorhaben, "womit") == []
+
+    @staticmethod
+    def _eintragen():
+        from importlib import import_module
+
+        from django.apps import apps
+
+        import_module("socos.migrations.0027_vision_statement").eintragen(apps, None)
+
+    @pytest.mark.django_db
+    def test_die_migration_traegt_die_vision_ein(self):
+        Canvaspunkt.objects.all().hart_loeschen()
+        Vorhaben.objects.all().hart_loeschen()
+        vorhaben = Vorhaben.objects.create(titel="Sopharmis Arzneimittelspender")
+
+        self._eintragen()
+
+        (punkt,) = _aktive(vorhaben, "vision")
+        assert punkt.text.startswith("a world where medication at home is safe")
+
+    @pytest.mark.django_db
+    def test_die_migration_ueberschreibt_keine_vision(self):
+        Canvaspunkt.objects.all().hart_loeschen()
+        Vorhaben.objects.all().hart_loeschen()
+        vorhaben = Vorhaben.objects.create(titel="Sopharmis Arzneimittelspender")
+        Canvaspunkt.objects.create(vorhaben=vorhaben, feld="vision", text="Schon da")
+
+        self._eintragen()
+
+        assert [p.text for p in _aktive(vorhaben, "vision")] == ["Schon da"]
+
+
 class TestFeldSetzen:
     @pytest.mark.django_db
     def test_punkte_kommen_in_ihrer_reihenfolge_an(self, client, bearbeiter, vorhaben):
@@ -357,7 +433,9 @@ class TestBerechtigung:
 
         assert anlegen.status_code == 403
         assert setzen.status_code == 403
-        assert not Canvaspunkt.objects.exists()
+        # Nur dieses Vorhaben: Die Migrationen legen das eine Vorhaben samt
+        # Vision schon an, die Datenbank ist also nie ganz leer.
+        assert not Canvaspunkt.objects.filter(vorhaben=vorhaben).exists()
 
     @pytest.mark.django_db
     def test_ein_bearbeiter_legt_an_und_benennt_um(self, client, bearbeiter, vorhaben):

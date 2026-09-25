@@ -6,6 +6,7 @@ import {
   abgaben,
   fertigeAbschnitte,
   naechsterStand,
+  ohneSatzende,
   standVon,
   alsEntwuerfe,
   alsEuro,
@@ -22,7 +23,7 @@ import {
 
 describe("die Wege der Module", () => {
   it("kennt beide Workshops der SPG Academy", () => {
-    expect(MODULWEGE).toEqual(["spg", "spg-businessplan"]);
+    expect(MODULWEGE).toEqual(["spg", "spg-businessplan", "spg-vision"]);
     expect(workshopZuWeg("spg-businessplan")?.teil.schluessel).toBe("businessplan");
     expect(workshopZuWeg("spg")?.modul.titel).toBe("SPG Academy");
     expect(workshopZuWeg("pitch")).toBeNull();
@@ -163,5 +164,17 @@ describe("Business Plan Lite", () => {
     expect(naechsterStand("offen")).toBe("entwurf");
     expect(naechsterStand("entwurf")).toBe("fertig");
     expect(naechsterStand("fertig")).toBe("offen");
+  });
+});
+
+describe("ohneSatzende", () => {
+  it("nimmt Punkt, Komma und Leerzeichen am Ende weg", () => {
+    expect(ohneSatzende("  a world without missed doses. ")).toBe("a world without missed doses");
+    expect(ohneSatzende("patients at home,")).toBe("patients at home");
+  });
+
+  it("lässt Satzzeichen in der Mitte und andere am Ende stehen", () => {
+    expect(ohneSatzende("Dr. Huber's patients")).toBe("Dr. Huber's patients");
+    expect(ohneSatzende("safe dosing!")).toBe("safe dosing!");
   });
 });

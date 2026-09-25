@@ -1,7 +1,8 @@
 /**
  * Module: zusätzliche Werkzeuge, die mit Projekt und Zeit nichts zu tun haben.
  *
- * `/module` ist die Übersicht aller Module, `/module/spg` die SPG Academy.
+ * `/module` ist die Übersicht aller Module, `/module/spg` die SPG Academy mit
+ * ihren Workshops (`/module/spg-businessplan`, `/module/spg-vision`).
  *
  * **Die Leinwand ist das Ergebnis, nicht die Werkstatt.** Auf ihr steht, was
  * im Workshop herausgekommen ist — Stichpunkte je Feld. Bearbeitet wird ein
@@ -29,6 +30,7 @@ import {
   abgaben,
   fertigeAbschnitte,
   naechsterStand,
+  ohneSatzende,
   standVon,
   alsEntwuerfe,
   ausgefuellt,
@@ -214,7 +216,8 @@ function SpgAcademy({
   if (!felder.data) return <Zustand abfrage={felder} erneut={() => felder.refetch()} />;
 
   const eines = vorhaben.data[0] ?? null;
-  const art = teil.schluessel === "canvas" ? "leinwand" : "plan";
+  const art =
+    teil.schluessel === "canvas" ? "leinwand" : teil.schluessel === "businessplan" ? "plan" : "vision";
 
   // Die Workshops als Umschalter — dieselbe Form wie die Zeitraumwahl: ein
   // Zustand, mehrere Werte, einer gilt.
@@ -249,6 +252,8 @@ function SpgAcademy({
         </div>
         {art === "plan" ? (
           <Planueberblick vorhaben={LEER} abschnitte={felder.data} darfSetzen={false} />
+        ) : art === "vision" ? (
+          <Visionsatz vorhaben={LEER} teile={felder.data} darfBearbeiten={false} />
         ) : (
           <Leinwand vorhaben={LEER} felder={felder.data} oeffnen={null} />
         )}
@@ -294,6 +299,8 @@ function SpgAcademy({
 
       {art === "plan" ? (
         <Planueberblick vorhaben={eines} abschnitte={felder.data} darfSetzen={ich.darf.bearbeiten} />
+      ) : art === "vision" ? (
+        <Visionsatz vorhaben={eines} teile={felder.data} darfBearbeiten={ich.darf.bearbeiten} />
       ) : (
         <Leinwand
           vorhaben={eines}
@@ -415,6 +422,185 @@ function Planueberblick({
         })}
       </div>
     </>
+  );
+}
+
+/* --- Vision Statement ------------------------------------------------------ */
+
+/**
+ * Das Vision Statement: **ein** Satz mit drei Lücken — „Our Vision is …,
+ * hereby we want to help … by building …".
+ *
+ * Gelesen wird er als Satz, nicht als drei Kästen: Ob die Teile
+ * zusammenpassen, sieht man nur, wenn sie hintereinander stehen. Die festen
+ * Stücke sind die Titel der Teile vom Server, die Einträge stehen fett
+ * dazwischen, eine offene Lücke als Strich.
+ *
+ * Bearbeitet wird an Ort und Stelle und nicht im Fenster wie beim Canvas:
+ * Drei Felder brauchen kein Weiterblättern, und so steht der Lückentext genau
+ * da, wo nachher der Satz steht. Die Vision bekommt eine eigene Zeile, weil sie
+ * der längste Teil ist; „wem" ist eine Lücke im Satz, „womit" wieder ein Kasten.
+ */
+function Visionsatz({
+  vorhaben,
+  teile,
+  darfBearbeiten,
+}: {
+  vorhaben: Vorhaben;
+  teile: Canvasfeld[];
+  darfBearbeiten: boolean;
+}) {
+  const neuLaden = useNeuLaden();
+  const gespeichert = teile.map((t) => punkteIn(vorhaben, t.feld)[0] ?? null);
+  // `null` heißt: Es wird gerade nicht bearbeitet.
+  const [entwurf, setEntwurf] = useState<string[] | null>(null);
+  const [laeuft, setLaeuft] = useState(false);
+  const [fragtVerwerfen, setFragtVerwerfen] = useState(false);
+
+  const [vision, wem, womit] = teile;
+  const geaendert =
+    entwurf !== null && entwurf.some((text, i) => text.trim() !== (gespeichert[i]?.text ?? ""));
+  const setze = (i: number, text: string) =>
+    setEntwurf((alt) => alt && alt.map((t, j) => (j === i ? text : t)));
+
+  async function speichern() {
+    if (!entwurf) return;
+    setLaeuft(true);
+    try {
+      // Jeder Teil über denselben Weg wie ein Feld des Canvas, und nur, was
+      // sich geändert hat — sonst stünde ein unberührter Teil als bearbeitet
+      // im Protokoll. Mit seiner `id`, damit dort alt → neu steht.
+      for (const [i, t] of teile.entries()) {
+        const text = entwurf[i].trim();
+        const alt = gespeichert[i];
+        if (text === (alt?.text ?? "")) continue;
+        const punkte = text ? [alt ? { id: alt.id, text } : { text }] : [];
+        await hole(`/vorhaben/${vorhaben.id}/feld/`, {
+          method: "POST",
+          body: JSON.stringify({ feld: t.feld, punkte }),
+        });
+      }
+      melden("gut", "Das Vision Statement ist gespeichert.");
+      setEntwurf(null);
+    } catch {
+      // `hole` hat den Grund schon gemeldet. Der Entwurf bleibt stehen — ein
+      // Teil davon kann schon gespeichert sein, der Rest ist nicht verloren.
+    } finally {
+      setLaeuft(false);
+      neuLaden();
+    }
+  }
+
+  const texte = gespeichert.map((p) => (p ? ohneSatzende(p.text) : ""));
+  const luecke = (text: string) =>
+    text ? <b>{text}</b> : <span className="vision-luecke" aria-label="noch offen" role="img" />;
+
+  return (
+    <section className="vision">
+      {entwurf === null ? (
+        <>
+          <p className="vision-satz">
+            {vision.titel} {luecke(texte[0])}, {wem.titel} {luecke(texte[1])} {womit.titel}{" "}
+            {luecke(texte[2])}.
+          </p>
+          {darfBearbeiten && (
+            <div className="vision-knoepfe">
+              <button
+                type="button"
+                className="knopf-still"
+                onClick={() => setEntwurf(gespeichert.map((p) => p?.text ?? ""))}
+              >
+                <Zeichen name="stift" />
+                Bearbeiten
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="vision-bearbeiten">
+          <div className="vision-teil">
+            <span className="vision-fest">{vision.titel} …</span>
+            <Wachsfeld
+              wert={entwurf[0]}
+              platzhalter="the future you want to create"
+              beschriftung={vision.titel}
+              festhalten={() => {}}
+              aendern={(text) => setze(0, text)}
+              taste={() => {}}
+            />
+          </div>
+          <div className="vision-luecken">
+            <span className="vision-fest">{wem.titel}</span>
+            <input
+              className="feld"
+              value={entwurf[1]}
+              placeholder="whom — your customers"
+              aria-label={wem.titel}
+              maxLength={2000}
+              onChange={(e) => setze(1, e.target.value)}
+            />
+            <span className="vision-fest">{womit.titel}</span>
+          </div>
+          <Wachsfeld
+            wert={entwurf[2]}
+            platzhalter="what you build — product or service"
+            beschriftung={womit.titel}
+            festhalten={() => {}}
+            aendern={(text) => setze(2, text)}
+            taste={() => {}}
+          />
+          <div className="vision-knoepfe">
+            {geaendert && <span className="dialog-offen">Nicht gespeichert</span>}
+            <button
+              type="button"
+              className="knopf-still"
+              disabled={laeuft}
+              onClick={() => (geaendert ? setFragtVerwerfen(true) : setEntwurf(null))}
+            >
+              Abbrechen
+            </button>
+            <button type="button" className="knopf" disabled={laeuft || !geaendert} onClick={speichern}>
+              Speichern
+            </button>
+          </div>
+        </div>
+      )}
+
+      {fragtVerwerfen && (
+        <div className="dialog-grund" role="dialog" aria-modal="true">
+          <div className="dialog">
+            <h2>Noch nicht gespeichert</h2>
+            <p>Am Vision Statement ist etwas geändert. Wer jetzt abbricht, hat wieder den Stand von vorher.</p>
+            <div className="dialog-knoepfe">
+              <button type="button" className="knopf-still" onClick={() => setFragtVerwerfen(false)}>
+                Weiter bearbeiten
+              </button>
+              <button
+                type="button"
+                className="knopf-still"
+                onClick={() => {
+                  setFragtVerwerfen(false);
+                  setEntwurf(null);
+                }}
+              >
+                Verwerfen
+              </button>
+              <button
+                type="button"
+                className="knopf"
+                disabled={laeuft}
+                onClick={() => {
+                  setFragtVerwerfen(false);
+                  speichern();
+                }}
+              >
+                Speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

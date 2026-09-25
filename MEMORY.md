@@ -116,6 +116,28 @@ dafür hängt die Mail am Meeting.
 
 ---
 
+## 2026-09-25 — Vision Statement, der dritte Workshop (Migration 0027)
+
+Ein Satz mit drei Lücken: „Our Vision is …, hereby we want to help … by
+building …". **Derselbe Mechanismus wie Canvas und Plan**: `Visionsteil` mit
+drei Werten für `Canvaspunkt.feld`, je Teil höchstens **ein** Punkt (geprüft in
+`feld`). Drei Textfelder am Vorhaben wären kürzer gewesen, hätten aber einen
+zweiten Weg zum Schreiben, Zählen und Anzeigen gebraucht.
+
+**Der Titel eines Teils ist das feste Stück Satz davor**, nicht ein Name für die
+Lücke. Die Oberfläche setzt den Satz aus Titeln und Einträgen zusammen; ein
+Satzzeichen am Ende eines Eintrags fällt dabei weg (`ohneSatzende`). Bearbeitet
+wird an Ort und Stelle, nicht im Feldfenster: drei Felder brauchen kein
+Weiterblättern.
+
+Die Migration trägt die Vision vom 2026-09-25 ein, aber nur in eine leere Lücke.
+
+Am Handy passen drei Workshops nicht mehr in eine Zeile des Umschalters. Er
+steht dort als drei gleiche Spalten mit umbrechendem Titel, sonst schnitte
+`overflow: hidden` den dritten still ab.
+
+---
+
 ## 2026-09-22 — Business Plan Lite als Überblick, Aufgaben mit Frist (Migration 0025)
 
 ### Der Plan wird nicht in SoCoS geschrieben

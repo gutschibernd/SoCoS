@@ -1471,8 +1471,8 @@ class Aufgabe(Basismodell):
 # werden selten gebraucht — die Leiste klappt sie nur auf, wenn man drin ist.
 #
 # Das erste Modul ist die **SPG Academy**: Die Workshops dort werden hier
-# ausgearbeitet, jeder Workshop an einem Vorhaben. Heute gibt es genau einen,
-# das Lean Model Canvas.
+# ausgearbeitet, jeder Workshop an einem Vorhaben: Lean Model Canvas, Business
+# Plan Lite und Vision Statement.
 
 
 class Canvasfeld(models.TextChoices):
@@ -1619,9 +1619,28 @@ class Abschnittstand(models.TextChoices):
     FERTIG = "fertig", "fertig"
 
 
+class Visionsteil(models.TextChoices):
+    """
+    Die drei Teile des Vision Statement — ein Satz mit drei Lücken:
+    „Our Vision is …, hereby we want to help … by building …".
+
+    **Der Titel ist das feste Stück Satz davor**, nicht ein Name für die
+    Lücke. Die Oberfläche setzt den Satz aus Titeln und Einträgen zusammen;
+    stünde der Wortlaut ein zweites Mal im Frontend, hätte eine Umformulierung
+    zwei Fassungen.
+
+    Jeder Teil ist **ein** Punkt — derselbe Mechanismus wie beim Canvas, nur
+    mit höchstens einem Eintrag je Feld (geprüft in `feld`).
+    """
+
+    VISION = "vision", "Our Vision is"
+    WEM = "wem", "hereby we want to help"
+    WOMIT = "womit", "by building"
+
+
 # Die Workshops der SPG Academy und ihre Felder. Der Schlüssel steht im Weg der
 # Schnittstelle (`/api/vorhaben/felder/?workshop=…`).
-WORKSHOPS = {"canvas": Canvasfeld, "businessplan": Planabschnitt}
+WORKSHOPS = {"canvas": Canvasfeld, "businessplan": Planabschnitt, "vision": Visionsteil}
 
 # Was in jeden Abschnitt des Business Plan Lite gehört — kurz gefasst aus der
 # Vorlage der SPG („Structure example & guidelines", sieben Seiten). Bewusst
@@ -1745,8 +1764,8 @@ class Vorhaben(Basismodell):
 
 class Canvaspunkt(Basismodell):
     """
-    Ein Stichpunkt in einem Feld eines Workshops — des Lean Model Canvas oder
-    eines Abschnitts des Business Plan Lite.
+    Ein Stichpunkt in einem Feld eines Workshops — des Lean Model Canvas, eines
+    Abschnitts des Business Plan Lite oder eines Teils des Vision Statement.
 
     **Der Name stammt vom ersten Workshop** und ist geblieben: Beide Workshops
     sind dieselbe Sache — Felder mit Punkten an einem Vorhaben —, und ein
@@ -1766,7 +1785,9 @@ class Canvaspunkt(Basismodell):
         Vorhaben, verbose_name="Vorhaben", on_delete=models.CASCADE, related_name="canvaspunkte"
     )
     feld = models.CharField(
-        "Feld", max_length=12, choices=Canvasfeld.choices + Planabschnitt.choices
+        "Feld",
+        max_length=12,
+        choices=Canvasfeld.choices + Planabschnitt.choices + Visionsteil.choices,
     )
     text = models.TextField("Text")
     reihenfolge = models.IntegerField("Reihenfolge", default=0)

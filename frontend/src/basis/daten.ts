@@ -342,6 +342,9 @@ export type Canvasfeld = {
 
 export type Abschnittstand = "offen" | "entwurf" | "fertig";
 
+/** Die Workshops der SPG Academy, wie die Schnittstelle sie nennt. */
+export type Workshopschluessel = "canvas" | "businessplan" | "vision";
+
 export type Canvaspunkt = { id: number; feld: string; text: string; reihenfolge: number };
 
 /** Ein Steckbrief zu Customer Segments — eine erfundene Person. */
@@ -466,7 +469,7 @@ export const useVorhaben = () =>
 
 /* Die Felder ändern sich nur mit einer neuen Version der Anwendung — sie
    werden deshalb nicht bei jedem Fensterwechsel neu geholt. */
-export const useCanvasfelder = (workshop: "canvas" | "businessplan" = "canvas") =>
+export const useCanvasfelder = (workshop: Workshopschluessel = "canvas") =>
   useQuery({
     queryKey: ["canvasfelder", workshop],
     queryFn: () => hole<Canvasfeld[]>(`/vorhaben/felder/?workshop=${workshop}`),
