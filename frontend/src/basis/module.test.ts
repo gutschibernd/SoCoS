@@ -6,7 +6,7 @@ import {
   abgaben,
   fertigeAbschnitte,
   naechsterStand,
-  ohneSatzende,
+  fettStellen,
   standVon,
   alsEntwuerfe,
   alsEuro,
@@ -167,14 +167,24 @@ describe("Business Plan Lite", () => {
   });
 });
 
-describe("ohneSatzende", () => {
-  it("nimmt Punkt, Komma und Leerzeichen am Ende weg", () => {
-    expect(ohneSatzende("  a world without missed doses. ")).toBe("a world without missed doses");
-    expect(ohneSatzende("patients at home,")).toBe("patients at home");
+describe("fettStellen", () => {
+  it("macht die Stellen zwischen ** fett", () => {
+    expect(fettStellen("a world where it is **safe**, **effortless** and **transparent**")).toEqual([
+      { text: "a world where it is ", fett: false },
+      { text: "safe", fett: true },
+      { text: ", ", fett: false },
+      { text: "effortless", fett: true },
+      { text: " and ", fett: false },
+      { text: "transparent", fett: true },
+    ]);
   });
 
-  it("lässt Satzzeichen in der Mitte und andere am Ende stehen", () => {
-    expect(ohneSatzende("Dr. Huber's patients")).toBe("Dr. Huber's patients");
-    expect(ohneSatzende("safe dosing!")).toBe("safe dosing!");
+  it("lässt einen Text ohne Sterne, wie er ist", () => {
+    expect(fettStellen("a world")).toEqual([{ text: "a world", fett: false }]);
+    expect(fettStellen("")).toEqual([]);
+  });
+
+  it("lässt ein ** ohne Gegenstück als Zeichen stehen", () => {
+    expect(fettStellen("**safe and sound")).toEqual([{ text: "**safe and sound", fett: false }]);
   });
 });

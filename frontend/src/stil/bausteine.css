@@ -1961,9 +1961,9 @@ a.mini { text-decoration: none; }
 
 /*
  * Das Vision Statement: ein Satz, groß genug, dass man ihn als Satz liest.
- * Die festen Stücke leise, die Einträge in Textfarbe und fett — so sieht man
- * auf einen Blick, was eingetragen ist. Eine offene Lücke ist ein Strich in
- * --text-leise (auf der Fläche 6,85 / 7,42, wie die Leitfragen).
+ * „Our Vision is" leise, der Satz in Textfarbe, die mit `**…**` markierten
+ * Stellen fett. Eine offene Lücke ist ein Strich in --text-leise (auf der
+ * Fläche 6,85 / 7,42, wie die Leitfragen).
  */
 .vision {
   display: flex; flex-direction: column; gap: 16px;
@@ -1974,20 +1974,16 @@ a.mini { text-decoration: none; }
   margin: 0; max-width: 60em;
   font-size: 20px; line-height: 1.6; color: var(--text-leise); overflow-wrap: anywhere;
 }
-.vision-satz b { font-weight: 600; color: var(--text); }
+.vision-text { color: var(--text); }
+.vision-text b { font-weight: 700; }
 .vision-luecke {
   display: inline-block; width: 8em; height: 1em; vertical-align: baseline;
   border-bottom: 1px solid var(--text-leise);
 }
 .vision-knoepfe { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .vision-knoepfe .dialog-offen { margin-right: auto; }
-.vision-bearbeiten { display: flex; flex-direction: column; gap: 12px; }
-.vision-teil { display: flex; flex-direction: column; gap: 8px; }
+.vision-bearbeiten { display: flex; flex-direction: column; gap: 8px; }
 .vision-fest { font-size: 15px; font-weight: 600; color: var(--text-leise); }
-/* „hereby we want to help ___ by building" — die Lücke steht im Satz und
-   bricht am Handy mitsamt den Wörtern um. */
-.vision-luecken { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
-.vision-luecken .feld { flex: 1 1 220px; width: auto; }
 
 /* Die drei Abgaben über dem Plan. Die nächste trägt die Marke, was vorbei
    ist, tritt zurück — die Zahl daneben sagt, wie viel Zeit bleibt. */

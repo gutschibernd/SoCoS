@@ -26,10 +26,10 @@ VERSIONEN = [
             {
                 "titel": "Das Vision Statement",
                 "text": (
-                    "Die SPG Academy hat einen dritten Teil: einen Satz mit drei "
-                    "Lücken — „Our Vision is …, hereby we want to help … by "
-                    "building …“. Die Vision ist schon eingetragen; wem wir helfen "
-                    "und womit, füllst du unter „Bearbeiten“ aus."
+                    "Die SPG Academy hat einen dritten Teil: den einen Satz "
+                    "„Our Vision is …“, schon eingetragen. Unter „Bearbeiten“ "
+                    "markierst du die drei Kernstellen fett, indem du sie in "
+                    "**zwei Sternchen** fasst."
                 ),
                 "wo": "module/spg-vision",
             },

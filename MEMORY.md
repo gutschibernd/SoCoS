@@ -116,21 +116,28 @@ dafür hängt die Mail am Meeting.
 
 ---
 
-## 2026-09-25 — Vision Statement, der dritte Workshop (Migration 0027)
+## 2026-09-25 — Vision Statement, der dritte Workshop (Migration 0027, 0028)
 
-Ein Satz mit drei Lücken: „Our Vision is …, hereby we want to help … by
-building …". **Derselbe Mechanismus wie Canvas und Plan**: `Visionsteil` mit
-drei Werten für `Canvaspunkt.feld`, je Teil höchstens **ein** Punkt (geprüft in
-`feld`). Drei Textfelder am Vorhaben wären kürzer gewesen, hätten aber einen
-zweiten Weg zum Schreiben, Zählen und Anzeigen gebraucht.
+**Ein Satz: „Our Vision is …"**, darin drei Kernstellen fett. **Derselbe
+Mechanismus wie Canvas und Plan**: `Visionsteil` als weiterer Wert für
+`Canvaspunkt.feld`, höchstens **ein** Punkt (geprüft in `feld`). Ein Textfeld am
+Vorhaben wäre kürzer gewesen, hätte aber einen zweiten Weg zum Schreiben,
+Zählen und Anzeigen gebraucht.
 
-**Der Titel eines Teils ist das feste Stück Satz davor**, nicht ein Name für die
-Lücke. Die Oberfläche setzt den Satz aus Titeln und Einträgen zusammen; ein
-Satzzeichen am Ende eines Eintrags fällt dabei weg (`ohneSatzende`). Bearbeitet
-wird an Ort und Stelle, nicht im Feldfenster: drei Felder brauchen kein
-Weiterblättern.
+**Fett markiert man im Text selbst, mit `**…**`** (`fettStellen` in
+`basis/module.ts`). Welche Stellen es sind, entscheidet, wer den Satz schreibt;
+drei feste Felder für drei Wörter hätten jede Umformulierung zu einer Frage an
+die Datenstruktur gemacht. Ein `**` ohne Gegenstück bleibt als Zeichen stehen.
 
-Die Migration trägt die Vision vom 2026-09-25 ein, aber nur in eine leere Lücke.
+**Der Titel ist das feste Stück Satz davor**, nicht ein Name für das Feld.
+Bearbeitet wird an Ort und Stelle, nicht im Feldfenster.
+
+**Einen Tag lang** hatte der Satz zwei weitere Lücken („hereby we want to help …
+by building …", `wem`/`womit`, Migration 0027). Migration 0028 nimmt sie heraus
+und löscht, was darin stand, **weich** — ein aktiver Punkt in einem Feld, das es
+nicht mehr gibt, wäre nirgends mehr zu sehen, zählte aber bei „zuletzt" mit.
+
+Migration 0027 trägt die Vision vom 2026-09-25 ein, nur in eine leere Lücke.
 
 Am Handy passen drei Workshops nicht mehr in eine Zeile des Umschalters. Er
 steht dort als drei gleiche Spalten mit umbrechendem Titel, sonst schnitte

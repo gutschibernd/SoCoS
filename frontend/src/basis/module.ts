@@ -17,7 +17,7 @@ export type Workshop = {
   titel: string;
   /** Wie die Schnittstelle ihn nennt (`/api/vorhaben/felder/?workshop=…`). */
   schluessel: Workshopschluessel;
-  /** Was er zählt: „9 Felder", „8 Abschnitte", „3 Teile". */
+  /** Was er zählt: „9 Felder", „8 Abschnitte", „1 Satz". */
   einheit: string;
 };
 
@@ -40,7 +40,7 @@ export const MODULE: Modul[] = [
     teile: [
       { weg: "spg", titel: "Lean Model Canvas", schluessel: "canvas", einheit: "Felder" },
       { weg: "spg-businessplan", titel: "Business Plan Lite", schluessel: "businessplan", einheit: "Abschnitte" },
-      { weg: "spg-vision", titel: "Vision Statement", schluessel: "vision", einheit: "Teile" },
+      { weg: "spg-vision", titel: "Vision Statement", schluessel: "vision", einheit: "Satz" },
     ],
   },
 ];
@@ -139,11 +139,25 @@ export function fertigeAbschnitte(vorhaben: Vorhaben, abschnitte: string[]): num
 /* --- Vision Statement ------------------------------------------------------ */
 
 /**
- * Ein Teil ohne Satzzeichen am Ende. Der Satz setzt Komma und Punkt selbst —
- * wer „… zu Hause." einträgt, bekäme sonst „zu Hause., hereby".
+ * Der Satz in Stücke zerlegt: `**…**` markiert eine Stelle fett, wie man es
+ * aus Chat und Markdown kennt. Welche Stellen es sind, entscheidet, wer den
+ * Satz schreibt — deshalb stehen sie im Text und nicht in einem Feld daneben.
+ *
+ * Ein `**` ohne Gegenstück bleibt als Zeichen stehen, statt den Rest des
+ * Satzes fett zu machen: Ein vergessener Stern soll auffallen, nicht den
+ * halben Satz verschlucken.
  */
-export function ohneSatzende(text: string): string {
-  return text.trim().replace(/[\s.,;:]+$/, "");
+export function fettStellen(text: string): { text: string; fett: boolean }[] {
+  const stuecke: { text: string; fett: boolean }[] = [];
+  const muster = /\*\*(.+?)\*\*/g;
+  let ab = 0;
+  for (const treffer of text.matchAll(muster)) {
+    if (treffer.index > ab) stuecke.push({ text: text.slice(ab, treffer.index), fett: false });
+    stuecke.push({ text: treffer[1], fett: true });
+    ab = treffer.index + treffer[0].length;
+  }
+  if (ab < text.length) stuecke.push({ text: text.slice(ab), fett: false });
+  return stuecke;
 }
 
 /* --- Ein Feld bearbeiten -------------------------------------------------- */

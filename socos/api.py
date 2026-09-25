@@ -627,8 +627,8 @@ class VorhabenViewSet(SocosViewSet):
         """
         Die Felder eines Workshops in der Reihenfolge der SPG Academy, samt
         Aufgabe und Leitfragen. `?workshop=canvas` (Vorgabe), `businessplan`
-        oder `vision`. Die Teile des Vision Statement haben keine Leitfragen —
-        ihr Titel ist das Stück Satz, das davor steht.
+        oder `vision`. Das Vision Statement hat keine Leitfragen — sein Titel ist
+        das Stück Satz, das davor steht.
         """
         workshop = request.query_params.get("workshop", "canvas")
         if workshop not in WORKSHOPS:
@@ -697,11 +697,11 @@ class VorhabenViewSet(SocosViewSet):
                 raise ValidationError({"punkte": "Ein Punkt ist höchstens 2000 Zeichen lang."})
             gewuenscht.append((eintrag.get("id"), text))
 
-        # Eine Lücke im Satz nimmt einen Text auf, keine Liste. Zwei Punkte
-        # darin könnte die Oberfläche nur hintereinanderkleben, und welcher
-        # vorn steht, entschiede die Reihenfolge — die dort niemand sieht.
+        # Das Vision Statement ist ein Satz, keine Liste. Zwei Punkte könnte
+        # die Oberfläche nur hintereinanderkleben, und welcher vorn steht,
+        # entschiede die Reihenfolge — die dort niemand sieht.
         if feld in Visionsteil.values and len(gewuenscht) > 1:
-            raise ValidationError({"punkte": "Ein Teil des Vision Statement ist ein Text, keine Liste."})
+            raise ValidationError({"punkte": "Das Vision Statement ist ein Satz, keine Liste."})
 
         with transaction.atomic():
             behalten = set()

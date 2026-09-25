@@ -1621,21 +1621,21 @@ class Abschnittstand(models.TextChoices):
 
 class Visionsteil(models.TextChoices):
     """
-    Die drei Teile des Vision Statement — ein Satz mit drei Lücken:
-    „Our Vision is …, hereby we want to help … by building …".
+    Das Vision Statement — **ein** Satz: „Our Vision is …". Drei Stellen
+    darin markiert man selbst mit `**…**` fett; welche es sind, steht im Text
+    und nicht hier.
 
-    **Der Titel ist das feste Stück Satz davor**, nicht ein Name für die
-    Lücke. Die Oberfläche setzt den Satz aus Titeln und Einträgen zusammen;
-    stünde der Wortlaut ein zweites Mal im Frontend, hätte eine Umformulierung
+    **Der Titel ist das feste Stück Satz davor**, nicht ein Name für das Feld.
+    Stünde der Wortlaut ein zweites Mal im Frontend, hätte eine Umformulierung
     zwei Fassungen.
 
-    Jeder Teil ist **ein** Punkt — derselbe Mechanismus wie beim Canvas, nur
-    mit höchstens einem Eintrag je Feld (geprüft in `feld`).
+    Der Satz ist **ein** Punkt — derselbe Mechanismus wie beim Canvas, nur mit
+    höchstens einem Eintrag (geprüft in `feld`). Die Lücken „hereby we want to
+    help …" und „by building …" gab es einen Tag lang; Migration 0028 hat sie
+    wieder herausgenommen.
     """
 
     VISION = "vision", "Our Vision is"
-    WEM = "wem", "hereby we want to help"
-    WOMIT = "womit", "by building"
 
 
 # Die Workshops der SPG Academy und ihre Felder. Der Schlüssel steht im Weg der

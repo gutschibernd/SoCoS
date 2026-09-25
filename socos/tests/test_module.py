@@ -255,30 +255,34 @@ class TestPersonas:
 
 class TestVisionStatement:
     @pytest.mark.django_db
-    def test_drei_teile_in_der_reihenfolge_des_satzes(self, client, leser):
+    def test_ein_satz(self, client, leser):
         client.force_login(leser)
 
         felder = client.get("/api/vorhaben/felder/?workshop=vision").json()
 
-        assert [f["titel"] for f in felder] == [
-            "Our Vision is",
-            "hereby we want to help",
-            "by building",
+        assert [(f["feld"], f["titel"], f["leitfragen"]) for f in felder] == [
+            ("vision", "Our Vision is", [])
         ]
-        assert [f["leitfragen"] for f in felder] == [[], [], []]
 
     @pytest.mark.django_db
-    def test_ein_teil_wird_geschrieben_und_umgeschrieben(self, client, bearbeiter, vorhaben):
+    def test_der_satz_wird_geschrieben_und_umgeschrieben(self, client, bearbeiter, vorhaben):
         client.force_login(bearbeiter)
-        _feld(client, vorhaben, "wem", [{"text": "Pflegebedürftige"}])
-        erster = _aktive(vorhaben, "wem")[0]
+        _feld(client, vorhaben, "vision", [{"text": "a world"}])
+        erster = _aktive(vorhaben, "vision")[0]
 
-        _feld(client, vorhaben, "wem", [{"id": erster.pk, "text": "Pflegebedürftige zu Hause"}])
+        _feld(client, vorhaben, "vision", [{"id": erster.pk, "text": "a **safe** world"}])
 
         # Derselbe Punkt, umgeschrieben — im Protokoll steht alt → neu.
-        assert [(p.pk, p.text) for p in _aktive(vorhaben, "wem")] == [
-            (erster.pk, "Pflegebedürftige zu Hause")
+        assert [(p.pk, p.text) for p in _aktive(vorhaben, "vision")] == [
+            (erster.pk, "a **safe** world")
         ]
+
+    @pytest.mark.django_db
+    def test_die_luecken_von_frueher_gibt_es_nicht_mehr(self, client, bearbeiter, vorhaben):
+        client.force_login(bearbeiter)
+
+        assert _feld(client, vorhaben, "wem", [{"text": "x"}]).status_code == 400
+        assert _feld(client, vorhaben, "womit", [{"text": "x"}]).status_code == 400
 
     @pytest.mark.django_db
     def test_eine_luecke_nimmt_nur_einen_text(self, client, bearbeiter, vorhaben):
@@ -290,13 +294,13 @@ class TestVisionStatement:
         assert _aktive(vorhaben, "vision") == []
 
     @pytest.mark.django_db
-    def test_eine_leere_luecke_entfernt_den_teil(self, client, bearbeiter, vorhaben):
+    def test_ein_leerer_satz_entfernt_ihn(self, client, bearbeiter, vorhaben):
         client.force_login(bearbeiter)
-        _feld(client, vorhaben, "womit", [{"text": "einen Spender"}])
+        _feld(client, vorhaben, "vision", [{"text": "a world"}])
 
-        _feld(client, vorhaben, "womit", [])
+        _feld(client, vorhaben, "vision", [])
 
-        assert _aktive(vorhaben, "womit") == []
+        assert _aktive(vorhaben, "vision") == []
 
     @staticmethod
     def _eintragen():
@@ -327,6 +331,20 @@ class TestVisionStatement:
         self._eintragen()
 
         assert [p.text for p in _aktive(vorhaben, "vision")] == ["Schon da"]
+
+    @pytest.mark.django_db
+    def test_migration_0028_loescht_die_luecken_weich(self, vorhaben):
+        from importlib import import_module
+
+        from django.apps import apps
+
+        wem = Canvaspunkt.objects.create(vorhaben=vorhaben, feld="wem", text="Pflegebedürftige")
+        vision = Canvaspunkt.objects.create(vorhaben=vorhaben, feld="vision", text="a world")
+
+        import_module("socos.migrations.0028_vision_ein_satz").luecken_entfernen(apps, None)
+
+        assert Canvaspunkt.alle_objekte.get(pk=wem.pk).ist_geloescht
+        assert not Canvaspunkt.alle_objekte.get(pk=vision.pk).ist_geloescht
 
 
 class TestFeldSetzen:

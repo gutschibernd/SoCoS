@@ -781,7 +781,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Vision Statement",
-              text: "Der dritte Workshop, oben umzuschalten: ein Satz mit drei Lücken — „Our Vision is …, hereby we want to help … by building …“. Unter „Bearbeiten“ füllst du die Lücken aus; die Seite zeigt danach den ganzen Satz, eine offene Lücke als Strich. Ein Punkt am Ende deines Textes fällt weg, das Satzzeichen setzt SoCoS selbst.",
+              text: "Der dritte Workshop, oben umzuschalten: ein Satz, der mit „Our Vision is“ beginnt. Unter „Bearbeiten“ schreibst du den Rest. Was fett stehen soll — die drei Kernstellen —, fasst du in zwei Sternchen: **safe** wird zu safe in Fett. Ein einzelnes ** ohne Gegenstück bleibt als Zeichen stehen, damit ein vergessener Stern auffällt.",
             },
             {
               begriff: "Ein volles Feld im PDF",

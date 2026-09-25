@@ -30,7 +30,7 @@ import {
   abgaben,
   fertigeAbschnitte,
   naechsterStand,
-  ohneSatzende,
+  fettStellen,
   standVon,
   alsEntwuerfe,
   ausgefuellt,
@@ -428,18 +428,13 @@ function Planueberblick({
 /* --- Vision Statement ------------------------------------------------------ */
 
 /**
- * Das Vision Statement: **ein** Satz mit drei Lücken — „Our Vision is …,
- * hereby we want to help … by building …".
+ * Das Vision Statement: **ein** Satz — „Our Vision is …". Die Stellen, auf
+ * die es ankommt, markiert man im Text selbst mit `**…**`; die Seite zeigt
+ * sie fett (siehe `fettStellen`).
  *
- * Gelesen wird er als Satz, nicht als drei Kästen: Ob die Teile
- * zusammenpassen, sieht man nur, wenn sie hintereinander stehen. Die festen
- * Stücke sind die Titel der Teile vom Server, die Einträge stehen fett
- * dazwischen, eine offene Lücke als Strich.
- *
- * Bearbeitet wird an Ort und Stelle und nicht im Fenster wie beim Canvas:
- * Drei Felder brauchen kein Weiterblättern, und so steht der Lückentext genau
- * da, wo nachher der Satz steht. Die Vision bekommt eine eigene Zeile, weil sie
- * der längste Teil ist; „wem" ist eine Lücke im Satz, „womit" wieder ein Kasten.
+ * Bearbeitet wird an Ort und Stelle und nicht im Fenster wie beim Canvas: Ein
+ * Satz braucht kein Weiterblättern, und so steht das Feld genau da, wo
+ * nachher der Satz steht.
  */
 function Visionsatz({
   vorhaben,
@@ -451,64 +446,61 @@ function Visionsatz({
   darfBearbeiten: boolean;
 }) {
   const neuLaden = useNeuLaden();
-  const gespeichert = teile.map((t) => punkteIn(vorhaben, t.feld)[0] ?? null);
+  const [teil] = teile;
+  const gespeichert = punkteIn(vorhaben, teil.feld)[0] ?? null;
   // `null` heißt: Es wird gerade nicht bearbeitet.
-  const [entwurf, setEntwurf] = useState<string[] | null>(null);
+  const [entwurf, setEntwurf] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
   const [fragtVerwerfen, setFragtVerwerfen] = useState(false);
 
-  const [vision, wem, womit] = teile;
-  const geaendert =
-    entwurf !== null && entwurf.some((text, i) => text.trim() !== (gespeichert[i]?.text ?? ""));
-  const setze = (i: number, text: string) =>
-    setEntwurf((alt) => alt && alt.map((t, j) => (j === i ? text : t)));
+  const geaendert = entwurf !== null && entwurf.trim() !== (gespeichert?.text ?? "");
 
   async function speichern() {
-    if (!entwurf) return;
+    if (entwurf === null) return;
     setLaeuft(true);
+    const text = entwurf.trim();
     try {
-      // Jeder Teil über denselben Weg wie ein Feld des Canvas, und nur, was
-      // sich geändert hat — sonst stünde ein unberührter Teil als bearbeitet
-      // im Protokoll. Mit seiner `id`, damit dort alt → neu steht.
-      for (const [i, t] of teile.entries()) {
-        const text = entwurf[i].trim();
-        const alt = gespeichert[i];
-        if (text === (alt?.text ?? "")) continue;
-        const punkte = text ? [alt ? { id: alt.id, text } : { text }] : [];
-        await hole(`/vorhaben/${vorhaben.id}/feld/`, {
-          method: "POST",
-          body: JSON.stringify({ feld: t.feld, punkte }),
-        });
-      }
+      // Derselbe Weg wie ein Feld des Canvas — mit der `id` des Punktes,
+      // damit im Protokoll alt → neu steht und nicht entfernt und neu.
+      await hole(`/vorhaben/${vorhaben.id}/feld/`, {
+        method: "POST",
+        body: JSON.stringify({
+          feld: teil.feld,
+          punkte: text ? [gespeichert ? { id: gespeichert.id, text } : { text }] : [],
+        }),
+      });
+      neuLaden();
       melden("gut", "Das Vision Statement ist gespeichert.");
       setEntwurf(null);
     } catch {
-      // `hole` hat den Grund schon gemeldet. Der Entwurf bleibt stehen — ein
-      // Teil davon kann schon gespeichert sein, der Rest ist nicht verloren.
+      // `hole` hat den Grund schon gemeldet; der Entwurf bleibt stehen.
     } finally {
       setLaeuft(false);
-      neuLaden();
     }
   }
-
-  const texte = gespeichert.map((p) => (p ? ohneSatzende(p.text) : ""));
-  const luecke = (text: string) =>
-    text ? <b>{text}</b> : <span className="vision-luecke" aria-label="noch offen" role="img" />;
 
   return (
     <section className="vision">
       {entwurf === null ? (
         <>
           <p className="vision-satz">
-            {vision.titel} {luecke(texte[0])}, {wem.titel} {luecke(texte[1])} {womit.titel}{" "}
-            {luecke(texte[2])}.
+            {teil.titel}{" "}
+            {gespeichert ? (
+              <span className="vision-text">
+                {fettStellen(gespeichert.text).map((s, i) =>
+                  s.fett ? <b key={i}>{s.text}</b> : <span key={i}>{s.text}</span>,
+                )}
+              </span>
+            ) : (
+              <span className="vision-luecke" aria-label="noch offen" role="img" />
+            )}
           </p>
           {darfBearbeiten && (
             <div className="vision-knoepfe">
               <button
                 type="button"
                 className="knopf-still"
-                onClick={() => setEntwurf(gespeichert.map((p) => p?.text ?? ""))}
+                onClick={() => setEntwurf(gespeichert?.text ?? "")}
               >
                 <Zeichen name="stift" />
                 Bearbeiten
@@ -518,35 +510,13 @@ function Visionsatz({
         </>
       ) : (
         <div className="vision-bearbeiten">
-          <div className="vision-teil">
-            <span className="vision-fest">{vision.titel} …</span>
-            <Wachsfeld
-              wert={entwurf[0]}
-              platzhalter="the future you want to create"
-              beschriftung={vision.titel}
-              festhalten={() => {}}
-              aendern={(text) => setze(0, text)}
-              taste={() => {}}
-            />
-          </div>
-          <div className="vision-luecken">
-            <span className="vision-fest">{wem.titel}</span>
-            <input
-              className="feld"
-              value={entwurf[1]}
-              placeholder="whom — your customers"
-              aria-label={wem.titel}
-              maxLength={2000}
-              onChange={(e) => setze(1, e.target.value)}
-            />
-            <span className="vision-fest">{womit.titel}</span>
-          </div>
+          <span className="vision-fest">{teil.titel} …</span>
           <Wachsfeld
-            wert={entwurf[2]}
-            platzhalter="what you build — product or service"
-            beschriftung={womit.titel}
+            wert={entwurf}
+            platzhalter="a world where … — **fett** zwischen zwei Sternchen"
+            beschriftung={teil.titel}
             festhalten={() => {}}
-            aendern={(text) => setze(2, text)}
+            aendern={setEntwurf}
             taste={() => {}}
           />
           <div className="vision-knoepfe">
