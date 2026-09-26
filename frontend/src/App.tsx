@@ -1,5 +1,6 @@
 import { useIch } from "./basis/daten";
 import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
+import { themaAusWeg } from "./basis/module";
 import { useSeite, type Seite } from "./basis/router";
 import { Zustand } from "./basis/Zustand";
 import { Zeichen } from "./bausteine/Zeichen";
@@ -55,6 +56,7 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   "module/spg-businessplan": { titel: "SPG Academy", unter: "Business Plan Lite" },
   "module/spg-vision": { titel: "SPG Academy", unter: "Vision Statement" },
   "module/praktikum": { titel: "Praktikantenstellen", unter: "Haupt-Aufgabenstellungen" },
+  "module/praktikum-ideen": { titel: "Praktikantenstellen", unter: "Sonstige Ideen" },
 };
 
 export function App() {
@@ -73,8 +75,11 @@ export function App() {
   if (!ich.data) return <Zustand abfrage={ich} erneut={() => ich.refetch()} />;
 
   const bearbeiten = ort.seite === "projekt" && ort.unter === "bearbeiten";
+  const thema = ort.seite === "module" ? themaAusWeg(ort.unter) : null;
   const kopfzeile =
     UNTERTITEL[`${ort.seite}/${ort.unter}`] ??
+    // Ein einzelnes Thema: Sein Titel steht groß auf der Seite selbst.
+    (thema ? { titel: thema.modul.titel, unter: thema.teil.titel } : null) ??
     (ort.seite === "start"
       ? { titel: `Hallo ${ich.data.name.split(" ")[0]}`, unter: TITEL.start.unter }
       : TITEL[ort.seite]);

@@ -794,13 +794,13 @@ function ModuleDoku() {
       <Abschnitt
         zeichen="mappe"
         titel="Praktikantenstellen: vom Thema zum Aushang"
-        vorspann="Unter Haupt-Aufgabenstellungen sammeln wir, was wir als Praktikum vergeben wollen. Aus jedem Thema wird über ein LLM eine Ausschreibung und daraus ein Aushang auf einer Seite A4."
+        vorspann="Unter Haupt-Aufgabenstellungen sammeln wir, was wir als Praktikum vergeben wollen, unter Sonstige Ideen, was es werden könnte. Aus jedem Thema wird über ein LLM eine Ausschreibung und daraus ein Aushang auf einer Seite A4."
       >
         <Schritte
           schritte={[
             "„+ Thema“ legt ein Thema an: Titel, Kurzbeschreibung und Punkte — ein Punkt je Zeile. Geschrieben wird so, wie wir es intern notieren; für Außenstehende formuliert es später das LLM.",
-            "Auf der Karte „Ausschreibung“ aufklappen und „Für ein LLM kopieren“. In der Zwischenablage liegt dann der Auftrag samt Thema. In ein LLM deiner Wahl einfügen.",
-            "Die Antwort des LLM in das große Feld einfügen, bei Bedarf nachbessern, „Speichern“.",
+            "Jedes Thema steht als Kachel. „Für ein LLM kopieren“ legt den Auftrag samt Thema in die Zwischenablage — gleich auf der Kachel oder auf der Seite des Themas. In ein LLM deiner Wahl einfügen.",
+            "Ein Klick auf die Kachel öffnet die Seite des Themas. Dort unter „Ausschreibung“ aufklappen, die Antwort des LLM einfügen, bei Bedarf nachbessern, „Speichern“.",
             "„PDF“ lädt den Aushang: Briefkopf von Sopharmis Medical Solutions, die Ausschreibung, unten der Kontakt info@sopharmis.com mit einem Betreff.",
           ]}
         />
@@ -824,7 +824,11 @@ function ModuleDoku() {
             },
             {
               begriff: "Der Stand",
-              text: "Neben „Ausschreibung“ steht „eingefügt“, sobald eine gespeichert ist. Das PDF gibt es nur für den gespeicherten Stand; solange etwas geändert ist, bleibt der Knopf grau.",
+              text: "Auf Kachel und Seite steht „Ausschreibung da“, sobald eine gespeichert ist. Das PDF gibt es nur für den gespeicherten Stand; solange nichts gespeichert oder etwas geändert ist, bleibt der Knopf grau.",
+            },
+            {
+              begriff: "Sonstige Ideen",
+              text: "Themen, die noch nicht so weit sind — eine Zeile je Idee, ein Titel genügt. „Zur Haupt-Aufgabe“ macht eine Kachel daraus, samt allem, was schon dasteht; „Zu den Ideen“ auf der Seite eines Themas legt es zurück. Das ist auch der mildere Weg statt Entfernen.",
             },
             {
               begriff: "Wer was darf",

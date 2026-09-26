@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from "react";
 
-import { MODULWEGE } from "./module";
+import { MODULWEGE, themaAusWeg } from "./module";
 
 export const SEITEN = [
   "start",
@@ -95,8 +95,9 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   events: (unter) => /^\d+$/.test(unter),
   meetings: (unter) => /^\d+$/.test(unter),
   // Ein Workshop eines Moduls: `/module/spg`, `/module/spg-businessplan`. Die
-  // Liste steht in basis/module.ts und nicht ein zweites Mal hier.
-  module: (unter) => MODULWEGE.includes(unter),
+  // Liste steht in basis/module.ts und nicht ein zweites Mal hier. Dazu ein
+  // einzelnes Praktikumsthema: `/module/praktikum/12`, `/module/praktikum-ideen/7`.
+  module: (unter) => MODULWEGE.includes(unter) || themaAusWeg(unter) !== null,
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
   profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),
   doku: (unter) => (DOKUTEILE as readonly string[]).includes(unter),
@@ -123,8 +124,16 @@ export function ausPfad(pfad: string): Ort {
   const teile = pfad.replace(/^\/+/, "").split("/").filter(Boolean);
   const seite = (SEITEN as readonly string[]).includes(teile[0]) ? (teile[0] as Seite) : "start";
   const erlaubt = UNTERWEG[seite];
-  const unter = teile[1] ?? "";
+  // Alles hinter der Seite, auch über mehrere Stufen — ob die Stufen dort
+  // stehen dürfen, entscheidet die Prüfung und nicht das Zerlegen.
+  const unter = teile.slice(1).join("/");
   return { seite, unter: erlaubt?.(unter) ? unter : null };
+}
+
+/** Die Stufe über einem Unterweg: `praktikum/12` → `praktikum`, `12` → keine. */
+export function darueber(unter: string): string | null {
+  const ende = unter.lastIndexOf("/");
+  return ende > 0 ? unter.slice(0, ende) : null;
 }
 
 export function alsPfad(seite: Seite, unter: string | null): string {
@@ -158,7 +167,8 @@ export function useSeite(): Weg {
    * Drei Fälle, in dieser Reihenfolge:
    *
    * 1. Steht etwas hinter der Seite (ein Kontakt, ein Event, „bearbeiten"),
-   *    geht es **eine Ebene hoch** — nicht in der Geschichte zurück. Wer über
+   *    geht es **eine Ebene hoch** — nicht in der Geschichte zurück. Von
+   *    `/module/praktikum/12` also zu `/module/praktikum`, nicht zu `/module`. Wer über
    *    einen Verlaufseintrag von einem Kontakt zu einem Event gesprungen ist,
    *    will von dort zur Eventliste und nicht wieder zum Kontakt.
    * 2. Sonst zurück in der Geschichte, solange sie in SoCoS bleibt.
@@ -167,7 +177,7 @@ export function useSeite(): Weg {
    *    Browser aus der Anwendung trüge.
    */
   const zurueck = () => {
-    if (ort.unter) return wechseln(ort.seite, null);
+    if (ort.unter) return wechseln(ort.seite, darueber(ort.unter));
     if (tiefe() > 0) return window.history.back();
     if (ort.seite !== "start") return wechseln("start");
   };

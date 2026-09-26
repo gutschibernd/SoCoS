@@ -42,6 +42,24 @@ VERSIONEN = [
                 ),
                 "wo": "doku/module",
             },
+            {
+                "titel": "Themen als Kacheln",
+                "text": (
+                    "Die Haupt-Aufgabenstellungen stehen als Kacheln, zwei je Zeile, "
+                    "mit „Für ein LLM kopieren“, „PDF“ und „Bearbeiten“ gleich darauf. "
+                    "Ein Klick auf die Kachel öffnet die eigene Seite des Themas."
+                ),
+                "wo": "module/praktikum",
+            },
+            {
+                "titel": "Sonstige Ideen",
+                "text": (
+                    "Neben den Haupt-Aufgaben gibt es eine Liste für Ideen, die es "
+                    "noch nicht sind. „Zur Haupt-Aufgabe“ macht aus einer Idee eine "
+                    "Kachel, mit allem, was schon an ihr steht."
+                ),
+                "wo": "module/praktikum-ideen",
+            },
         ],
     },
     {

@@ -1876,9 +1876,19 @@ class Praktikumsthema(Basismodell):
     Auftrag steht, der dieses Format verlangt. Gespeichert wird er, weil er
     nachgebessert wird: ein Wort hier, ein Punkt weniger dort, ohne jedes Mal
     das LLM zu fragen.
+
+    **Eine sonstige Idee ist ein Thema mit `art = "idee"`** und kein eigenes
+    Modell: Aus einer Idee wird irgendwann eine Haupt-Aufgabe, und dann soll
+    sie mit allem umziehen, was schon an ihr steht — ein Feld umstellen statt
+    abschreiben.
     """
 
+    AUFGABE = "aufgabe"
+    IDEE = "idee"
+    ARTEN = [(AUFGABE, "Haupt-Aufgabenstellung"), (IDEE, "Sonstige Idee")]
+
     titel = models.CharField("Titel", max_length=160)
+    art = models.CharField("Art", max_length=10, choices=ARTEN, default=AUFGABE)
     kurzbeschreibung = models.TextField("Kurzbeschreibung", blank=True)
     punkte = models.TextField("Punkte", blank=True, help_text="Ein Punkt je Zeile.")
     ausschreibung = models.TextField("Ausschreibung", blank=True)

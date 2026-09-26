@@ -7,7 +7,7 @@
  */
 
 import { tageBis } from "./aufgaben";
-import type { Abschnittstand, Canvaspunkt, Persona, Vorhaben, Workshopschluessel } from "./daten";
+import type { Abschnittstand, Canvaspunkt, Persona, Themenart, Vorhaben, Workshopschluessel } from "./daten";
 import type { ZeichenName } from "../bausteine/Zeichen";
 
 /** Ein Workshop in einem Modul — ein Teil mit eigenem Weg und eigenen Feldern. */
@@ -23,10 +23,11 @@ export type Workshop = {
 
 /**
  * Ein Teil, der kein Workshop ist: eine Liste von Themen, die man selbst
- * anlegt — die Haupt-Aufgabenstellungen der Praktikantenstellen. Er hat keine
- * Felder vom Server und zählt nichts gegen eine feste Zahl.
+ * anlegt — die Haupt-Aufgabenstellungen der Praktikantenstellen oder ihre
+ * sonstigen Ideen. Er hat keine Felder vom Server und zählt nichts gegen eine
+ * feste Zahl. Beide Listen sind dasselbe Modell; `art` trennt sie.
  */
-export type Themenliste = { weg: string; titel: string; schluessel: "praktikum" };
+export type Themenliste = { weg: string; titel: string; schluessel: "praktikum"; art: Themenart };
 
 export type Teil = Workshop | Themenliste;
 
@@ -57,12 +58,42 @@ export const MODULE: Modul[] = [
     titel: "Praktikantenstellen",
     wozu: "Themen für Praktika aufbereiten und ausschreiben",
     zeichen: "mappe",
-    teile: [{ weg: "praktikum", titel: "Haupt-Aufgabenstellungen", schluessel: "praktikum" }],
+    teile: [
+      { weg: "praktikum", titel: "Haupt-Aufgabenstellungen", schluessel: "praktikum", art: "aufgabe" },
+      { weg: "praktikum-ideen", titel: "Sonstige Ideen", schluessel: "praktikum", art: "idee" },
+    ],
   },
 ];
 
 /** Alle Wege, die hinter `/module/` stehen dürfen — der Router fragt hier. */
 export const MODULWEGE = MODULE.flatMap((m) => m.teile.map((t) => t.weg));
+
+/**
+ * Das Thema hinter `praktikum/12` oder `praktikum-ideen/12` — oder nichts.
+ *
+ * Die Liste steht mit im Weg, damit „zurück" in die Liste führt, aus der man
+ * kam. Welche Art das Thema wirklich hat, sagt erst der Server: Zeigt ein
+ * altes Lesezeichen auf die falsche Liste, steht das Thema trotzdem da.
+ */
+export function themaAusWeg(unter: string | null): { modul: Modul; teil: Themenliste; id: number } | null {
+  const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
+  const gefunden = treffer && teilZuWeg(treffer[1]);
+  if (!treffer || !gefunden || gefunden.teil.schluessel !== "praktikum") return null;
+  return { modul: gefunden.modul, teil: gefunden.teil, id: Number(treffer[2]) };
+}
+
+/** „3 Themen", „1 Idee" — wie die Zeile auf der Übersicht und die Leiste zählen. */
+export function themenZahl(zahl: number, art: Themenart): string {
+  if (art === "idee") return `${zahl} ${zahl === 1 ? "Idee" : "Ideen"}`;
+  return `${zahl} ${zahl === 1 ? "Thema" : "Themen"}`;
+}
+
+/** Die Liste, in der ein Thema dieser Art steht. */
+export function listeFuer(art: Themenart): Themenliste {
+  for (const modul of MODULE)
+    for (const teil of modul.teile) if (teil.schluessel === "praktikum" && teil.art === art) return teil;
+  throw new Error(`Keine Liste für ${art}`);
+}
 
 /** Das Modul und der Teil zu einem Weg — oder nichts. */
 export function teilZuWeg(unter: string | null): { modul: Modul; teil: Teil } | null {

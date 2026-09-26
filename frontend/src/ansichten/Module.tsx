@@ -37,6 +37,7 @@ import {
   alsEntwuerfe,
   ausgefuellt,
   istGeaendert,
+  themenZahl,
   neuerSchluessel,
   ROLLEN,
   betragAusEingabe,
@@ -45,9 +46,11 @@ import {
   punkteIn,
   zuletztText,
   teilZuWeg,
+  themaAusWeg,
   zumSenden,
   type Modul,
   type Punktentwurf,
+  type Teil,
   type Themenliste,
   type Workshop,
 } from "../basis/module";
@@ -55,7 +58,7 @@ import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
-import { Praktikum } from "./Praktikum";
+import { Praktikum, Themenseite } from "./Praktikum";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
@@ -68,10 +71,21 @@ export function Module({
   unter: string | null;
   wechseln: Wechseln;
 }) {
+  const thema = themaAusWeg(unter);
+  if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} />;
   const treffer = teilZuWeg(unter);
   if (!treffer) return <Uebersicht wechseln={wechseln} />;
   const { modul, teil } = treffer;
-  if (teil.schluessel === "praktikum") return <Praktikum ich={ich} />;
+  if (teil.schluessel === "praktikum")
+    return (
+      <Praktikum
+        key={teil.weg}
+        ich={ich}
+        teil={teil}
+        umschalter={<Teilwahl modul={modul} teil={teil} wechseln={wechseln} />}
+        wechseln={wechseln}
+      />
+    );
   return (
     <SpgAcademy
       // Ein neuer Schlüssel je Workshop: Ein offenes Feldfenster gehört zu
@@ -195,7 +209,7 @@ function Themenzeile({
   wechseln: Wechseln;
 }) {
   const themen = usePraktikumsthemen();
-  const zahl = themen.data?.length;
+  const zahl = themen.data?.filter((t) => t.art === teil.art).length;
   return (
     <li>
       <a
@@ -208,7 +222,7 @@ function Themenzeile({
         <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
         {teil.titel}
         <span className="modul-stand">
-          {zahl === undefined ? "" : `${zahl} ${zahl === 1 ? "Thema" : "Themen"}`}
+          {zahl === undefined ? "" : themenZahl(zahl, teil.art)}
         </span>
         <Zeichen name="zeiger" klasse="modul-zeiger" />
       </a>
@@ -226,6 +240,28 @@ function zaehlen(teil: Workshop, vorhaben: Vorhaben, felder: Canvasfeld[]): numb
   return teil.schluessel === "businessplan"
     ? fertigeAbschnitte(vorhaben, namen)
     : ausgefuellt(vorhaben, namen);
+}
+
+/**
+ * Die Teile eines Moduls als Umschalter — dieselbe Form wie die Zeitraumwahl:
+ * ein Zustand, mehrere Werte, einer gilt.
+ */
+function Teilwahl({ modul, teil, wechseln }: { modul: Modul; teil: Teil; wechseln: Wechseln }) {
+  return (
+    <div className="spannenwahl workshopwahl" role="group" aria-label={modul.titel}>
+      {modul.teile.map((t, i) => (
+        <button
+          key={t.weg}
+          type="button"
+          aria-pressed={t.weg === teil.weg}
+          onClick={() => wechseln("module", t.weg)}
+        >
+          <span className="zahl">{String(i + 1).padStart(2, "0")}</span>
+          {t.titel}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /* --- SPG Academy ---------------------------------------------------------- */
@@ -262,23 +298,7 @@ function SpgAcademy({
   const art =
     teil.schluessel === "canvas" ? "leinwand" : teil.schluessel === "businessplan" ? "plan" : "vision";
 
-  // Die Workshops als Umschalter — dieselbe Form wie die Zeitraumwahl: ein
-  // Zustand, mehrere Werte, einer gilt.
-  const umschalter = (
-    <div className="spannenwahl workshopwahl" role="group" aria-label="Workshop">
-      {modul.teile.map((t, i) => (
-        <button
-          key={t.weg}
-          type="button"
-          aria-pressed={t.weg === teil.weg}
-          onClick={() => wechseln("module", t.weg)}
-        >
-          <span className="zahl">{String(i + 1).padStart(2, "0")}</span>
-          {t.titel}
-        </button>
-      ))}
-    </div>
-  );
+  const umschalter = <Teilwahl modul={modul} teil={teil} wechseln={wechseln} />;
 
   // Fehlt es — weil es jemand am Server entfernt hat —, stehen die Felder
   // trotzdem da, mit allen Fragen, nur ohne Stift. Wiederherstellen kann es

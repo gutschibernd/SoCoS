@@ -16,11 +16,20 @@ Canvas. Ein Modell dafür hieße Sicherung, Abgleich und Fenster für ein paar
 Zeilen Notiz. Das Modell steht in `MODELLE_IM_ARCHIV` und in der
 Löschreihenfolge; ein Test schickt es durch Ausfuhr und Einfuhr.
 
-**Nur der eine Teilbereich „Haupt-Aufgabenstellungen".** Ein Feld `bereich`
-mit einem einzigen Wert wäre Konfigurierbarkeit ohne zweiten Fall. Kommt ein
-zweiter Teilbereich, wird es eine Migration mit Vorgabe „haupt" und ein
-weiterer Eintrag in `teile` von `basis/module.ts` — der Typ `Teil` kennt neben
-dem Workshop schon die `Themenliste`.
+**Zwei Listen, ein Modell: `art` = „aufgabe" oder „idee"** (Migration 0030,
+noch am selben Tag). Die sonstigen Ideen sind Themen, die noch keine
+Haupt-Aufgabe sind; ein eigenes Modell hieße, beim Hochstufen abzuschreiben.
+Jede Liste ist ein Eintrag in `teile` von `basis/module.ts`
+(`praktikum`, `praktikum-ideen`), gefiltert wird im Frontend.
+
+**Haupt-Aufgaben als Kacheln, jedes Thema mit eigener Seite**
+(`/module/praktikum/12`, `/module/praktikum-ideen/7`). Dafür liest der Router
+jetzt **alles** hinter der Seite als `unter` (vorher nur die zweite Stufe) —
+ob eine dritte Stufe erlaubt ist, entscheidet weiterhin allein `UNTERWEG`, und
+„Zurück" geht mit `darueber()` eine Stufe hoch statt zur Seite. Die Liste steht
+mit im Weg, damit „Zurück" in die Liste führt, aus der man kam; ein Thema, das
+die Art wechselt, zieht mit um. Die Kachel ist per `::after` des Titellinks
+ganz klickbar, die Knöpfe liegen darüber — ein Knopf in einem Link ginge nicht.
 
 **Auftrag und Parser stehen im Backend** (`services/ausschreibung.py`), anders
 als bei den Meetings. Das PDF wird dort gezeichnet und muss die Antwort

@@ -468,9 +468,13 @@ export const useVorhaben = () =>
   useQuery({ queryKey: ["vorhaben"], queryFn: () => hole<Vorhaben[]>("/vorhaben/") });
 
 /** Ein Thema für ein Praktikum — eine der Haupt-Aufgabenstellungen. */
+/** Haupt-Aufgabenstellung oder sonstige Idee — dasselbe Thema, eine andere Liste. */
+export type Themenart = "aufgabe" | "idee";
+
 export type Praktikumsthema = {
   id: number;
   titel: string;
+  art: Themenart;
   kurzbeschreibung: string;
   /** Ein Punkt je Zeile. */
   punkte: string;

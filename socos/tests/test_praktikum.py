@@ -166,6 +166,36 @@ class TestSchnittstelle:
         assert Protokolleintrag.objects.filter(modell="socos.Praktikumsthema").exists()
 
     @pytest.mark.django_db
+    def test_eine_idee_wird_zur_haupt_aufgabe(self, client, bearbeiter):
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/praktikumsthemen/", {"titel": "Messestand", "art": "idee"}, content_type="application/json"
+        )
+        assert antwort.json()["art"] == "idee"
+
+        client.patch(f"/api/praktikumsthemen/{antwort.json()['id']}/", {"art": "aufgabe"}, content_type="application/json")
+
+        assert Praktikumsthema.objects.get().art == Praktikumsthema.AUFGABE
+
+    @pytest.mark.django_db
+    def test_ohne_art_ist_es_eine_haupt_aufgabe(self, client, bearbeiter):
+        client.force_login(bearbeiter)
+
+        client.post("/api/praktikumsthemen/", {"titel": "X"}, content_type="application/json")
+
+        assert Praktikumsthema.objects.get().art == Praktikumsthema.AUFGABE
+
+    @pytest.mark.django_db
+    def test_eine_erfundene_art_wird_abgewiesen(self, client, bearbeiter):
+        client.force_login(bearbeiter)
+
+        antwort = client.post(
+            "/api/praktikumsthemen/", {"titel": "X", "art": "traum"}, content_type="application/json"
+        )
+
+        assert antwort.status_code == 400
+
+    @pytest.mark.django_db
     def test_die_ausschreibung_wird_gespeichert(self, client, bearbeiter, thema):
         client.force_login(bearbeiter)
 
@@ -214,7 +244,9 @@ class TestSchnittstelle:
 def test_themen_wandern_durch_die_sicherung(tmp_path, settings, bearbeiter):
     settings.MEDIA_ROOT = tmp_path / "medien"
     settings.MEDIA_ROOT.mkdir()
-    Praktikumsthema.objects.create(titel="Marktrecherche", punkte="Eins\nZwei", ausschreibung=ANTWORT)
+    Praktikumsthema.objects.create(
+        titel="Marktrecherche", art=Praktikumsthema.IDEE, punkte="Eins\nZwei", ausschreibung=ANTWORT
+    )
 
     archiv = tmp_path / "archiv.tar.gz"
     call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
@@ -224,3 +256,4 @@ def test_themen_wandern_durch_die_sicherung(tmp_path, settings, bearbeiter):
     wieder_da = Praktikumsthema.objects.get(titel="Marktrecherche")
     assert wieder_da.punkte == "Eins\nZwei"
     assert wieder_da.ausschreibung == ANTWORT
+    assert wieder_da.art == Praktikumsthema.IDEE

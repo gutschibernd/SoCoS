@@ -1792,23 +1792,77 @@ a.mini { text-decoration: none; }
 
 /* --- Praktikantenstellen -------------------------------------------------- */
 /*
- * Ein Thema je Karte: Titel und Bearbeiten in einer Zeile, darunter der Text,
- * die Punkte und zugeklappt die Ausschreibung. Die Leiste darüber ist die der
- * SPG Academy (`.vorhabenleiste`) — dieselbe Stelle für „was ist das, und
- * was kann ich damit tun".
+ * Die Haupt-Aufgaben als Kacheln, zwei je Zeile, am Handy eine. Der Link im
+ * Titel legt sich mit `::after` über die ganze Kachel; die Knöpfe im Fuß
+ * liegen darüber, damit sie ihren eigenen Klick behalten.
  */
-.thema-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.thema-kopf h2 {
-  flex: 1 1 240px; min-width: 0; margin: 0;
-  font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--text);
+.thema-kacheln { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.thema-kachel {
+  position: relative; display: flex; flex-direction: column; gap: 8px;
+  padding: 16px 16px 0; background: var(--flaeche);
+  border: 1px solid var(--rand); border-radius: var(--kante);
 }
-.thema-kopf .knopf-still { flex: 0 0 auto; }
-.thema-text { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--text-leise); white-space: pre-wrap; }
-.thema-punkte { margin: 10px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.55; }
+.thema-kachel:hover { border-color: var(--rand-stark); }
+.thema-kachel:hover .thema-kachel-link { color: var(--akzent); }
+.thema-kachel:focus-within { border-color: var(--akzent); }
+.thema-kachel-kopf { display: flex; align-items: flex-start; gap: 12px; }
+.thema-kachel-kopf h2 {
+  flex: 1 1 auto; min-width: 0; margin: 0;
+  font-size: 16px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.35;
+}
+.thema-kachel-kopf .stand { flex: 0 0 auto; }
+.thema-kachel-link { color: var(--text); text-decoration: none; }
+.thema-kachel-link::after { content: ""; position: absolute; inset: 0; }
+.thema-kachel-link:focus-visible { outline: none; }
+/* Drei Zeilen und nicht mehr: Die Kachel ist die Übersicht, der ganze Text
+   steht auf der Seite des Themas. */
+.thema-kachel-text {
+  margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-leise);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.thema-kachel-zahl { font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-sehr-leise); }
+.thema-kachel-fuss {
+  display: flex; align-items: center; gap: 4px 8px; flex-wrap: wrap;
+  margin-top: auto; padding: 6px 0; border-top: 1px solid var(--rand);
+}
+.thema-kachel-fuss > .knopf-still { position: relative; z-index: 1; text-decoration: none; }
+.thema-kachel-zeiger { margin-left: auto; width: 0.9em; height: 0.9em; color: var(--marke); }
+.thema-kachel:hover .thema-kachel-zeiger { color: var(--akzent); }
+
+/* Die sonstigen Ideen: eine Zeile je Idee, der Griff rechts. */
+.themenideen { list-style: none; margin: 0; padding: 0 16px; }
+.themenideen li {
+  display: flex; align-items: center; gap: 12px; min-height: var(--griff);
+  border-bottom: 1px solid var(--rand);
+}
+.themenideen li:last-child { border-bottom: 0; }
+.themenidee-link {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 0; color: var(--text); text-decoration: none;
+}
+.themenidee-link b { font-weight: 600; font-size: 14.5px; }
+.themenidee-link span {
+  font-size: 13px; color: var(--text-leise);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.themenidee-link:hover b { color: var(--akzent); }
+.themenideen .knopf-still { flex: 0 0 auto; }
+
+/* Die Seite eines Themas. */
+.thema-titel { overflow-wrap: anywhere; }
+.thema-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.thema-kopf h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.thema h2.beschriftung-klein { margin: 0; }
+.thema-zwischentitel { margin-top: 16px !important; }
+.thema-text { margin: 6px 0 0; font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
+.thema-leer { margin: 6px 0 0; font-size: 14px; color: var(--text-sehr-leise); }
+.thema-punkte { margin: 6px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.55; }
 .thema-punkte li::marker { color: var(--akzent); }
-.thema-ausschreibung { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--rand); }
-.thema-ausschreibung .aufbereitung { margin-top: 10px; }
-.thema-ausschreibung .knopf-still { text-decoration: none; }
+.thema .aufbereitung { margin-top: 12px; }
+.thema .aufbereitung .knopf-still { text-decoration: none; }
+.thema-einfuegen { border-top: 1px solid var(--rand); padding-top: 4px; }
+.thema-einfuegen > .feld { margin-top: 8px; resize: vertical; line-height: 1.5; }
+.thema-einfuegen > .feld-reihe { margin-top: 8px; }
 .thema-felder { padding-top: 16px; }
 .thema-felder .profilfeld > .feld { margin-top: 4px; }
 .thema-felder textarea { resize: vertical; line-height: 1.5; }
@@ -2302,7 +2356,9 @@ a.mini { text-decoration: none; }
     text-align: left; flex: 0 0 auto;
   }
 
-  .raster-4, .raster-3, .raster-2, .kacheln, .modul-kacheln, .doku-wege { grid-template-columns: 1fr; }
+  .raster-4, .raster-3, .raster-2, .kacheln, .modul-kacheln, .thema-kacheln, .doku-wege { grid-template-columns: 1fr; }
+  .themenideen .art-text { display: none; }
+  .themenideen .art-knopf { min-width: var(--griff); justify-content: center; }
 
   /* Die Leinwand wird zur Liste — dieselben Felder, in der Reihenfolge der
      SPG Academy untereinander. Zehn Spalten in 345 px wären je 34 px. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { alsPfad, ausPfad } from "./router";
+import { alsPfad, ausPfad, darueber } from "./router";
 
 describe("ausPfad", () => {
   it("liest die Seite", () => {
@@ -33,6 +33,16 @@ describe("ausPfad", () => {
     expect(ausPfad("/module/spg-businessplan")).toEqual({ seite: "module", unter: "spg-businessplan" });
     expect(ausPfad("/module/spg-4")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/pitch")).toEqual({ seite: "module", unter: null });
+  });
+
+  it("liest ein Praktikumsthema als dritte Stufe", () => {
+    expect(ausPfad("/module/praktikum/12")).toEqual({ seite: "module", unter: "praktikum/12" });
+    expect(ausPfad("/module/praktikum-ideen")).toEqual({ seite: "module", unter: "praktikum-ideen" });
+    expect(ausPfad("/module/praktikum-ideen/7")).toEqual({ seite: "module", unter: "praktikum-ideen/7" });
+    expect(ausPfad("/module/praktikum/quatsch")).toEqual({ seite: "module", unter: null });
+    expect(ausPfad("/module/spg/12")).toEqual({ seite: "module", unter: null });
+    // Die dritte Stufe gilt nur, wo sie vorgesehen ist.
+    expect(ausPfad("/kontakte/12/34")).toEqual({ seite: "kontakte", unter: null });
   });
 
   it("liest die gewählte Organisation und die losen Kontakte", () => {
@@ -89,6 +99,14 @@ describe("ausPfad", () => {
 
   it("übergeht doppelte Schrägstriche", () => {
     expect(ausPfad("//kontakte//12")).toEqual({ seite: "kontakte", unter: "12" });
+  });
+});
+
+describe("darueber", () => {
+  // „Zurück" geht eine Stufe hoch: vom Thema zur Liste, nicht zur Übersicht.
+  it("nimmt die letzte Stufe weg", () => {
+    expect(darueber("praktikum/12")).toBe("praktikum");
+    expect(darueber("12")).toBeNull();
   });
 });
 

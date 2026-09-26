@@ -19,17 +19,41 @@ import {
   punkteIn,
   zumSenden,
   teilZuWeg,
+  themaAusWeg,
+  listeFuer,
+  themenZahl,
   zuletztText,
 } from "./module";
 
 describe("die Wege der Module", () => {
   it("kennt die Workshops der SPG Academy und die Praktikantenstellen", () => {
-    expect(MODULWEGE).toEqual(["spg", "spg-businessplan", "spg-vision", "praktikum"]);
+    expect(MODULWEGE).toEqual(["spg", "spg-businessplan", "spg-vision", "praktikum", "praktikum-ideen"]);
     expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikantenstellen");
     expect(teilZuWeg("praktikum")?.teil.titel).toBe("Haupt-Aufgabenstellungen");
     expect(teilZuWeg("spg-businessplan")?.teil.schluessel).toBe("businessplan");
     expect(teilZuWeg("spg")?.modul.titel).toBe("SPG Academy");
     expect(teilZuWeg("pitch")).toBeNull();
+  });
+
+  it("findet das Thema hinter dem Weg", () => {
+    expect(themaAusWeg("praktikum/12")?.id).toBe(12);
+    expect(themaAusWeg("praktikum-ideen/7")?.teil.titel).toBe("Sonstige Ideen");
+    expect(themaAusWeg("praktikum")).toBeNull();
+    expect(themaAusWeg("praktikum/12/x")).toBeNull();
+    expect(themaAusWeg("spg/12")).toBeNull();
+    expect(themaAusWeg(null)).toBeNull();
+  });
+
+  it("zählt Themen und Ideen", () => {
+    expect(themenZahl(1, "aufgabe")).toBe("1 Thema");
+    expect(themenZahl(0, "aufgabe")).toBe("0 Themen");
+    expect(themenZahl(1, "idee")).toBe("1 Idee");
+    expect(themenZahl(3, "idee")).toBe("3 Ideen");
+  });
+
+  it("kennt die Liste zu jeder Art", () => {
+    expect(listeFuer("aufgabe").weg).toBe("praktikum");
+    expect(listeFuer("idee").weg).toBe("praktikum-ideen");
   });
 });
 
