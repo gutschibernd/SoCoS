@@ -21,14 +21,23 @@ export type Workshop = {
   einheit: string;
 };
 
+/**
+ * Ein Teil, der kein Workshop ist: eine Liste von Themen, die man selbst
+ * anlegt — die Haupt-Aufgabenstellungen der Praktikantenstellen. Er hat keine
+ * Felder vom Server und zählt nichts gegen eine feste Zahl.
+ */
+export type Themenliste = { weg: string; titel: string; schluessel: "praktikum" };
+
+export type Teil = Workshop | Themenliste;
+
 export type Modul = {
   /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
   weg: string;
   titel: string;
   wozu: string;
   zeichen: ZeichenName;
-  /** Die Workshops darin, in ihrer Reihenfolge. */
-  teile: Workshop[];
+  /** Die Teile darin, in ihrer Reihenfolge. */
+  teile: Teil[];
 };
 
 export const MODULE: Modul[] = [
@@ -43,13 +52,20 @@ export const MODULE: Modul[] = [
       { weg: "spg-vision", titel: "Vision Statement", schluessel: "vision", einheit: "Satz" },
     ],
   },
+  {
+    weg: "praktikum",
+    titel: "Praktikantenstellen",
+    wozu: "Themen für Praktika aufbereiten und ausschreiben",
+    zeichen: "mappe",
+    teile: [{ weg: "praktikum", titel: "Haupt-Aufgabenstellungen", schluessel: "praktikum" }],
+  },
 ];
 
 /** Alle Wege, die hinter `/module/` stehen dürfen — der Router fragt hier. */
 export const MODULWEGE = MODULE.flatMap((m) => m.teile.map((t) => t.weg));
 
-/** Das Modul und der Workshop zu einem Weg — oder nichts. */
-export function workshopZuWeg(unter: string | null): { modul: Modul; teil: Workshop } | null {
+/** Das Modul und der Teil zu einem Weg — oder nichts. */
+export function teilZuWeg(unter: string | null): { modul: Modul; teil: Teil } | null {
   for (const modul of MODULE) {
     const teil = modul.teile.find((t) => t.weg === unter);
     if (teil) return { modul, teil };
@@ -253,4 +269,19 @@ export function betragZumBearbeiten(betrag: string | null): string {
 /** „78 · Pensionistin · Graz" — so viel, wie davon eingetragen ist. */
 export function personaKurz(p: Persona): string {
   return [p.alter !== null ? `${p.alter} Jahre` : "", p.beruf, p.wohnort].filter(Boolean).join(" · ");
+}
+
+/* --- Praktikantenstellen ---------------------------------------------------- */
+
+/**
+ * Die Punkte eines Themas, wie sie auf der Karte stehen: eine Zeile je Punkt,
+ * ohne einen Strich, den jemand aus Gewohnheit davorgesetzt hat. Dieselbe
+ * Regel wie `stichpunkte` in socos/services/ausschreibung.py — sonst stünde
+ * auf der Karte ein Punkt, den der Auftrag an das LLM nicht mitnimmt.
+ */
+export function punkteAusText(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((z) => z.replace(/^\s*(?:[-*•–]|\d+[.)])\s+/, "").trim())
+    .filter(Boolean);
 }

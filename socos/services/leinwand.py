@@ -266,12 +266,18 @@ def _steckbriefe(leinwand, vorhaben, personas):
 
 
 def dateiname(vorhaben):
-    # Nur ASCII: Ein Umlaut im Dateinamen des Content-Disposition-Kopfs kommt
-    # je nach Browser als Mojibake an. Ausgeschrieben statt ersetzt — aus
-    # „Prüfung" wird „Pruefung", nicht „Pr-fung".
-    titel = vorhaben.titel
+    return f"Lean-Canvas_{ascii_teil(vorhaben.titel) or 'Vorhaben'}.pdf"
+
+
+def ascii_teil(titel):
+    """
+    Ein Titel als Teil eines Dateinamens — auch für den Aushang eines Praktikums.
+
+    Nur ASCII: Ein Umlaut im Dateinamen des Content-Disposition-Kopfs kommt je
+    nach Browser als Mojibake an. Ausgeschrieben statt ersetzt — aus „Prüfung"
+    wird „Pruefung", nicht „Pr-fung".
+    """
     for umlaut, aus in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("Ä", "Ae"), ("Ö", "Oe"), ("Ü", "Ue"), ("ß", "ss")):
         titel = titel.replace(umlaut, aus)
     teil = "".join(z if z.isascii() and z.isalnum() else "-" for z in titel)
-    teil = "-".join(t for t in teil.split("-") if t) or "Vorhaben"
-    return f"Lean-Canvas_{teil}.pdf"
+    return "-".join(t for t in teil.split("-") if t)

@@ -13,20 +13,23 @@ import {
   betragAusEingabe,
   betragZumBearbeiten,
   personaKurz,
+  punkteAusText,
   ausgefuellt,
   istGeaendert,
   punkteIn,
   zumSenden,
-  workshopZuWeg,
+  teilZuWeg,
   zuletztText,
 } from "./module";
 
 describe("die Wege der Module", () => {
-  it("kennt beide Workshops der SPG Academy", () => {
-    expect(MODULWEGE).toEqual(["spg", "spg-businessplan", "spg-vision"]);
-    expect(workshopZuWeg("spg-businessplan")?.teil.schluessel).toBe("businessplan");
-    expect(workshopZuWeg("spg")?.modul.titel).toBe("SPG Academy");
-    expect(workshopZuWeg("pitch")).toBeNull();
+  it("kennt die Workshops der SPG Academy und die Praktikantenstellen", () => {
+    expect(MODULWEGE).toEqual(["spg", "spg-businessplan", "spg-vision", "praktikum"]);
+    expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikantenstellen");
+    expect(teilZuWeg("praktikum")?.teil.titel).toBe("Haupt-Aufgabenstellungen");
+    expect(teilZuWeg("spg-businessplan")?.teil.schluessel).toBe("businessplan");
+    expect(teilZuWeg("spg")?.modul.titel).toBe("SPG Academy");
+    expect(teilZuWeg("pitch")).toBeNull();
   });
 });
 
@@ -186,5 +189,20 @@ describe("fettStellen", () => {
 
   it("lässt ein ** ohne Gegenstück als Zeichen stehen", () => {
     expect(fettStellen("**safe and sound")).toEqual([{ text: "**safe and sound", fett: false }]);
+  });
+});
+
+describe("die Punkte eines Praktikumsthemas", () => {
+  it("eine Zeile je Punkt, ohne Strich und ohne Leerzeilen", () => {
+    expect(punkteAusText("- Testplan\n\n* Interviews\n3. Auswertung\n  Ohne Strich  ")).toEqual([
+      "Testplan",
+      "Interviews",
+      "Auswertung",
+      "Ohne Strich",
+    ]);
+  });
+
+  it("lässt einen Bindestrich im Wort stehen", () => {
+    expect(punkteAusText("E-Mail-Umfrage")).toEqual(["E-Mail-Umfrage"]);
   });
 });

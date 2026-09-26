@@ -46,7 +46,8 @@ export type ZeichenName =
   | "sprechblase"
   | "idee"
   | "module"
-  | "akademie";
+  | "akademie"
+  | "mappe";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -127,6 +128,9 @@ const PFADE: Record<ZeichenName, string> = {
   module: "M4 4h6.5v6.5H4zM4 13.5h6.5V20H4zM13.5 13.5H20V20h-6.5zM16.75 4L20 7.25l-3.25 3.25-3.25-3.25z",
   // Der Doktorhut — für die SPG Academy.
   akademie: "M4 9.5L12 5.5l8 4-8 4zM7.5 11.5v4c1.2 1.5 2.7 2.5 4.5 2.5s3.3-1 4.5-2.5v-4M20 9.5v5",
+  // Eine Aktentasche — für die Praktikantenstellen. Der Strich quer durch ist
+  // der Verschluss; ohne ihn liest sich das Zeichen bei 18 px als Kalender.
+  mappe: "M4 8h16v11H4zM9 8V5h6v3M4 13h16",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

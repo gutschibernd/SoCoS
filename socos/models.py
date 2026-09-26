@@ -1854,3 +1854,39 @@ class Persona(Basismodell):
 
     def __str__(self):
         return self.name
+
+
+# --- Module: Praktikantenstellen ---------------------------------------------
+
+
+class Praktikumsthema(Basismodell):
+    """
+    Ein Thema, das wir als Praktikum vergeben wollen — eine der
+    „Haupt-Aufgabenstellungen".
+
+    **Die Punkte sind ein Text, eine Zeile je Punkt, und kein eigenes Modell**
+    wie beim Canvas. Dort wird einzeln an Stichpunkten gefeilt, und das
+    Protokoll soll sagen, an welchem. Hier sind die Punkte Rohstoff für den
+    Auftrag an das LLM; was am Ende zählt, ist die Ausschreibung. Ein Modell
+    dafür hieße Sicherung, Abgleich und Fenster für ein paar Zeilen Notiz.
+
+    **`ausschreibung` ist der Text, der vom LLM zurückkommt** — so, wie er
+    eingefügt wurde, mit seinen `#`-Überschriften. Zerlegt wird er erst beim
+    Zeichnen des PDF (`services/ausschreibung.py`), am selben Ort, an dem der
+    Auftrag steht, der dieses Format verlangt. Gespeichert wird er, weil er
+    nachgebessert wird: ein Wort hier, ein Punkt weniger dort, ohne jedes Mal
+    das LLM zu fragen.
+    """
+
+    titel = models.CharField("Titel", max_length=160)
+    kurzbeschreibung = models.TextField("Kurzbeschreibung", blank=True)
+    punkte = models.TextField("Punkte", blank=True, help_text="Ein Punkt je Zeile.")
+    ausschreibung = models.TextField("Ausschreibung", blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Praktikumsthema"
+        verbose_name_plural = "Praktikumsthemen"
+        ordering = ["titel", "id"]
+
+    def __str__(self):
+        return self.titel

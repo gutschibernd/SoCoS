@@ -7,6 +7,46 @@ betrifft.
 
 ---
 
+## 2026-09-26 — Praktikantenstellen, ein zweites Modul (Migration 0029)
+
+**`Praktikumsthema`: Titel, Kurzbeschreibung, Punkte, Ausschreibung** — ein
+Modell, keine Unterpunkte. Die Punkte sind **ein Text, eine Zeile je Punkt**:
+Sie sind Rohstoff für das LLM, an ihnen wird nicht einzeln gefeilt wie am
+Canvas. Ein Modell dafür hieße Sicherung, Abgleich und Fenster für ein paar
+Zeilen Notiz. Das Modell steht in `MODELLE_IM_ARCHIV` und in der
+Löschreihenfolge; ein Test schickt es durch Ausfuhr und Einfuhr.
+
+**Nur der eine Teilbereich „Haupt-Aufgabenstellungen".** Ein Feld `bereich`
+mit einem einzigen Wert wäre Konfigurierbarkeit ohne zweiten Fall. Kommt ein
+zweiter Teilbereich, wird es eine Migration mit Vorgabe „haupt" und ein
+weiterer Eintrag in `teile` von `basis/module.ts` — der Typ `Teil` kennt neben
+dem Workshop schon die `Themenliste`.
+
+**Auftrag und Parser stehen im Backend** (`services/ausschreibung.py`), anders
+als bei den Meetings. Das PDF wird dort gezeichnet und muss die Antwort
+zerlegen; stünde der Auftrag im Frontend, lägen die zwei Hälften eines
+Formats in zwei Sprachen. Der Auftrag kommt über den Serializer mit — nicht
+auf Knopfdruck geholt, weil Safari nach einer Anfrage nicht mehr in die
+Zwischenablage schreiben lässt. Gespeichert wird die Antwort **roh** und erst
+beim PDF zerlegt: Man bessert sie nach, ohne das LLM erneut zu fragen.
+
+**Der Aushang hat genau eine Seite A4.** Zu langer Text wird bis 72 %
+verkleinert; passt er auch dann nicht, weist schon **das Speichern** ihn ab,
+nicht erst das PDF. A4 und nicht größer: Alle A-Formate haben dasselbe
+Seitenverhältnis, ein Plakat ist dieselbe Datei größer gedruckt.
+
+**Kein Signet im Briefkopf.** `socos/marke.py` ist das Zeichen von SoCoS, dem
+internen Werkzeug, und gehört nicht auf einen Aushang nach außen. Ein Logo
+der Firma liegt nicht im Repository; bis eines da ist, trägt die Schrift den
+Kopf („Sopharmis / MEDICAL SOLUTIONS").
+
+**Offen:** In Österreich muss eine Stellenausschreibung das Mindestentgelt
+nennen (§ 9 GlBG), sofern das Praktikum ein Arbeitsverhältnis ist. Der
+Auftrag verbietet dem LLM, eine Vergütung zu erfinden — steht sie nicht als
+Punkt im Thema, fehlt sie auf dem Aushang.
+
+---
+
 ## 2026-09-23 — Sicherheitsprüfung
 
 Code von Hand durchgesehen, dazu `check --deploy`, `pip-audit`, `bandit` und

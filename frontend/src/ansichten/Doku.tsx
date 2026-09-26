@@ -214,7 +214,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, je Person." },
-            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge, z. B. die SPG Academy." },
+            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die SPG Academy und die Praktikantenstellen." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
@@ -786,6 +786,49 @@ function ModuleDoku() {
             {
               begriff: "Ein volles Feld im PDF",
               text: "Was nicht in seinen Kasten passt, wird kleiner gesetzt. Reicht das nicht, steht am Ende des Feldes, wie viele Punkte fehlen.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="mappe"
+        titel="Praktikantenstellen: vom Thema zum Aushang"
+        vorspann="Unter Haupt-Aufgabenstellungen sammeln wir, was wir als Praktikum vergeben wollen. Aus jedem Thema wird über ein LLM eine Ausschreibung und daraus ein Aushang auf einer Seite A4."
+      >
+        <Schritte
+          schritte={[
+            "„+ Thema“ legt ein Thema an: Titel, Kurzbeschreibung und Punkte — ein Punkt je Zeile. Geschrieben wird so, wie wir es intern notieren; für Außenstehende formuliert es später das LLM.",
+            "Auf der Karte „Ausschreibung“ aufklappen und „Für ein LLM kopieren“. In der Zwischenablage liegt dann der Auftrag samt Thema. In ein LLM deiner Wahl einfügen.",
+            "Die Antwort des LLM in das große Feld einfügen, bei Bedarf nachbessern, „Speichern“.",
+            "„PDF“ lädt den Aushang: Briefkopf von Sopharmis Medical Solutions, die Ausschreibung, unten der Kontakt info@sopharmis.com mit einem Betreff.",
+          ]}
+        />
+        <Merke>
+          Der Aushang hat genau eine Seite. Ist der Text zu lang, wird er kleiner gesetzt; passt er
+          auch dann nicht, lehnt „Speichern“ ihn ab. Dann kürzen — oder das LLM darum bitten.
+        </Merke>
+        <Begriffe
+          paare={[
+            {
+              begriff: "Was das LLM darf",
+              text: "Der Auftrag verbietet, etwas zu erfinden: keine Vergütung, Dauer, Beginn, Ort oder Voraussetzung, die nicht im Thema steht. Wer so etwas auf dem Aushang haben will, schreibt es als Punkt ins Thema.",
+            },
+            {
+              begriff: "Das Format",
+              text: "Eine Zeile mit # ist der Titel, jede Zeile mit ## beginnt einen Abschnitt, Zeilen mit - sind Punkte, **zwei Sternchen** machen fett. Was davor ohne Überschrift steht, wird die Einleitung.",
+            },
+            {
+              begriff: "Auftrag ansehen",
+              text: "Zeigt, was kopiert wird. Lässt der Browser das Kopieren nicht zu, steht der Auftrag dort zum Markieren.",
+            },
+            {
+              begriff: "Der Stand",
+              text: "Neben „Ausschreibung“ steht „eingefügt“, sobald eine gespeichert ist. Das PDF gibt es nur für den gespeicherten Stand; solange etwas geändert ist, bleibt der Knopf grau.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen und das PDF laden dürfen alle. Themen anlegen, ändern und die Ausschreibung speichern dürfen Admin und Bearbeiter; ein Thema entfernen nur der Admin.",
             },
           ]}
         />

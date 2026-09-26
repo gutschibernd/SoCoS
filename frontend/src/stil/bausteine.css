@@ -1790,6 +1790,29 @@ a.mini { text-decoration: none; }
 .vorhaben-aktionen { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 .vorhaben-aktionen .knopf-still { text-decoration: none; }
 
+/* --- Praktikantenstellen -------------------------------------------------- */
+/*
+ * Ein Thema je Karte: Titel und Bearbeiten in einer Zeile, darunter der Text,
+ * die Punkte und zugeklappt die Ausschreibung. Die Leiste darüber ist die der
+ * SPG Academy (`.vorhabenleiste`) — dieselbe Stelle für „was ist das, und
+ * was kann ich damit tun".
+ */
+.thema-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.thema-kopf h2 {
+  flex: 1 1 240px; min-width: 0; margin: 0;
+  font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--text);
+}
+.thema-kopf .knopf-still { flex: 0 0 auto; }
+.thema-text { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--text-leise); white-space: pre-wrap; }
+.thema-punkte { margin: 10px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.55; }
+.thema-punkte li::marker { color: var(--akzent); }
+.thema-ausschreibung { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--rand); }
+.thema-ausschreibung .aufbereitung { margin-top: 10px; }
+.thema-ausschreibung .knopf-still { text-decoration: none; }
+.thema-felder { padding-top: 16px; }
+.thema-felder .profilfeld > .feld { margin-top: 4px; }
+.thema-felder textarea { resize: vertical; line-height: 1.5; }
+
 /*
  * Die Leinwand in der Anordnung des Lean Canvas: zehn Spalten, zwei hohe
  * Zeilen, eine flachere. Die Felder tragen `data-feld`, und wo welches steht,

@@ -2,7 +2,7 @@ import { Fragment, useState } from "react";
 
 import { csrfWert } from "../basis/api";
 import { useLaufend, useNeuLaden, useProjekte, type Ich } from "../basis/daten";
-import { MODULE, workshopZuWeg } from "../basis/module";
+import { MODULE, teilZuWeg } from "../basis/module";
 import type { Ort, Seite } from "../basis/router";
 import { paketgruppen } from "../basis/start";
 import { clockIn, clockOut } from "../basis/uhr";
@@ -321,7 +321,7 @@ function Modulzweig({
   hin: (s: Seite, unter?: string | null) => void;
 }) {
   const offen = ort.seite === "module";
-  const modul = offen ? workshopZuWeg(ort.unter)?.modul : undefined;
+  const modul = offen ? teilZuWeg(ort.unter)?.modul : undefined;
 
   return (
     <>

@@ -2,7 +2,8 @@
  * Module: zusätzliche Werkzeuge, die mit Projekt und Zeit nichts zu tun haben.
  *
  * `/module` ist die Übersicht aller Module, `/module/spg` die SPG Academy mit
- * ihren Workshops (`/module/spg-businessplan`, `/module/spg-vision`).
+ * ihren Workshops (`/module/spg-businessplan`, `/module/spg-vision`),
+ * `/module/praktikum` die Praktikantenstellen (in `Praktikum.tsx`).
  *
  * **Die Leinwand ist das Ergebnis, nicht die Werkstatt.** Auf ihr steht, was
  * im Workshop herausgekommen ist — Stichpunkte je Feld. Bearbeitet wird ein
@@ -16,6 +17,7 @@ import { hole } from "../basis/api";
 import {
   useCanvasfelder,
   useNeuLaden,
+  usePraktikumsthemen,
   useVorhaben,
   type Canvasfeld,
   type Ich,
@@ -42,16 +44,18 @@ import {
   personaKurz,
   punkteIn,
   zuletztText,
-  workshopZuWeg,
+  teilZuWeg,
   zumSenden,
   type Modul,
   type Punktentwurf,
+  type Themenliste,
   type Workshop,
 } from "../basis/module";
 import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
+import { Praktikum } from "./Praktikum";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
@@ -64,20 +68,21 @@ export function Module({
   unter: string | null;
   wechseln: Wechseln;
 }) {
-  const treffer = workshopZuWeg(unter);
-  if (treffer)
-    return (
-      <SpgAcademy
-        // Ein neuer Schlüssel je Workshop: Ein offenes Feldfenster gehört zu
-        // einem Workshop und darf beim Umschalten nicht mitwandern.
-        key={treffer.teil.weg}
-        ich={ich}
-        modul={treffer.modul}
-        teil={treffer.teil}
-        wechseln={wechseln}
-      />
-    );
-  return <Uebersicht wechseln={wechseln} />;
+  const treffer = teilZuWeg(unter);
+  if (!treffer) return <Uebersicht wechseln={wechseln} />;
+  const { modul, teil } = treffer;
+  if (teil.schluessel === "praktikum") return <Praktikum ich={ich} />;
+  return (
+    <SpgAcademy
+      // Ein neuer Schlüssel je Workshop: Ein offenes Feldfenster gehört zu
+      // einem Workshop und darf beim Umschalten nicht mitwandern.
+      key={teil.weg}
+      ich={ich}
+      modul={modul}
+      teil={teil}
+      wechseln={wechseln}
+    />
+  );
 }
 
 /* --- Die Übersicht -------------------------------------------------------- */
@@ -113,12 +118,18 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
             </span>
           </a>
           <ul className="modul-teile">
-            {m.teile.map((teil, i) => (
-              <Teilzeile key={teil.weg} teil={teil} stelle={i} vorhaben={eines} wechseln={wechseln} />
-            ))}
+            {m.teile.map((teil, i) =>
+              teil.schluessel === "praktikum" ? (
+                <Themenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
+              ) : (
+                <Teilzeile key={teil.weg} teil={teil} stelle={i} vorhaben={eines} wechseln={wechseln} />
+              ),
+            )}
           </ul>
           <div className="modul-fuss">
-            <span>{eines ? `zuletzt ${zuletztText(eines.zuletzt)}` : ""}</span>
+            {/* „zuletzt" gilt dem Vorhaben der SPG Academy. Die Themen der
+                Praktika hängen an keinem; ihr Stand steht in der Zeile. */}
+            <span>{eines && m.weg === "spg" ? `zuletzt ${zuletztText(eines.zuletzt)}` : ""}</span>
           </div>
         </div>
       ))}
@@ -167,6 +178,38 @@ function Teilzeile({
         <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
         {teil.titel}
         <span className="modul-stand">{stand}</span>
+        <Zeichen name="zeiger" klasse="modul-zeiger" />
+      </a>
+    </li>
+  );
+}
+
+/** Eine Zeile der Kachel für eine Themenliste: wie viele Themen es gibt. */
+function Themenzeile({
+  teil,
+  stelle,
+  wechseln,
+}: {
+  teil: Themenliste;
+  stelle: number;
+  wechseln: Wechseln;
+}) {
+  const themen = usePraktikumsthemen();
+  const zahl = themen.data?.length;
+  return (
+    <li>
+      <a
+        href={`/module/${teil.weg}`}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", teil.weg);
+        }}
+      >
+        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
+        {teil.titel}
+        <span className="modul-stand">
+          {zahl === undefined ? "" : `${zahl} ${zahl === 1 ? "Thema" : "Themen"}`}
+        </span>
         <Zeichen name="zeiger" klasse="modul-zeiger" />
       </a>
     </li>

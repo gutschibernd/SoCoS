@@ -27,6 +27,7 @@ from socos.models import (
     Organisation,
     Pensum,
     Persona,
+    Praktikumsthema,
     Projekt,
     Projektphase,
     Protokolleintrag,
@@ -36,7 +37,7 @@ from socos.models import (
     Vorhaben,
     Zeitbuchung,
 )
-from socos.services import auswertung, zeit as zeitdienst
+from socos.services import ausschreibung, auswertung, zeit as zeitdienst
 
 
 class NutzerSerializer(serializers.ModelSerializer):
@@ -740,3 +741,40 @@ class VorhabenSerializer(serializers.ModelSerializer):
             + [p.geaendert_am for p in vorhaben.personas.all()]
         )
         return max(stempel)
+
+
+class PraktikumsthemaSerializer(serializers.ModelSerializer):
+    """
+    Ein Praktikumsthema samt dem Auftrag an das LLM.
+
+    Der Auftrag kommt fertig mit, statt auf Knopfdruck geholt zu werden:
+    Safari lässt in die Zwischenablage nur schreiben, solange der Klick noch
+    „frisch" ist — nach einer Anfrage an den Server ist er das nicht mehr.
+    """
+
+    auftrag = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Praktikumsthema
+        fields = ["id", "titel", "kurzbeschreibung", "punkte", "ausschreibung", "auftrag", "geaendert_am"]
+        read_only_fields = ["geaendert_am"]
+
+    def get_auftrag(self, thema):
+        return ausschreibung.auftrag(thema)
+
+    def validate_ausschreibung(self, text):
+        """
+        Abgewiesen wird hier und nicht erst beim PDF: Beim Speichern sitzt man
+        vor dem Text und kann kürzen. Beim PDF stünde man mit einem Aushang da,
+        der nicht auf die Seite passt.
+        """
+        if len(text) > ausschreibung.HOECHSTENS:
+            raise serializers.ValidationError(
+                f"Das sind über {ausschreibung.HOECHSTENS} Zeichen — für einen Aushang viel zu lang."
+            )
+        if not ausschreibung.passt(text):
+            raise serializers.ValidationError(
+                "Die Ausschreibung passt auch in kleinerer Schrift nicht auf eine Seite. "
+                "Kürze sie — oder bitte das LLM darum."
+            )
+        return text

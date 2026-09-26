@@ -20,6 +20,31 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-26",
+        "titel": "Neues Modul: Praktikantenstellen",
+        "punkte": [
+            {
+                "titel": "Themen für Praktika",
+                "text": (
+                    "Unter Module · Praktikantenstellen sammelst du die "
+                    "Haupt-Aufgabenstellungen: „+ Thema“, Titel, Kurzbeschreibung "
+                    "und Punkte, ein Punkt je Zeile."
+                ),
+                "wo": "module/praktikum",
+            },
+            {
+                "titel": "Vom Thema zum Aushang",
+                "text": (
+                    "„Für ein LLM kopieren“ gibt dir den Auftrag samt Thema. Die "
+                    "Antwort fügst du unter „Ausschreibung“ ein — „PDF“ macht daraus "
+                    "einen Aushang auf einer Seite mit Briefkopf und Kontakt "
+                    "info@sopharmis.com."
+                ),
+                "wo": "doku/module",
+            },
+        ],
+    },
+    {
         "version": "2026-09-25",
         "titel": "SPG Academy: Vision Statement",
         "punkte": [

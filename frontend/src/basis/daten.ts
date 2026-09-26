@@ -467,6 +467,26 @@ export const useMeetings = () =>
 export const useVorhaben = () =>
   useQuery({ queryKey: ["vorhaben"], queryFn: () => hole<Vorhaben[]>("/vorhaben/") });
 
+/** Ein Thema für ein Praktikum — eine der Haupt-Aufgabenstellungen. */
+export type Praktikumsthema = {
+  id: number;
+  titel: string;
+  kurzbeschreibung: string;
+  /** Ein Punkt je Zeile. */
+  punkte: string;
+  /** Der Text aus dem LLM, mit seinen `#`-Überschriften. */
+  ausschreibung: string;
+  /** Der Auftrag an das LLM — vom Server geschrieben, siehe services/ausschreibung.py. */
+  auftrag: string;
+  geaendert_am: string;
+};
+
+export const usePraktikumsthemen = () =>
+  useQuery({
+    queryKey: ["praktikumsthemen"],
+    queryFn: () => hole<Praktikumsthema[]>("/praktikumsthemen/"),
+  });
+
 /* Die Felder ändern sich nur mit einer neuen Version der Anwendung — sie
    werden deshalb nicht bei jedem Fensterwechsel neu geholt. */
 export const useCanvasfelder = (workshop: Workshopschluessel = "canvas") =>
@@ -489,6 +509,7 @@ export function useNeuLaden() {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
       "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben", "vorhaben",
+      "praktikumsthemen",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

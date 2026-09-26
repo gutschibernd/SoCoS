@@ -48,6 +48,7 @@ from socos.models import (
     Pensum,
     Persona,
     Planabschnitt,
+    Praktikumsthema,
     Projekt,
     Projektphase,
     Protokolleintrag,
@@ -768,6 +769,35 @@ class PersonaViewSet(SocosViewSet):
 
     serializer_class = ser.PersonaSerializer
     queryset = Persona.objects.all()
+
+
+# --- Module: Praktikantenstellen ---------------------------------------------
+
+
+class PraktikumsthemaViewSet(SocosViewSet):
+    """
+    Die Haupt-Aufgabenstellungen für Praktika. Die gewöhnliche Regel: sehen
+    alle, anlegen und ändern Admin und Bearbeiter, entfernen nur der Admin.
+    """
+
+    serializer_class = ser.PraktikumsthemaSerializer
+    queryset = Praktikumsthema.objects.all()
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        """Der Aushang — genau eine Seite A4."""
+        from socos.services import ausschreibung
+
+        thema = self.get_object()
+        if not thema.ausschreibung.strip():
+            raise ValidationError({"ausschreibung": "Noch keine Ausschreibung — erst den Text aus dem LLM einfügen."})
+        try:
+            daten = ausschreibung.erzeugen(thema)
+        except ausschreibung.PasstNicht:
+            raise ValidationError({"ausschreibung": "Die Ausschreibung passt nicht auf eine Seite. Kürze sie."})
+        antwort = HttpResponse(daten, content_type="application/pdf")
+        antwort["Content-Disposition"] = f'attachment; filename="{ausschreibung.dateiname(thema)}"'
+        return antwort
 
 
 # --- Finanzen ---------------------------------------------------------------

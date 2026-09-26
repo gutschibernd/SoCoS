@@ -26,6 +26,7 @@ router.register("monatskosten", api.MonatskostenViewSet, basename="monatskosten"
 router.register("aufgaben", api.AufgabeViewSet, basename="aufgabe")
 router.register("vorhaben", api.VorhabenViewSet, basename="vorhaben")
 router.register("personas", api.PersonaViewSet, basename="persona")
+router.register("praktikumsthemen", api.PraktikumsthemaViewSet, basename="praktikumsthema")
 router.register("nutzer", api.NutzerViewSet, basename="nutzer")
 router.register("protokoll", api.ProtokollViewSet, basename="protokoll")
 router.register("rueckmeldungen", api.RueckmeldungViewSet, basename="rueckmeldung")
