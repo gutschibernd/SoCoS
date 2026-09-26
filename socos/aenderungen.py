@@ -60,6 +60,16 @@ VERSIONEN = [
                 ),
                 "wo": "module/praktikum-ideen",
             },
+            {
+                "titel": "Ein neuer Aushang",
+                "text": (
+                    "Das PDF einer Ausschreibung ist neu gesetzt: Überschriften in "
+                    "der Firmenschrift, jeder Abschnitt mit dem Titel links und den "
+                    "Punkten rechts, die Aufgaben nummeriert, der Kontakt in einem "
+                    "dunklen Kasten unten."
+                ),
+                "wo": "module/praktikum",
+            },
         ],
     },
     {

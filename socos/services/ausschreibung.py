@@ -21,6 +21,7 @@ Kein eingebautes LLM, wie bei den Meetings: SoCoS schickt nichts irgendwohin.
 
 import re
 from io import BytesIO
+from pathlib import Path
 from xml.sax.saxutils import escape
 
 from django.utils import timezone
@@ -28,8 +29,10 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from reportlab.platypus import Frame, Paragraph
+from reportlab.platypus import Flowable, Frame, Paragraph, Spacer
 
 from socos.services.leinwand import ascii_teil
 
@@ -45,6 +48,7 @@ AKZENT = colors.HexColor(AKZENT_TEXT)
 TEXT = colors.HexColor("#171A18")         # --text
 LEISE = colors.HexColor("#565C58")        # --text-leise
 RAND = colors.HexColor("#D2CCBC")         # --rand
+SEITENGRUND = colors.HexColor("#FAFAF7")  # --grund
 
 # Höchstens so viele Zeichen — eine Sperre gegen ein eingefügtes Transkript,
 # nicht die Grenze der Seite. Die prüft `passt`.
@@ -199,9 +203,40 @@ def _auszeichnung(text):
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", escape(text))
 
 
+
+
 # --- Das PDF -----------------------------------------------------------------
 
-RAND_SEITE = 20 * mm
+# Überschriften in Sansation, dem Schriftzug der Firma nach außen (so steht er
+# im Businessplan); alles, was gelesen wird, in Archivo wie in SoCoS selbst.
+# Sansation hat für Fließtext zu enge, eckige Formen — auf zwei Zeilen geht
+# das, auf zwanzig ermüdet es.
+#
+# **Archivo liegt hier ein zweites Mal, als TTF.** Die Dateien unter
+# `statisch/schriften/` sind variable woff2, und reportlab liest weder woff2
+# noch variable Schnitte. Die beiden hier sind daraus mit fontTools auf die
+# Gewichte 400 und 600 festgelegt.
+SCHRIFTEN = Path(__file__).resolve().parent.parent / "schriften"
+KOPF, KOPF_FETT = "Sansation", "Sansation-Bold"
+GRUND, GRUND_FETT = "Archivo", "Archivo-SemiBold"
+
+
+def _schriften_anmelden():
+    if GRUND in pdfmetrics.getRegisteredFontNames():
+        return
+    for name, datei in (
+        (KOPF, "Sansation-Regular.ttf"), (KOPF_FETT, "Sansation-Bold.ttf"),
+        (GRUND, "Archivo-Regular.ttf"), (GRUND_FETT, "Archivo-SemiBold.ttf"),
+    ):
+        pdfmetrics.registerFont(TTFont(name, str(SCHRIFTEN / datei)))
+    # Damit `<b>` im Absatz den SemiBold-Schnitt nimmt statt Helvetica-Bold.
+    pdfmetrics.registerFontFamily(GRUND, normal=GRUND, bold=GRUND_FETT, italic=GRUND, boldItalic=GRUND_FETT)
+    pdfmetrics.registerFontFamily(KOPF, normal=KOPF, bold=KOPF_FETT, italic=KOPF, boldItalic=KOPF_FETT)
+
+
+RAND_SEITE = 18 * mm
+# Die linke Spalte eines Abschnitts: dort steht nur die Überschrift.
+SPALTE = 52 * mm
 # Wie weit die Schrift schrumpfen darf. Darunter ist ein Aushang aus einem
 # Meter Abstand nicht mehr zu lesen — dann ist der Text zu lang, nicht die
 # Schrift zu groß.
@@ -215,34 +250,124 @@ class PasstNicht(ValueError):
 def _flaeche():
     """Links, unten, Breite, Höhe des Textfeldes zwischen Kopf und Kontakt."""
     breite, hoehe = A4
-    oben = hoehe - 44 * mm
-    unten = 52 * mm
+    oben = hoehe - 48 * mm
+    unten = 56 * mm
     return RAND_SEITE, unten, breite - 2 * RAND_SEITE, oben - unten
+
+
+class _Punkt(Flowable):
+    """
+    Ein Absatz mit einer Marke davor — Nummer, volles oder leeres Quadrat.
+
+    **Gezeichnet, nicht gesetzt**: Archivo hat kein ■ und kein □, und ein
+    Ersatz aus einer zweiten Schrift sitzt nie auf derselben Linie.
+    """
+
+    def __init__(self, marke, absatz, einzug, groesse):
+        super().__init__()
+        self.marke, self.absatz, self.einzug, self.groesse = marke, absatz, einzug, groesse
+
+    def wrap(self, verfuegbar_b, verfuegbar_h):
+        _, h = self.absatz.wrap(verfuegbar_b - self.einzug, verfuegbar_h)
+        self.width, self.height = verfuegbar_b, h
+        return self.width, h
+
+    def getSpaceAfter(self):
+        return self.absatz.getSpaceAfter()
+
+    def draw(self):
+        c, st = self.canv, self.absatz.style
+        # reportlab setzt die erste Grundlinie eine Schriftgröße unter die Oberkante.
+        grundlinie = self.height - st.fontSize
+        a = self.groesse
+        mitte = grundlinie + st.fontSize * 0.36
+        if self.marke == "voll":
+            c.setFillColor(AKZENT)
+            c.rect(0.5, mitte - a / 2, a, a, stroke=0, fill=1)
+        elif self.marke == "leer":
+            c.setStrokeColor(MARKE)
+            c.setLineWidth(0.9)
+            c.rect(0.5, mitte - a / 2, a, a, stroke=1, fill=0)
+        else:
+            c.setFillColor(AKZENT)
+            c.setFont(GRUND_FETT, st.fontSize * 0.9)
+            c.drawString(0, grundlinie, self.marke)
+        self.absatz.drawOn(c, self.einzug, 0)
+
+
+class _Abschnitt(Flowable):
+    """Eine Zeile des Aushangs: Überschrift links, Inhalt rechts, Haarlinie darüber."""
+
+    def __init__(self, kopf, inhalt, luft):
+        super().__init__()
+        self.kopf, self.inhalt, self.luft = kopf, inhalt, luft
+
+    def wrap(self, verfuegbar_b, verfuegbar_h):
+        self.width = verfuegbar_b
+        rechts = verfuegbar_b - SPALTE
+        self._hk = self.kopf.wrap(SPALTE - 4 * mm, verfuegbar_h)[1]
+        self._hoehen = [f.wrap(rechts, verfuegbar_h)[1] for f in self.inhalt]
+        abstaende = sum(f.getSpaceAfter() for f in self.inhalt[:-1])
+        self.height = 2 * self.luft + max(self._hk, sum(self._hoehen) + abstaende)
+        return self.width, self.height
+
+    def draw(self):
+        c = self.canv
+        c.setStrokeColor(RAND)
+        c.setLineWidth(0.6)
+        c.line(0, self.height, self.width, self.height)
+        oben = self.height - self.luft
+        self.kopf.drawOn(c, 0, oben - self._hk)
+        for f, h in zip(self.inhalt, self._hoehen):
+            oben -= h
+            f.drawOn(c, SPALTE, oben)
+            oben -= f.getSpaceAfter()
+
+
+class _Linie(Flowable):
+    """Die Haarlinie unter dem letzten Abschnitt."""
+
+    def wrap(self, verfuegbar_b, verfuegbar_h):
+        self.width, self.height = verfuegbar_b, 0.6
+        return self.width, self.height
+
+    def draw(self):
+        self.canv.setStrokeColor(RAND)
+        self.canv.setLineWidth(0.6)
+        self.canv.line(0, 0, self.width, 0)
+
+
+# Die Marke je Abschnitt: Der erste (die Aufgaben) wird gezählt, der zweite
+# bekommt das volle Kupfer, alle weiteren das leere Quadrat in Marke.
+def _marke(nr_abschnitt, nr_punkt):
+    if nr_abschnitt == 0:
+        return f"{nr_punkt + 1:02d}"
+    return "voll" if nr_abschnitt == 1 else "leer"
 
 
 def _absaetze(teile, s):
     """Die Flowables in der Größe `s` (1 = Grundgröße)."""
+    _schriften_anmelden()
     stil = {
         "titel": ParagraphStyle(
-            "titel", fontName="Helvetica-Bold", fontSize=25 * s, leading=29 * s,
-            textColor=TEXT, spaceAfter=5 * mm * s,
+            "titel", fontName=KOPF_FETT, fontSize=27 * s, leading=31 * s,
+            textColor=MARKE, spaceAfter=4 * mm * s,
         ),
         "einleitung": ParagraphStyle(
-            "einleitung", fontName="Helvetica", fontSize=12 * s, leading=17 * s,
+            "einleitung", fontName=GRUND, fontSize=12 * s, leading=17.5 * s,
             textColor=LEISE, spaceAfter=3 * mm * s,
         ),
         "ueberschrift": ParagraphStyle(
-            "ueberschrift", fontName="Helvetica-Bold", fontSize=12 * s, leading=15 * s,
-            textColor=MARKE, spaceBefore=6 * mm * s, spaceAfter=2 * mm * s,
+            "ueberschrift", fontName=KOPF_FETT, fontSize=12.5 * s, leading=15 * s,
+            textColor=MARKE,
         ),
         "absatz": ParagraphStyle(
-            "absatz", fontName="Helvetica", fontSize=10.5 * s, leading=15 * s,
+            "absatz", fontName=GRUND, fontSize=10.5 * s, leading=14.5 * s,
             textColor=TEXT, spaceAfter=2 * mm * s,
         ),
         "punkt": ParagraphStyle(
-            "punkt", fontName="Helvetica", fontSize=10.5 * s, leading=15 * s,
-            textColor=TEXT, leftIndent=5 * mm * s, bulletIndent=0.5 * mm * s,
-            spaceAfter=1.2 * mm * s,
+            "punkt", fontName=GRUND, fontSize=10.5 * s, leading=14.5 * s,
+            textColor=TEXT, spaceAfter=1.6 * mm * s,
         ),
     }
     fluss = []
@@ -250,15 +375,23 @@ def _absaetze(teile, s):
         fluss.append(Paragraph(_auszeichnung(teile["titel"]), stil["titel"]))
     for text in teile["einleitung"]:
         fluss.append(Paragraph(_auszeichnung(text), stil["einleitung"]))
-    for abschnitt in teile["abschnitte"]:
-        fluss.append(Paragraph(_auszeichnung(abschnitt["ueberschrift"]), stil["ueberschrift"]))
+    if teile["einleitung"]:
+        fluss.append(Spacer(0, 2 * mm * s))
+    for nr, abschnitt in enumerate(teile["abschnitte"]):
+        inhalt, punkte = [], 0
         for art, text in abschnitt["bloecke"]:
             if art == "punkt":
-                fluss.append(Paragraph(
-                    f'<bullet color="{AKZENT_TEXT}">&bull;</bullet>{_auszeichnung(text)}', stil["punkt"]
+                inhalt.append(_Punkt(
+                    _marke(nr, punkte), Paragraph(_auszeichnung(text), stil["punkt"]),
+                    einzug=7 * mm * s, groesse=2.2 * mm * s,
                 ))
+                punkte += 1
             else:
-                fluss.append(Paragraph(_auszeichnung(text), stil["absatz"]))
+                inhalt.append(Paragraph(_auszeichnung(text), stil["absatz"]))
+        kopf = Paragraph(_auszeichnung(abschnitt["ueberschrift"]), stil["ueberschrift"])
+        fluss.append(_Abschnitt(kopf, inhalt, luft=3.8 * mm * s))
+    if teile["abschnitte"]:
+        fluss.append(_Linie())
     return fluss
 
 
@@ -301,20 +434,19 @@ def erzeugen(thema):
     blatt.setTitle(f"Praktikum · {teile['titel']}")
     blatt.setAuthor(UNSERE_FIRMA)
 
-    _kopf(blatt, breite, hoehe)
+    # Der Seitengrund der Oberfläche. Am Drucker bleibt davon fast nichts,
+    # am Bildschirm nimmt er dem Weiß die Härte.
+    blatt.setFillColor(SEITENGRUND)
+    blatt.rect(0, 0, breite, hoehe, stroke=0, fill=1)
 
-    # Die Zeile über dem Titel: was das hier ist. Kupfer, gesperrt — der eine
-    # Ton, der auch am Brett „hier" heißt.
-    blatt.setFillColor(AKZENT)
-    blatt.setFont("Helvetica-Bold", 9)
-    blatt.drawString(RAND_SEITE, hoehe - 40 * mm, "PRAKTIKUM", charSpace=2)
+    _kopf(blatt, breite, hoehe)
+    _schild(blatt, hoehe)
 
     links, unten, b, h = _flaeche()
-    fluss = _absaetze(teile, s)
     Frame(
         links, unten, b, h, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
         showBoundary=0,
-    ).addFromList(fluss, blatt)
+    ).addFromList(_absaetze(teile, s), blatt)
 
     _kontakt(blatt, breite, teile["titel"])
     _fuss(blatt, breite)
@@ -325,73 +457,97 @@ def erzeugen(thema):
 
 def _kopf(blatt, breite, hoehe):
     """
-    Der Briefkopf: die Firma in Worten, darunter eine Haarlinie mit einem
-    kupfernen Stück am Anfang.
+    Der Briefkopf: die Firma in Worten, darunter eine Haarlinie.
 
     **Kein Signet.** Das Zeichen in `socos/marke.py` ist das von SoCoS, dem
     internen Werkzeug — auf einem Aushang nach außen gehört es nicht hin.
     Ein Logo der Firma liegt im Repository nicht vor; bis eines da ist, trägt
     die Schrift den Kopf.
     """
-    oben = hoehe - 18 * mm
+    oben = hoehe - 22 * mm
     blatt.setFillColor(MARKE)
-    blatt.setFont("Helvetica-Bold", 20)
+    blatt.setFont(KOPF_FETT, 22)
     blatt.drawString(RAND_SEITE, oben, "Sopharmis")
     blatt.setFillColor(AKZENT)
-    blatt.setFont("Helvetica", 7.5)
-    blatt.drawString(RAND_SEITE, oben - 5 * mm, "MEDICAL SOLUTIONS", charSpace=2.2)
+    blatt.setFont(KOPF_FETT, 7.5)
+    blatt.drawString(RAND_SEITE, oben - 5.5 * mm, "MEDICAL SOLUTIONS", charSpace=2.2)
 
     blatt.setFillColor(LEISE)
-    blatt.setFont("Helvetica", 9)
-    blatt.drawRightString(breite - RAND_SEITE, oben, "Ausschreibung")
-    blatt.drawRightString(breite - RAND_SEITE, oben - 5 * mm, KONTAKT)
+    blatt.setFont(GRUND, 9)
+    blatt.drawRightString(breite - RAND_SEITE, oben + 1 * mm, "Ausschreibung")
+    blatt.setFillColor(MARKE)
+    blatt.drawRightString(breite - RAND_SEITE, oben - 4.5 * mm, KONTAKT)
 
-    linie = oben - 10 * mm
     blatt.setStrokeColor(RAND)
     blatt.setLineWidth(0.6)
-    blatt.line(RAND_SEITE, linie, breite - RAND_SEITE, linie)
-    blatt.setStrokeColor(AKZENT)
-    blatt.setLineWidth(1.6)
-    blatt.line(RAND_SEITE, linie, RAND_SEITE + 24 * mm, linie)
+    blatt.line(RAND_SEITE, oben - 11 * mm, breite - RAND_SEITE, oben - 11 * mm)
+
+
+def _schild(blatt, hoehe):
+    """Das Schild über dem Titel: was das hier ist. Kupfer — der eine Ton,
+    der auch am Brett „hier" heißt."""
+    text, groesse, sperrung = "PRAKTIKUM", 8.5, 2
+    b = blatt.stringWidth(text, KOPF_FETT, groesse) + sperrung * len(text) + 5 * mm
+    y, h = hoehe - 43 * mm, 6.5 * mm
+    blatt.setFillColor(AKZENT)
+    blatt.roundRect(RAND_SEITE, y, b, h, 2, stroke=0, fill=1)
+    blatt.setFillColor(colors.white)
+    blatt.setFont(KOPF_FETT, groesse)
+    blatt.drawString(RAND_SEITE + 2.5 * mm, y + 2.2 * mm, text, charSpace=sperrung)
 
 
 def _kontakt(blatt, breite, titel):
     """Der Kasten unten: wohin man schreibt, und mit welchem Betreff."""
-    x, y, b, h = RAND_SEITE, 20 * mm, breite - 2 * RAND_SEITE, 26 * mm
-    blatt.setFillColor(MARKE_HELL)
-    blatt.rect(x, y, b, h, stroke=0, fill=1)
-    blatt.setFillColor(AKZENT)
-    blatt.rect(x, y, 1.6 * mm, h, stroke=0, fill=1)
-
-    innen = x + 8 * mm
+    x, y, b, h = RAND_SEITE, 20 * mm, breite - 2 * RAND_SEITE, 30 * mm
     blatt.setFillColor(MARKE)
-    blatt.setFont("Helvetica-Bold", 13)
-    blatt.drawString(innen, y + h - 9 * mm, "Interesse? Schreib uns.")
-    blatt.setFillColor(AKZENT)
-    blatt.setFont("Helvetica-Bold", 16)
-    blatt.drawString(innen, y + h - 16.5 * mm, KONTAKT)
+    blatt.roundRect(x, y, b, h, 2, stroke=0, fill=1)
 
-    # Der Betreff hilft uns beim Zuordnen, wenn mehrere Aushänge hängen. Zu
-    # lang gekürzt statt über den Kasten hinaus.
-    betreff = f"Betreff: Praktikum – {titel}"
-    platz = b - 16 * mm
-    if blatt.stringWidth(betreff, "Helvetica", 9) > platz:
-        while blatt.stringWidth(betreff + "…", "Helvetica", 9) > platz:
-            betreff = betreff[:-1]
-        betreff = betreff.rstrip() + "…"
-    blatt.setFillColor(LEISE)
-    blatt.setFont("Helvetica", 9)
-    blatt.drawString(innen, y + 4.5 * mm, betreff)
+    innen = x + 9 * mm
+    blatt.setFillColor(colors.white)
+    blatt.setFont(GRUND, 11)
+    blatt.drawString(innen, y + h - 10 * mm, "Interesse? Schreib uns.")
+    blatt.setFont(KOPF_FETT, 22)
+    blatt.drawString(innen, y + 8 * mm, KONTAKT)
+
+    # Der Betreff hilft uns beim Zuordnen, wenn mehrere Aushänge hängen.
+    # Rechts neben der Adresse, höchstens zwei Zeilen; was dann noch übrig
+    # ist, wird gekürzt statt über den Kasten hinaus.
+    platz = b - (innen - x) - blatt.stringWidth(KONTAKT, KOPF_FETT, 22) - 18 * mm
+    zeilen = _umbrechen(blatt, f"Betreff: Praktikum – {titel}", GRUND, 9, platz, 2)
+    blatt.setFillColor(MARKE_HELL)
+    blatt.setFont(GRUND, 9)
+    rechts = x + b - 9 * mm
+    for i, zeile in enumerate(zeilen):
+        blatt.drawRightString(rechts, y + 8 * mm + (len(zeilen) - 1 - i) * 12, zeile)
+
+
+def _umbrechen(blatt, text, schrift, groesse, platz, hoechstens):
+    """Zerlegt `text` in höchstens so viele Zeilen; die letzte wird mit … gekürzt."""
+    breite = lambda t: blatt.stringWidth(t, schrift, groesse)
+    zeilen, zeile = [], ""
+    for wort in text.split():
+        probe = f"{zeile} {wort}".strip()
+        if breite(probe) <= platz or not zeile:
+            zeile = probe
+        else:
+            zeilen.append(zeile)
+            zeile = wort
+    zeilen.append(zeile)
+    if len(zeilen) > hoechstens:
+        zeilen = zeilen[:hoechstens]
+        zeilen[-1] += "…"
+    letzte = zeilen[-1]
+    while breite(letzte) > platz and len(letzte) > 1:
+        letzte = letzte[:-2] + "…"
+    zeilen[-1] = letzte
+    return zeilen
 
 
 def _fuss(blatt, breite):
-    blatt.setStrokeColor(RAND)
-    blatt.setLineWidth(0.6)
-    blatt.line(RAND_SEITE, 14 * mm, breite - RAND_SEITE, 14 * mm)
     blatt.setFillColor(LEISE)
-    blatt.setFont("Helvetica", 8)
-    blatt.drawString(RAND_SEITE, 9.5 * mm, UNSERE_FIRMA)
-    blatt.drawRightString(breite - RAND_SEITE, 9.5 * mm, f"Stand {timezone.localdate():%d.%m.%Y}")
+    blatt.setFont(GRUND, 8)
+    blatt.drawString(RAND_SEITE, 10 * mm, UNSERE_FIRMA)
+    blatt.drawRightString(breite - RAND_SEITE, 10 * mm, f"Stand {timezone.localdate():%d.%m.%Y}")
 
 
 def dateiname(thema):

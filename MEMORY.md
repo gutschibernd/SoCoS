@@ -49,6 +49,15 @@ internen Werkzeug, und gehört nicht auf einen Aushang nach außen. Ein Logo
 der Firma liegt nicht im Repository; bis eines da ist, trägt die Schrift den
 Kopf („Sopharmis / MEDICAL SOLUTIONS").
 
+**Schriften im Aushang:** Überschriften in Sansation (der Schriftzug der Firma
+nach außen, wie im Businessplan), Fließtext in Archivo wie in SoCoS. Die TTF
+liegen in `socos/schriften/` — Archivo dort ein zweites Mal, weil reportlab
+die variablen woff2 aus `statisch/schriften/` nicht liest; die beiden Schnitte
+sind daraus mit fontTools auf 400 und 600 festgelegt. Aufbau nach dem Entwurf
+vom 2026-09-26: Überschrift links, Punkte rechts, Haarlinien dazwischen; der
+erste Abschnitt wird gezählt, der zweite hat volle Kupfer-, alle weiteren
+leere Quadrate.
+
 **Offen:** In Österreich muss eine Stellenausschreibung das Mindestentgelt
 nennen (§ 9 GlBG), sofern das Praktikum ein Arbeitsverhältnis ist. Der
 Auftrag verbietet dem LLM, eine Vergütung zu erfinden — steht sie nicht als

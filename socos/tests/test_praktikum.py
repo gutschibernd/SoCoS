@@ -141,6 +141,16 @@ class TestPdf:
         assert ausschreibung.passt(thema.ausschreibung)
         assert _seiten(ausschreibung.erzeugen(thema)) == 1
 
+    @pytest.mark.django_db
+    def test_die_schriften_sind_eingebettet(self, thema):
+        # Fehlt `socos/schriften/` im Abbild, fiele der Aushang nicht still auf
+        # Helvetica zurück, sondern bräche — dieser Test sagt vorher, woran.
+        thema.ausschreibung = ANTWORT
+        daten = ausschreibung.erzeugen(thema)
+
+        for schrift in (b"Sansation-Bold", b"Archivo-Regular", b"Archivo-SemiBold"):
+            assert schrift in daten
+
     def test_was_nicht_passt_passt_nicht(self):
         viel = "# Titel\n" + "\n".join(f"- Punkt {i} " + "Wort " * 30 for i in range(80))
 
