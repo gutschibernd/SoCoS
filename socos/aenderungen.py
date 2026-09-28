@@ -23,7 +23,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-28",
-        "titel": "Aufgaben neu: eine Liste statt Spalten",
+        "titel": "Aufgaben als eine Liste, und die Lagekarte",
         "punkte": [
             {
                 "titel": "Was drängt, steht oben",
@@ -51,6 +51,24 @@ VERSIONEN = [
                     "steht nicht mehr unter der Liste, sondern im Reiter „Archiv“."
                 ),
                 "wo": "aufgaben/archiv",
+            },
+            {
+                "titel": "Neu: die Lagekarte",
+                "text": (
+                    "Unter Module · Lagekarte stehen unsere Themenfelder als Karte: "
+                    "was darin ansteht und wer an wem hängt. Rechts steht immer, "
+                    "was gerade wartet und was als Nächstes frei ist."
+                ),
+                "wo": "module/lagekarte",
+            },
+            {
+                "titel": "Gedanken festhalten und verbinden",
+                "text": (
+                    "Oben tippst du einen Gedanken ein — mit „Gründung:“ davor landet "
+                    "er gleich in diesem Thema. Tab hängt den nächsten Schritt an; den "
+                    "Kreis am Rand einer Kachel ziehst du auf eine andere, um sie zu verbinden."
+                ),
+                "wo": "doku/module",
             },
         ],
     },

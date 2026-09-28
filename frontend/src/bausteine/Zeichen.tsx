@@ -47,7 +47,8 @@ export type ZeichenName =
   | "idee"
   | "module"
   | "akademie"
-  | "mappe";
+  | "mappe"
+  | "lagekarte";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -131,6 +132,10 @@ const PFADE: Record<ZeichenName, string> = {
   // Eine Aktentasche — für die Praktikantenstellen. Der Strich quer durch ist
   // der Verschluss; ohne ihn liest sich das Zeichen bei 18 px als Kalender.
   mappe: "M4 8h16v11H4zM9 8V5h6v3M4 13h16",
+  // Eine Mitte und drei Themen darum, jedes mit seinem Strich dorthin — die
+  // Sternkarte im Kleinen. Drei und nicht vier: Symmetrisch wird daraus bei
+  // 18 px ein Kreuz, und ein Kreuz heißt „schließen".
+  lagekarte: "M10 10h4v4h-4zM4 4h4v4H4zM16 4h4v4h-4zM4 16h4v4H4zM8 8l2 2M16 8l-2 2M8 16l2-2",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

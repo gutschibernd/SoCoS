@@ -52,6 +52,51 @@ Alle drei Modelle stehen in `MODELLE_IM_ARCHIV` und in der Löschreihenfolge
 (Verbindungen vor Schritten vor Themen); ein Test schickt eine Karte durch
 Ausfuhr und Einfuhr.
 
+### Die Oberfläche
+
+**Die Bühne ist kein React** (`bausteine/Lagebuehne.ts`). Beim Zoomen und
+Ziehen gleiten alle Kacheln und Pfeile sechzigmal in der Sekunde; über React
+liefe jeder Schritt durch einen Abgleich des ganzen Baums. Ein Takt setzt nur
+`left`/`top` und zeichnet die Pfeile neu, die Kacheln werden nur bei neuen
+Daten gebaut. Werkzeugleisten und Seitenspalte sind React
+(`ansichten/Lagekarte.tsx`). **Die Bühne speichert nichts** — jede Handlung
+geht als Ereignis an die Ansicht, die schreibt und den neuen Stand
+hereinreicht. Was sich ohne Bildschirm rechnen lässt (wartet/frei, Stränge,
+Pfeilführung, Platzsuche), steht in `basis/lagekarte.ts` und ist mit vitest
+geprüft.
+
+**Ein neuer Gedanke lebt als Entwurf in der Bühne, bis er einen Titel hat.**
+Der Server nimmt keinen Schritt ohne Titel, und ein leerer Datensatz, der
+beim Verlassen wieder gelöscht wird, stünde doppelt im Protokoll. Während
+gezogen oder ein Titel geschrieben wird, wartet ein neuer Stand vom Server —
+sonst risse ein Neuladen die Kachel unter dem Zeiger weg.
+
+**Geschrieben wird optimistisch**, dann neu geholt. Die Lage einer Kachel
+wird beim Loslassen gespeichert, nicht während des Ziehens. Titel und Notiz
+beim Verlassen des Feldes, nicht je Tastendruck — sonst schriebe jeder
+Buchstabe einen Protokolleintrag.
+
+**Tasten:** Tiefe und Zoom (1, 2, 3, +, −, Escape) gelten überall außer in
+Feldern. Tab, Enter, Leertaste und Entf nur, wenn kein Knopf den Fokus hat —
+sonst nähme Tab der Seitenspalte das Weiterspringen, und Enter auf
+„Stränge" hakte den gewählten Schritt ab.
+
+**Zwei Fallen, die beim Prüfen aufgefallen sind:** `overflow: hidden` lässt
+sich programmatisch noch scrollen — der Fokus im Fangfeld schob die ganze
+Bühne 62 px nach links; deshalb `overflow: clip`. Und die Seitenleiste ragte
+bei 800 px Fensterhöhe mit aufgeklapptem Modulzweig 184 px aus der Seite; die
+ganze Seite rollte, und die fensterhohe Karte rutschte unter die
+Kontextleiste. Die Leiste rollt jetzt in sich selbst (`overflow-y: auto`,
+auch außerhalb der Lagekarte).
+
+**Die acht Thementöne** (`--f1…--f8` als Fläche, `--t1…--t8` als Ton) stehen
+in `farben.css`, gerechnet gegen jeden Untergrund, auf dem sie vorkommen.
+
+**Offen:** Einen Pfeil lösen darf wie jedes Entfernen nur der Admin. Ein
+Bearbeiter kann Pfeile ziehen und umhängen, aber keinen wieder lösen. Wenn
+das im Alltag stört, wäre `Lageverbindung` der erste Fall, in dem ein
+Bearbeiter entfernen darf — das gehört dann nach `berechtigung.py`.
+
 ---
 
 ## 2026-09-28 — Aufgaben als eine Liste, mehrere Personen, Archiv (Migration 0031)

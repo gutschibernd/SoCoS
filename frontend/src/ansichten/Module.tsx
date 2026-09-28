@@ -16,6 +16,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { hole } from "../basis/api";
 import {
   useCanvasfelder,
+  useLagekarte,
   useNeuLaden,
   usePraktikumsthemen,
   useVorhaben,
@@ -48,6 +49,7 @@ import {
   teilZuWeg,
   themaAusWeg,
   zumSenden,
+  type Kartenteil,
   type Modul,
   type Punktentwurf,
   type Teil,
@@ -58,6 +60,7 @@ import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
+import { Lagekarte } from "./Lagekarte";
 import { Praktikum, Themenseite } from "./Praktikum";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
@@ -76,6 +79,7 @@ export function Module({
   const treffer = teilZuWeg(unter);
   if (!treffer) return <Uebersicht wechseln={wechseln} />;
   const { modul, teil } = treffer;
+  if (teil.schluessel === "lagekarte") return <Lagekarte ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "praktikum")
     return (
       <Praktikum
@@ -135,6 +139,8 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
             {m.teile.map((teil, i) =>
               teil.schluessel === "praktikum" ? (
                 <Themenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
+              ) : teil.schluessel === "lagekarte" ? (
+                <Kartenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : (
                 <Teilzeile key={teil.weg} teil={teil} stelle={i} vorhaben={eines} wechseln={wechseln} />
               ),
@@ -224,6 +230,32 @@ function Themenzeile({
         <span className="modul-stand">
           {zahl === undefined ? "" : themenZahl(zahl, teil.art)}
         </span>
+        <Zeichen name="zeiger" klasse="modul-zeiger" />
+      </a>
+    </li>
+  );
+}
+
+/** Eine Zeile der Kachel für die Lagekarte: wie viele Themen, wie viel noch offen ist. */
+function Kartenzeile({ teil, stelle, wechseln }: { teil: Kartenteil; stelle: number; wechseln: Wechseln }) {
+  const karte = useLagekarte();
+  const stand = karte.data
+    ? `${karte.data.themen.length} ${karte.data.themen.length === 1 ? "Thema" : "Themen"} · ${
+        karte.data.schritte.filter((x) => x.status === "offen").length
+      } offen`
+    : "";
+  return (
+    <li>
+      <a
+        href={`/module/${teil.weg}`}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", teil.weg);
+        }}
+      >
+        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
+        {teil.titel}
+        <span className="modul-stand">{stand}</span>
         <Zeichen name="zeiger" klasse="modul-zeiger" />
       </a>
     </li>
