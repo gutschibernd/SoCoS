@@ -92,6 +92,17 @@ kbd { font:500 11px/1 var(--schrift-zahl); padding:3px 5px; border:1px solid var
 .lp-folgt { fill:var(--text-sehr-leise); } .lp-erfuellt { fill:var(--gut); } .lp-kreuz, .lp-neu { fill:var(--akzent); }
 .lt { fill:var(--text-leise); font-family:var(--schrift); font-weight:600; paint-order:stroke; stroke:var(--grund); stroke-linejoin:round; }
 .lt-kreuz { fill:var(--akzent); }
+/* Pfeile sind greifbar: eine breite, unsichtbare Spur darüber fängt den Klick */
+.l-treffer { fill:none; stroke:transparent; stroke-width:16; vector-effect:non-scaling-stroke; pointer-events:stroke; cursor:pointer; }
+.l.gewaehlt { stroke:var(--akzent); stroke-width:3; opacity:1; animation:none; }
+[class^="lp-"].gewaehlt { fill:var(--akzent); }
+.l-ende { fill:var(--flaeche); stroke:var(--akzent); stroke-width:2; vector-effect:non-scaling-stroke; pointer-events:all; cursor:grab; }
+.l-ende:hover { fill:var(--akzent-hell); }
+.etikett { position:absolute; z-index:6; transform:translate(-50%,-50%); display:flex; background:var(--flaeche); border:2px solid var(--akzent); border-radius:2px; }
+.etikett input { width:190px; min-height:40px; padding:0 10px; border:0; background:none; font-size:16px; outline:none; }
+.etikett[hidden] { display:none; }
+.verbindung { display:grid; grid-template-columns:1fr; gap:4px; margin-top:14px; }
+.verbindung .pfeil { font-size:12px; color:var(--text-leise); padding-left:12px; }
 #linien .leise { opacity:.12; }
 @keyframes fluss { to { stroke-dashoffset:-13; } }
 
@@ -320,6 +331,7 @@ textarea.eingabe { resize:vertical; line-height:1.4; }
       </div>
 
       <div class="klein" id="klein" aria-label="Übersicht"></div>
+      <div class="etikett" id="etikett" hidden><input id="etikett-feld" placeholder="Beschriftung …" maxlength="40" aria-label="Beschriftung des Pfeils"></div>
       <div class="meldung" id="meldung" role="status"></div>
     </main>
 
@@ -337,6 +349,7 @@ const $ = s => document.querySelector(s);
 const app = $("#app"), buehne = $("#buehne"), welt = $("#welt"), linien = $("#linien"),
   schicht = $("#knoten"), baender = $("#baender"), raster = $("#raster"),
   seite = $("#seite"), inhalt = $("#seite-inhalt"), klein = $("#klein");
+const RASTER = 12, aufRaster = v => Math.round(v / RASTER) * RASTER;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const HEUTE = new Date(); HEUTE.setHours(0, 0, 0, 0);
@@ -416,6 +429,9 @@ const nachFrist = (a, b) => (a.frist || "9999").localeCompare(b.frist || "9999")
 
 let ansicht = innerWidth < 760 ? "straenge" : "stern";
 let stufe = "lage", sel = null, schwebt = null, modus = null;
+let selKante = null, etikettOffen = false; // gewählter Pfeil als "von>nach"
+const mitten = {};
+const kanteVon = key => D.kanten.find(k => k.von + ">" + k.nach === key);
 const cam = { x: 0, y: 0, k: .3 }; let camZiel = null;
 const cur = {}, groesse = {}, elById = {};
 let B = { pos: {}, lage: {}, baender: [] };
@@ -538,40 +554,51 @@ function linienListe() {
   }
   D.knoten.forEach(n => { if (!vor(n.id).some(v => K(v).thema === n.thema)) L.push({ a: hubVon(n), b: n.id, art: "ast", t: n.thema ? T(n.thema).farbe : 0 }); });
   D.kanten.forEach(k => { const a = K(k.von), b = K(k.nach);
-    L.push({ a: k.von, b: k.nach, art: a.status === "erledigt" ? "erfuellt" : a.thema !== b.thema ? "kreuz" : "folgt", text: k.text, pfeil: true }); });
+    L.push({ a: k.von, b: k.nach, key: k.von + ">" + k.nach, art: a.status === "erledigt" ? "erfuellt" : a.thema !== b.thema ? "kreuz" : "folgt", text: k.text, pfeil: true }); });
   return L;
 }
 function pfad(L, fokus) {
   const A = cur[L.a], Z = cur[L.b]; if (!A || !Z) return "";
   const dx = Z.x - A.x, dy = Z.y - A.y, len = Math.hypot(dx, dy); if (len < 30) return "";
-  let p1, p2, c1, c2, mid, tan;
-  const gA = groesse[L.a], gZ = groesse[L.b];
-  const horiz = ansicht === "straenge" && gA && gZ && (Z.x - gZ.w * skal(L.b) / 2) - (A.x + gA.w * skal(L.a) / 2) > 40;
-  if (horiz) { // Stränge: waagrechte Tangenten, wie ein Gleisplan
-    p1 = { x: A.x + gA.w * skal(L.a) / 2 + 4, y: A.y }; p2 = { x: Z.x - gZ.w * skal(L.b) / 2 - 6, y: Z.y };
-    const h = (p2.x - p1.x) / 2; c1 = { x: p1.x + h, y: p1.y }; c2 = { x: p2.x - h, y: p2.y };
-    mid = { x: .125 * p1.x + .375 * c1.x + .375 * c2.x + .125 * p2.x, y: .125 * p1.y + .375 * c1.y + .375 * c2.y + .125 * p2.y };
-    tan = { x: 1, y: 0 };
+  // Rechtwinklig wie ein Schaltplan: hinaus und hinein immer senkrecht zur
+  // Kachelkante, geknickt wird auf dem Raster. Die Seite bestimmt, in welche
+  // Richtung mehr Platz ist — so kommt ein Pfeil nie schräg an.
+  const gA = groesse[L.a], gZ = groesse[L.b]; if (!gA || !gZ) return "";
+  const aw = gA.w * skal(L.a) / 2, ah = gA.h * skal(L.a) / 2, zw = gZ.w * skal(L.b) / 2, zh = gZ.h * skal(L.b) / 2;
+  const lueckeX = Math.abs(dx) - aw - zw, lueckeY = Math.abs(dy) - ah - zh;
+  if (lueckeX < 16 && lueckeY < 16) return ""; // liegen (noch) aufeinander, etwa beim Einklappen
+  const ab = 4, pts = [];
+  if (lueckeX >= lueckeY) {
+    const sx = Math.sign(dx), p1 = { x: A.x + sx * (aw + ab), y: A.y }, p2 = { x: Z.x - sx * (zw + ab), y: Z.y };
+    const mx = clamp(aufRaster((p1.x + p2.x) / 2), Math.min(p1.x, p2.x) + 8, Math.max(p1.x, p2.x) - 8);
+    pts.push(p1); if (Math.abs(p1.y - p2.y) > .5) pts.push({ x: mx, y: p1.y }, { x: mx, y: p2.y }); pts.push(p2);
   } else {
-    const ux = dx / len, uy = dy / len;
-    p1 = randPunkt(L.a, ux, uy); p2 = randPunkt(L.b, -ux, -uy);
-    const b = (L.art === "stamm" || L.art === "ast") ? 0 : Math.hypot(p2.x - p1.x, p2.y - p1.y) * .08;
-    c1 = { x: (p1.x + p2.x) / 2 - uy * b, y: (p1.y + p2.y) / 2 + ux * b };
-    mid = { x: .25 * p1.x + .5 * c1.x + .25 * p2.x, y: .25 * p1.y + .5 * c1.y + .25 * p2.y };
-    const tx = p2.x - c1.x, ty = p2.y - c1.y, tl = Math.hypot(tx, ty) || 1; tan = { x: tx / tl, y: ty / tl };
+    const sy = Math.sign(dy), p1 = { x: A.x, y: A.y + sy * (ah + ab) }, p2 = { x: Z.x, y: Z.y - sy * (zh + ab) };
+    const my = clamp(aufRaster((p1.y + p2.y) / 2), Math.min(p1.y, p2.y) + 8, Math.max(p1.y, p2.y) - 8);
+    pts.push(p1); if (Math.abs(p1.x - p2.x) > .5) pts.push({ x: p1.x, y: my }, { x: p2.x, y: my }); pts.push(p2);
   }
-  if ((p2.x - p1.x) * dx + (p2.y - p1.y) * dy <= 0) return ""; // überlappt noch (beim Einklappen)
-  const d = c2 ? `M${p1.x},${p1.y}C${c1.x},${c1.y} ${c2.x},${c2.y} ${p2.x},${p2.y}` : `M${p1.x},${p1.y}Q${c1.x},${c1.y} ${p2.x},${p2.y}`;
-  const leise = fokus && !(fokus.has(L.a) && fokus.has(L.b)) ? " leise" : "";
+  const p1 = pts[0], p2 = pts[pts.length - 1], vorl = pts[pts.length - 2];
+  const tl = Math.hypot(p2.x - vorl.x, p2.y - vorl.y) || 1, tan = { x: (p2.x - vorl.x) / tl, y: (p2.y - vorl.y) / tl };
+  const m1 = pts[pts.length > 2 ? 1 : 0], m2 = pts[pts.length > 2 ? 2 : 1];
+  const mid = { x: (m1.x + m2.x) / 2, y: (m1.y + m2.y) / 2 };
+  const d = "M" + pts.map(q => `${q.x},${q.y}`).join("L");
+  const gew = L.key && L.key === selKante ? " gewaehlt" : "";
+  const leise = !gew && fokus && !(fokus.has(L.a) && fokus.has(L.b)) ? " leise" : "";
   const stil = L.t != null ? ` style="--t:${L.t ? `var(--t${L.t})` : "var(--text-sehr-leise)"}"` : "";
-  let s = `<path class="l l-${L.art}${leise}"${stil} d="${d}"/>`;
+  let s = `<path class="l l-${L.art}${leise}${gew}"${stil} d="${d}"/>`;
   if (L.pfeil) {
-    const a = clamp(9 / cam.k, 6, 30), nx = -tan.y, ny = tan.x, bx = p2.x - tan.x * a, by = p2.y - tan.y * a;
-    s += `<path class="lp-${L.art}${leise}" d="M${p2.x},${p2.y}L${bx + nx * a * .5},${by + ny * a * .5}L${bx - nx * a * .5},${by - ny * a * .5}Z"/>`;
+    const a = clamp((gew ? 11 : 9) / cam.k, 6, 34), nx = -tan.y, ny = tan.x, bx = p2.x - tan.x * a, by = p2.y - tan.y * a;
+    s += `<path class="lp-${L.art}${leise}${gew}" d="M${p2.x},${p2.y}L${bx + nx * a * .5},${by + ny * a * .5}L${bx - nx * a * .5},${by - ny * a * .5}Z"/>`;
+  }
+  if (L.key) {
+    mitten[L.key] = mid;
+    s += `<path class="l-treffer" data-kante="${L.key}" d="${d}"/>`;
+    if (gew) { const rr = clamp(7 / cam.k, 5, 24);
+      s += `<circle class="l-ende" data-ende="von" cx="${p1.x}" cy="${p1.y}" r="${rr}"/><circle class="l-ende" data-ende="nach" cx="${p2.x}" cy="${p2.y}" r="${rr}"/>`; }
   }
   const fs = clamp(11.5 / cam.k, 11, 40);
   // Beschriftung nur, wo sie zwischen die Knoten passt — sonst liegt sie auf einem.
-  if (L.text && Math.hypot(p2.x - p1.x, p2.y - p1.y) > L.text.length * fs * .62 + 16) {
+  if (L.text && !(gew && etikettOffen) && (gew || Math.hypot(m2.x - m1.x, m2.y - m1.y) > L.text.length * fs * .62 + 16)) {
     s += `<text class="lt${L.art === "kreuz" ? " lt-kreuz" : ""}${leise}" x="${mid.x}" y="${mid.y - fs * .5}" font-size="${fs}" stroke-width="${fs * .35}" text-anchor="middle">${esc(L.text)}</text>`;
   }
   return s;
@@ -589,7 +616,8 @@ function zeichne() {
   let r = 24; while (r * cam.k < 16) r *= 2;
   raster.style.backgroundSize = `${r * cam.k}px ${r * cam.k}px`;
   raster.style.backgroundPosition = `${cam.x}px ${cam.y}px`;
-  const fokus = kette(sel || schwebt);
+  const kg = selKante && stufe !== "lage" && kanteVon(selKante);
+  const fokus = kg ? new Set([kg.von, kg.nach, "mitte", hubVon(K(kg.von)), hubVon(K(kg.nach))]) : kette(sel || schwebt);
   for (const id in elById) {
     const e = elById[id], c = cur[id]; if (!c) continue;
     e.style.left = c.x + "px"; e.style.top = c.y + "px";
@@ -597,12 +625,27 @@ function zeichne() {
     e.classList.toggle("leise", !!fokus && !fokus.has(id));
     e.classList.toggle("gewaehlt", id === sel);
   }
-  let svg = linienListe().map(L => pfad(L, fokus)).join("");
+  const liste = linienListe().filter(L => !(modus?.art === "umhaengen" && modus.bewegt && L.key === modus.key));
+  let svg = liste.map(L => pfad(L, fokus)).join("");
+  if (modus?.art === "umhaengen" && modus.bewegt && modus.px != null) {
+    // Das feste Ende bleibt, das gegriffene folgt dem Zeiger.
+    const k = kanteVon(modus.key), fest = modus.ende === "nach" ? k.von : k.nach, c = cur[fest];
+    const dx = modus.px - c.x, dy = modus.py - c.y, l = Math.hypot(dx, dy) || 1, p = randPunkt(fest, dx / l, dy / l);
+    const [a, b] = modus.ende === "nach" ? [p, { x: modus.px, y: modus.py }] : [{ x: modus.px, y: modus.py }, p];
+    const tx = (b.x - a.x) / (Math.hypot(b.x - a.x, b.y - a.y) || 1), ty = (b.y - a.y) / (Math.hypot(b.x - a.x, b.y - a.y) || 1), s2 = clamp(11 / cam.k, 6, 34);
+    svg += `<path class="l l-neu" d="M${a.x},${a.y}L${b.x},${b.y}"/><path class="lp-neu" d="M${b.x},${b.y}L${b.x - tx * s2 - ty * s2 * .5},${b.y - ty * s2 + tx * s2 * .5}L${b.x - tx * s2 + ty * s2 * .5},${b.y - ty * s2 - tx * s2 * .5}Z"/>`;
+  }
   if (modus?.art === "verbinden" && modus.px != null) {
     const c = cur[modus.von], dx = modus.px - c.x, dy = modus.py - c.y, l = Math.hypot(dx, dy) || 1, p = randPunkt(modus.von, dx / l, dy / l);
     svg += `<path class="l l-neu" d="M${p.x},${p.y}L${modus.px},${modus.py}"/>`;
   }
   linien.innerHTML = svg;
+  const et = $("#etikett"), m = selKante && mitten[selKante];
+  const zeigen = etikettOffen && m && kg && stufe !== "lage" && !(modus?.art === "umhaengen" && modus.bewegt);
+  et.hidden = !zeigen;
+  if (zeigen) { // am Pfeil, aber nie halb aus der Bühne hinaus
+    const r = flaeche(), hw = et.offsetWidth / 2 + 8, hh = et.offsetHeight / 2 + 8;
+    et.style.left = clamp(m.x * cam.k + cam.x, hw, r.width - hw) + "px"; et.style.top = clamp(m.y * cam.k + cam.y, hh + 56, r.height - hh) + "px"; }
   zeichneKlein();
 }
 let kleinMass = null;
@@ -748,10 +791,35 @@ function statusWeiter(id) {
   aktualisiere(); melde(`${n.titel || "Gedanke"}: ${STATUS.find(s => s[0] === n.status)[1]}`);
 }
 function erreichbar(von, zu) { const st = [von], ges = new Set(); while (st.length) { const x = st.pop(); if (x === zu) return true; nach(x).forEach(y => { if (!ges.has(y)) { ges.add(y); st.push(y); } }); } return false; }
+function waehleKante(key, etikett) {
+  selKante = key; sel = null; etikettOffen = !!etikett; zeigeSeite(); dirty = true;
+  const f = $("#etikett-feld"); f.value = kanteVon(key)?.text || "";
+  if (etikett) requestAnimationFrame(() => requestAnimationFrame(() => { f.focus(); f.select(); }));
+}
+function schliesseEtikett() { etikettOffen = false; $("#etikett-feld").blur(); zeigeSeite(); dirty = true; }
+function setzeKante(k, von, nach) {
+  // Prüfen, als gäbe es den alten Pfeil schon nicht mehr — sonst meldet der Kreistest sich selbst.
+  if (von === nach) return false;
+  if (D.kanten.some(x => x !== k && x.von === von && x.nach === nach)) { melde("Diese Verbindung gibt es schon."); return false; }
+  const alt = [k.von, k.nach]; k.von = "\u0000"; k.nach = "\u0000";
+  const kreis = erreichbar(nach, von); [k.von, k.nach] = alt;
+  if (kreis) { melde("Das ergäbe einen Kreis — dann wartet alles aufeinander."); return false; }
+  k.von = von; k.nach = nach; selKante = von + ">" + nach; aktualisiere(); return true;
+}
+function haengeUm(key, ende, ziel) {
+  const k = kanteVon(key); if (!k) return;
+  const [von, nach] = ende === "nach" ? [k.von, ziel] : [ziel, k.nach];
+  if (setzeKante(k, von, nach)) melde(`„${K(nach).titel}“ hängt jetzt an „${K(von).titel}“`);
+}
+function loeseKante(key) {
+  D.kanten = D.kanten.filter(k => k.von + ">" + k.nach !== key);
+  selKante = null; etikettOffen = false; aktualisiere(); melde("Verbindung gelöst");
+}
 function verbinde(a, b) {
   if (a === b || D.kanten.some(k => k.von === a && k.nach === b)) return;
   if (erreichbar(b, a)) return melde("Das ergäbe einen Kreis — dann wartet alles aufeinander.");
   D.kanten.push({ von: a, nach: b }); aktualisiere();
+  waehleKante(a + ">" + b, true); // gleich beschriften können — leer lassen geht auch
   melde(`„${K(b).titel}“ hängt jetzt an „${K(a).titel}“`);
 }
 function ordneZu(id, zielId) {
@@ -789,6 +857,7 @@ function bearbeite(id, neu) {
 }
 
 function waehle(id) {
+  selKante = null; etikettOffen = false;
   sel = id === "mitte" ? null : id; dirty = true; zeigeSeite();
   if (sel && innerWidth < 760) seite.classList.add("offen");
 }
@@ -806,6 +875,8 @@ function zeigeSeite() {
   const haengt = D.knoten.filter(n => n.status === "offen" && kreuzSperre(n).length);
   const laeuft = D.knoten.filter(n => n.status === "laeuft").sort(nachFrist);
   $("#seite-griff").innerHTML = `Lage <span class="zahl">${wartet.length + haengt.length} warten · ${laeuft.length} laufen</span>`;
+  if (selKante && kanteVon(selKante)) return seiteKante(kanteVon(selKante));
+  selKante = null;
   if (sel && (istHub(sel) ? T(sel.slice(2)) : K(sel))) return istHub(sel) ? seiteThema(T(sel.slice(2))) : seiteKnoten(K(sel));
   sel = null;
   const freie = D.knoten.filter(frei).sort(nachFrist);
@@ -825,7 +896,16 @@ function zeigeSeite() {
     <h3>Griffe</h3>
     <div class="griffe"><kbd>Doppelklick</kbd><span>neuer Gedanke an dieser Stelle</span><kbd>Tab</kbd><span>nächster Schritt, schon verbunden</span>
       <kbd>Leertaste</kbd><span>Status weiterschalten (oder Punkt klicken)</span><kbd>○ ziehen</kbd><span>verbinden: „hängt an“</span>
+      <kbd>Pfeil klicken</kbd><span>beschriften</span><kbd>Pfeil ziehen</kbd><span>am nahen Ende auf eine andere Kachel umhängen</span>
       <kbd>auf Thema ziehen</kbd><span>zuordnen</span><kbd>1 2 3</kbd><span>Lage · Karte · Details</span></div>`;
+}
+function seiteKante(k) {
+  const a = K(k.von), b = K(k.nach);
+  inhalt.innerHTML = `<button class="zurueck" data-akt="zurueck">‹ Lage</button>
+    <h2>Verbindung</h2>
+    <div class="verbindung">${posten(a, themaName(a))}<span class="pfeil">↓ ${esc(b.titel)} hängt daran</span>${posten(b, themaName(b))}</div>
+    <div class="feld"><label for="k-text">Beschriftung</label><input id="k-text" class="eingabe" data-kfeld="text" maxlength="40" placeholder="z. B. Zusage, wenn geliefert" value="${esc(k.text || "")}"></div>
+    <div class="aktionen"><button class="knopf" data-akt="umdrehen">Umdrehen</button><button class="knopf still" data-akt="loesen">Lösen</button></div>`;
 }
 function seiteKnoten(n) {
   const bez = (ids, richtungVor) => ids.map(K).map(x => `<li style="${farbStil(x.thema)}"><i></i><span>${esc(x.titel)}</span><button data-weg="${richtungVor ? x.id + ">" + n.id : n.id + ">" + x.id}" aria-label="Verbindung lösen" title="Verbindung lösen">×</button></li>`).join("");
@@ -870,7 +950,9 @@ inhalt.addEventListener("click", e => {
   if (b.dataset.farbe) { T(sel.slice(2)).farbe = Number(b.dataset.farbe); return aktualisiere(); }
   if (b.dataset.weg) { const [v, n] = b.dataset.weg.split(">"); D.kanten = D.kanten.filter(k => !(k.von === v && k.nach === n)); return aktualisiere(); }
   const akt = b.dataset.akt;
-  if (akt === "zurueck") { sel = null; zeigeSeite(); dirty = true; }
+  if (akt === "zurueck") { sel = null; selKante = null; etikettOffen = false; zeigeSeite(); dirty = true; }
+  else if (akt === "umdrehen") { const k = kanteVon(selKante); setzeKante(k, k.nach, k.von); }
+  else if (akt === "loesen") loeseKante(selKante);
   else if (akt === "weiter") naechsterSchritt(sel);
   else if (akt === "loeschen") nachfrage();
   else if (akt === "weg-nein") $("#nachfrage").innerHTML = "";
@@ -878,6 +960,10 @@ inhalt.addEventListener("click", e => {
   else if (akt === "erledigt") { K(sel).status = "erledigt"; aktualisiere(); }
 });
 inhalt.addEventListener("input", e => {
+  if (e.target.dataset.kfeld && selKante) {
+    const k = kanteVon(selKante); k.text = e.target.value.trim() || undefined;
+    $("#etikett-feld").value = e.target.value; sichere(); dirty = true; return;
+  }
   const f = e.target.dataset.feld; if (!f || !sel) return;
   const o = istHub(sel) ? T(sel.slice(2)) : K(sel);
   o[f] = e.target.value || (f === "titel" || f === "name" ? "" : undefined);
@@ -892,13 +978,22 @@ inhalt.addEventListener("change", e => {
 });
 $("#seite-griff").addEventListener("click", () => seite.classList.toggle("offen"));
 
+const etikettFeld = $("#etikett-feld");
+etikettFeld.addEventListener("input", () => {
+  const k = kanteVon(selKante); if (!k) return;
+  k.text = etikettFeld.value.trim() || undefined; sichere(); dirty = true;
+  const f = $("#k-text"); if (f) f.value = etikettFeld.value;
+});
+etikettFeld.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); schliesseEtikett(); } });
+etikettFeld.addEventListener("blur", () => { if (etikettOffen) { etikettOffen = false; dirty = true; } });
+
 /* ------------------------------------------------------------ Zeiger */
 
 const zeiger = new Map();
 buehne.addEventListener("pointerdown", e => {
-  if (e.target.closest(".schwebe, .klein") || e.target.isContentEditable) return;
+  if (e.target.closest(".schwebe, .klein, .etikett") || e.target.isContentEditable) return;
   if (e.pointerType === "mouse" && e.button !== 0) return;
-  buehne.setPointerCapture(e.pointerId);
+  try { buehne.setPointerCapture(e.pointerId); } catch (x) { /* Zeiger schon weg */ }
   zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (zeiger.size === 2) {
     const [a, b] = [...zeiger.values()];
@@ -907,6 +1002,15 @@ buehne.addEventListener("pointerdown", e => {
   }
   camZiel = null;
   const id = e.target.closest("[data-id]")?.dataset.id;
+  const ende = e.target.closest("[data-ende]"), treffer = e.target.closest("[data-kante]");
+  if (ende && selKante) { modus = { art: "umhaengen", key: selKante, ende: ende.dataset.ende, x0: e.clientX, y0: e.clientY, bewegt: false }; return; }
+  if (treffer) {
+    // Wer den Pfeil greift, greift das Ende, dem er näher ist.
+    const key = treffer.dataset.kante, [v, n] = key.split(">"), r = flaeche();
+    const wx = (e.clientX - r.left - cam.x) / cam.k, wy = (e.clientY - r.top - cam.y) / cam.k;
+    const naeher = Math.hypot(wx - cur[v].x, wy - cur[v].y) < Math.hypot(wx - cur[n].x, wy - cur[n].y) ? "von" : "nach";
+    modus = { art: "umhaengen", key, ende: naeher, x0: e.clientX, y0: e.clientY, bewegt: false }; return;
+  }
   if (id && e.target.closest(".k-griff")) { modus = { art: "verbinden", von: id, x0: e.clientX, y0: e.clientY }; return; }
   if (id && id !== "mitte") {
     const hub = istHub(id), o = hub ? T(id.slice(2)) : K(id);
@@ -941,8 +1045,10 @@ buehne.addEventListener("pointermove", e => {
   if (modus.art === "pan") { cam.x = modus.cx + dx; cam.y = modus.cy + dy; dirty = true; }
   else if (modus.art === "knoten") {
     const wx = dx / cam.k, wy = dy / cam.k, { id, start } = modus, hub = istHub(id), o = hub ? T(id.slice(2)) : K(id);
-    o.x = Math.round(start.x + wx); o.y = Math.round(start.y + wy);
-    start.kinder.forEach(([n, x, y]) => { n.x = Math.round(x + wx); n.y = Math.round(y + wy); cur[n.id] = zielPos(n.id); });
+    // Einrasten: liegen zwei Kacheln auf derselben Rasterzeile, läuft der Pfeil gerade.
+    const rx = aufRaster(start.x + wx) - start.x, ry = aufRaster(start.y + wy) - start.y;
+    o.x = start.x + rx; o.y = start.y + ry;
+    start.kinder.forEach(([n, x, y]) => { n.x = x + rx; n.y = y + ry; cur[n.id] = zielPos(n.id); });
     cur[id] = zielPos(id);
     if (!hub) {
       elById[id].classList.add("gezogen");
@@ -951,6 +1057,16 @@ buehne.addEventListener("pointermove", e => {
       u?.classList.add("ziel"); modus.ziel = u?.dataset.id;
     }
     dirty = true;
+  } else if (modus.art === "umhaengen") {
+    if (!kanteVon(modus.key)) return;
+    if (selKante !== modus.key) { selKante = modus.key; sel = null; etikettOffen = false; zeigeSeite(); }
+    const k = kanteVon(modus.key), fest = modus.ende === "nach" ? k.von : k.nach;
+    modus.px = (e.clientX - r.left - cam.x) / cam.k; modus.py = (e.clientY - r.top - cam.y) / cam.k;
+    const u = document.elementFromPoint(e.clientX, e.clientY)?.closest(".k");
+    const z = u && u.dataset.id !== fest ? u.dataset.id : null;
+    document.querySelectorAll(".k.ziel").forEach(x => x.dataset.id !== z && x.classList.remove("ziel"));
+    if (z) elById[z].classList.add("ziel");
+    modus.ziel = z; dirty = true;
   } else if (modus.art === "verbinden") {
     modus.px = (e.clientX - r.left - cam.x) / cam.k; modus.py = (e.clientY - r.top - cam.y) / cam.k;
     const u = document.elementFromPoint(e.clientX, e.clientY)?.closest(".k");
@@ -969,13 +1085,16 @@ function zeigerEnde(e) {
     if (!m.bewegt) { if (m.punkt) statusWeiter(m.id); else if (istHub(m.id) && stufe === "lage") themaFokus(m.id); else waehle(m.id); }
     else if (!istHub(m.id) && m.ziel) ordneZu(m.id, m.ziel);
     else sichere();
+  } else if (m.art === "umhaengen") {
+    if (!m.bewegt) waehleKante(m.key, true);
+    else if (m.ziel && m.ziel !== (m.ende === "nach" ? kanteVon(m.key).nach : kanteVon(m.key).von)) haengeUm(m.key, m.ende, m.ziel);
   } else if (m.art === "verbinden" && m.ziel) verbinde(m.von, m.ziel);
   dirty = true;
 }
 buehne.addEventListener("pointerup", zeigerEnde);
 buehne.addEventListener("pointercancel", zeigerEnde);
 buehne.addEventListener("dblclick", e => {
-  if (e.target.closest(".schwebe, .klein")) return;
+  if (e.target.closest(".schwebe, .klein, .etikett, [data-kante], [data-ende]")) return;
   const id = e.target.closest("[data-id]")?.dataset.id;
   if (id && id !== "mitte") return bearbeite(id);
   if (ansicht !== "stern") return neuerKnoten({});
@@ -1009,8 +1128,10 @@ document.addEventListener("keydown", e => {
   if (e.key === "Tab") { e.preventDefault(); naechsterSchritt(sel); }
   else if (e.key === "Enter" && sel) { e.preventDefault(); bearbeite(sel); }
   else if (e.key === " " && sel && !istHub(sel)) { e.preventDefault(); statusWeiter(sel); }
+  else if ((e.key === "Backspace" || e.key === "Delete") && selKante) { e.preventDefault(); loeseKante(selKante); }
+  else if (e.key === "Enter" && selKante) { e.preventDefault(); waehleKante(selKante, true); }
   else if ((e.key === "Backspace" || e.key === "Delete") && sel) { e.preventDefault(); nachfrage(); }
-  else if (e.key === "Escape") { sel = null; zeigeSeite(); dirty = true; }
+  else if (e.key === "Escape") { sel = null; selKante = null; etikettOffen = false; zeigeSeite(); dirty = true; }
   else if (e.key === "1") zurLage(); else if (e.key === "2") zurKarte(); else if (e.key === "3") detail();
   else if (e.key === "+" || e.key === "=") zoomMitte(1.25); else if (e.key === "-") zoomMitte(.8);
 });
