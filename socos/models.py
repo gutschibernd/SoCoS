@@ -1405,9 +1405,10 @@ class Aufgabe(Basismodell):
     dritte Stelle, an der Projektarbeit steht, und die Tafel wäre keine Tafel
     mehr, sondern eine zweite Projektansicht.
 
-    **`person = None` heißt „Allgemein"** — die Spalte, die niemandem gehört.
-    Ein eigenes Feld „ist_allgemein" daneben wäre ein zweiter Zustand für
-    dieselbe Auskunft, und beide könnten sich widersprechen.
+    **Keine Person heißt „Allgemein"** — das, was niemandem gehört. Ein
+    eigenes Feld „ist_allgemein" daneben wäre ein zweiter Zustand für
+    dieselbe Auskunft, und beide könnten sich widersprechen. Eine Aufgabe kann
+    mehreren gehören; sie steht dann bei jedem davon.
 
     Beschreibung, Anhänge, wer es abgehakt hat: alles bewusst nicht. Wer wann
     was geändert hat, steht ohnehin im Änderungsprotokoll — dafür braucht die
@@ -1428,11 +1429,13 @@ class Aufgabe(Basismodell):
     """
 
     text = models.CharField("Aufgabe", max_length=250)
-    person = models.ForeignKey(
+    # Eine Menge und kein einzelner Verweis (seit 2026-09-28): Manches machen
+    # zwei gemeinsam, und eine Aufgabe, die zweimal abgetippt in zwei Spalten
+    # steht, wird einmal abgehakt und einmal vergessen. Ohne `through` — an
+    # der Zuordnung hängt nichts weiter.
+    personen = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         verbose_name="Für",
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
         related_name="aufgaben",
         help_text="Leer heißt: allgemein, für niemanden bestimmten.",

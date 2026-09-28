@@ -644,27 +644,49 @@ class RueckmeldungSerializer(serializers.ModelSerializer):
 
 class AufgabeSerializer(serializers.ModelSerializer):
     """
-    Die Tafel. `person = null` heißt „Allgemein" — und ist deshalb ein
-    gewöhnlicher, schreibbarer Wert, kein Sonderfall.
+    Die Tafel. Leere `personen` heißen „Allgemein" — ein gewöhnlicher,
+    schreibbarer Wert, kein Sonderfall.
 
-    Anders als beim Melder einer Rückmeldung ist die Person hier **nicht** der
-    Absender: Eine Aufgabe schreibt man dem anderen auf die Tafel, das ist der
-    ganze Zweck. Wer sie angelegt hat, steht im Änderungsprotokoll.
+    Anders als beim Melder einer Rückmeldung sind die Personen hier **nicht**
+    der Absender: Eine Aufgabe schreibt man dem anderen auf die Tafel, das ist
+    der ganze Zweck. Wer sie angelegt hat, steht im Änderungsprotokoll.
 
     `ist_idee` ist ein gewöhnliches schreibbares Feld — „das machen wir" ist
     genau ein PATCH darauf. Keine eigene Aktion `/uebernehmen/` daneben: Sie
     täte dasselbe und wäre ein zweiter Weg zum selben Zustand.
-    """
 
-    person_name = serializers.CharField(source="person.name", read_only=True, default="")
+    Namen und Kürzel liefert die Aufgabe nicht mit: Die Oberfläche hat das
+    Team ohnehin geladen und schlägt dort nach.
+    """
 
     class Meta:
         model = Aufgabe
         fields = [
-            "id", "text", "person", "person_name", "prioritaet", "erledigt",
+            "id", "text", "personen", "prioritaet", "erledigt",
             "frist", "ist_idee", "erstellt_am", "geaendert_am",
         ]
         read_only_fields = ["id", "erstellt_am", "geaendert_am"]
+
+    def update(self, aufgabe, daten):
+        """
+        Wer die Personen geändert hat, schreibt das Protokoll hier selbst.
+
+        **Warum nicht über die Signale in `protokoll.py`:** Die sehen nur die
+        Spalten der Tabelle, und eine Menge ist keine. Ein allgemeines
+        `m2m_changed` wäre der breitere Weg, feuert aber auch beim Einspielen
+        einer Sicherung — ohne ein `raw`, an dem man das erkennen könnte — und
+        schriebe dann für jede Zuordnung einen Eintrag, den niemand gemacht hat.
+        """
+        vorher = sorted(aufgabe.personen.values_list("pk", flat=True))
+        aufgabe = super().update(aufgabe, daten)
+        nachher = sorted(aufgabe.personen.values_list("pk", flat=True))
+        if vorher != nachher:
+            Protokolleintrag.schreiben(
+                aufgabe,
+                Protokolleintrag.Aktion.GEAENDERT,
+                {"personen": {"alt": vorher, "neu": nachher}},
+            )
+        return aufgabe
 
     def validate_text(self, text):
         """

@@ -933,7 +933,7 @@ class AufgabeViewSet(SocosViewSet):
     """
 
     serializer_class = ser.AufgabeSerializer
-    queryset = Aufgabe.objects.select_related("person")
+    queryset = Aufgabe.objects.prefetch_related("personen")
 
     def get_queryset(self):
         menge = super().get_queryset()

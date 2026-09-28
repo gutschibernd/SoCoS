@@ -172,10 +172,10 @@ class TestBusinessPlanLite:
         # die Tafel, in die Spalte „Allgemein".
         abgaben = Aufgabe.objects.filter(text__startswith="Business Plan Lite").order_by("frist")
 
-        assert [(a.frist, a.person_id) for a in abgaben] == [
-            (date(2026, 10, 12), None),
-            (date(2026, 10, 27), None),
-            (date(2026, 11, 19), None),
+        assert [(a.frist, a.personen.exists()) for a in abgaben] == [
+            (date(2026, 10, 12), False),
+            (date(2026, 10, 27), False),
+            (date(2026, 11, 19), False),
         ]
 
 

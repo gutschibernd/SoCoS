@@ -29,7 +29,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   dashboard: { titel: "Dashboard", unter: "Woche, Geld, Fortschritt" },
   projekt: { titel: "Projekt", unter: "Projektphasen, Arbeitspakete, Pensum" },
   zeit: { titel: "Zeit", unter: "Buchungen und Nachträge" },
-  aufgaben: { titel: "Aufgaben", unter: "Was ansteht — allgemein und je Person" },
+  aufgaben: { titel: "Aufgaben", unter: "Was ansteht — nach Fälligkeit" },
   kontakte: { titel: "Kontakte", unter: "Organisationen und Personen" },
   events: { titel: "Events", unter: "Tagungen, Hitlist, wen wir getroffen haben" },
   meetings: { titel: "Meetings", unter: "Vorher planen, mitschreiben, Protokoll" },
@@ -48,10 +48,11 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
    Alles, was kein Eintrag hat, trägt weiter die Zeile seiner Seite. */
 const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   "projekt/bearbeiten": { titel: "Projekt bearbeiten", unter: "Gliedern, umordnen, entfernen" },
-  "aufgaben/ideen": {
-    titel: "Ideenliste",
-    unter: "Was möglich wäre — noch nicht entschieden",
-  },
+  // Der Titel bleibt „Aufgaben": Ideen und Archiv sind Reiter derselben
+  // Seite, und ein Titel, der beim Umschalten springt, sähe nach einer
+  // anderen Seite aus.
+  "aufgaben/ideen": { titel: "Aufgaben", unter: "Ideen — was möglich wäre, noch nicht entschieden" },
+  "aufgaben/archiv": { titel: "Aufgaben", unter: "Archiv — was abgehakt ist" },
   "module/spg": { titel: "SPG Academy", unter: "Lean Model Canvas" },
   "module/spg-businessplan": { titel: "SPG Academy", unter: "Business Plan Lite" },
   "module/spg-vision": { titel: "SPG Academy", unter: "Vision Statement" },

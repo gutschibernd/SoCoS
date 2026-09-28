@@ -1,6 +1,7 @@
 /**
- * Was die Tafel sortiert und in Spalten teilt — und was davon auf die
- * Ideenliste gehört. An einer Stelle, damit es prüfbar ist.
+ * Was die Tafel sortiert, filtert und nach Fälligkeit gruppiert — und was
+ * davon auf die Ideenliste und ins Archiv gehört. An einer Stelle, damit es
+ * prüfbar ist.
  *
  * Sortiert wird hier und nicht am Server: In der Datenbank stünden „gering",
  * „hoch", „mittel" alphabetisch, also genau falsch. Ein `ORDER BY CASE` täte
@@ -28,36 +29,6 @@ export function prioritaetsrang(prioritaet: string): number {
   const i = PRIORITAETEN.findIndex((p) => p.wert === prioritaet);
   return i < 0 ? PRIORITAETEN.length : i;
 }
-
-/**
- * Ein Tipp auf die Priorität dreht sie **nach oben** weiter: mittel → hoch →
- * gering → mittel.
- *
- * Warum nach oben und nicht der Liste nach abwärts: Eine neue Aufgabe steht
- * auf „mittel", und der Griff, den man danach am häufigsten tut, ist „das ist
- * wichtiger". Der wäre abwärts zwei Tipps weit weg.
- *
- * Drei Stufen und kein „nicht eingeschätzt": Ein Rundlauf über vier Werte ist
- * einer zu viel, um ihn im Vorbeigehen zu treffen.
- */
-export function naechstePrioritaet(jetzt: string): Prioritaet {
-  const rang = prioritaetsrang(jetzt) % PRIORITAETEN.length;
-  const naechster = (rang + PRIORITAETEN.length - 1) % PRIORITAETEN.length;
-  return PRIORITAETEN[naechster].wert;
-}
-
-/**
- * Eine Spalte der Tafel. `person: null` ist „Allgemein" — dieselbe Bedeutung
- * wie im Feld selbst, kein zweiter Zustand daneben.
- */
-export type Spalte = {
-  person: number | null;
-  titel: string;
-  initialen: string;
-  farbe: string;
-  offen: Aufgabe[];
-  erledigt: Aufgabe[];
-};
 
 /**
  * Erst nach Priorität, dann nach Frist, dann **das Neueste zuerst**.
@@ -96,77 +67,159 @@ function sortiereErledigte(aufgaben: Aufgabe[]): Aufgabe[] {
 }
 
 /**
- * Die Ideenliste: **eine** Liste, keine Spalten.
- *
- * Eine Idee gehört niemandem — sie ist ja gerade noch nicht verteilt. Eine
- * Spalte je Person hieße, die Entscheidung „wer macht das" schon getroffen zu
- * haben, und genau die steht hier noch aus.
- *
- * Sortiert wird wie auf der Tafel (Priorität, dann das Neueste oben) — es ist
- * dieselbe Liste in einem anderen Zustand, nicht eine zweite Art von Zeile.
- * `erledigt` heißt hier „vom Tisch": Was gemacht wird, wandert als Aufgabe auf
- * die Tafel und ist dann keine Idee mehr.
+ * Wessen Aufgaben gezeigt werden: meine, alle, die allgemeinen oder die einer
+ * bestimmten Person (ihre Kennung).
  */
-export function ideen(aufgaben: Aufgabe[]): { offen: Aufgabe[]; vomTisch: Aufgabe[] } {
-  const eigene = aufgaben.filter((a) => a.ist_idee);
-  return {
-    offen: sortiere(eigene.filter((a) => !a.erledigt)),
-    vomTisch: sortiereErledigte(eigene.filter((a) => a.erledigt)),
-  };
+export type Filter = "ich" | "alle" | "allgemein" | number;
+
+/**
+ * Ob eine Aufgabe unter einem Filter steht. Eine Aufgabe mit zwei Personen
+ * steht bei **beiden** — das ist der Sinn davon, sie zweien zu geben.
+ */
+export function gehoertZu(aufgabe: Aufgabe, filter: Filter, ich: number): boolean {
+  if (filter === "alle") return true;
+  if (filter === "allgemein") return aufgabe.personen.length === 0;
+  return aufgabe.personen.includes(filter === "ich" ? ich : filter);
+}
+
+export type Gruppe = {
+  art: "drueber" | "heute" | "bald" | "spaeter" | "ohne";
+  titel: string;
+  aufgaben: Aufgabe[];
+};
+
+const GRUPPEN: { art: Gruppe["art"]; titel: string }[] = [
+  { art: "drueber", titel: "Überfällig" },
+  { art: "heute", titel: "Heute" },
+  { art: "bald", titel: "Nächste 7 Tage" },
+  { art: "spaeter", titel: "Später" },
+  { art: "ohne", titel: "Ohne Frist" },
+];
+
+function gruppeVon(aufgabe: Aufgabe, heute: Date): Gruppe["art"] {
+  if (!aufgabe.frist) return "ohne";
+  const tage = tageBis(aufgabe.frist, heute);
+  if (tage < 0) return "drueber";
+  if (tage === 0) return "heute";
+  if (tage <= 7) return "bald";
+  return "spaeter";
 }
 
 /**
- * Die Spalten der Tafel: **Allgemein**, dann ich, dann die anderen nach Namen.
+ * Die Tafel: das Offene unter einem Filter, **nach Fälligkeit gruppiert**,
+ * in jeder Gruppe nach `sortiere`.
  *
- * Warum ich an zweiter Stelle und nicht alphabetisch dazwischen: Die eigene
- * Spalte ist die, in die man schreibt, ohne hinzusehen. Sie soll immer am
- * selben Platz stehen — auch für den, dessen Name hinten im Alphabet liegt.
+ * Warum Fälligkeit und nicht Person: Die Frage, mit der man die Seite
+ * aufmacht, ist „was drängt" — und Überfälliges stand in der Spaltentafel
+ * irgendwo in einer fremden Spalte, wo es niemand sah. Wem etwas gehört,
+ * beantwortet der Filter.
  *
- * Eine Spalte bekommt, wer aktiv ist **oder** noch Aufgaben auf der Tafel hat.
- * Ohne den zweiten Teil verschwänden mit einem stillgelegten Konto still auch
- * dessen offene Punkte — und niemand sähe, dass sie je da waren.
+ * Leere Gruppen fallen weg; eine Überschrift „Heute" ohne etwas darunter ist
+ * Rauschen. Die Ideen fallen **hier** heraus und nicht beim Aufrufer: Tafel
+ * und Ideenliste kommen aus derselben Antwort, und ein vergessener Filter an
+ * einer der beiden Stellen wäre nicht zu sehen.
  */
-export function spalten(
+export function tafel(
   aufgaben: Aufgabe[],
-  team: Teammitglied[],
+  filter: Filter,
   ich: number,
-): Spalte[] {
-  /* Die Ideen fallen **hier** heraus und nicht beim Aufrufer: Tafel und
-     Ideenliste kommen aus derselben Antwort, und ein vergessener Filter an
-     einer der beiden Stellen wäre nicht zu sehen — eine Idee sähe auf der
-     Tafel aus wie jede andere Zeile. */
-  const aufDerTafel = aufgaben.filter((a) => !a.ist_idee);
+  heute = new Date(),
+): Gruppe[] {
+  const offen = aufgaben.filter((a) => !a.ist_idee && !a.erledigt && gehoertZu(a, filter, ich));
+  return GRUPPEN.map(({ art, titel }) => ({
+    art,
+    titel,
+    aufgaben: sortiere(offen.filter((a) => gruppeVon(a, heute) === art)),
+  })).filter((g) => g.aufgaben.length > 0);
+}
 
-  const mitAufgaben = new Set(
-    aufDerTafel.map((a) => a.person).filter((p): p is number => p !== null),
+/**
+ * Die Ideenliste: **eine** Liste, ohne Filter.
+ *
+ * Eine Idee gehört niemandem — sie ist ja gerade noch nicht verteilt.
+ * Sortiert wird wie auf der Tafel (Priorität, dann das Neueste oben).
+ * Abgehakte Ideen („vom Tisch") stehen im Archiv, nicht hier.
+ */
+export function ideen(aufgaben: Aufgabe[]): Aufgabe[] {
+  return sortiere(aufgaben.filter((a) => a.ist_idee && !a.erledigt));
+}
+
+/**
+ * Das Archiv: alles Abgehakte — Aufgaben wie Ideen —, zuletzt Abgehaktes
+ * oben, nach Monaten geteilt.
+ *
+ * **Warum ein eigener Reiter und nicht unter der Liste:** Unten auf der Tafel
+ * wuchs das Erledigte mit jeder Woche, und wer nach unten scrollte, um das
+ * Letzte zu finden, fand erst das Erledigte. Auf der Tafel steht nur, was
+ * noch zu tun ist.
+ *
+ * Der Filter gilt hier wie auf der Tafel. Eine Idee gehört niemandem und
+ * steht deshalb unter „Alle" und „Allgemein".
+ *
+ * Der Monat kommt aus `geaendert_am`. Ein eigenes „erledigt am" gibt es nicht;
+ * wer es genau wissen muss, findet es im Änderungsprotokoll.
+ */
+export function archiv(
+  aufgaben: Aufgabe[],
+  filter: Filter,
+  ich: number,
+): { monat: string; titel: string; aufgaben: Aufgabe[] }[] {
+  const erledigt = sortiereErledigte(
+    aufgaben.filter((a) => a.erledigt && gehoertZu(a, filter, ich)),
   );
-  const leute = team.filter((m) => m.is_active || mitAufgaben.has(m.id));
+  const monate: { monat: string; titel: string; aufgaben: Aufgabe[] }[] = [];
+  for (const a of erledigt) {
+    const monat = a.geaendert_am.slice(0, 7);
+    let gruppe = monate.find((m) => m.monat === monat);
+    if (!gruppe) {
+      const [j, m] = monat.split("-").map(Number);
+      const titel = new Date(j, m - 1, 1).toLocaleDateString("de-AT", { month: "long", year: "numeric" });
+      gruppe = { monat, titel, aufgaben: [] };
+      monate.push(gruppe);
+    }
+    gruppe.aufgaben.push(a);
+  }
+  return monate;
+}
 
-  const geordnet = [
-    ...leute.filter((m) => m.id === ich),
-    ...leute
-      .filter((m) => m.id !== ich)
-      .sort((a, b) => a.name.localeCompare(b.name, "de")),
-  ];
-
-  const bauen = (person: number | null, titel: string, initialen: string, farbe: string) => {
-    const eigene = aufDerTafel.filter((a) => a.person === person);
-    return {
-      person,
-      titel,
-      initialen,
-      farbe,
-      offen: sortiere(eigene.filter((a) => !a.erledigt)),
-      erledigt: sortiereErledigte(eigene.filter((a) => a.erledigt)),
-    };
-  };
-
-  /* „Allgemein" bekommt kein Kürzel: Ein Zeichen im Kreis behauptete eine
-     Person, und die Spalte ist gerade die, die keiner ist. */
+/**
+ * Wer im Filter und in der Auswahl „Für" steht: **ich zuerst**, dann die
+ * anderen nach Namen.
+ *
+ * Warum ich vorn und nicht alphabetisch dazwischen: Der eigene Knopf ist der,
+ * den man drückt, ohne hinzusehen. Er soll immer am selben Platz stehen.
+ *
+ * Dabei ist, wer aktiv ist **oder** noch offene Aufgaben hat. Ohne den
+ * zweiten Teil verschwänden mit einem stillgelegten Konto still auch dessen
+ * offene Punkte — und niemand sähe, dass sie je da waren.
+ */
+export function leute(aufgaben: Aufgabe[], team: Teammitglied[], ich: number): Teammitglied[] {
+  const mitAufgaben = new Set(
+    aufgaben.filter((a) => !a.ist_idee && !a.erledigt).flatMap((a) => a.personen),
+  );
+  const dabei = team.filter((m) => m.is_active || mitAufgaben.has(m.id));
   return [
-    bauen(null, "Allgemein", "", ""),
-    ...geordnet.map((m) => bauen(m.id, m.name, m.initialen, m.farbe)),
+    ...dabei.filter((m) => m.id === ich),
+    ...dabei.filter((m) => m.id !== ich).sort((a, b) => a.name.localeCompare(b.name, "de")),
   ];
+}
+
+/**
+ * Die Fristen, die man mit einem Tipp setzt. Gezählt in Tagen ab heute und
+ * nicht als Wochentag („Freitag"): „in 7 Tagen" heißt an jedem Tag dasselbe.
+ */
+export const SCHNELLFRISTEN: { tage: number; text: string }[] = [
+  { tage: 1, text: "Morgen" },
+  { tage: 3, text: "In 3 Tagen" },
+  { tage: 7, text: "In 7 Tagen" },
+  { tage: 14, text: "In 14 Tagen" },
+];
+
+/** Das Datum `"JJJJ-MM-TT"` in `tage` Tagen — in Ortszeit, nicht in UTC. */
+export function datumIn(tage: number, heute = new Date()): string {
+  const d = new Date(heute.getFullYear(), heute.getMonth(), heute.getDate() + tage);
+  const zwei = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${zwei(d.getMonth() + 1)}-${zwei(d.getDate())}`;
 }
 
 /** Ganze Kalendertage von `heute` bis zum Datum `"JJJJ-MM-TT"` — negativ, wenn es vorbei ist. */

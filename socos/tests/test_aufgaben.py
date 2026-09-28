@@ -68,13 +68,14 @@ def test_die_tafel_ist_gemeinsam(client, bearbeiter, admin_nutzer):
     client.force_login(bearbeiter)
     antwort = client.post(
         "/api/aufgaben/",
-        {"text": "Vertrag gegenzeichnen", "person": admin_nutzer.pk},
+        {"text": "Vertrag gegenzeichnen", "personen": [admin_nutzer.pk]},
         content_type="application/json",
     )
     assert antwort.status_code == 201
-    assert antwort.json()["person_name"] == admin_nutzer.name
+    assert antwort.json()["personen"] == [admin_nutzer.pk]
 
-    fremde = Aufgabe.objects.create(person=admin_nutzer, text="Fremder Punkt")
+    fremde = Aufgabe.objects.create(text="Fremder Punkt")
+    fremde.personen.add(admin_nutzer)
     assert (
         client.patch(
             f"/api/aufgaben/{fremde.pk}/",
@@ -88,16 +89,54 @@ def test_die_tafel_ist_gemeinsam(client, bearbeiter, admin_nutzer):
 @pytest.mark.django_db
 def test_ohne_person_ist_allgemein(client, bearbeiter):
     """
-    `person = null` ist die Spalte „Allgemein" und damit ein gewöhnlicher Wert.
-    Ein zweites Feld daneben könnte ihm widersprechen.
+    Keine Person ist „Allgemein" und damit ein gewöhnlicher Wert. Ein zweites
+    Feld daneben könnte ihm widersprechen.
     """
     client.force_login(bearbeiter)
     antwort = client.post(
         "/api/aufgaben/", {"text": "Kaffee bestellen"}, content_type="application/json"
     )
     assert antwort.status_code == 201
-    assert antwort.json()["person"] is None
-    assert antwort.json()["person_name"] == ""
+    assert antwort.json()["personen"] == []
+
+
+@pytest.mark.django_db
+def test_eine_aufgabe_kann_zweien_gehoeren(client, bearbeiter, admin_nutzer):
+    """Manches machen zwei gemeinsam — dann steht es bei beiden, einmal."""
+    client.force_login(bearbeiter)
+    antwort = client.post(
+        "/api/aufgaben/",
+        {"text": "Messestand aufbauen", "personen": [bearbeiter.pk, admin_nutzer.pk]},
+        content_type="application/json",
+    )
+    assert antwort.status_code == 201
+    assert sorted(antwort.json()["personen"]) == sorted([bearbeiter.pk, admin_nutzer.pk])
+
+
+@pytest.mark.django_db
+def test_wer_die_personen_geaendert_hat_steht_im_protokoll(client, bearbeiter, admin_nutzer):
+    """
+    Die Signale sehen nur Spalten, keine Mengen. Ohne den eigenen Eintrag
+    im Serializer wäre „wer hat mir das zugeschoben" nicht zu beantworten.
+    """
+    aufgabe = Aufgabe.objects.create(text="Angebot prüfen")
+    aufgabe.personen.add(bearbeiter)
+
+    client.force_login(bearbeiter)
+    client.patch(
+        f"/api/aufgaben/{aufgabe.pk}/",
+        {"personen": [bearbeiter.pk, admin_nutzer.pk]},
+        content_type="application/json",
+    )
+
+    eintrag = Protokolleintrag.objects.filter(
+        modell="socos.Aufgabe", objekt_id=str(aufgabe.pk), aktion="geaendert"
+    ).latest("pk")
+    assert eintrag.nutzer == bearbeiter
+    assert eintrag.aenderungen["personen"] == {
+        "alt": [bearbeiter.pk],
+        "neu": sorted([bearbeiter.pk, admin_nutzer.pk]),
+    }
 
 
 @pytest.mark.django_db
