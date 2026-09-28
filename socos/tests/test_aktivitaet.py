@@ -153,3 +153,22 @@ def test_langer_objekttext_wird_gekuerzt_und_ohne_sternchen(als, bearbeiter):
     assert "**" not in objekt
     assert len(objekt) == aktivitaet.OBJEKT_HOECHSTENS
     assert objekt.endswith("…")
+
+
+def test_jedes_gesicherte_modell_hat_einen_namen_im_satz():
+    """
+    Ohne Eintrag in `NAMEN` stünde am Dashboard „hat einen neuen Eintrag
+    angelegt" — plausibel und nichtssagend. Genau das wäre der Lagekarte
+    passiert: Sie und diese Kachel sind in zwei Zweigen gleichzeitig
+    entstanden, und keiner der beiden konnte vom anderen wissen.
+
+    Nutzer und Protokoll fehlen mit Absicht (siehe Kopf von aktivitaet.py).
+    """
+    from socos.sicherung import MODELLE_IM_ARCHIV
+
+    fehlend = [
+        m
+        for m in MODELLE_IM_ARCHIV
+        if m.startswith("socos.") and m not in {"socos.Nutzer", "socos.Protokolleintrag"} and m not in aktivitaet.NAMEN
+    ]
+    assert not fehlend, f"Ohne Namen im Satz: {fehlend}"

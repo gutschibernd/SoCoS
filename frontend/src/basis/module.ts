@@ -29,7 +29,13 @@ export type Workshop = {
  */
 export type Themenliste = { weg: string; titel: string; schluessel: "praktikum"; art: Themenart };
 
-export type Teil = Workshop | Themenliste;
+/**
+ * Ein Teil, der eine eigene Seite ohne Felder vom Server ist — die Lagekarte.
+ * Sie hat keine Unterteile und zählt nichts gegen eine feste Zahl.
+ */
+export type Kartenteil = { weg: string; titel: string; schluessel: "lagekarte" };
+
+export type Teil = Workshop | Themenliste | Kartenteil;
 
 export type Modul = {
   /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
@@ -62,6 +68,13 @@ export const MODULE: Modul[] = [
       { weg: "praktikum", titel: "Haupt-Aufgabenstellungen", schluessel: "praktikum", art: "aufgabe" },
       { weg: "praktikum-ideen", titel: "Sonstige Ideen", schluessel: "praktikum", art: "idee" },
     ],
+  },
+  {
+    weg: "lagekarte",
+    titel: "Lagekarte",
+    wozu: "Was in welchem Thema ansteht und worauf gewartet wird",
+    zeichen: "lagekarte",
+    teile: [{ weg: "lagekarte", titel: "Themen, Schritte, Abhängigkeiten", schluessel: "lagekarte" }],
   },
 ];
 

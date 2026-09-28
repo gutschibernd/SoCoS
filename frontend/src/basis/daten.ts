@@ -505,6 +505,49 @@ export const usePraktikumsthemen = () =>
     queryFn: () => hole<Praktikumsthema[]>("/praktikumsthemen/"),
   });
 
+/* --- Lagekarte ------------------------------------------------------------ */
+
+/** Ein Themenfeld der Lagekarte. `farbe` ist einer der acht Thementöne (1–8). */
+export type Lagethema = { id: number; name: string; farbe: number; x: number; y: number };
+
+export type Schrittart = "schritt" | "warten" | "entscheidung" | "termin";
+
+/**
+ * Ein Schritt. Nur zwei Status — ob er wartet oder als Nächstes frei ist,
+ * rechnet `basis/lagekarte.ts` aus den Verbindungen.
+ */
+export type Lageschritt = {
+  id: number;
+  thema: number | null;
+  titel: string;
+  art: Schrittart;
+  status: "offen" | "erledigt";
+  frist: string | null;
+  notiz: string;
+  x: number;
+  y: number;
+};
+
+/** „`nach` hängt an `von`". */
+export type Lageverbindung = { id: number; von: number; nach: number; text: string };
+
+export type Karte = { themen: Lagethema[]; schritte: Lageschritt[]; verbindungen: Lageverbindung[] };
+
+/* Eine Abfrage für die ganze Karte: Die drei Listen gehören zusammen, und ein
+   Pfeil, der vor seinem Schritt ankommt, zeigte ins Leere. */
+export const useLagekarte = () =>
+  useQuery({
+    queryKey: ["lagekarte"],
+    queryFn: async (): Promise<Karte> => {
+      const [themen, schritte, verbindungen] = await Promise.all([
+        hole<Lagethema[]>("/lagethemen/"),
+        hole<Lageschritt[]>("/lageschritte/"),
+        hole<Lageverbindung[]>("/lageverbindungen/"),
+      ]);
+      return { themen, schritte, verbindungen };
+    },
+  });
+
 /* Die Felder ändern sich nur mit einer neuen Version der Anwendung — sie
    werden deshalb nicht bei jedem Fensterwechsel neu geholt. */
 export const useCanvasfelder = (workshop: Workshopschluessel = "canvas") =>
@@ -527,7 +570,7 @@ export function useNeuLaden() {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
       "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben", "vorhaben",
-      "praktikumsthemen",
+      "praktikumsthemen", "lagekarte",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

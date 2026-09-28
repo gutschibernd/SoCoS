@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="de" data-thema="hell">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Module · Lagekarte</title>
+<link rel="stylesheet" href="../../statisch/schriften.css">
+<style>
+/* Entwurf „Module / Lagekarte“ — Werkbank-Palette, Werte gespiegelt aus
+   frontend/src/stil/farben.css. Neu sind nur die acht Thementöne (--f1…--f8
+   als Fläche, --t1…--t8 als Ton); kommt das Modul, wandern sie dorthin.
+
+   Grundsatz der Karte: **Die Fläche sagt, wohin etwas gehört, die Kante, wie
+   es steht.** Zwei Fragen, zwei Kanäle — sonst liest man Grün als „erledigt“,
+   obwohl es nur „Pilotpatient“ heißt. */
+:root {
+  color-scheme: light;
+  --grund:#fafaf7; --flaeche:#fff; --flaeche-leise:#f3f2ec; --rand:#d2ccbc; --rand-stark:#b0aa99;
+  --text:#171a18; --text-leise:#565c58; --text-sehr-leise:#69706b;
+  --marke:#0d4e52; --marke-hell:#e4eeed; --akzent:#a2552c; --akzent-hell:#f8ede5;
+  --kopf-grund:#0b2a2c; --kopf-text:#e4edec; --kopf-text-leise:#94b3b2; --kopf-aktiv:#123a3d; --kopf-kante:#d98c5c; --kopf-rand:#1b4a4d;
+  --gut:#3d6b44; --gut-hell:#e7efe6; --warnung:#963d22; --warnung-hell:#fae8e0;
+  --wartend:#5c4a70; --wartend-hell:#eee9f2; --auf-akzent:#fff;
+  /* Thementöne: Fläche (Text --text darauf ≥ 13:1) und Ton (Weiß darauf ≥ 5,4:1). */
+  --f1:#e6edf6; --t1:#2f5e8c;   /* Blau    */
+  --f2:#f6edd8; --t2:#7f5c10;   /* Ocker   */
+  --f3:#f5e5e9; --t3:#8c3a52;   /* Beere   */
+  --f4:#eaeedb; --t4:#52611c;   /* Oliv    */
+  --f5:#efe8e2; --t5:#6d5444;   /* Ton     */
+  --f6:#e1eef0; --t6:#2b606b;   /* Petrol  */
+  --f7:#eee6f1; --t7:#6b3f78;   /* Pflaume */
+  --f8:#e7e9ee; --t8:#4a5263;   /* Schiefer*/
+  --auf-ton:#fff;
+  --kante:2px; --griff:44px;
+  --schrift:Archivo,"Helvetica Neue",system-ui,-apple-system,sans-serif;
+  --schrift-zahl:"IBM Plex Mono",ui-monospace,monospace;
+}
+[data-thema="dunkel"] {
+  color-scheme: dark;
+  --grund:#14171a; --flaeche:#1c2124; --flaeche-leise:#23292c; --rand:#303739; --rand-stark:#4a5255;
+  --text:#eceeec; --text-leise:#a9b1ae; --text-sehr-leise:#8c9491;
+  --marke:#66b9b6; --marke-hell:#16302f; --akzent:#d98c5c; --akzent-hell:#2c2019;
+  --kopf-grund:#0a2224; --kopf-aktiv:#103134; --kopf-rand:#17474b;
+  --gut:#86b37d; --gut-hell:#1b281c; --warnung:#de8a6c; --warnung-hell:#31201a;
+  --wartend:#ac9bc2; --wartend-hell:#241f2e; --auf-akzent:#1c1410;
+  --f1:#1b2530; --t1:#86acd4;
+  --f2:#2a2416; --t2:#d4af62;
+  --f3:#2e1d23; --t3:#db90a6;
+  --f4:#22271a; --t4:#afc175;
+  --f5:#2a2320; --t5:#c7a58e;
+  --f6:#182629; --t6:#7fb8c4;
+  --f7:#271e2b; --t7:#bd96cb;
+  --f8:#202329; --t8:#a8b0c2;
+  --auf-ton:#14171a;
+}
+
+* { box-sizing:border-box; }
+html, body { height:100%; margin:0; }
+body { font:14px/1.4 var(--schrift); color:var(--text); background:var(--grund); -webkit-font-smoothing:antialiased; overflow:hidden; }
+button, input, textarea, select { font:inherit; color:inherit; }
+.zahl { font-family:var(--schrift-zahl); font-size:.92em; }
+kbd { font:500 11px/1 var(--schrift-zahl); padding:3px 5px; border:1px solid var(--rand); border-radius:2px; background:var(--flaeche); color:var(--text-leise); }
+
+.app { display:grid; grid-template-rows:auto 1fr; height:100vh; height:100dvh; }
+
+/* Leiste — in beiden Themen dunkel, daher nur --kopf-*-Töne */
+.leiste { display:flex; align-items:center; gap:12px; min-height:56px; padding:env(safe-area-inset-top) max(12px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); background:var(--kopf-grund); color:var(--kopf-text); }
+.leiste img { width:22px; height:22px; display:block; }
+.pfad { font-size:13.5px; color:var(--kopf-text-leise); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pfad b { color:var(--kopf-text); font-weight:600; }
+.leiste .rechts { margin-left:auto; display:flex; gap:4px; }
+.lk { min-height:var(--griff); min-width:var(--griff); padding:0 12px; border:1px solid transparent; background:none; color:var(--kopf-text-leise); border-radius:2px; cursor:pointer; font-size:13px; }
+.lk:hover { background:var(--kopf-aktiv); color:var(--kopf-text); }
+
+.werk { display:grid; grid-template-columns:minmax(0,1fr) 344px; min-height:0; }
+
+/* Bühne: unendliche Fläche mit Punktraster, das mitwandert */
+.buehne { position:relative; overflow:hidden; touch-action:none; cursor:grab; background:var(--grund); user-select:none; -webkit-user-select:none; }
+.buehne.zieht { cursor:grabbing; }
+.raster { position:absolute; inset:0; pointer-events:none; background-image:radial-gradient(circle at 1px 1px, var(--rand) 1.1px, transparent 1.4px); }
+.welt { position:absolute; left:0; top:0; transform-origin:0 0; }
+#linien { position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none; }
+
+/* Linien: Dicke bleibt beim Zoomen gleich */
+.l { fill:none; vector-effect:non-scaling-stroke; transition:opacity .25s; }
+.l-stamm { stroke:var(--t); stroke-width:3; opacity:.55; }
+.l-ast { stroke:var(--t); stroke-width:2; opacity:.45; }
+.l-folgt { stroke:var(--text-sehr-leise); stroke-width:1.5; }
+.l-erfuellt { stroke:var(--gut); stroke-width:1.5; }
+.l-kreuz { stroke:var(--akzent); stroke-width:2; stroke-dasharray:7 6; animation:fluss .9s linear infinite; }
+.l-neu { stroke:var(--akzent); stroke-width:2; stroke-dasharray:3 5; }
+.lp-folgt { fill:var(--text-sehr-leise); } .lp-erfuellt { fill:var(--gut); } .lp-kreuz, .lp-neu { fill:var(--akzent); }
+.lt { fill:var(--text-leise); font-family:var(--schrift); font-weight:600; paint-order:stroke; stroke:var(--grund); stroke-linejoin:round; }
+.lt-kreuz { fill:var(--akzent); }
+/* Pfeile sind greifbar: eine breite, unsichtbare Spur darüber fängt den Klick */
+.l-treffer { fill:none; stroke:transparent; stroke-width:16; vector-effect:non-scaling-stroke; pointer-events:stroke; cursor:pointer; }
+.l.gewaehlt { stroke:var(--akzent); stroke-width:3; opacity:1; animation:none; }
+[class^="lp-"].gewaehlt { fill:var(--akzent); }
+.l-ende { fill:var(--flaeche); stroke:var(--akzent); stroke-width:2; vector-effect:non-scaling-stroke; pointer-events:all; cursor:grab; }
+.l-ende:hover { fill:var(--akzent-hell); }
+.etikett { position:absolute; z-index:6; transform:translate(-50%,-50%); display:flex; background:var(--flaeche); border:2px solid var(--akzent); border-radius:2px; }
+.etikett input { width:190px; min-height:40px; padding:0 10px; border:0; background:none; font-size:16px; outline:none; }
+.etikett[hidden] { display:none; }
+.verbindung { display:grid; grid-template-columns:1fr; gap:4px; margin-top:14px; }
+.verbindung .pfeil { font-size:12px; color:var(--text-leise); padding-left:12px; }
+#linien .leise { opacity:.12; }
+@keyframes fluss { to { stroke-dashoffset:-13; } }
+
+/* Bänder der Strang-Ansicht */
+.band { position:absolute; background:var(--f); opacity:.45; border-top:1px solid var(--rand); transition:opacity .35s; pointer-events:none; }
+.band span { position:absolute; left:16px; top:10px; font-size:12px; font-weight:600; color:var(--text-leise); }
+[data-ansicht="stern"] .band, [data-stufe="lage"] .band { opacity:0; }
+
+/* Die Mitte */
+.mitte { position:absolute; transform:translate(-50%,-50%) scale(var(--g,1)); display:flex; align-items:center; gap:10px; padding:0 18px; height:72px; min-width:190px; background:var(--kopf-grund); color:var(--kopf-text); border-radius:2px; border-bottom:3px solid var(--kopf-kante); font-weight:700; font-size:17px; letter-spacing:-.02em; cursor:default; }
+.mitte img { width:28px; height:28px; }
+.mitte small { display:block; font:500 11px/1.2 var(--schrift); color:var(--kopf-text-leise); letter-spacing:0; }
+
+/* Themen-Knoten (Hub): voller Ton, weiße Schrift */
+.hub { position:absolute; width:220px; transform:translate(-50%,-50%) scale(var(--g,1)); padding:10px 12px 11px; background:var(--t); color:var(--auf-ton); border-radius:2px; cursor:pointer; transition:opacity .25s; }
+.hub-kopf { display:flex; align-items:baseline; gap:8px; }
+.hub-name { font-weight:700; font-size:15px; letter-spacing:-.01em; outline:none; min-width:2ch; }
+.hub-zahl { margin-left:auto; font:500 12px var(--schrift-zahl); opacity:.9; }
+.hub-balken { display:flex; gap:3px; margin-top:8px; height:6px; }
+.hub-balken i { flex:1; border:1px solid currentColor; opacity:.55; }
+.hub-balken i[data-s="erledigt"] { background:currentColor; opacity:1; }
+.hub-lage { list-style:none; margin:8px 0 0; padding:0; font-size:12.5px; line-height:1.35; display:none; }
+.hub-lage li { display:flex; gap:7px; align-items:baseline; padding:2px 0; }
+.hub-lage li::before { content:""; flex:0 0 7px; height:7px; border:1.5px solid currentColor; transform:translateY(-1px); }
+.hub-lage li[data-s="wartet"]::before { border-style:dashed; }
+.hub-lage li[data-s="frei"]::before { background:currentColor; }
+.hub-lage li[data-s="kreuz"] { font-weight:600; }
+.hub-lage li[data-s="kreuz"]::before { border-radius:50%; background:currentColor; }
+.hub-lage li.leer { opacity:.8; font-style:italic; }
+.hub-lage li.leer::before { display:none; }
+[data-stufe="lage"] .hub-lage { display:block; }
+.hub.ziel, .mitte.ziel { outline:3px solid var(--akzent); outline-offset:4px; }
+
+/* Schritt-Knoten: Fläche = Thema, Kante = Status */
+.k { position:absolute; width:200px; min-height:48px; transform:translate(-50%,-50%); padding:9px 12px 10px 34px; background:var(--f); border:2px solid var(--rand-stark); border-radius:2px; cursor:pointer; transition:opacity .3s, border-color .2s; }
+/* Zwei Status, sonst nichts. „Wartet“ ist kein Status, sondern folgt:
+   aus offenen Vorgängern (gesperrt) oder aus der Art „Warten“ (von außen). */
+.k[data-art="warten"][data-status="offen"] { border-color:var(--wartend); border-style:dashed; }
+.k.gesperrt[data-status="offen"] { border-style:dashed; }
+.k[data-status="erledigt"] { border-color:var(--gut); }
+.k[data-status="erledigt"] .k-titel { color:var(--text-leise); }
+.k.gesperrt { opacity:.62; }
+.k-titel { display:block; font-weight:600; font-size:14px; line-height:1.3; outline:none; word-break:break-word; }
+.k-titel:empty::before { content:"Gedanke …"; color:var(--text-sehr-leise); font-weight:500; }
+.k-art { display:block; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-leise); margin-bottom:1px; }
+.k-meta { display:block; font-size:12px; color:var(--text-leise); margin-top:3px; }
+.k-meta:empty { display:none; }
+.k-meta .ueber { color:var(--warnung); font-weight:600; }
+.k-notiz { display:none; font-size:12.5px; color:var(--text-leise); margin-top:6px; padding-top:6px; border-top:1px solid var(--rand); }
+[data-stufe="detail"] .k-notiz { display:block; }
+/* Statuspunkt: klicken schaltet weiter */
+.k-punkt { position:absolute; left:4px; top:50%; width:26px; height:26px; margin-top:-13px; padding:0; border:0; background:none; cursor:pointer; }
+.k-punkt::before { content:""; position:absolute; left:7px; top:7px; width:12px; height:12px; border-radius:50%; border:2px solid var(--rand-stark); box-sizing:border-box; }
+.k[data-status="erledigt"] .k-punkt::before { background:var(--gut); border-color:var(--gut); }
+.k[data-status="erledigt"] .k-punkt::after { content:""; position:absolute; left:11px; top:9px; width:3px; height:6px; border:solid var(--flaeche); border-width:0 2px 2px 0; transform:rotate(45deg); }
+/* Als Nächstes frei: ein ruhiger Puls statt eines Schattens */
+.k.frei::after { content:""; position:absolute; inset:-2px; border:2px solid var(--akzent); border-radius:2px; animation:puls 2.6s ease-out infinite; pointer-events:none; }
+@keyframes puls { 0% { opacity:.55; transform:scale(1); } 100% { opacity:0; transform:scale(1.06,1.22); } }
+/* Als Nächstes frei: das Kupfer ist die Handlung */
+.k.frei::before { content:"Als Nächstes"; position:absolute; left:-2px; bottom:100%; margin-bottom:3px; font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--akzent); white-space:nowrap; }
+/* Verbindungsgriff */
+.k-griff { position:absolute; right:-9px; top:50%; width:16px; height:16px; margin-top:-8px; border-radius:50%; background:var(--flaeche); border:2px solid var(--akzent); cursor:crosshair; opacity:0; transition:opacity .15s, transform .15s; }
+.k-griff::after { content:""; position:absolute; inset:-12px; }
+.k:hover .k-griff, .k.gewaehlt .k-griff { opacity:1; }
+.k-griff:hover { transform:scale(1.25); }
+.k.gewaehlt, .hub.gewaehlt { outline:2px solid var(--akzent); outline-offset:4px; }
+.k.ziel { outline:3px dashed var(--akzent); outline-offset:4px; }
+.k.gezogen, .hub.gezogen { pointer-events:none; opacity:.85; }
+.leise { opacity:.18 !important; }
+.k.neu { animation:geboren .5s cubic-bezier(.2,1.4,.4,1); }
+@keyframes geboren { from { transform:translate(-50%,-50%) scale(.5); opacity:0; } }
+[data-stufe="lage"] .k { opacity:0; pointer-events:none; }
+
+/* Schwebende Werkzeugleisten */
+.schwebe { position:absolute; z-index:5; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
+.oben { left:12px; right:12px; top:12px; }
+.unten { left:12px; bottom:12px; }
+.gruppe { display:flex; background:var(--flaeche); border:1px solid var(--rand); border-radius:2px; }
+.gruppe > button { min-height:var(--griff); min-width:var(--griff); padding:0 13px; border:0; border-right:1px solid var(--rand); background:none; cursor:pointer; font-size:13px; font-weight:500; color:var(--text-leise); white-space:nowrap; }
+.gruppe > button:last-child { border-right:0; }
+.gruppe > button:hover { color:var(--text); background:var(--flaeche-leise); }
+.gruppe > button[aria-pressed="true"] { background:var(--akzent-hell); color:var(--akzent); font-weight:600; box-shadow:inset 0 -2px 0 var(--akzent); }
+.fang { flex:1 1 280px; max-width:460px; display:flex; background:var(--flaeche); border:1px solid var(--rand); border-radius:2px; }
+.fang:focus-within { border-color:var(--akzent); }
+.fang span { display:grid; place-items:center; width:40px; color:var(--akzent); font-size:20px; font-weight:500; }
+.fang input { flex:1; min-width:0; min-height:var(--griff); border:0; background:none; font-size:16px; outline:none; padding-right:12px; }
+.fang input::placeholder { color:var(--text-sehr-leise); }
+
+.klein { position:absolute; z-index:5; right:12px; bottom:12px; width:188px; height:124px; background:var(--flaeche); border:1px solid var(--rand); border-radius:2px; cursor:pointer; overflow:hidden; }
+.klein svg { width:100%; height:100%; display:block; }
+.klein .fenster { fill:var(--akzent); fill-opacity:.06; stroke:var(--akzent); stroke-width:1.5; vector-effect:non-scaling-stroke; }
+
+.meldung { position:absolute; z-index:6; left:50%; top:72px; transform:translate(-50%,-8px); padding:10px 14px; background:var(--text); color:var(--grund); border-radius:2px; font-size:13px; opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; }
+.meldung.an { opacity:1; transform:translate(-50%,0); }
+
+/* Seitenspalte: Lage oder Bearbeiten */
+.seite { background:var(--flaeche); border-left:1px solid var(--rand); overflow:auto; min-height:0; }
+.seite-griff { display:none; }
+.seite-inhalt { padding:18px 18px 28px; }
+.seite h2 { margin:0; font-size:18px; font-weight:600; letter-spacing:-.02em; display:flex; align-items:baseline; gap:10px; }
+.seite h2 .zahl { margin-left:auto; font-size:12px; font-weight:500; color:var(--text-sehr-leise); }
+.seite h3 { margin:22px 0 8px; font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--text-leise); display:flex; gap:8px; align-items:center; }
+.seite h3 .zahl { font-weight:500; color:var(--text-sehr-leise); letter-spacing:0; }
+.seite h3::after { content:""; flex:1; height:1px; background:var(--rand); }
+.griffe { margin-top:28px; display:grid; grid-template-columns:auto 1fr; gap:7px 10px; font-size:12px; color:var(--text-sehr-leise); align-items:center; }
+.griffe kbd { justify-self:start; }
+.leer-satz { margin:0; font-size:13px; color:var(--text-sehr-leise); }
+
+.themenzeile { display:grid; grid-template-columns:12px 1fr auto; gap:4px 10px; align-items:center; width:100%; min-height:var(--griff); padding:6px 0; border:0; border-bottom:1px solid var(--rand); background:none; text-align:left; cursor:pointer; }
+.themenzeile:hover .tn { color:var(--akzent); }
+.themenzeile .farbe { width:12px; height:12px; background:var(--t); }
+.themenzeile .tn { font-weight:600; font-size:13.5px; }
+.themenzeile .zahl { color:var(--text-sehr-leise); font-size:12px; }
+.themenzeile .balken { grid-column:2 / 4; display:flex; gap:2px; height:5px; }
+.themenzeile .balken i { flex:1; background:var(--flaeche-leise); border:1px solid var(--rand); }
+.themenzeile .balken i[data-s="erledigt"] { background:var(--gut); border-color:var(--gut); }
+
+.posten { display:block; width:100%; min-height:var(--griff); margin:0 0 6px; padding:7px 10px 8px 12px; text-align:left; background:var(--f); border:0; border-left:4px solid var(--t); border-radius:2px; cursor:pointer; }
+.posten:hover { outline:1px solid var(--t); }
+.posten-titel { display:block; font-weight:600; font-size:13.5px; }
+.posten-unter { display:block; font-size:12px; color:var(--text-leise); margin-top:1px; }
+.posten-unter .ueber { color:var(--warnung); font-weight:600; }
+
+.zurueck { min-height:var(--griff); padding:0 10px 0 0; border:0; background:none; color:var(--text-leise); cursor:pointer; font-size:13px; }
+.zurueck:hover { color:var(--akzent); }
+.feld { margin-top:16px; }
+.feld > label, .feld > .etikett { display:block; font-size:12px; font-weight:600; color:var(--text-leise); margin-bottom:6px; }
+.eingabe { width:100%; min-height:var(--griff); padding:9px 11px; font-size:16px; border:1px solid var(--rand-stark); border-radius:2px; background:var(--flaeche); outline:none; }
+.eingabe:focus { border-color:var(--akzent); }
+textarea.eingabe { resize:vertical; line-height:1.4; }
+.i-titel { font-weight:600; font-size:17px; }
+.seg { display:flex; border:1px solid var(--rand-stark); border-radius:2px; }
+.seg button { flex:1; min-height:var(--griff); border:0; border-right:1px solid var(--rand); background:var(--flaeche); cursor:pointer; font-size:13px; font-weight:500; color:var(--text-leise); padding:0 4px; }
+.seg button:last-child { border-right:0; }
+.seg button[aria-pressed="true"] { color:var(--text); font-weight:600; box-shadow:inset 0 -3px 0 var(--s, var(--akzent)); }
+.seg [data-status="offen"] { --s:var(--rand-stark); } .seg [data-status="erledigt"] { --s:var(--gut); }
+.chips { display:flex; flex-wrap:wrap; gap:6px; }
+.chip { min-height:36px; padding:0 10px; border:1px solid var(--rand); background:var(--f, var(--flaeche)); border-radius:2px; cursor:pointer; font-size:12.5px; font-weight:500; display:inline-flex; align-items:center; gap:6px; }
+.chip::before { content:""; width:8px; height:8px; background:var(--t, var(--rand-stark)); }
+.chip[aria-pressed="true"] { border-color:var(--t, var(--text)); box-shadow:inset 0 0 0 1px var(--t, var(--text)); font-weight:700; }
+.farbwahl { display:flex; gap:6px; flex-wrap:wrap; }
+.farbwahl button { width:var(--griff); height:36px; border:2px solid transparent; background:var(--t); border-radius:2px; cursor:pointer; }
+.farbwahl button[aria-pressed="true"] { border-color:var(--text); outline:2px solid var(--flaeche); outline-offset:-4px; }
+.bezug { list-style:none; margin:0; padding:0; }
+.bezug li { display:flex; align-items:center; gap:8px; min-height:40px; border-bottom:1px solid var(--rand); font-size:13px; }
+.bezug li i { flex:0 0 8px; height:8px; background:var(--t, var(--rand-stark)); }
+.bezug li span { flex:1; }
+.bezug li button { min-width:40px; min-height:40px; border:0; background:none; color:var(--text-sehr-leise); cursor:pointer; font-size:18px; }
+.bezug li button:hover { color:var(--warnung); }
+.bezug select { margin-top:6px; }
+.aktionen { display:flex; gap:8px; margin-top:22px; flex-wrap:wrap; }
+.knopf { min-height:var(--griff); padding:0 14px; border:1px solid var(--rand-stark); background:var(--flaeche); border-radius:2px; cursor:pointer; font-size:13.5px; font-weight:500; display:inline-flex; align-items:center; gap:8px; }
+.knopf.haupt { background:var(--akzent); border-color:var(--akzent); color:var(--auf-akzent); font-weight:600; }
+.knopf.haupt kbd { background:none; border-color:currentColor; color:inherit; opacity:.8; }
+.knopf.still { border-color:transparent; color:var(--text-leise); }
+.knopf.gefahr { color:var(--warnung); border-color:var(--warnung); }
+.nachfrage { margin-top:14px; padding:12px 14px; background:var(--warnung-hell); border-left:3px solid var(--warnung); font-size:13.5px; }
+.nachfrage p { margin:0 0 10px; }
+.nachfrage .aktionen { margin-top:0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .l-kreuz, .k.frei::after, .k.neu { animation:none; }
+}
+
+/* Handy: die Seitenspalte wird zum Blatt von unten */
+@media (max-width: 760px) {
+  .werk { grid-template-columns:1fr; }
+  .seite { position:absolute; z-index:8; left:0; right:0; bottom:0; max-height:74dvh; height:calc(64px + env(safe-area-inset-bottom)); border-left:0; border-top:1px solid var(--rand); transition:height .28s ease; overflow:hidden; display:flex; flex-direction:column; }
+  .seite.offen { height:74dvh; }
+  .seite.offen .seite-inhalt { overflow:auto; }
+  .seite-griff { display:flex; flex:0 0 64px; align-items:center; gap:10px; width:100%; padding:0 18px; border:0; border-bottom:1px solid var(--rand); background:var(--flaeche); cursor:pointer; font-weight:600; font-size:15px; text-align:left; }
+  .seite-griff::before { content:""; position:absolute; left:50%; top:6px; width:36px; height:4px; margin-left:-18px; background:var(--rand-stark); border-radius:2px; }
+  .seite-griff .zahl { margin-left:auto; font-weight:500; font-size:12px; color:var(--text-leise); }
+  .seite-inhalt { flex:1; min-height:0; padding-bottom:calc(28px + env(safe-area-inset-bottom)); }
+  .unten { bottom:calc(76px + env(safe-area-inset-bottom)); }
+  .klein, .griffe, .nur-gross { display:none; }
+  .fang { flex-basis:100%; max-width:none; order:-1; }
+  .oben { left:max(12px, env(safe-area-inset-left)); right:max(12px, env(safe-area-inset-right)); }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app" data-ansicht="stern" data-stufe="lage">
+  <header class="leiste">
+    <img src="../../statisch/favicon.svg" alt="">
+    <div class="pfad">Module · <b>Lagekarte</b></div>
+    <div class="rechts">
+      <button class="lk" id="thema-knopf" title="Hell oder dunkel">Dunkel</button>
+      <button class="lk nur-gross" id="zuruecksetzen" title="Beispieldaten neu laden">Beispiel neu</button>
+    </div>
+  </header>
+
+  <div class="werk">
+    <main class="buehne" id="buehne">
+      <div class="raster" id="raster"></div>
+      <div class="welt" id="welt">
+        <div id="baender"></div>
+        <svg id="linien"></svg>
+        <div id="knoten"></div>
+      </div>
+
+      <div class="schwebe oben">
+        <div class="gruppe" role="group" aria-label="Ansicht">
+          <button data-ansicht="stern" aria-pressed="true">Sternkarte</button>
+          <button data-ansicht="straenge" aria-pressed="false">Stränge</button>
+        </div>
+        <label class="fang"><span aria-hidden="true">+</span><input id="fang" placeholder="Gedanke festhalten — „Gründung: Notar anrufen“ ⏎" autocomplete="off"></label>
+        <div class="gruppe nur-gross"><button id="neues-thema">+ Thema</button></div>
+      </div>
+
+      <div class="schwebe unten">
+        <div class="gruppe" role="group" aria-label="Tiefe">
+          <button data-stufe="lage" aria-pressed="true" title="Nur die Themen (1)">Lage</button>
+          <button data-stufe="karte" aria-pressed="false" title="Schritte und Abhängigkeiten (2)">Karte</button>
+          <button data-stufe="detail" aria-pressed="false" title="Mit Notizen (3)">Details</button>
+        </div>
+        <div class="gruppe">
+          <button id="weg" aria-label="Verkleinern">−</button>
+          <button id="hin" aria-label="Vergrößern">+</button>
+        </div>
+      </div>
+
+      <div class="klein" id="klein" aria-label="Übersicht"></div>
+      <div class="etikett" id="etikett" hidden><input id="etikett-feld" placeholder="Beschriftung …" maxlength="40" aria-label="Beschriftung des Pfeils"></div>
+      <div class="meldung" id="meldung" role="status"></div>
+    </main>
+
+    <aside class="seite" id="seite">
+      <button class="seite-griff" id="seite-griff"></button>
+      <div class="seite-inhalt" id="seite-inhalt"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const app = $("#app"), buehne = $("#buehne"), welt = $("#welt"), linien = $("#linien"),
+  schicht = $("#knoten"), baender = $("#baender"), raster = $("#raster"),
+  seite = $("#seite"), inhalt = $("#seite-inhalt"), klein = $("#klein");
+const RASTER = 12, aufRaster = v => Math.round(v / RASTER) * RASTER;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const HEUTE = new Date(); HEUTE.setHours(0, 0, 0, 0);
+const STATUS = [["offen", "Offen"], ["erledigt", "Erledigt"]];
+const SCHLUESSEL = "lagekarte-entwurf-3";
+
+/* ---------------------------------------------------------------- Daten */
+
+function beispiel() {
+  return {
+    themen: [
+      { id: "gr", name: "Gründung", farbe: 1, x: -420, y: -160 },
+      { id: "pr", name: "Praktikantinnen", farbe: 2, x: -300, y: -470 },
+      { id: "an", name: "Pilotpatient Andy", farbe: 3, x: 440, y: -200 },
+      { id: "bu", name: "Wohnung & Büro", farbe: 4, x: -420, y: 250 },
+      { id: "av", name: "AVS Pilottest", farbe: 6, x: 440, y: 230 },
+    ],
+    knoten: [
+      { id: "gv", thema: "gr", titel: "Gesellschaftervertrag", status: "offen", x: -700, y: -300 },
+      { id: "ko", thema: "gr", titel: "Konto eröffnen", status: "offen", notiz: "Mit dem Gesellschaftervertrag zur Bank.", x: -950, y: -300 },
+      { id: "tb", thema: "gr", titel: "Termin Bank finden", status: "offen", x: -1200, y: -300 },
+      { id: "ub", thema: "gr", titel: "Unterzeichnung Bank", status: "offen", x: -1450, y: -300 },
+      { id: "sy", thema: "gr", titel: "Syndikatsvertrag", status: "offen", notiz: "Läuft parallel, hängt an nichts.", x: -720, y: -120 },
+      { id: "kf", thema: "pr", titel: "Kandidatinnen finden", status: "offen", x: -600, y: -620 },
+      { id: "tf", thema: "pr", titel: "Themen finden", status: "offen", x: -850, y: -620 },
+      { id: "ffg", thema: "pr", titel: "Bewerbung FFG", status: "offen", x: -1450, y: -620 },
+      { id: "ffr", thema: "pr", titel: "Rückmeldung FFG", art: "warten", status: "offen", x: -1700, y: -620 },
+      { id: "za", thema: "an", titel: "Z-Achse geliefert", art: "warten", status: "offen", notiz: "Lieferung ausständig.", x: 720, y: -300 },
+      { id: "zb", thema: "an", titel: "Zusammenbau", status: "offen", x: 970, y: -300 },
+      { id: "te", thema: "an", titel: "Testing", status: "offen", x: 1220, y: -300 },
+      { id: "al", thema: "an", titel: "Auslieferung & Beobachtung", status: "offen", x: 1470, y: -300 },
+      { id: "gz", thema: "bu", titel: "Graz anmieten", status: "offen", frist: "2027-01-31", x: -700, y: 150 },
+      { id: "vi", thema: "bu", titel: "In Villach bleiben", status: "offen", frist: "2027-01-31", x: -700, y: 350 },
+      { id: "spg", thema: "bu", titel: "SPG-Entscheidung", art: "entscheidung", status: "offen", notiz: "Zusage → Büro im SPG, Absage → eigene Flächen.", x: -960, y: 250 },
+      { id: "bs", thema: "bu", titel: "Büro im SPG", status: "offen", x: -1220, y: 150 },
+      { id: "eb", thema: "bu", titel: "Eigene Büroflächen suchen", status: "offen", x: -1220, y: 350 },
+      { id: "avs", thema: "av", titel: "Unterlagen ausarbeiten", status: "offen", frist: "2026-11-03", x: 720, y: 230 },
+      { id: "avt", thema: "av", titel: "Termin AVS", art: "termin", status: "offen", frist: "2026-11-03", x: 970, y: 230 },
+    ],
+    kanten: [
+      { von: "gv", nach: "ko" }, { von: "ko", nach: "tb" }, { von: "tb", nach: "ub" },
+      { von: "kf", nach: "tf" }, { von: "tf", nach: "ffg" }, { von: "ub", nach: "ffg", text: "Gründung fertig" }, { von: "ffg", nach: "ffr" },
+      { von: "za", nach: "zb", text: "wenn geliefert" }, { von: "zb", nach: "te" }, { von: "te", nach: "al" },
+      { von: "gz", nach: "spg" }, { von: "vi", nach: "spg" },
+      { von: "spg", nach: "bs", text: "Zusage" }, { von: "spg", nach: "eb", text: "Absage" },
+      { von: "avs", nach: "avt" },
+    ],
+  };
+}
+function lade() { try { const t = localStorage.getItem(SCHLUESSEL); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
+function sichere() { try { localStorage.setItem(SCHLUESSEL, JSON.stringify(D)); } catch (e) { /* ohne Speicher geht's auch */ } }
+let D = lade() || beispiel();
+// Ältere Stände kannten „läuft“ und „wartet“ — beides ist jetzt offen.
+D.knoten.forEach(n => { if (n.status !== "erledigt") n.status = "offen"; });
+
+const K = id => D.knoten.find(n => n.id === id);
+const T = id => D.themen.find(t => t.id === id);
+const istHub = id => id.startsWith("t:");
+const hubVon = n => n.thema ? "t:" + n.thema : "mitte";
+const vor = id => D.kanten.filter(k => k.nach === id).map(k => k.von);
+const nach = id => D.kanten.filter(k => k.von === id).map(k => k.nach);
+const neueId = () => Math.random().toString(36).slice(2, 8);
+
+/* Abgeleitet, nicht gespeichert: gesperrt, frei, wartet auf ein anderes Thema */
+const gesperrt = n => n.status === "offen" && vor(n.id).some(v => K(v).status !== "erledigt");
+const frei = n => n.status === "offen" && n.art !== "warten" && !gesperrt(n);
+const wartetAussen = n => n.status === "offen" && n.art === "warten";
+const kreuzSperre = n => vor(n.id).map(K).filter(v => v.status !== "erledigt" && v.thema !== n.thema);
+
+function tageBis(iso) { const [y, m, d] = iso.split("-").map(Number); return Math.round((new Date(y, m - 1, d) - HEUTE) / 864e5); }
+function fristText(iso) {
+  const [y, m, d] = iso.split("-"); const t = tageBis(iso);
+  const datum = `${d}.${m}.` + (Number(y) !== HEUTE.getFullYear() ? y.slice(2) : "");
+  const rel = t < 0 ? `<span class="ueber">${-t} T drüber</span>` : t === 0 ? "heute" : `in ${t} T`;
+  return `<span class="zahl">${datum}</span> · ${rel}`;
+}
+const nachFrist = (a, b) => (a.frist || "9999").localeCompare(b.frist || "9999");
+
+/* ------------------------------------------------------ Ansicht & Lage */
+
+let ansicht = innerWidth < 760 ? "straenge" : "stern";
+let stufe = "lage", sel = null, schwebt = null, modus = null;
+let selKante = null, etikettOffen = false; // gewählter Pfeil als "von>nach"
+const mitten = {};
+const kanteVon = key => D.kanten.find(k => k.von + ">" + k.nach === key);
+const cam = { x: 0, y: 0, k: .3 }; let camZiel = null;
+const cur = {}, groesse = {}, elById = {};
+let B = { pos: {}, lage: {}, baender: [] };
+let dirty = true;
+
+/* Stränge: Spalte = längster Weg über alle Abhängigkeiten. Dadurch rückt
+   „Bewerbung FFG“ hinter „Unterzeichnung Bank“, und die Lücke im Strang der
+   Praktikantinnen zeigt von selbst, dass dort gewartet wird. */
+function rechneB() {
+  const tiefe = {};
+  const t = id => { if (tiefe[id] != null) return tiefe[id]; tiefe[id] = 0; const v = vor(id); return tiefe[id] = v.length ? Math.max(...v.map(x => t(x) + 1)) : 0; };
+  D.knoten.forEach(n => t(n.id));
+  const spuren = D.themen.map(x => x.id); if (D.knoten.some(n => !n.thema)) spuren.push(null);
+  const SP = 300, ST = 96;
+  const zeilen = spuren.map(s => {
+    const g = {}; D.knoten.filter(n => (n.thema || null) === s).forEach(n => (g[tiefe[n.id]] ||= []).push(n));
+    const m = Math.max(1, ...Object.values(g).map(a => a.length));
+    return { s, g, h: Math.max(150, m * ST + 60) };
+  });
+  const gesamt = zeilen.reduce((a, b) => a + b.h, 0);
+  let y = -gesamt / 2, maxX = 0; const pos = {}, band = [];
+  zeilen.forEach(({ s, g, h }) => {
+    const my = aufRaster(y + h / 2);
+    Object.entries(g).forEach(([d, arr]) => arr.forEach((n, i) => { const x = Number(d) * SP; maxX = Math.max(maxX, x); pos[n.id] = { x, y: my + (i - (arr.length - 1) / 2) * ST }; }));
+    if (s) pos["t:" + s] = { x: -300, y: my };
+    band.push({ s, y, h }); y += h;
+  });
+  pos.mitte = { x: -640, y: 0 };
+  const lage = { mitte: { x: -380, y: 0 } };
+  D.themen.forEach((th, i) => lage["t:" + th.id] = { x: 0, y: (i - (D.themen.length - 1) / 2) * 200 });
+  B = { pos, lage, baender: band.map(b => ({ ...b, x0: -440, x1: maxX + 170 })) };
+}
+
+function alleIds() { return ["mitte", ...D.themen.map(t => "t:" + t.id), ...D.knoten.map(n => n.id)]; }
+function grundPos(id) {
+  if (ansicht === "straenge") return B.pos[id] || { x: 0, y: 0 };
+  if (id === "mitte") return { x: 0, y: 0 };
+  const o = istHub(id) ? T(id.slice(2)) : K(id);
+  return { x: o.x, y: o.y };
+}
+/* In der Lage bleibt das Bild unter k = 0,5 gleich groß: die Themen rücken
+   auseinander und wachsen mit, statt zu Briefmarken zu schrumpfen. */
+let lageM = .5; // Bildmaß der Lage: Bildschirmpunkte je Welteinheit; am Handy kleiner
+const lageF = () => Math.max(1, lageM / cam.k);
+const lageG = () => clamp(1.6 * lageM / cam.k, 1, 4);
+function zielPos(id) {
+  if (stufe !== "lage") return grundPos(id);
+  if (id !== "mitte" && !istHub(id)) return zielPos(hubVon(K(id)));
+  const p = ansicht === "straenge" ? B.lage[id] : grundPos(id), f = lageF();
+  return { x: p.x * f, y: p.y * f };
+}
+function skal(id) {
+  if (id === "mitte" || istHub(id)) return stufe === "lage" ? lageG() : clamp(.8 / cam.k, 1, 1.35);
+  return 1;
+}
+
+/* ------------------------------------------------------------- Aufbau */
+
+const farbStil = th => { const t = th && T(th); return t ? `--f:var(--f${t.farbe});--t:var(--t${t.farbe})` : "--f:var(--flaeche);--t:var(--text-sehr-leise)"; };
+
+function hubHtml(t) {
+  const ns = D.knoten.filter(n => n.thema === t.id);
+  const fertig = ns.filter(n => n.status === "erledigt").length;
+  const zeilen = [
+    ...ns.filter(wartetAussen).map(n => `<li data-s="wartet">wartet: ${esc(n.titel)}</li>`),
+    ...ns.filter(frei).slice(0, 2).map(n => `<li data-s="frei">${esc(n.titel)}</li>`),
+  ];
+  const auf = [...new Set(ns.filter(n => n.status === "offen").flatMap(kreuzSperre).map(v => v.thema))];
+  auf.forEach(a => zeilen.push(`<li data-s="kreuz">wartet auf ${esc(T(a)?.name)}</li>`));
+  if (!zeilen.length) zeilen.push(`<li class="leer">${!ns.length ? "noch leer" : ns.every(n => n.status === "erledigt") ? "alles erledigt" : "nichts frei"}</li>`);
+  return `<div class="hub-kopf"><span class="hub-name">${esc(t.name)}</span><span class="hub-zahl">${fertig}/${ns.length}</span></div>
+    <div class="hub-balken">${ns.map(n => `<i data-s="${n.status}"></i>`).join("")}</div>
+    <ul class="hub-lage">${zeilen.slice(0, 4).join("")}</ul>`;
+}
+function knotenHtml(n) {
+  const meta = [];
+  if (n.frist) meta.push(fristText(n.frist));
+  const ks = n.status === "offen" ? kreuzSperre(n) : [];
+  if (ks.length) meta.push(`hängt an <b>${esc(T(ks[0].thema)?.name || "")}</b>`);
+  const art = { entscheidung: "Entscheidung", termin: "Termin", warten: "Warten auf" }[n.art] || "";
+  return `<button class="k-punkt" aria-label="Erledigt umschalten" title="${n.status === "erledigt" ? "Erledigt — klicken macht wieder offen" : "Offen — klicken hakt ab"}"></button>
+    ${art ? `<span class="k-art">${art}</span>` : ""}<span class="k-titel">${esc(n.titel)}</span>
+    <span class="k-meta">${meta.join(" · ")}</span>${n.notiz ? `<span class="k-notiz">${esc(n.notiz)}</span>` : ""}
+    <span class="k-griff" title="Ziehen, um zu verbinden"></span>`;
+}
+function baue() {
+  schicht.innerHTML = ""; for (const k in elById) delete elById[k];
+  const neu = (id, cls, html, stil) => { const e = document.createElement("div"); e.className = cls; e.dataset.id = id; if (stil) e.setAttribute("style", stil); e.innerHTML = html; schicht.append(e); elById[id] = e; return e; };
+  const lose = D.knoten.filter(n => !n.thema).length;
+  neu("mitte", "mitte", `<img src="../../statisch/favicon.svg" alt=""><span>Sopharmis${lose ? `<small>${lose} lose ${lose === 1 ? "Gedanke" : "Gedanken"}</small>` : ""}</span>`);
+  D.themen.forEach(t => neu("t:" + t.id, "hub", hubHtml(t), farbStil(t.id)));
+  D.knoten.forEach(n => {
+    const e = neu(n.id, "k", knotenHtml(n), farbStil(n.thema));
+    e.dataset.status = n.status; if (n.art) e.dataset.art = n.art;
+    if (gesperrt(n)) e.classList.add("gesperrt");
+    if (frei(n)) e.classList.add("frei");
+  });
+  baender.innerHTML = B.baender.map(b => `<div class="band" style="left:${b.x0}px;top:${b.y}px;width:${b.x1 - b.x0}px;height:${b.h}px;${farbStil(b.s)}">${b.s ? "" : "<span>Ohne Thema</span>"}</div>`).join("");
+  alleIds().forEach(id => { if (!cur[id]) cur[id] = { ...zielPos(id) }; });
+  messen(); dirty = true;
+}
+function messen() { for (const id in elById) groesse[id] = { w: elById[id].offsetWidth, h: elById[id].offsetHeight }; }
+function aktualisiere(ohneSeite) { rechneB(); baue(); if (!ohneSeite) zeigeSeite(); sichere(); }
+
+/* ----------------------------------------------------------- Zeichnen */
+
+function randPunkt(id, ux, uy) {
+  const c = cur[id], g = groesse[id] || { w: 10, h: 10 }, s = skal(id);
+  const hw = g.w * s / 2 + 5, hh = g.h * s / 2 + 5;
+  const t = Math.min(ux ? hw / Math.abs(ux) : 1e9, uy ? hh / Math.abs(uy) : 1e9);
+  return { x: c.x + ux * t, y: c.y + uy * t };
+}
+function linienListe() {
+  const L = D.themen.map(t => ({ a: "mitte", b: "t:" + t.id, art: "stamm", t: t.farbe }));
+  if (stufe === "lage") {
+    const paare = new Map();
+    D.kanten.forEach(k => { const a = K(k.von), b = K(k.nach);
+      if (a.thema && b.thema && a.thema !== b.thema && a.status !== "erledigt") paare.set(a.thema + ">" + b.thema, { a: "t:" + a.thema, b: "t:" + b.thema, art: "kreuz", pfeil: true, text: "hält auf" }); });
+    return L.concat([...paare.values()]);
+  }
+  D.knoten.forEach(n => { if (!vor(n.id).some(v => K(v).thema === n.thema)) L.push({ a: hubVon(n), b: n.id, art: "ast", t: n.thema ? T(n.thema).farbe : 0 }); });
+  D.kanten.forEach(k => { const a = K(k.von), b = K(k.nach);
+    L.push({ a: k.von, b: k.nach, key: k.von + ">" + k.nach, art: a.status === "erledigt" ? "erfuellt" : a.thema !== b.thema ? "kreuz" : "folgt", text: k.text, pfeil: true }); });
+  return L;
+}
+/* Rechtwinklig wie ein Schaltplan: hinaus und hinein immer senkrecht zur
+   Kachelkante, geführt auf dem Raster. Gerechnet wird für alle Pfeile auf
+   einmal, denn ein Pfeil allein weiß nicht, wer sonst an derselben Seite
+   hängt oder dieselbe Spur nimmt — und genau dort überlappen sie sonst.
+
+   Zwei Stufen: Solange sich etwas bewegt (Anflug, Ziehen, Zoomen), gilt die
+   schnelle Führung über eine Mittelspur. Ruht die Karte, sucht ein Wegsucher
+   auf dem Raster einen Weg um alle Kacheln herum, der keine belegte Spur
+   entlangläuft — kreuzen ja, übereinander nie. */
+const RICHTUNG = [[1, 0], [-1, 0], [0, 1], [0, -1]]; // rechts, links, unten, oben
+const NORMALE = { r: 0, l: 1, u: 2, o: 3 };
+const achse = d => (d < 2 ? 1 : 2); // 1 = waagrecht, 2 = senkrecht
+let routenKey = "", routenFein = null;
+
+function andocken(liste, amRaster) {
+  const ab = 4, seiten = new Map();
+  for (const L of liste) {
+    L.pts = null; L.r = null;
+    const A = cur[L.a], Z = cur[L.b], gA = groesse[L.a], gZ = groesse[L.b];
+    if (!A || !Z || !gA || !gZ) continue;
+    const aw = gA.w * skal(L.a) / 2, ah = gA.h * skal(L.a) / 2, zw = gZ.w * skal(L.b) / 2, zh = gZ.h * skal(L.b) / 2;
+    const dx = Z.x - A.x, dy = Z.y - A.y;
+    const lueckeX = Math.abs(dx) - aw - zw, lueckeY = Math.abs(dy) - ah - zh;
+    if (lueckeX < 16 && lueckeY < 16) continue; // liegen (noch) aufeinander, etwa beim Einklappen
+    // Die Richtung mit mehr Platz entscheidet, an welcher Seite der Pfeil ansetzt.
+    const h = lueckeX >= lueckeY;
+    L.r = { h, A, Z, aw, ah, zw, zh };
+    L.sa = h ? (dx > 0 ? "r" : "l") : (dy > 0 ? "u" : "o");
+    L.sz = h ? (dx > 0 ? "l" : "r") : (dy > 0 ? "o" : "u");
+    const seite = (id, sd, ende, gegen) => { const k = id + "|" + sd; if (!seiten.has(k)) seiten.set(k, []); seiten.get(k).push({ L, ende, s: sd, gegen }); };
+    seite(L.a, L.sa, "a", h ? Z.y : Z.x);
+    seite(L.b, L.sz, "z", h ? A.y : A.x);
+  }
+  // Andockpunkte: über die Seite verteilt, sortiert nach der Lage des anderen
+  // Endes — so kreuzen sich die Pfeile an der Kachel nicht. Für den Wegsucher
+  // liegen sie auf Rasterlinien, sonst begänne jeder Weg mit einem Versatz.
+  if (amRaster) ueberlauf(seiten);
+  for (const arr of seiten.values()) {
+    arr.sort((p, q) => p.gegen - q.gegen);
+    const n = arr.length;
+    arr.forEach((p, i) => {
+      const r = p.L.r, istA = p.ende === "a", c = istA ? r.A : r.Z, w = istA ? r.aw : r.zw, hh = istA ? r.ah : r.zh;
+      const quer = p.s === "l" || p.s === "r", mitte = quer ? c.y : c.x, halb = quer ? hh : w;
+      let off = mitte - halb + 6 + (2 * halb - 12) * (i + 1) / (n + 1);
+      if (amRaster) {
+        const j0 = Math.ceil((mitte - halb + 5) / RASTER), j1 = Math.floor((mitte + halb - 5) / RASTER), m = j1 - j0 + 1;
+        if (m >= n) off = (j0 + Math.floor((i + .5) * m / n)) * RASTER;
+      }
+      const q = p.s === "r" ? { x: c.x + w + ab, y: off } : p.s === "l" ? { x: c.x - w - ab, y: off }
+        : p.s === "u" ? { x: off, y: c.y + hh + ab } : { x: off, y: c.y - hh - ab };
+      if (istA) p.L.p1 = q; else p.L.p2 = q;
+    });
+  }
+}
+
+/* Hat eine Seite mehr Pfeile als Rasterlinien, müssten sich zwei eine Spur
+   teilen. Dann weichen die äußersten auf die Nachbarseite aus: wer nach oben
+   will, auf die Oberseite, wer nach unten will, auf die Unterseite. */
+function ueberlauf(seiten) {
+  const linien = (p, sd) => {
+    const r = p.L.r, istA = p.ende === "a", c = istA ? r.A : r.Z, w = istA ? r.aw : r.zw, hh = istA ? r.ah : r.zh;
+    const quer = sd === "l" || sd === "r", mitte = quer ? c.y : c.x, halb = quer ? hh : w;
+    return Math.floor((mitte + halb - 5) / RASTER) - Math.ceil((mitte - halb + 5) / RASTER) + 1;
+  };
+  for (const [k, arr] of [...seiten]) {
+    if (!arr.length) continue;
+    const id = k.slice(0, k.lastIndexOf("|")), sd = arr[0].s, quer = sd === "l" || sd === "r";
+    arr.sort((p, q) => p.gegen - q.gegen);
+    let vorn = true;
+    while (arr.length > Math.max(1, linien(arr[0], sd))) {
+      const p = vorn ? arr.shift() : arr.pop();
+      const neu = quer ? (vorn ? "o" : "u") : (vorn ? "l" : "r");
+      const r = p.L.r, anderes = p.ende === "a" ? r.Z : r.A;
+      p.s = neu; p.gegen = quer ? anderes.x : anderes.y;
+      if (p.ende === "a") p.L.sa = neu; else p.L.sz = neu;
+      const k2 = id + "|" + neu; if (!seiten.has(k2)) seiten.set(k2, []); seiten.get(k2).push(p);
+      vorn = !vorn;
+    }
+  }
+}
+
+function grob(liste) {
+  andocken(liste, false);
+  const belegt = [];
+  for (const L of liste) {
+    if (!L.r) continue;
+    const { h } = L.r, p1 = L.p1, p2 = L.p2;
+    const quer = h ? [p1.y, p2.y] : [p1.x, p2.x], laengs = h ? [p1.x, p2.x] : [p1.y, p2.y];
+    if (Math.abs(quer[0] - quer[1]) < .5) { L.pts = [p1, p2]; continue; }
+    const lo = Math.min(...laengs) + 8, hi = Math.max(...laengs) - 8;
+    const von = Math.min(...quer), bis = Math.max(...quer);
+    const c0 = hi > lo ? clamp(aufRaster((laengs[0] + laengs[1]) / 2), lo, hi) : (laengs[0] + laengs[1]) / 2;
+    let c = c0;
+    for (const n of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]) {
+      const v = c0 + n * RASTER; if (hi > lo && (v < lo || v > hi)) continue;
+      if (!belegt.some(s => s.h === h && Math.abs(s.c - v) < RASTER - 1 && s.von < bis + 6 && von < s.bis + 6)) { c = v; break; }
+    }
+    belegt.push({ h, c, von, bis });
+    L.pts = h ? [p1, { x: c, y: p1.y }, { x: c, y: p2.y }, p2] : [p1, { x: p1.x, y: c }, { x: p2.x, y: c }, p2];
+  }
+}
+
+function fein(liste, rechtecke) {
+  andocken(liste, true);
+  const G = RASTER, zk = (i, j) => (i + 32768) * 65536 + (j + 32768);
+  const gesperrt = new Set();
+  for (const r of rechtecke)
+    for (let i = Math.ceil((r.x - r.w - G / 2) / G); i <= Math.floor((r.x + r.w + G / 2) / G); i++)
+      for (let j = Math.ceil((r.y - r.h - G / 2) / G); j <= Math.floor((r.y + r.h + G / 2) / G); j++) gesperrt.add(zk(i, j));
+  const belegt = new Map(); // Zelle → Bits: 1 waagrecht, 2 senkrecht
+  const frei = (k, bits) => !((belegt.get(k) || 0) & bits);
+  // Die Rasterzelle direkt vor dem Andockpunkt, schon außerhalb der Sperrzone.
+  const vorplatz = (q, sd) => sd === "r" ? [Math.floor((q.x + G / 2) / G) + 1, Math.round(q.y / G)]
+    : sd === "l" ? [Math.ceil((q.x - G / 2) / G) - 1, Math.round(q.y / G)]
+    : sd === "u" ? [Math.round(q.x / G), Math.floor((q.y + G / 2) / G) + 1] : [Math.round(q.x / G), Math.ceil((q.y - G / 2) / G) - 1];
+  const reihe = liste.filter(L => L.r).sort((a, b) => (Math.abs(a.p1.x - a.p2.x) + Math.abs(a.p1.y - a.p2.y)) - (Math.abs(b.p1.x - b.p2.x) + Math.abs(b.p1.y - b.p2.y)));
+  for (const L of reihe) {
+    const [si, sj] = vorplatz(L.p1, L.sa), [ei, ej] = vorplatz(L.p2, L.sz);
+    const dS = NORMALE[L.sa], dE = NORMALE[L.sz] ^ 1; // hinein = entgegen der Normalen
+    let weg = null;
+    for (const rand of [10, 40]) { weg = suche(si, sj, dS, ei, ej, dE, rand); if (weg) break; }
+    if (!weg) continue; // bleibt bei der schnellen Führung
+    weg.forEach(([i, j, rein, raus]) => { const k = zk(i, j); belegt.set(k, (belegt.get(k) || 0) | achse(rein) | achse(raus)); });
+    const pts = [L.p1];
+    const erst = { x: si * G, y: sj * G }, letzt = { x: ei * G, y: ej * G };
+    pts.push(L.sa === "l" || L.sa === "r" ? { x: erst.x, y: L.p1.y } : { x: L.p1.x, y: erst.y });
+    weg.forEach(([i, j]) => pts.push({ x: i * G, y: j * G }));
+    pts.push(L.sz === "l" || L.sz === "r" ? { x: letzt.x, y: L.p2.y } : { x: L.p2.x, y: letzt.y });
+    pts.push(L.p2);
+    L.pts = straffe(pts);
+  }
+
+  // A* über (Zelle, Richtung). Ein Knick kostet, damit der Weg ruhig bleibt.
+  function suche(si, sj, dS, ei, ej, dE, rand) {
+    const i0 = Math.min(si, ei) - rand, i1 = Math.max(si, ei) + rand, j0 = Math.min(sj, ej) - rand, j1 = Math.max(sj, ej) + rand;
+    const W = i1 - i0 + 1, H = j1 - j0 + 1, idx = (i, j, d) => ((j - j0) * W + (i - i0)) * 4 + d;
+    const kosten = new Float64Array(W * H * 4).fill(Infinity), von = new Int32Array(W * H * 4).fill(-1);
+    const heap = []; // [f, g, i, j, d]
+    const rein = (e) => { heap.push(e); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p][0] <= heap[k][0]) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; } };
+    const raus = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = 2 * k + 1, r = l + 1; let m = k; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
+    const hdist = (i, j) => Math.abs(i - ei) + Math.abs(j - ej);
+    if (!frei(zk(si, sj), achse(dS))) return null;
+    kosten[idx(si, sj, dS)] = 0; rein([hdist(si, sj), 0, si, sj, dS]);
+    while (heap.length) {
+      const [, g, i, j, d] = raus();
+      if (g > kosten[idx(i, j, d)]) continue;
+      if (i === ei && j === ej) {
+        if (!frei(zk(i, j), achse(d) | achse(dE))) continue;
+        const weg = []; let k = idx(i, j, d), naechst = dE;
+        while (k >= 0) { const d2 = k % 4, c = (k - d2) / 4, ii = c % W + i0, jj = Math.floor(c / W) + j0; weg.unshift([ii, jj, d2, naechst]); naechst = d2; k = von[k]; }
+        return weg;
+      }
+      for (let d2 = 0; d2 < 4; d2++) {
+        if (d2 === (d ^ 1)) continue; // keine Kehrtwende
+        if (!frei(zk(i, j), achse(d) | achse(d2))) continue;
+        const ni = i + RICHTUNG[d2][0], nj = j + RICHTUNG[d2][1];
+        if (ni < i0 || ni > i1 || nj < j0 || nj > j1) continue;
+        const nk = zk(ni, nj);
+        if (gesperrt.has(nk) && !(ni === ei && nj === ej)) continue;
+        if (!frei(nk, achse(d2))) continue;
+        const g2 = g + 1 + (d2 !== d ? 4 : 0), k2 = idx(ni, nj, d2);
+        if (g2 < kosten[k2]) { kosten[k2] = g2; von[k2] = idx(i, j, d); rein([g2 + hdist(ni, nj), g2, ni, nj, d2]); }
+      }
+    }
+    return null;
+  }
+}
+// Doppelte und gerade durchlaufende Punkte weg — übrig bleiben die Knicke.
+function straffe(pts) {
+  const a = pts.filter((q, i) => !i || Math.abs(q.x - pts[i - 1].x) > .01 || Math.abs(q.y - pts[i - 1].y) > .01);
+  return a.filter((q, i) => i === 0 || i === a.length - 1 || !((Math.abs(a[i - 1].x - q.x) < .01 && Math.abs(q.x - a[i + 1].x) < .01) || (Math.abs(a[i - 1].y - q.y) < .01 && Math.abs(q.y - a[i + 1].y) < .01)));
+}
+function rechneRouten(liste) {
+  const rechtecke = [];
+  for (const id of alleIds()) {
+    if (stufe === "lage" && id !== "mitte" && !istHub(id)) continue;
+    const c = cur[id], g = groesse[id]; if (!c || !g) continue;
+    const s = skal(id); rechtecke.push({ id, x: c.x, y: c.y, w: g.w * s / 2, h: g.h * s / 2 });
+  }
+  const key = rechtecke.map(r => `${r.id}${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}`).join(";") + "|" + liste.map(L => L.a + ">" + L.b).join();
+  const ruht = key === routenKey; routenKey = key;
+  if (ruht && routenFein) { for (const L of liste) L.pts = routenFein.get(L.a + ">" + L.b) || null; return; }
+  if (!ruht) { routenFein = null; grob(liste); dirty = true; return; } // nächster Takt prüft, ob es ruht
+  grob(liste); // als Rückfall für Pfeile, für die der Wegsucher nichts findet
+  const rueckfall = new Map(liste.map(L => [L, L.pts]));
+  fein(liste, rechtecke);
+  for (const L of liste) if (!L.pts) L.pts = rueckfall.get(L);
+  routenFein = new Map(liste.map(L => [L.a + ">" + L.b, L.pts]));
+}
+function pfad(L, fokus) {
+  const pts = L.pts; if (!pts) return "";
+  const p1 = pts[0], p2 = pts[pts.length - 1], vorl = pts[pts.length - 2];
+  const tl = Math.hypot(p2.x - vorl.x, p2.y - vorl.y) || 1, tan = { x: (p2.x - vorl.x) / tl, y: (p2.y - vorl.y) / tl };
+  let m1 = pts[0], m2 = pts[1];
+  for (let i = 1; i < pts.length - 1; i++) if (Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y) > Math.hypot(m2.x - m1.x, m2.y - m1.y)) { m1 = pts[i]; m2 = pts[i + 1]; }
+  const mid = { x: (m1.x + m2.x) / 2, y: (m1.y + m2.y) / 2 };
+  const d = "M" + pts.map(q => `${q.x},${q.y}`).join("L");
+  const gew = L.key && L.key === selKante ? " gewaehlt" : "";
+  const leise = !gew && fokus && !(fokus.has(L.a) && fokus.has(L.b)) ? " leise" : "";
+  const stil = L.t != null ? ` style="--t:${L.t ? `var(--t${L.t})` : "var(--text-sehr-leise)"}"` : "";
+  let s = `<path class="l l-${L.art}${leise}${gew}"${stil} d="${d}"/>`;
+  if (L.pfeil) {
+    const a = clamp((gew ? 11 : 9) / cam.k, 6, 34), nx = -tan.y, ny = tan.x, bx = p2.x - tan.x * a, by = p2.y - tan.y * a;
+    s += `<path class="lp-${L.art}${leise}${gew}" d="M${p2.x},${p2.y}L${bx + nx * a * .5},${by + ny * a * .5}L${bx - nx * a * .5},${by - ny * a * .5}Z"/>`;
+  }
+  if (L.key) {
+    mitten[L.key] = mid;
+    s += `<path class="l-treffer" data-kante="${L.key}" d="${d}"/>`;
+    if (gew) { const rr = clamp(7 / cam.k, 5, 24);
+      s += `<circle class="l-ende" data-ende="von" cx="${p1.x}" cy="${p1.y}" r="${rr}"/><circle class="l-ende" data-ende="nach" cx="${p2.x}" cy="${p2.y}" r="${rr}"/>`; }
+  }
+  const fs = clamp(11.5 / cam.k, 11, 40);
+  // Beschriftung nur, wo sie zwischen die Knoten passt — sonst liegt sie auf einem.
+  if (L.text && !(gew && etikettOffen) && (gew || Math.hypot(m2.x - m1.x, m2.y - m1.y) > L.text.length * fs * .62 + 16)) {
+    s += `<text class="lt${L.art === "kreuz" ? " lt-kreuz" : ""}${leise}" x="${mid.x}" y="${mid.y - fs * .5}" font-size="${fs}" stroke-width="${fs * .35}" text-anchor="middle">${esc(L.text)}</text>`;
+  }
+  return s;
+}
+function kette(id) {
+  if (!id || id === "mitte" || stufe === "lage") return null;
+  const s = new Set([id, "mitte"]);
+  if (istHub(id)) { D.knoten.filter(n => "t:" + n.thema === id).forEach(n => s.add(n.id)); return s; }
+  for (const f of [vor, nach]) { const st = [id], ges = new Set(); while (st.length) f(st.pop()).forEach(v => { if (!ges.has(v)) { ges.add(v); s.add(v); st.push(v); } }); }
+  [...s].forEach(x => { const n = K(x); if (n) s.add(hubVon(n)); });
+  return s;
+}
+function zeichne() {
+  welt.style.transform = `translate(${cam.x}px,${cam.y}px) scale(${cam.k})`;
+  let r = 24; while (r * cam.k < 16) r *= 2;
+  raster.style.backgroundSize = `${r * cam.k}px ${r * cam.k}px`;
+  raster.style.backgroundPosition = `${cam.x}px ${cam.y}px`;
+  const kg = selKante && stufe !== "lage" && kanteVon(selKante);
+  const fokus = kg ? new Set([kg.von, kg.nach, "mitte", hubVon(K(kg.von)), hubVon(K(kg.nach))]) : kette(sel || schwebt);
+  for (const id in elById) {
+    const e = elById[id], c = cur[id]; if (!c) continue;
+    e.style.left = c.x + "px"; e.style.top = c.y + "px";
+    if (id === "mitte" || istHub(id)) e.style.setProperty("--g", skal(id));
+    e.classList.toggle("leise", !!fokus && !fokus.has(id));
+    e.classList.toggle("gewaehlt", id === sel);
+  }
+  const liste = linienListe().filter(L => !(modus?.art === "umhaengen" && modus.bewegt && L.key === modus.key));
+  rechneRouten(liste);
+  let svg = liste.map(L => pfad(L, fokus)).join("");
+  if (modus?.art === "umhaengen" && modus.bewegt && modus.px != null) {
+    // Das feste Ende bleibt, das gegriffene folgt dem Zeiger.
+    const k = kanteVon(modus.key), fest = modus.ende === "nach" ? k.von : k.nach, c = cur[fest];
+    const dx = modus.px - c.x, dy = modus.py - c.y, l = Math.hypot(dx, dy) || 1, p = randPunkt(fest, dx / l, dy / l);
+    const [a, b] = modus.ende === "nach" ? [p, { x: modus.px, y: modus.py }] : [{ x: modus.px, y: modus.py }, p];
+    const tx = (b.x - a.x) / (Math.hypot(b.x - a.x, b.y - a.y) || 1), ty = (b.y - a.y) / (Math.hypot(b.x - a.x, b.y - a.y) || 1), s2 = clamp(11 / cam.k, 6, 34);
+    svg += `<path class="l l-neu" d="M${a.x},${a.y}L${b.x},${b.y}"/><path class="lp-neu" d="M${b.x},${b.y}L${b.x - tx * s2 - ty * s2 * .5},${b.y - ty * s2 + tx * s2 * .5}L${b.x - tx * s2 + ty * s2 * .5},${b.y - ty * s2 - tx * s2 * .5}Z"/>`;
+  }
+  if (modus?.art === "verbinden" && modus.px != null) {
+    const c = cur[modus.von], dx = modus.px - c.x, dy = modus.py - c.y, l = Math.hypot(dx, dy) || 1, p = randPunkt(modus.von, dx / l, dy / l);
+    svg += `<path class="l l-neu" d="M${p.x},${p.y}L${modus.px},${modus.py}"/>`;
+  }
+  linien.innerHTML = svg;
+  const et = $("#etikett"), m = selKante && mitten[selKante];
+  const zeigen = etikettOffen && m && kg && stufe !== "lage" && !(modus?.art === "umhaengen" && modus.bewegt);
+  et.hidden = !zeigen;
+  if (zeigen) { // am Pfeil, aber nie halb aus der Bühne hinaus
+    const r = flaeche(), hw = et.offsetWidth / 2 + 8, hh = et.offsetHeight / 2 + 8;
+    et.style.left = clamp(m.x * cam.k + cam.x, hw, r.width - hw) + "px"; et.style.top = clamp(m.y * cam.k + cam.y, hh + 56, r.height - hh) + "px"; }
+  zeichneKlein();
+}
+let kleinMass = null;
+function zeichneKlein() {
+  if (klein.offsetParent === null) return;
+  const ids = alleIds().filter(id => stufe !== "lage" || id === "mitte" || istHub(id));
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  ids.forEach(id => { const c = cur[id], g = groesse[id]; if (!c || !g) return; const s = skal(id);
+    x0 = Math.min(x0, c.x - g.w * s / 2); x1 = Math.max(x1, c.x + g.w * s / 2); y0 = Math.min(y0, c.y - g.h * s / 2); y1 = Math.max(y1, c.y + g.h * s / 2); });
+  const pad = 120; x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
+  const W = klein.clientWidth, H = klein.clientHeight, s = Math.min(W / (x1 - x0), H / (y1 - y0));
+  kleinMass = { x0, y0, s, ox: (W - (x1 - x0) * s) / 2, oy: (H - (y1 - y0) * s) / 2 };
+  const r = buehne.getBoundingClientRect();
+  const vx = -cam.x / cam.k, vy = -cam.y / cam.k, vw = r.width / cam.k, vh = r.height / cam.k;
+  const teile = ids.map(id => { const c = cur[id], g = groesse[id]; if (!c || !g) return ""; const sk = skal(id);
+    const fill = id === "mitte" ? "var(--kopf-grund)" : istHub(id) ? `var(--t${T(id.slice(2)).farbe})` : K(id).thema ? `var(--t${T(K(id).thema).farbe})` : "var(--rand-stark)";
+    return `<rect x="${c.x - g.w * sk / 2}" y="${c.y - g.h * sk / 2}" width="${g.w * sk}" height="${g.h * sk}" fill="${fill}" opacity="${istHub(id) || id === "mitte" ? 1 : .55}"/>`; }).join("");
+  klein.innerHTML = `<svg viewBox="${x0 - kleinMass.ox / s} ${y0 - kleinMass.oy / s} ${W / s} ${H / s}">${teile}<rect class="fenster" x="${vx}" y="${vy}" width="${vw}" height="${vh}"/></svg>`;
+}
+
+/* Ein Takt: Kamera gleitet, Knoten gleiten, gezeichnet wird nur bei Bedarf */
+function takt() {
+  if (camZiel) {
+    const a = .16; cam.x += (camZiel.x - cam.x) * a; cam.y += (camZiel.y - cam.y) * a; cam.k += (camZiel.k - cam.k) * a;
+    if (Math.abs(camZiel.x - cam.x) < .5 && Math.abs(camZiel.y - cam.y) < .5 && Math.abs(camZiel.k - cam.k) < .001) { Object.assign(cam, camZiel); camZiel = null; }
+    dirty = true;
+  }
+  const s = cam.k < .6 ? "lage" : cam.k < 1.15 ? "karte" : "detail";
+  if (s !== stufe) { stufe = s; app.dataset.stufe = s; knoepfe(); messen(); dirty = true; }
+  for (const id of alleIds()) {
+    const z = zielPos(id), c = cur[id] || (cur[id] = { ...z });
+    const dx = z.x - c.x, dy = z.y - c.y;
+    if (Math.abs(dx) > .3 || Math.abs(dy) > .3) { c.x += dx * .17; c.y += dy * .17; dirty = true; } else { c.x = z.x; c.y = z.y; }
+  }
+  if (dirty) { dirty = false; zeichne(); }
+  requestAnimationFrame(takt);
+}
+
+/* ------------------------------------------------------------- Kamera */
+
+function flaeche() { return buehne.getBoundingClientRect(); }
+function zoomUm(sx, sy, f) {
+  const k2 = clamp(cam.k * f, .12, 2.4);
+  cam.x = sx - (sx - cam.x) * (k2 / cam.k); cam.y = sy - (sy - cam.y) * (k2 / cam.k); cam.k = k2; dirty = true;
+}
+function blende(ids, kMin, kMax, pad = 80, sofort) {
+  const r = flaeche(), unten = innerWidth < 760 ? 70 : 0;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  ids.forEach(id => { const p = grundPos(id), g = groesse[id] || { w: 200, h: 60 }; x0 = Math.min(x0, p.x - g.w / 2); x1 = Math.max(x1, p.x + g.w / 2); y0 = Math.min(y0, p.y - g.h / 2); y1 = Math.max(y1, p.y + g.h / 2); });
+  const k = clamp(Math.min((r.width - 2 * pad) / (x1 - x0), (r.height - 2 * pad - unten - 50) / (y1 - y0)), kMin, kMax);
+  const z = { k, x: r.width / 2 - (x0 + x1) / 2 * k, y: (r.height - unten + 50) / 2 - (y0 + y1) / 2 * k };
+  if (sofort) Object.assign(cam, z); else camZiel = z;
+}
+function zurLage(sofort) {
+  const r = flaeche(), unten = innerWidth < 760 ? 70 : 0;
+  const ids = ["mitte", ...D.themen.map(t => "t:" + t.id)];
+  // Unter k = lageM ist das Bild maßstabsfrei (siehe lageF/lageG): Abstände
+  // sind p·lageM, Kacheln w·1,6·lageM. Passt es nicht, wird lageM kleiner.
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  ids.forEach(id => { const p = ansicht === "straenge" ? B.lage[id] : grundPos(id), g = groesse[id] || { w: 220, h: 90 };
+    x0 = Math.min(x0, p.x - g.w * .8); x1 = Math.max(x1, p.x + g.w * .8); y0 = Math.min(y0, p.y - g.h * .8); y1 = Math.max(y1, p.y + g.h * .8); });
+  lageM = clamp(Math.min((r.width - 24) / (x1 - x0), (r.height - unten - 80) / (y1 - y0)), .22, .5);
+  const k = lageM * .9;
+  const z = { k, x: r.width / 2 - (x0 + x1) / 2 * lageM, y: (r.height - unten + 56) / 2 - (y0 + y1) / 2 * lageM };
+  if (sofort) Object.assign(cam, z); else camZiel = z;
+}
+function zurKarte() {
+  if (sel && sel !== "mitte") return fliegeZu(sel, .8);
+  blende(alleIds(), .62, 1, 60);
+}
+function fliegeZu(id, k) {
+  const r = flaeche(), p = grundPos(id), unten = innerWidth < 760 ? 70 : 0;
+  const kk = k ?? Math.max(cam.k, .8);
+  camZiel = { k: kk, x: r.width / 2 - p.x * kk, y: (r.height - unten) / 2 - p.y * kk };
+}
+function themaFokus(hubId) {
+  const th = hubId.slice(2);
+  blende([hubId, ...D.knoten.filter(n => n.thema === th).map(n => n.id)], .62, 1.1, 70);
+  waehle(hubId);
+}
+
+/* --------------------------------------------------------- Handlungen */
+
+function belegt(p, ohne) {
+  const hier = [{ id: "mitte", x: 0, y: 0, w: 220, h: 100 }, ...D.themen.map(t => ({ id: "t:" + t.id, x: t.x, y: t.y, w: 260, h: 120 })), ...D.knoten.map(n => ({ id: n.id, x: n.x, y: n.y, w: 220, h: 90 }))];
+  return hier.some(o => o.id !== ohne && Math.abs(o.x - p.x) < (o.w + 200) / 2 && Math.abs(o.y - p.y) < (o.h + 70) / 2);
+}
+function freiNahe(p, ux, uy, ohne) {
+  const nx = -uy, ny = ux;
+  for (let i = 0; i < 40; i++) {
+    const seitl = [0, 1, -1, 2, -2, 3, -3][i % 7] * 110, weiter = Math.floor(i / 7) * 250;
+    const q = { x: Math.round(p.x + ux * weiter + nx * seitl), y: Math.round(p.y + uy * weiter + ny * seitl) };
+    if (!belegt(q, ohne)) return q;
+  }
+  return { x: p.x, y: p.y + 120 };
+}
+function richtung(von, zu) { const dx = zu.x - von.x, dy = zu.y - von.y, l = Math.hypot(dx, dy); return l < 1 ? { x: 1, y: 0 } : { x: dx / l, y: dy / l }; }
+function hubPosA(th) { return th ? { x: T(th).x, y: T(th).y } : { x: 0, y: 0 }; }
+
+function neuerKnoten({ titel = "", thema = null, nachId = null, bei = null, bearbeiten = true }) {
+  let p, u;
+  if (bei) { p = bei; }
+  else if (nachId) { const a = K(nachId); u = richtung(hubPosA(a.thema), a); p = freiNahe({ x: a.x + u.x * 250, y: a.y + u.y * 250 }, u.x, u.y); }
+  else if (thema) { const h = hubPosA(thema); u = richtung({ x: 0, y: 0 }, h); p = freiNahe({ x: h.x + u.x * 280, y: h.y + u.y * 280 }, u.x, u.y); }
+  else { // lose Gedanken kreisen um die Mitte
+    p = null;
+    for (let r = 250; r < 900 && !p; r += 130) for (let w = 0; w < 360; w += 30) { const q = { x: Math.round(Math.cos((w + 15) * Math.PI / 180) * r * 1.3), y: Math.round(Math.sin((w + 15) * Math.PI / 180) * r) }; if (!belegt(q)) { p = q; break; } }
+    p ||= { x: 0, y: 200 };
+  }
+  const n = { id: neueId(), thema, titel, status: "offen", x: p.x, y: p.y };
+  D.knoten.push(n);
+  if (nachId) D.kanten.push({ von: nachId, nach: n.id });
+  const quelle = nachId ? cur[nachId] : cur[thema ? "t:" + thema : "mitte"];
+  if (quelle) cur[n.id] = { ...quelle };
+  sel = n.id;
+  aktualisiere();
+  elById[n.id]?.classList.add("neu");
+  if (stufe === "lage") fliegeZu(n.id, .85);
+  else { const r = flaeche(), q = grundPos(n.id), sx = q.x * cam.k + cam.x, sy = q.y * cam.k + cam.y; if (sx < 60 || sy < 90 || sx > r.width - 60 || sy > r.height - 90) fliegeZu(n.id); }
+  if (bearbeiten) setTimeout(() => bearbeite(n.id, true), stufe === "lage" ? 450 : 30);
+  return n;
+}
+function naechsterSchritt(id) {
+  if (!id || id === "mitte") return neuerKnoten({});
+  if (istHub(id)) return neuerKnoten({ thema: id.slice(2) });
+  return neuerKnoten({ thema: K(id).thema, nachId: id });
+}
+function neuesThema() {
+  const frei = [1, 2, 3, 4, 5, 6, 7, 8].find(f => !D.themen.some(t => t.farbe === f)) || (D.themen.length % 8) + 1;
+  let p = null;
+  for (let r = 460; r < 1200 && !p; r += 120) for (let w = 90; w < 450; w += 24) { const q = { x: Math.round(Math.cos(w * Math.PI / 180) * r), y: Math.round(Math.sin(w * Math.PI / 180) * r * .7) };
+    if (!D.themen.some(t => Math.abs(t.x - q.x) < 300 && Math.abs(t.y - q.y) < 170) && !belegt(q)) { p = q; break; } }
+  const t = { id: neueId(), name: "", farbe: frei, x: p?.x ?? 0, y: p?.y ?? 480 };
+  D.themen.push(t);
+  cur["t:" + t.id] = { ...cur.mitte };
+  sel = "t:" + t.id;
+  aktualisiere();
+  setTimeout(() => bearbeite("t:" + t.id, true), 60);
+}
+function statusWeiter(id) {
+  const n = K(id);
+  n.status = n.status === "erledigt" ? "offen" : "erledigt";
+  aktualisiere(); melde(`${n.titel || "Gedanke"}: ${n.status === "erledigt" ? "erledigt" : "wieder offen"}`);
+}
+function erreichbar(von, zu) { const st = [von], ges = new Set(); while (st.length) { const x = st.pop(); if (x === zu) return true; nach(x).forEach(y => { if (!ges.has(y)) { ges.add(y); st.push(y); } }); } return false; }
+function waehleKante(key, etikett) {
+  selKante = key; sel = null; etikettOffen = !!etikett; zeigeSeite(); dirty = true;
+  const f = $("#etikett-feld"); f.value = kanteVon(key)?.text || "";
+  if (etikett) requestAnimationFrame(() => requestAnimationFrame(() => { f.focus(); f.select(); }));
+}
+function schliesseEtikett() { etikettOffen = false; $("#etikett-feld").blur(); zeigeSeite(); dirty = true; }
+function setzeKante(k, von, nach) {
+  // Prüfen, als gäbe es den alten Pfeil schon nicht mehr — sonst meldet der Kreistest sich selbst.
+  if (von === nach) return false;
+  if (D.kanten.some(x => x !== k && x.von === von && x.nach === nach)) { melde("Diese Verbindung gibt es schon."); return false; }
+  const alt = [k.von, k.nach]; k.von = "\u0000"; k.nach = "\u0000";
+  const kreis = erreichbar(nach, von); [k.von, k.nach] = alt;
+  if (kreis) { melde("Das ergäbe einen Kreis — dann wartet alles aufeinander."); return false; }
+  k.von = von; k.nach = nach; selKante = von + ">" + nach; aktualisiere(); return true;
+}
+function haengeUm(key, ende, ziel) {
+  const k = kanteVon(key); if (!k) return;
+  const [von, nach] = ende === "nach" ? [k.von, ziel] : [ziel, k.nach];
+  if (setzeKante(k, von, nach)) melde(`„${K(nach).titel}“ hängt jetzt an „${K(von).titel}“`);
+}
+function loeseKante(key) {
+  D.kanten = D.kanten.filter(k => k.von + ">" + k.nach !== key);
+  selKante = null; etikettOffen = false; aktualisiere(); melde("Verbindung gelöst");
+}
+function verbinde(a, b) {
+  if (a === b || D.kanten.some(k => k.von === a && k.nach === b)) return;
+  if (erreichbar(b, a)) return melde("Das ergäbe einen Kreis — dann wartet alles aufeinander.");
+  D.kanten.push({ von: a, nach: b }); aktualisiere();
+  waehleKante(a + ">" + b, true); // gleich beschriften können — leer lassen geht auch
+  melde(`„${K(b).titel}“ hängt jetzt an „${K(a).titel}“`);
+}
+function ordneZu(id, zielId) {
+  const n = K(id), th = zielId === "mitte" ? null : zielId.slice(2);
+  if ((n.thema || null) === th) return sichere();
+  n.thema = th;
+  const h = hubPosA(th), u = th ? richtung({ x: 0, y: 0 }, h) : { x: 0, y: 1 };
+  const p = freiNahe({ x: h.x + u.x * 280, y: h.y + u.y * 280 }, u.x, u.y, id); n.x = p.x; n.y = p.y;
+  aktualisiere(); melde(th ? `Zu „${T(th).name}“ gelegt` : "Wieder lose");
+}
+function entferne(id) {
+  if (istHub(id)) { const th = id.slice(2); D.knoten.forEach(n => { if (n.thema === th) n.thema = null; }); D.themen = D.themen.filter(t => t.id !== th); }
+  else { D.knoten = D.knoten.filter(n => n.id !== id); D.kanten = D.kanten.filter(k => k.von !== id && k.nach !== id); }
+  delete cur[id]; sel = null; aktualisiere();
+}
+
+/* Titel direkt am Knoten bearbeiten */
+function bearbeite(id, neu) {
+  const e = elById[id]; if (!e) return;
+  const t = e.querySelector(".k-titel, .hub-name"); if (!t) return;
+  t.contentEditable = "true"; t.focus();
+  const r = document.createRange(); r.selectNodeContents(t); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  let fertig = false;
+  const ende = ok => {
+    if (fertig) return; fertig = true; t.contentEditable = "false";
+    const text = t.textContent.trim(), o = istHub(id) ? T(id.slice(2)) : K(id);
+    if (!o) return;
+    if (ok && text) { if (istHub(id)) o.name = text; else o.titel = text; aktualisiere(); }
+    else if (neu) entferne(id);
+    else aktualisiere();
+  };
+  t.addEventListener("keydown", ev => { ev.stopPropagation(); if (ev.key === "Enter") { ev.preventDefault(); ende(true); } else if (ev.key === "Escape") ende(false); else if (ev.key === "Tab") { ev.preventDefault(); ende(true); if (!istHub(id) || K(id) || T(id.slice(2))) naechsterSchritt(id); } });
+  t.addEventListener("input", () => { messen(); dirty = true; });
+  t.addEventListener("blur", () => ende(true), { once: true });
+}
+
+function waehle(id) {
+  selKante = null; etikettOffen = false;
+  sel = id === "mitte" ? null : id; dirty = true; zeigeSeite();
+  if (sel && innerWidth < 760) seite.classList.add("offen");
+}
+let meldeUhr;
+function melde(text) { const m = $("#meldung"); m.textContent = text; m.classList.add("an"); clearTimeout(meldeUhr); meldeUhr = setTimeout(() => m.classList.remove("an"), 2200); }
+
+/* ------------------------------------------------------ Seitenspalte */
+
+function posten(n, unter) {
+  return `<button class="posten" data-geh="${n.id}" style="${farbStil(n.thema)}"><span class="posten-titel">${esc(n.titel || "Ohne Titel")}</span><span class="posten-unter">${unter}</span></button>`;
+}
+const themaName = n => n.thema ? esc(T(n.thema).name) : "Ohne Thema";
+function zeigeSeite() {
+  const wartet = D.knoten.filter(wartetAussen);
+  const haengt = D.knoten.filter(n => n.status === "offen" && n.art !== "warten" && kreuzSperre(n).length);
+  const freie = D.knoten.filter(frei).sort(nachFrist);
+  $("#seite-griff").innerHTML = `Lage <span class="zahl">${wartet.length + haengt.length} warten · ${freie.length} frei</span>`;
+  if (selKante && kanteVon(selKante)) return seiteKante(kanteVon(selKante));
+  selKante = null;
+  if (sel && (istHub(sel) ? T(sel.slice(2)) : K(sel))) return istHub(sel) ? seiteThema(T(sel.slice(2))) : seiteKnoten(K(sel));
+  sel = null;
+  const lose = D.knoten.filter(n => !n.thema);
+  const tag = HEUTE.toLocaleDateString("de-AT", { weekday: "short", day: "2-digit", month: "2-digit" });
+  const abschnitt = (titel, liste, leer) => `<h3>${titel} <span class="zahl">${liste.length}</span></h3>${liste.length ? liste.join("") : `<p class="leer-satz">${leer}</p>`}`;
+  inhalt.innerHTML = `<h2>Lage <span class="zahl">${tag}</span></h2>
+    ${D.themen.map(t => { const ns = D.knoten.filter(n => n.thema === t.id);
+      return `<button class="themenzeile" data-thema-fokus="${t.id}" style="${farbStil(t.id)}"><i class="farbe"></i><span class="tn">${esc(t.name || "Neues Thema")}</span><span class="zahl">${ns.filter(n => n.status === "erledigt").length}/${ns.length}</span><span class="balken">${ns.map(n => `<i data-s="${n.status}"></i>`).join("")}</span></button>`; }).join("")}
+    ${abschnitt("Wartet", [
+      ...wartet.map(n => posten(n, `${themaName(n)} · ${esc(n.notiz || "von außen")}`)),
+      ...haengt.map(n => { const v = kreuzSperre(n)[0]; return posten(n, `${themaName(n)} · hängt an ${esc(T(v.thema)?.name || "")}: ${esc(v.titel)}`); }),
+    ], "Nichts wartet gerade. Was von außen kommt, bekommt die Art „Warten“.")}
+    ${abschnitt("Als Nächstes frei", freie.map(n => posten(n, `${themaName(n)}${n.frist ? " · " + fristText(n.frist) : ""}`)), "Alles Offene hängt noch an etwas anderem.")}
+    ${lose.length ? abschnitt("Lose Gedanken", lose.map(n => posten(n, "auf ein Thema ziehen, um es zuzuordnen")), "") : ""}
+    <h3>Griffe</h3>
+    <div class="griffe"><kbd>Doppelklick</kbd><span>neuer Gedanke an dieser Stelle</span><kbd>Tab</kbd><span>nächster Schritt, schon verbunden</span>
+      <kbd>Leertaste</kbd><span>abhaken / wieder öffnen (oder Punkt klicken)</span><kbd>○ ziehen</kbd><span>verbinden: „hängt an“</span>
+      <kbd>Pfeil klicken</kbd><span>beschriften</span><kbd>Pfeil ziehen</kbd><span>am nahen Ende auf eine andere Kachel umhängen</span>
+      <kbd>auf Thema ziehen</kbd><span>zuordnen</span><kbd>1 2 3</kbd><span>Lage · Karte · Details</span></div>`;
+}
+function seiteKante(k) {
+  const a = K(k.von), b = K(k.nach);
+  inhalt.innerHTML = `<button class="zurueck" data-akt="zurueck">‹ Lage</button>
+    <h2>Verbindung</h2>
+    <div class="verbindung">${posten(a, themaName(a))}<span class="pfeil">↓ ${esc(b.titel)} hängt daran</span>${posten(b, themaName(b))}</div>
+    <div class="feld"><label for="k-text">Beschriftung</label><input id="k-text" class="eingabe" data-kfeld="text" maxlength="40" placeholder="z. B. Zusage, wenn geliefert" value="${esc(k.text || "")}"></div>
+    <div class="aktionen"><button class="knopf" data-akt="umdrehen">Umdrehen</button><button class="knopf still" data-akt="loesen">Lösen</button></div>`;
+}
+function seiteKnoten(n) {
+  const bez = (ids, richtungVor) => ids.map(K).map(x => `<li style="${farbStil(x.thema)}"><i></i><span>${esc(x.titel)}</span><button data-weg="${richtungVor ? x.id + ">" + n.id : n.id + ">" + x.id}" aria-label="Verbindung lösen" title="Verbindung lösen">×</button></li>`).join("");
+  const kandidaten = D.knoten.filter(x => x.id !== n.id).sort((a, b) => (a.thema === n.thema ? -1 : 0) - (b.thema === n.thema ? -1 : 0));
+  const auswahl = (akt, text) => `<select class="eingabe" data-akt="${akt}"><option value="">${text}</option>${kandidaten.map(x => `<option value="${x.id}">${esc(x.titel)} — ${themaName(x)}</option>`).join("")}</select>`;
+  inhalt.innerHTML = `<button class="zurueck" data-akt="zurueck">‹ Lage</button>
+    <div class="feld"><textarea class="eingabe i-titel" rows="2" data-feld="titel" aria-label="Titel">${esc(n.titel)}</textarea></div>
+    <div class="feld"><span class="etikett">Status</span><div class="seg">${STATUS.map(([s, t]) => `<button data-status="${s}" aria-pressed="${n.status === s}">${t}</button>`).join("")}</div></div>
+    <div class="feld"><span class="etikett">Thema</span><div class="chips">${D.themen.map(t => `<button class="chip" data-thema-setzen="${t.id}" style="${farbStil(t.id)}" aria-pressed="${n.thema === t.id}">${esc(t.name)}</button>`).join("")}<button class="chip" data-thema-setzen="" aria-pressed="${!n.thema}">lose</button></div></div>
+    <div class="feld"><span class="etikett">Art</span><div class="seg">${[["", "Schritt"], ["warten", "Warten"], ["entscheidung", "Entscheidung"], ["termin", "Termin"]].map(([a, t]) => `<button data-art-setzen="${a}" aria-pressed="${(n.art || "") === a}">${t}</button>`).join("")}</div></div>
+    <div class="feld"><label for="i-frist">Frist</label><input id="i-frist" class="eingabe" type="date" data-feld="frist" value="${n.frist || ""}"></div>
+    <div class="feld"><label for="i-notiz">Notiz</label><textarea id="i-notiz" class="eingabe" rows="3" data-feld="notiz">${esc(n.notiz || "")}</textarea></div>
+    <div class="feld"><span class="etikett">Hängt an</span><ul class="bezug">${bez(vor(n.id), true)}</ul>${auswahl("vor-neu", "+ hängt an …")}</div>
+    <div class="feld"><span class="etikett">Danach</span><ul class="bezug">${bez(nach(n.id), false)}</ul>${auswahl("nach-neu", "+ danach kommt …")}</div>
+    <div class="aktionen"><button class="knopf haupt" data-akt="weiter">Nächster Schritt <kbd>Tab</kbd></button><button class="knopf still" data-akt="loeschen">Löschen …</button></div>
+    <div id="nachfrage"></div>`;
+}
+function seiteThema(t) {
+  const ns = D.knoten.filter(n => n.thema === t.id);
+  inhalt.innerHTML = `<button class="zurueck" data-akt="zurueck">‹ Lage</button>
+    <div class="feld"><textarea class="eingabe i-titel" rows="1" data-feld="name" aria-label="Name des Themas" placeholder="Name des Themas">${esc(t.name)}</textarea></div>
+    <div class="feld"><span class="etikett">Farbe</span><div class="farbwahl">${[1, 2, 3, 4, 5, 6, 7, 8].map(f => `<button data-farbe="${f}" style="--t:var(--t${f})" aria-pressed="${t.farbe === f}" aria-label="Farbe ${f}"></button>`).join("")}</div></div>
+    <h3>Schritte <span class="zahl">${ns.length}</span></h3>
+    ${ns.length ? ns.map(n => posten(n, STATUS.find(s => s[0] === n.status)[1] + (n.frist ? " · " + fristText(n.frist) : ""))).join("") : `<p class="leer-satz">Noch kein Schritt. <kbd>Tab</kbd> legt den ersten an.</p>`}
+    <div class="aktionen"><button class="knopf haupt" data-akt="weiter">Schritt <kbd>Tab</kbd></button><button class="knopf still" data-akt="loeschen">Auflösen …</button></div>
+    <div id="nachfrage"></div>`;
+}
+function nachfrage() {
+  const hub = istHub(sel), o = hub ? T(sel.slice(2)) : K(sel);
+  $("#nachfrage").innerHTML = hub
+    ? `<div class="nachfrage"><p>Thema „${esc(o.name)}“ auflösen? Die Schritte bleiben als lose Gedanken um die Mitte liegen.</p><div class="aktionen"><button class="knopf gefahr" data-akt="weg-ja">Auflösen</button><button class="knopf still" data-akt="weg-nein">Behalten</button></div></div>`
+    : `<div class="nachfrage"><p>„${esc(o.titel)}“ löschen? Milder: als erledigt führen — dann bleibt sichtbar, dass es gemacht wurde.</p><div class="aktionen"><button class="knopf haupt" data-akt="erledigt">Als erledigt führen</button><button class="knopf gefahr" data-akt="weg-ja">Löschen</button></div></div>`;
+}
+
+inhalt.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.geh) { const id = b.dataset.geh; sel = id; zeigeSeite(); fliegeZu(id, Math.max(cam.k, .85)); return; }
+  if (b.dataset.themaFokus) return themaFokus("t:" + b.dataset.themaFokus);
+  if (b.dataset.status) { K(sel).status = b.dataset.status; return aktualisiere(); }
+  if (b.dataset.themaSetzen != null) return ordneZu(sel, b.dataset.themaSetzen ? "t:" + b.dataset.themaSetzen : "mitte");
+  if (b.dataset.artSetzen != null) { K(sel).art = b.dataset.artSetzen || undefined; return aktualisiere(); }
+  if (b.dataset.farbe) { T(sel.slice(2)).farbe = Number(b.dataset.farbe); return aktualisiere(); }
+  if (b.dataset.weg) { const [v, n] = b.dataset.weg.split(">"); D.kanten = D.kanten.filter(k => !(k.von === v && k.nach === n)); return aktualisiere(); }
+  const akt = b.dataset.akt;
+  if (akt === "zurueck") { sel = null; selKante = null; etikettOffen = false; zeigeSeite(); dirty = true; }
+  else if (akt === "umdrehen") { const k = kanteVon(selKante); setzeKante(k, k.nach, k.von); }
+  else if (akt === "loesen") loeseKante(selKante);
+  else if (akt === "weiter") naechsterSchritt(sel);
+  else if (akt === "loeschen") nachfrage();
+  else if (akt === "weg-nein") $("#nachfrage").innerHTML = "";
+  else if (akt === "weg-ja") entferne(sel);
+  else if (akt === "erledigt") { K(sel).status = "erledigt"; aktualisiere(); }
+});
+inhalt.addEventListener("input", e => {
+  if (e.target.dataset.kfeld && selKante) {
+    const k = kanteVon(selKante); k.text = e.target.value.trim() || undefined;
+    $("#etikett-feld").value = e.target.value; sichere(); dirty = true; return;
+  }
+  const f = e.target.dataset.feld; if (!f || !sel) return;
+  const o = istHub(sel) ? T(sel.slice(2)) : K(sel);
+  o[f] = e.target.value || (f === "titel" || f === "name" ? "" : undefined);
+  const aktiv = document.activeElement;
+  aktualisiere(true); // Seitenspalte bleibt stehen, sonst springt der Cursor
+  aktiv?.focus();
+});
+inhalt.addEventListener("change", e => {
+  const a = e.target.dataset.akt; if (!a || !e.target.value) return;
+  if (a === "vor-neu") verbinde(e.target.value, sel); else verbinde(sel, e.target.value);
+  zeigeSeite();
+});
+$("#seite-griff").addEventListener("click", () => seite.classList.toggle("offen"));
+
+const etikettFeld = $("#etikett-feld");
+etikettFeld.addEventListener("input", () => {
+  const k = kanteVon(selKante); if (!k) return;
+  k.text = etikettFeld.value.trim() || undefined; sichere(); dirty = true;
+  const f = $("#k-text"); if (f) f.value = etikettFeld.value;
+});
+etikettFeld.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); schliesseEtikett(); } });
+etikettFeld.addEventListener("blur", () => { if (etikettOffen) { etikettOffen = false; dirty = true; } });
+
+/* ------------------------------------------------------------ Zeiger */
+
+const zeiger = new Map();
+buehne.addEventListener("pointerdown", e => {
+  if (e.target.closest(".schwebe, .klein, .etikett") || e.target.isContentEditable) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  try { buehne.setPointerCapture(e.pointerId); } catch (x) { /* Zeiger schon weg */ }
+  zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (zeiger.size === 2) {
+    const [a, b] = [...zeiger.values()];
+    document.querySelectorAll(".gezogen").forEach(x => x.classList.remove("gezogen"));
+    modus = { art: "pinch", d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; return;
+  }
+  camZiel = null;
+  const id = e.target.closest("[data-id]")?.dataset.id;
+  const ende = e.target.closest("[data-ende]"), treffer = e.target.closest("[data-kante]");
+  if (ende && selKante) { modus = { art: "umhaengen", key: selKante, ende: ende.dataset.ende, x0: e.clientX, y0: e.clientY, bewegt: false }; return; }
+  if (treffer) {
+    // Wer den Pfeil greift, greift das Ende, dem er näher ist.
+    const key = treffer.dataset.kante, [v, n] = key.split(">"), r = flaeche();
+    const wx = (e.clientX - r.left - cam.x) / cam.k, wy = (e.clientY - r.top - cam.y) / cam.k;
+    const naeher = Math.hypot(wx - cur[v].x, wy - cur[v].y) < Math.hypot(wx - cur[n].x, wy - cur[n].y) ? "von" : "nach";
+    modus = { art: "umhaengen", key, ende: naeher, x0: e.clientX, y0: e.clientY, bewegt: false }; return;
+  }
+  if (id && e.target.closest(".k-griff")) { modus = { art: "verbinden", von: id, x0: e.clientX, y0: e.clientY }; return; }
+  if (id && id !== "mitte") {
+    const hub = istHub(id), o = hub ? T(id.slice(2)) : K(id);
+    modus = { art: "knoten", id, x0: e.clientX, y0: e.clientY, bewegt: false, punkt: !!e.target.closest(".k-punkt"),
+      start: { x: o.x, y: o.y, kinder: hub ? D.knoten.filter(n => n.thema === o.id).map(n => [n, n.x, n.y]) : [] } };
+    return;
+  }
+  modus = { art: "pan", x0: e.clientX, y0: e.clientY, cx: cam.x, cy: cam.y, bewegt: false };
+  buehne.classList.add("zieht");
+});
+buehne.addEventListener("pointermove", e => {
+  if (!zeiger.has(e.pointerId)) {
+    const h = e.target.closest?.(".k")?.dataset.id || null;
+    if (h !== schwebt) { schwebt = h; dirty = true; }
+    return;
+  }
+  zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!modus) return;
+  const r = flaeche();
+  if (modus.art === "pinch") {
+    if (zeiger.size < 2) return;
+    const [a, b] = [...zeiger.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    zoomUm(mx - r.left, my - r.top, d / modus.d); cam.x += mx - modus.mx; cam.y += my - modus.my;
+    Object.assign(modus, { d, mx, my }); return;
+  }
+  const dx = e.clientX - modus.x0, dy = e.clientY - modus.y0;
+  if (!modus.bewegt && Math.hypot(dx, dy) > 4) modus.bewegt = true;
+  if (!modus.bewegt) return;
+  if (modus.art === "knoten" && ansicht !== "stern") { // in den Strängen ordnet die Karte selbst — ziehen schwenkt
+    modus = { art: "pan", x0: e.clientX, y0: e.clientY, cx: cam.x, cy: cam.y, bewegt: true }; buehne.classList.add("zieht"); return;
+  }
+  if (modus.art === "pan") { cam.x = modus.cx + dx; cam.y = modus.cy + dy; dirty = true; }
+  else if (modus.art === "knoten") {
+    const wx = dx / cam.k, wy = dy / cam.k, { id, start } = modus, hub = istHub(id), o = hub ? T(id.slice(2)) : K(id);
+    // Einrasten: liegen zwei Kacheln auf derselben Rasterzeile, läuft der Pfeil gerade.
+    const rx = aufRaster(start.x + wx) - start.x, ry = aufRaster(start.y + wy) - start.y;
+    o.x = start.x + rx; o.y = start.y + ry;
+    start.kinder.forEach(([n, x, y]) => { n.x = x + rx; n.y = y + ry; cur[n.id] = zielPos(n.id); });
+    cur[id] = zielPos(id);
+    if (!hub) {
+      elById[id].classList.add("gezogen");
+      const u = document.elementFromPoint(e.clientX, e.clientY)?.closest(".hub, .mitte");
+      document.querySelectorAll(".ziel").forEach(x => x !== u && x.classList.remove("ziel"));
+      u?.classList.add("ziel"); modus.ziel = u?.dataset.id;
+    }
+    dirty = true;
+  } else if (modus.art === "umhaengen") {
+    if (!kanteVon(modus.key)) return;
+    if (selKante !== modus.key) { selKante = modus.key; sel = null; etikettOffen = false; zeigeSeite(); }
+    const k = kanteVon(modus.key), fest = modus.ende === "nach" ? k.von : k.nach;
+    modus.px = (e.clientX - r.left - cam.x) / cam.k; modus.py = (e.clientY - r.top - cam.y) / cam.k;
+    const u = document.elementFromPoint(e.clientX, e.clientY)?.closest(".k");
+    const z = u && u.dataset.id !== fest ? u.dataset.id : null;
+    document.querySelectorAll(".k.ziel").forEach(x => x.dataset.id !== z && x.classList.remove("ziel"));
+    if (z) elById[z].classList.add("ziel");
+    modus.ziel = z; dirty = true;
+  } else if (modus.art === "verbinden") {
+    modus.px = (e.clientX - r.left - cam.x) / cam.k; modus.py = (e.clientY - r.top - cam.y) / cam.k;
+    const u = document.elementFromPoint(e.clientX, e.clientY)?.closest(".k");
+    const z = u && u.dataset.id !== modus.von ? u.dataset.id : null;
+    document.querySelectorAll(".k.ziel").forEach(x => x.dataset.id !== z && x.classList.remove("ziel"));
+    if (z) elById[z].classList.add("ziel");
+    modus.ziel = z; dirty = true;
+  }
+});
+function zeigerEnde(e) {
+  zeiger.delete(e.pointerId); buehne.classList.remove("zieht");
+  const m = modus; if (!m) return; modus = null;
+  document.querySelectorAll(".ziel, .gezogen").forEach(x => x.classList.remove("ziel", "gezogen"));
+  if (m.art === "pan" && !m.bewegt) waehle(null);
+  else if (m.art === "knoten") {
+    if (!m.bewegt) { if (m.punkt) statusWeiter(m.id); else if (istHub(m.id) && stufe === "lage") themaFokus(m.id); else waehle(m.id); }
+    else if (!istHub(m.id) && m.ziel) ordneZu(m.id, m.ziel);
+    else sichere();
+  } else if (m.art === "umhaengen") {
+    if (!m.bewegt) waehleKante(m.key, true);
+    else if (m.ziel && m.ziel !== (m.ende === "nach" ? kanteVon(m.key).nach : kanteVon(m.key).von)) haengeUm(m.key, m.ende, m.ziel);
+  } else if (m.art === "verbinden" && m.ziel) verbinde(m.von, m.ziel);
+  dirty = true;
+}
+buehne.addEventListener("pointerup", zeigerEnde);
+buehne.addEventListener("pointercancel", zeigerEnde);
+buehne.addEventListener("dblclick", e => {
+  if (e.target.closest(".schwebe, .klein, .etikett, [data-kante], [data-ende]")) return;
+  const id = e.target.closest("[data-id]")?.dataset.id;
+  if (id && id !== "mitte") return bearbeite(id);
+  if (ansicht !== "stern") return neuerKnoten({});
+  const r = flaeche(), p = { x: Math.round((e.clientX - r.left - cam.x) / cam.k), y: Math.round((e.clientY - r.top - cam.y) / cam.k) };
+  if (stufe === "lage") return neuerKnoten({});
+  // Das nächste Thema in Reichweite nimmt den Gedanken auf; sonst bleibt er lose.
+  let th = null, best = 700;
+  D.themen.forEach(t => { const d = Math.hypot(t.x - p.x, t.y - p.y); if (d < best) { best = d; th = t.id; } });
+  neuerKnoten({ thema: th, bei: p });
+});
+buehne.addEventListener("wheel", e => {
+  e.preventDefault(); camZiel = null;
+  const r = flaeche();
+  // Mausrad (ganze Rasten, nur senkrecht) zoomt; Trackpad schwenkt, Kneifen zoomt.
+  const rad = e.deltaMode === 1 || (e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 50);
+  if (e.ctrlKey || e.metaKey) zoomUm(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * .01));
+  else if (rad) zoomUm(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * .0016));
+  else { cam.x -= e.deltaX; cam.y -= e.deltaY; dirty = true; }
+}, { passive: false });
+klein.addEventListener("pointerdown", e => {
+  if (!kleinMass) return;
+  const rr = klein.getBoundingClientRect(), m = kleinMass;
+  const wx = (e.clientX - rr.left - m.ox) / m.s + m.x0, wy = (e.clientY - rr.top - m.oy) / m.s + m.y0;
+  const r = flaeche(); camZiel = { k: cam.k, x: r.width / 2 - wx * cam.k, y: r.height / 2 - wy * cam.k };
+});
+
+/* ----------------------------------------------------------- Tastatur */
+
+document.addEventListener("keydown", e => {
+  if (e.target.closest?.("input, textarea, select, [contenteditable='true']")) return;
+  if (e.key === "Tab") { e.preventDefault(); naechsterSchritt(sel); }
+  else if (e.key === "Enter" && sel) { e.preventDefault(); bearbeite(sel); }
+  else if (e.key === " " && sel && !istHub(sel)) { e.preventDefault(); statusWeiter(sel); }
+  else if ((e.key === "Backspace" || e.key === "Delete") && selKante) { e.preventDefault(); loeseKante(selKante); }
+  else if (e.key === "Enter" && selKante) { e.preventDefault(); waehleKante(selKante, true); }
+  else if ((e.key === "Backspace" || e.key === "Delete") && sel) { e.preventDefault(); nachfrage(); }
+  else if (e.key === "Escape") { sel = null; selKante = null; etikettOffen = false; zeigeSeite(); dirty = true; }
+  else if (e.key === "1") zurLage(); else if (e.key === "2") zurKarte(); else if (e.key === "3") detail();
+  else if (e.key === "+" || e.key === "=") zoomMitte(1.25); else if (e.key === "-") zoomMitte(.8);
+});
+function zoomMitte(f) { const r = flaeche(); const z = { ...cam }; const k2 = clamp(cam.k * f, .12, 2.4); camZiel = { k: k2, x: r.width / 2 - (r.width / 2 - z.x) * (k2 / z.k), y: r.height / 2 - (r.height / 2 - z.y) * (k2 / z.k) }; }
+function detail() { if (sel) fliegeZu(sel, 1.3); else zoomMitte(1.3 / cam.k); }
+
+/* ------------------------------------------------------ Werkzeugleiste */
+
+function knoepfe() {
+  document.querySelectorAll("[data-ansicht]").forEach(b => b.getAttribute("aria-pressed") != null && b.setAttribute("aria-pressed", b.dataset.ansicht === ansicht));
+  document.querySelectorAll(".unten [data-stufe]").forEach(b => b.setAttribute("aria-pressed", b.dataset.stufe === stufe));
+}
+document.querySelectorAll("button[data-ansicht]").forEach(b => b.addEventListener("click", () => {
+  if (ansicht === b.dataset.ansicht) return;
+  ansicht = b.dataset.ansicht; app.dataset.ansicht = ansicht; knoepfe();
+  // Die Knoten fliegen von ihrem alten an den neuen Platz; die Kamera folgt.
+  if (stufe === "lage") zurLage(); else if (sel) fliegeZu(sel); else blende(alleIds(), .62, 1, 60);
+  dirty = true;
+}));
+document.querySelectorAll(".unten [data-stufe]").forEach(b => b.addEventListener("click", () => ({ lage: zurLage, karte: zurKarte, detail })[b.dataset.stufe]()));
+$("#weg").onclick = () => zoomMitte(.8); $("#hin").onclick = () => zoomMitte(1.25);
+$("#neues-thema").onclick = neuesThema;
+$("#fang").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  let text = e.target.value.trim(); if (!text) return;
+  let th = null;
+  const m = text.match(/^([^:]{2,40}):\s*(.+)$/);
+  if (m) { const t = D.themen.find(t => t.name.toLowerCase().startsWith(m[1].trim().toLowerCase())); if (t) { th = t.id; text = m[2]; } }
+  e.target.value = "";
+  const n = neuerKnoten({ titel: text, thema: th, bearbeiten: false });
+  melde(th ? `In „${T(th).name}“ abgelegt` : "Als loser Gedanke um die Mitte gelegt");
+  sel = n.id; zeigeSeite();
+});
+const themaKnopf = $("#thema-knopf");
+function setzeThema(t) { document.documentElement.dataset.thema = t; themaKnopf.textContent = t === "dunkel" ? "Hell" : "Dunkel"; dirty = true; }
+themaKnopf.onclick = () => setzeThema(document.documentElement.dataset.thema === "dunkel" ? "hell" : "dunkel");
+$("#zuruecksetzen").onclick = () => { D = beispiel(); sel = null; for (const k in cur) delete cur[k]; aktualisiere(); zurLage(); };
+addEventListener("resize", () => { dirty = true; });
+
+/* ------------------------------------------------------------- Start */
+
+setzeThema(matchMedia("(prefers-color-scheme: dark)").matches ? "dunkel" : "hell");
+app.dataset.ansicht = ansicht; knoepfe();
+rechneB(); baue(); zeigeSeite();
+// Anflug: erst weit draußen, dann gleitet die Lage herein.
+zurLage(true); const ziel = { ...cam }; cam.k = ziel.k * .55; const r0 = flaeche();
+cam.x = r0.width / 2 - (r0.width / 2 - ziel.x) * .55; cam.y = r0.height / 2 - (r0.height / 2 - ziel.y) * .55; camZiel = ziel;
+for (const id of alleIds()) cur[id] = { ...zielPos(id) };
+requestAnimationFrame(takt);
+})();
+</script>
+</body>
+</html>

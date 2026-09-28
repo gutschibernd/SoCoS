@@ -7,6 +7,104 @@ betrifft.
 
 ---
 
+## 2026-09-28 — Lagekarte, ein drittes Modul (Migration 0032)
+
+Eine Karte, auf der steht, was in welchem Themenfeld ansteht und worauf
+gewartet wird — Gründung, Praktikantinnen, Pilotpatient. Entwurf in
+`entwurf/module/Lagekarte.html`.
+
+**Drei Modelle: `Lagethema`, `Lageschritt`, `Lageverbindung`.** Gespeichert
+wird nur, was jemand hingestellt hat: Titel, Art, Status, Frist, Notiz, wer an
+wem hängt, und wo eine Kachel auf der Sternkarte liegt. **„Wartet" und „als
+Nächstes frei" werden gerechnet** — ein gespeichertes „wartet" wäre nach dem
+ersten Abhaken eines Vorgängers falsch, und niemand würde es merken. Ebenso die
+Anordnung der Stränge und die Führung der Pfeile.
+
+**Nur zwei Status: offen und erledigt** (Rückmeldung 2026-09-28). „Läuft" und
+„wartet" gab es im Entwurf: „wartet" folgt aus offenen Vorgängern, und was von
+außen kommt, hat die **Art** „Warten auf". Dazu die Arten Schritt, Entscheidung,
+Termin.
+
+**`x`/`y` stehen nicht im Änderungsprotokoll** (`protokoll_ohne`). Jedes
+Verschieben schriebe sonst einen Eintrag, und „wer hat hier etwas geändert"
+ginge zwischen hundert Mausbewegungen unter.
+
+**Kreise weist der Server ab** (`services/lagekarte.py`), auch beim Umhängen und
+Umdrehen — dort zählt die Verbindung, die gerade geändert wird, nicht mit, sonst
+meldete „Umdrehen" einen Kreis mit sich selbst. Doppelte Verbindungen und
+Verbindungen auf sich selbst hält die Datenbank; die Eindeutigkeit gilt nur
+unter den lebenden, damit eine gelöste Verbindung neu gezogen werden darf.
+Deshalb hat der Serializer `validators = []` und prüft selbst — DRF läse aus
+der Einschränkung sonst einen Prüfer, der die gelösten mitzählt.
+
+**„Nächster Schritt" legt Schritt und Pfeil in einer Anfrage an**
+(`haengt_an`, nur beim Anlegen). Mit zwei Anfragen stünde nach einer
+gescheiterten zweiten ein Schritt ohne seinen Pfeil da.
+
+**Beim Entfernen:** Ein Thema aufzulösen lässt seine Schritte als lose Gedanken
+um die Mitte liegen; mit einem Schritt gehen seine Verbindungen. Beides steht
+im ViewSet, nicht in der Oberfläche. Die Verbindungsliste zeigt nur
+Verbindungen, deren beide Enden leben — über eine Beziehung sähe Django auch
+weich gelöschte Schritte. Entfernen darf, wie überall, nur der Admin — auch
+das Lösen einer Verbindung.
+
+Alle drei Modelle stehen in `MODELLE_IM_ARCHIV` und in der Löschreihenfolge
+(Verbindungen vor Schritten vor Themen); ein Test schickt eine Karte durch
+Ausfuhr und Einfuhr.
+
+### Die Oberfläche
+
+**Die Bühne ist kein React** (`bausteine/Lagebuehne.ts`). Beim Zoomen und
+Ziehen gleiten alle Kacheln und Pfeile sechzigmal in der Sekunde; über React
+liefe jeder Schritt durch einen Abgleich des ganzen Baums. Ein Takt setzt nur
+`left`/`top` und zeichnet die Pfeile neu, die Kacheln werden nur bei neuen
+Daten gebaut. Werkzeugleisten und Seitenspalte sind React
+(`ansichten/Lagekarte.tsx`). **Die Bühne speichert nichts** — jede Handlung
+geht als Ereignis an die Ansicht, die schreibt und den neuen Stand
+hereinreicht. Was sich ohne Bildschirm rechnen lässt (wartet/frei, Stränge,
+Pfeilführung, Platzsuche), steht in `basis/lagekarte.ts` und ist mit vitest
+geprüft.
+
+**Ein neuer Gedanke lebt als Entwurf in der Bühne, bis er einen Titel hat.**
+Der Server nimmt keinen Schritt ohne Titel, und ein leerer Datensatz, der
+beim Verlassen wieder gelöscht wird, stünde doppelt im Protokoll. Während
+gezogen oder ein Titel geschrieben wird, wartet ein neuer Stand vom Server —
+sonst risse ein Neuladen die Kachel unter dem Zeiger weg.
+
+**Geschrieben wird optimistisch**, dann neu geholt. Die Lage einer Kachel
+wird beim Loslassen gespeichert, nicht während des Ziehens. Titel und Notiz
+beim Verlassen des Feldes, nicht je Tastendruck — sonst schriebe jeder
+Buchstabe einen Protokolleintrag.
+
+**Tasten:** Tiefe und Zoom (1, 2, 3, +, −, Escape) gelten überall außer in
+Feldern. Tab, Enter, Leertaste und Entf nur, wenn kein Knopf den Fokus hat —
+sonst nähme Tab der Seitenspalte das Weiterspringen, und Enter auf
+„Stränge" hakte den gewählten Schritt ab.
+
+**Zwei Fallen, die beim Prüfen aufgefallen sind:** `overflow: hidden` lässt
+sich programmatisch noch scrollen — der Fokus im Fangfeld schob die ganze
+Bühne 62 px nach links; deshalb `overflow: clip`. Und die Seitenleiste ragte
+bei 800 px Fensterhöhe mit aufgeklapptem Modulzweig 184 px aus der Seite; die
+ganze Seite rollte, und die fensterhohe Karte rutschte unter die
+Kontextleiste. Die Leiste rollt jetzt in sich selbst (`overflow-y: auto`,
+auch außerhalb der Lagekarte).
+
+**Beim Merge nach main** traf die Lagekarte auf die neue Dashboard-Kachel
+„Zuletzt passiert". Deren Tafel `NAMEN` in `services/aktivitaet.py` kannte die
+drei Modelle nicht — der Satz hätte „einen neuen Eintrag" gelautet. Sie sind
+nachgetragen, und ein Test prüft jetzt, dass jedes Modell aus
+`MODELLE_IM_ARCHIV` dort einen Namen hat.
+
+**Die acht Thementöne** (`--f1…--f8` als Fläche, `--t1…--t8` als Ton) stehen
+in `farben.css`, gerechnet gegen jeden Untergrund, auf dem sie vorkommen.
+
+**Offen:** Einen Pfeil lösen darf wie jedes Entfernen nur der Admin. Ein
+Bearbeiter kann Pfeile ziehen und umhängen, aber keinen wieder lösen. Wenn
+das im Alltag stört, wäre `Lageverbindung` der erste Fall, in dem ein
+Bearbeiter entfernen darf — das gehört dann nach `berechtigung.py`.
+
+---
+
 ## 2026-09-28 — Dashboard: „Zuletzt passiert" und das Team in einer Kachel
 
 **Die Aktivität wird aus dem Änderungsprotokoll gelesen, es gibt keine eigene

@@ -41,6 +41,9 @@ MODELLE_IM_ARCHIV = [
     "socos.Canvaspunkt",
     "socos.Persona",
     "socos.Praktikumsthema",
+    "socos.Lagethema",
+    "socos.Lageschritt",
+    "socos.Lageverbindung",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
@@ -83,6 +86,10 @@ LOESCHREIHENFOLGE = [
     "socos.Persona",
     "socos.Vorhaben",
     "socos.Praktikumsthema",
+    # Verbindungen vor Schritten vor Themen: jedes hängt am nächsten.
+    "socos.Lageverbindung",
+    "socos.Lageschritt",
+    "socos.Lagethema",
     "socos.Protokolleintrag",
     "socos.Nutzer",
     "auth.Group",

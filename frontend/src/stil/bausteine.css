@@ -39,12 +39,21 @@
  * Inhalt daneben läuft. Ohne das wäre die Uhr auf einer langen Buchungsliste
  * nach zwei Handbewegungen weg.
  */
+/*
+ * Ist die Leiste höher als das Fenster — bei 800 px Höhe mit aufgeklapptem
+ * Modulzweig ist sie 984 hoch —, rollt sie in sich selbst. Ohne das ragte
+ * sie unten aus der Seite, die ganze Seite bekam einen Rollbalken, und auf
+ * der Lagekarte, die genau fensterhoch ist, rutschte die Fläche beim Rollen
+ * unter die Kontextleiste. Nichts in der Leiste klappt über ihren Rand
+ * hinaus; die Paketwahl öffnet ein Fenster.
+ */
 .leiste {
   flex: 0 0 232px; width: 232px;
   position: sticky; top: 0; height: 100vh;
   display: flex; flex-direction: column;
   padding: 14px 10px 12px;
   background: var(--kopf-grund);
+  overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--kopf-rand) transparent;
 }
 
 /* Der Weg zur Startseite. Die 44 px sind kein Zierrat: Das Signet ist am
@@ -2220,6 +2229,347 @@ a.mini { text-decoration: none; }
 }
 .feld-blaettern > :last-child { margin-left: auto; }
 
+/* --- Module · Lagekarte --------------------------------------------------- */
+/*
+ * Eine Fläche bis an die Ränder, daneben die Seitenspalte. Alle Klassen
+ * tragen `lk-`: `.leiste`, `.seite`, `.raster` und `.knopf` sind in der
+ * Anwendung schon vergeben, und eine Kachel hieße sonst wie ein Gerüstteil.
+ *
+ * Grundsatz: **Die Fläche sagt, wohin etwas gehört, die Kante, wie es steht.**
+ * Thementon = Fläche (`--f`) und Ton (`--t`), Status = Kante.
+ */
+/* Fensterhoch, und die Karte nimmt, was unter der Kontextleiste übrig ist.
+   Keine abgezogene Höhe der Leiste: Sie bricht am Handy auf zwei Zeilen um,
+   und eine feste Zahl stimmte dann nicht mehr. */
+.inhalt:has(> .seite[data-voll="ja"]) { height: 100vh; height: 100dvh; }
+.seite[data-voll="ja"] { padding: 0; max-width: none; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.lagekarte {
+  position: relative; flex: 1; min-height: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) 344px;
+}
+.lk-ton-0 { --f: var(--flaeche); --t: var(--text-sehr-leise); }
+.lk-ton-1 { --f: var(--f1); --t: var(--t1); }
+.lk-ton-2 { --f: var(--f2); --t: var(--t2); }
+.lk-ton-3 { --f: var(--f3); --t: var(--t3); }
+.lk-ton-4 { --f: var(--f4); --t: var(--t4); }
+.lk-ton-5 { --f: var(--f5); --t: var(--t5); }
+.lk-ton-6 { --f: var(--f6); --t: var(--t6); }
+.lk-ton-7 { --f: var(--f7); --t: var(--t7); }
+.lk-ton-8 { --f: var(--f8); --t: var(--t8); }
+
+/* Die Bühne: unendliche Fläche mit Punktraster, das mitwandert. */
+/* `clip` und nicht nur `hidden`: Ein versteckter Überlauf lässt sich noch
+   scrollen — der Fokus im Fangfeld schob die ganze Bühne samt Werkzeugleisten
+   um 62 px nach links, und nichts schob sie zurück. */
+.lk-buehne {
+  position: relative; overflow: hidden; overflow: clip; touch-action: none; cursor: grab;
+  background: var(--grund); user-select: none; -webkit-user-select: none;
+}
+.lk-buehne.lk-zieht { cursor: grabbing; }
+.lk-host { position: absolute; inset: 0; }
+.lk-raster {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, var(--rand) 1.1px, transparent 1.4px);
+}
+.lk-welt { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.lk-linien { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
+
+/* Linien: Die Dicke bleibt beim Zoomen gleich. */
+.lk-l { fill: none; vector-effect: non-scaling-stroke; transition: opacity 0.25s; }
+.lk-l-stamm { stroke: var(--t); stroke-width: 3; opacity: 0.55; }
+.lk-l-ast { stroke: var(--t); stroke-width: 2; opacity: 0.45; }
+.lk-l-folgt { stroke: var(--text-sehr-leise); stroke-width: 1.5; }
+.lk-l-erfuellt { stroke: var(--gut); stroke-width: 1.5; }
+.lk-l-kreuz { stroke: var(--akzent); stroke-width: 2; stroke-dasharray: 7 6; animation: lk-fluss 0.9s linear infinite; }
+.lk-l-neu { stroke: var(--akzent); stroke-width: 2; stroke-dasharray: 3 5; }
+.lk-lp-folgt { fill: var(--text-sehr-leise); }
+.lk-lp-erfuellt { fill: var(--gut); }
+.lk-lp-kreuz, .lk-lp-neu { fill: var(--akzent); }
+.lk-lt {
+  fill: var(--text-leise); font-family: var(--schrift); font-weight: 600;
+  paint-order: stroke; stroke: var(--grund); stroke-linejoin: round;
+}
+.lk-lt-kreuz { fill: var(--akzent); }
+/* Pfeile sind greifbar: Eine breite, unsichtbare Spur darüber fängt den Klick. */
+.lk-l-treffer {
+  fill: none; stroke: transparent; stroke-width: 16; vector-effect: non-scaling-stroke;
+  pointer-events: stroke; cursor: pointer;
+}
+.lk-l.lk-gewaehlt { stroke: var(--akzent); stroke-width: 3; opacity: 1; animation: none; }
+[class^="lk-lp-"].lk-gewaehlt { fill: var(--akzent); }
+.lk-l-ende {
+  fill: var(--flaeche); stroke: var(--akzent); stroke-width: 2; vector-effect: non-scaling-stroke;
+  pointer-events: all; cursor: grab;
+}
+.lk-l-ende:hover { fill: var(--akzent-hell); }
+.lk-linien .lk-leise { opacity: 0.12; }
+@keyframes lk-fluss { to { stroke-dashoffset: -13; } }
+
+.lk-etikett {
+  position: absolute; z-index: 6; transform: translate(-50%, -50%);
+  display: flex; background: var(--flaeche); border: 2px solid var(--akzent); border-radius: var(--kante);
+}
+.lk-etikett input { width: 190px; min-height: 40px; padding: 0 10px; border: 0; background: none; font-size: 16px; outline: none; }
+.lk-etikett[hidden] { display: none; }
+
+/* Bänder der Strang-Ansicht */
+.lk-band {
+  position: absolute; background: var(--f); opacity: 0.45; border-top: 1px solid var(--rand);
+  transition: opacity 0.35s; pointer-events: none;
+}
+.lk-band span { position: absolute; left: 16px; top: 10px; font-size: 12px; font-weight: 600; color: var(--text-leise); }
+.lk-buehne[data-ansicht="stern"] .lk-band, .lk-buehne[data-stufe="lage"] .lk-band { opacity: 0; }
+
+/* Die Mitte — in beiden Themen dunkel wie die Leiste, daher nur --kopf-*. */
+.lk-mitte {
+  position: absolute; transform: translate(-50%, -50%) scale(var(--g, 1));
+  display: flex; align-items: center; gap: 10px; padding: 0 18px; height: 72px; min-width: 190px;
+  background: var(--kopf-grund); color: var(--kopf-text); border-radius: var(--kante);
+  border-bottom: 3px solid var(--kopf-kante);
+  font-weight: 700; font-size: 17px; letter-spacing: -0.02em; cursor: default;
+}
+.lk-mitte img { width: 28px; height: 28px; }
+.lk-mitte small { display: block; font: 500 11px/1.2 var(--schrift); color: var(--kopf-text-leise); letter-spacing: 0; }
+
+/* Ein Thema: voller Ton, Schrift in --auf-ton. */
+.lk-hub {
+  position: absolute; width: 220px; transform: translate(-50%, -50%) scale(var(--g, 1));
+  padding: 10px 12px 11px; background: var(--t); color: var(--auf-ton);
+  border-radius: var(--kante); cursor: pointer; transition: opacity 0.25s;
+}
+.lk-hub-kopf { display: flex; align-items: baseline; gap: 8px; }
+.lk-hub-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; outline: none; min-width: 2ch; }
+.lk-hub-name:empty::before { content: "Neues Thema"; opacity: 0.7; font-weight: 500; }
+.lk-hub-zahl { margin-left: auto; font: 500 12px var(--schrift-zahl); opacity: 0.9; }
+.lk-hub-balken { display: flex; gap: 3px; margin-top: 8px; height: 6px; }
+.lk-hub-balken i { flex: 1; border: 1px solid currentColor; opacity: 0.55; }
+.lk-hub-balken i[data-s="erledigt"] { background: currentColor; opacity: 1; }
+.lk-hub-lage { list-style: none; margin: 8px 0 0; padding: 0; font-size: 12.5px; line-height: 1.35; display: none; }
+.lk-hub-lage li { display: flex; gap: 7px; align-items: baseline; padding: 2px 0; }
+.lk-hub-lage li::before { content: ""; flex: 0 0 7px; height: 7px; border: 1.5px solid currentColor; transform: translateY(-1px); }
+.lk-hub-lage li[data-s="wartet"]::before { border-style: dashed; }
+.lk-hub-lage li[data-s="frei"]::before { background: currentColor; }
+.lk-hub-lage li[data-s="kreuz"] { font-weight: 600; }
+.lk-hub-lage li[data-s="kreuz"]::before { border-radius: 50%; background: currentColor; }
+.lk-hub-lage li.lk-leer { opacity: 0.8; font-style: italic; }
+.lk-hub-lage li.lk-leer::before { display: none; }
+.lk-buehne[data-stufe="lage"] .lk-hub-lage { display: block; }
+.lk-hub.lk-ziel, .lk-mitte.lk-ziel { outline: 3px solid var(--akzent); outline-offset: 4px; }
+
+/* Ein Schritt: Fläche = Thema, Kante = Status. */
+.lk-k {
+  position: absolute; width: 200px; min-height: 48px; transform: translate(-50%, -50%);
+  padding: 9px 12px 10px 34px; background: var(--f);
+  border: 2px solid var(--rand-stark); border-radius: var(--kante);
+  cursor: pointer; transition: opacity 0.3s, border-color 0.2s;
+}
+/* Zwei Status, sonst nichts. „Wartet" ist kein Status, sondern folgt:
+   aus offenen Vorgängern (gesperrt) oder aus der Art „Warten" (von außen). */
+.lk-k[data-art="warten"][data-status="offen"] { border-color: var(--wartend); border-style: dashed; }
+.lk-k.lk-gesperrt[data-status="offen"] { border-style: dashed; }
+.lk-k[data-status="erledigt"] { border-color: var(--gut); }
+.lk-k[data-status="erledigt"] .lk-k-titel { color: var(--text-leise); }
+.lk-k.lk-gesperrt { opacity: 0.62; }
+.lk-k-titel { display: block; font-weight: 600; font-size: 14px; line-height: 1.3; outline: none; word-break: break-word; }
+.lk-k-titel:empty::before { content: "Gedanke …"; color: var(--text-sehr-leise); font-weight: 500; }
+.lk-k-art {
+  display: block; margin-bottom: 1px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-leise);
+}
+.lk-k-meta { display: block; font-size: 12px; color: var(--text-leise); margin-top: 3px; }
+.lk-k-meta:empty { display: none; }
+.lk-ueber { color: var(--warnung); font-weight: 600; }
+.lk-k-notiz { display: none; font-size: 12.5px; color: var(--text-leise); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--rand); }
+.lk-buehne[data-stufe="detail"] .lk-k-notiz { display: block; }
+/* Der Statuspunkt: Ein Klick hakt ab oder öffnet wieder. */
+.lk-k-punkt {
+  position: absolute; left: 4px; top: 50%; width: 26px; height: 26px; margin-top: -13px;
+  padding: 0; border: 0; background: none; cursor: pointer;
+}
+span.lk-k-punkt { cursor: inherit; }
+.lk-k-punkt::before {
+  content: ""; position: absolute; left: 7px; top: 7px; width: 12px; height: 12px;
+  border-radius: 50%; border: 2px solid var(--rand-stark); box-sizing: border-box;
+}
+.lk-k[data-status="erledigt"] .lk-k-punkt::before { background: var(--gut); border-color: var(--gut); }
+.lk-k[data-status="erledigt"] .lk-k-punkt::after {
+  content: ""; position: absolute; left: 11px; top: 9px; width: 3px; height: 6px;
+  border: solid var(--flaeche); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+/* Als Nächstes frei: ein ruhiger Puls statt eines Schattens — das Kupfer ist die Handlung. */
+.lk-k.lk-frei::after {
+  content: ""; position: absolute; inset: -2px; border: 2px solid var(--akzent); border-radius: var(--kante);
+  animation: lk-puls 2.6s ease-out infinite; pointer-events: none;
+}
+@keyframes lk-puls { 0% { opacity: 0.55; transform: scale(1); } 100% { opacity: 0; transform: scale(1.06, 1.22); } }
+.lk-k.lk-frei::before {
+  content: "Als Nächstes"; position: absolute; left: -2px; bottom: 100%; margin-bottom: 3px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--akzent); white-space: nowrap;
+}
+/* Der Verbindungsgriff: ziehen heißt „hängt an". */
+.lk-k-griff {
+  position: absolute; right: -9px; top: 50%; width: 16px; height: 16px; margin-top: -8px;
+  border-radius: 50%; background: var(--flaeche); border: 2px solid var(--akzent);
+  cursor: crosshair; opacity: 0; transition: opacity 0.15s, transform 0.15s;
+}
+.lk-k-griff::after { content: ""; position: absolute; inset: -12px; }
+.lk-k:hover .lk-k-griff, .lk-k.lk-gewaehlt .lk-k-griff { opacity: 1; }
+.lk-k-griff:hover { transform: scale(1.25); }
+.lk-k.lk-gewaehlt, .lk-hub.lk-gewaehlt { outline: 2px solid var(--akzent); outline-offset: 4px; }
+.lk-k.lk-ziel { outline: 3px dashed var(--akzent); outline-offset: 4px; }
+.lk-k.lk-gezogen, .lk-hub.lk-gezogen { pointer-events: none; opacity: 0.85; }
+.lk-schicht .lk-leise { opacity: 0.18 !important; }
+.lk-k.lk-neu { animation: lk-geboren 0.5s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes lk-geboren { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } }
+.lk-buehne[data-stufe="lage"] .lk-k { opacity: 0; pointer-events: none; }
+
+/* Schwebende Werkzeugleisten */
+.lk-schwebe { position: absolute; z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+.lk-oben { left: 12px; right: 12px; top: 12px; }
+.lk-unten { left: 12px; bottom: 12px; }
+.lk-gruppe { display: flex; background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante); }
+.lk-gruppe > button {
+  min-height: var(--griff); min-width: var(--griff); padding: 0 13px;
+  border: 0; border-right: 1px solid var(--rand); background: none; cursor: pointer;
+  font-size: 13px; font-weight: 500; color: var(--text-leise); white-space: nowrap;
+}
+.lk-gruppe > button:last-child { border-right: 0; }
+.lk-gruppe > button:hover { color: var(--text); background: var(--flaeche-leise); }
+.lk-gruppe > button[aria-pressed="true"] {
+  background: var(--akzent-hell); color: var(--akzent); font-weight: 600; box-shadow: inset 0 -2px 0 var(--akzent);
+}
+.lk-fang {
+  flex: 1 1 280px; max-width: 460px; display: flex;
+  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante);
+}
+.lk-fang:focus-within { border-color: var(--akzent); }
+.lk-fang span { display: grid; place-items: center; width: 40px; color: var(--akzent); font-size: 20px; font-weight: 500; }
+.lk-fang input {
+  flex: 1; min-width: 0; min-height: var(--griff); padding: 0 12px 0 0;
+  border: 0; background: none; font-size: 16px; outline: none;
+}
+.lk-fang input::placeholder { color: var(--text-sehr-leise); }
+
+.lk-klein {
+  position: absolute; z-index: 5; right: 12px; bottom: 12px; width: 188px; height: 124px;
+  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante);
+  cursor: pointer; overflow: hidden;
+}
+.lk-klein svg { width: 100%; height: 100%; display: block; }
+.lk-fenster { fill: var(--akzent); fill-opacity: 0.06; stroke: var(--akzent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+
+/* Kurze Rückmeldung auf der Bühne selbst („Verbindung gelöst", „ergäbe einen
+   Kreis"). Nicht über `melden`: Das bleibt bei einem Fehler stehen, bis man
+   es wegklickt — für einen verrutschten Pfeil ist das zu schwer. Was der
+   Server ablehnt, meldet `hole` weiterhin dort. */
+.lk-meldung {
+  position: absolute; z-index: 6; left: 50%; top: 72px; transform: translate(-50%, -8px);
+  padding: 10px 14px; background: var(--text); color: var(--grund); border-radius: var(--kante);
+  font-size: 13px; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+}
+.lk-meldung.lk-an { opacity: 1; transform: translate(-50%, 0); }
+
+/* Die Seitenspalte: die Lage, oder was gewählt ist. */
+.lk-seite { background: var(--flaeche); border-left: 1px solid var(--rand); overflow: auto; min-height: 0; }
+.lk-seite-griff { display: none; }
+.lk-seite-inhalt { padding: 18px 18px 28px; }
+.lk-h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 10px; }
+.lk-h2 .zahl { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-sehr-leise); }
+.lk-h3 {
+  margin: 22px 0 8px; display: flex; gap: 8px; align-items: center;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-leise);
+}
+.lk-h3 .zahl { font-weight: 500; color: var(--text-sehr-leise); letter-spacing: 0; }
+.lk-h3::after { content: ""; flex: 1; height: 1px; background: var(--rand); }
+.lk-leer-satz { margin: 0; font-size: 13px; color: var(--text-sehr-leise); }
+.lk-seite kbd {
+  font: 500 11px/1 var(--schrift-zahl); padding: 3px 5px;
+  border: 1px solid var(--rand); border-radius: var(--kante); background: var(--flaeche); color: var(--text-leise);
+}
+.lk-seite .knopf kbd { background: none; border-color: currentColor; color: inherit; opacity: 0.8; }
+
+.lk-themenzeile {
+  display: grid; grid-template-columns: 12px 1fr auto; gap: 4px 10px; align-items: center;
+  width: 100%; min-height: var(--griff); padding: 6px 0;
+  border: 0; border-bottom: 1px solid var(--rand); background: none; text-align: left; cursor: pointer;
+}
+.lk-themenzeile:hover .lk-tn { color: var(--akzent); }
+.lk-farbe { width: 12px; height: 12px; background: var(--t); }
+.lk-tn { font-weight: 600; font-size: 13.5px; }
+.lk-themenzeile .zahl { color: var(--text-sehr-leise); font-size: 12px; }
+.lk-balken { grid-column: 2 / 4; display: flex; gap: 2px; height: 5px; }
+.lk-balken i { flex: 1; background: var(--flaeche-leise); border: 1px solid var(--rand); }
+.lk-balken i[data-s="erledigt"] { background: var(--gut); border-color: var(--gut); }
+
+.lk-posten {
+  display: block; width: 100%; min-height: var(--griff); margin: 0 0 6px; padding: 7px 10px 8px 12px;
+  text-align: left; background: var(--f); border: 0; border-left: 4px solid var(--t); border-radius: var(--kante); cursor: pointer;
+}
+.lk-posten:hover { outline: 1px solid var(--t); }
+.lk-posten-titel { display: block; font-weight: 600; font-size: 13.5px; }
+.lk-posten-unter { display: block; font-size: 12px; color: var(--text-leise); margin-top: 1px; }
+
+.lk-doku {
+  margin-top: 28px; min-height: var(--griff); padding: 0; border: 0; background: none;
+  color: var(--text-leise); font-size: 12.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+.lk-doku:hover { color: var(--akzent); }
+
+.lk-zurueck { min-height: var(--griff); padding: 0 10px 0 0; border: 0; background: none; color: var(--text-leise); cursor: pointer; font-size: 13px; }
+.lk-zurueck:hover { color: var(--akzent); }
+.lk-felder { border: 0; margin: 0; padding: 0; min-width: 0; }
+.lk-feld { margin-top: 16px; }
+.lk-etikettzeile { display: block; font-size: 12px; font-weight: 600; color: var(--text-leise); margin-bottom: 6px; }
+.lk-eingabe {
+  width: 100%; min-height: var(--griff); padding: 9px 11px; font-size: 16px;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante); background: var(--flaeche); outline: none;
+}
+.lk-eingabe:focus { border-color: var(--akzent); }
+textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
+.lk-i-titel { font-weight: 600; font-size: 17px; }
+.lk-seg { display: flex; border: 1px solid var(--rand-stark); border-radius: var(--kante); }
+.lk-seg button {
+  flex: 1; min-height: var(--griff); padding: 0 4px;
+  border: 0; border-right: 1px solid var(--rand); background: var(--flaeche); cursor: pointer;
+  font-size: 13px; font-weight: 500; color: var(--text-leise);
+}
+.lk-seg button:last-child { border-right: 0; }
+.lk-seg button[aria-pressed="true"] { color: var(--text); font-weight: 600; box-shadow: inset 0 -3px 0 var(--s, var(--akzent)); }
+.lk-seg [data-status="offen"] { --s: var(--rand-stark); }
+.lk-seg [data-status="erledigt"] { --s: var(--gut); }
+.lk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lk-chip {
+  min-height: var(--griff); padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--rand); background: var(--f, var(--flaeche)); border-radius: var(--kante);
+  cursor: pointer; font-size: 12.5px; font-weight: 500;
+}
+.lk-chip::before { content: ""; width: 8px; height: 8px; background: var(--t, var(--rand-stark)); }
+.lk-chip[aria-pressed="true"] { border-color: var(--t, var(--text)); box-shadow: inset 0 0 0 1px var(--t, var(--text)); font-weight: 700; }
+.lk-farbwahl { display: flex; gap: 6px; flex-wrap: wrap; }
+.lk-farbwahl button { width: var(--griff); height: var(--griff); border: 2px solid transparent; background: var(--t); border-radius: var(--kante); cursor: pointer; }
+.lk-farbwahl button[aria-pressed="true"] { border-color: var(--text); outline: 2px solid var(--flaeche); outline-offset: -4px; }
+.lk-bezug { list-style: none; margin: 0; padding: 0; }
+.lk-bezug li { display: flex; align-items: center; gap: 8px; min-height: var(--griff); border-bottom: 1px solid var(--rand); font-size: 13px; }
+.lk-bezug li i { flex: 0 0 8px; height: 8px; background: var(--t); }
+.lk-bezug-name { flex: 1; min-height: var(--griff); padding: 0; border: 0; background: none; text-align: left; cursor: pointer; font-size: 13px; }
+.lk-bezug-name:hover { color: var(--akzent); }
+.lk-bezug li button[aria-label] { min-width: var(--griff); min-height: var(--griff); border: 0; background: none; color: var(--text-sehr-leise); cursor: pointer; font-size: 18px; }
+.lk-bezug li button[aria-label]:hover { color: var(--warnung); }
+.lk-bezug + select { margin-top: 6px; }
+.lk-verbindung { display: grid; gap: 4px; margin-top: 14px; }
+.lk-pfeiltext { font-size: 12px; color: var(--text-leise); padding-left: 12px; }
+.lk-aktionen { display: flex; gap: 8px; margin-top: 22px; flex-wrap: wrap; }
+.lk-gefahr { color: var(--warnung); border-color: var(--warnung); }
+.lk-nachfrage { margin-top: 14px; padding: 12px 14px; background: var(--warnung-hell); border-left: 3px solid var(--warnung); font-size: 13.5px; }
+.lk-nachfrage p { margin: 0 0 10px; }
+.lk-nachfrage .lk-aktionen { margin-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lk-l-kreuz, .lk-k.lk-frei::after, .lk-k.lk-neu { animation: none; }
+}
+
 /* ==========================================================================
    Schmaler Rechner (bis 1200 px): vier Kennzahlen werden zwei mal zwei
    ==========================================================================
@@ -2337,6 +2687,35 @@ a.mini { text-decoration: none; }
   .aufgaben-reihe { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .aufgabe-menue { padding-left: 12px; padding-right: 12px; }
   .aufgaben-neu-menue { padding-left: 12px; padding-right: 12px; }
+
+  /* Die Lagekarte endet über Uhr und Fußleiste (61 + 60 px), statt darunter
+     weiterzulaufen — sonst lägen die Tiefenknöpfe und das Blatt hinter der
+     Leiste. Die Seitenspalte wird zum Blatt von unten. Der Abstand gewinnt
+     über das Attribut gegen `.seite` weiter unten, nicht über die Reihenfolge. */
+  .seite[data-voll="ja"] { padding: 0 0 calc(121px + env(safe-area-inset-bottom)); }
+  .lagekarte { grid-template-columns: minmax(0, 1fr); }
+  .lk-seite {
+    position: absolute; z-index: 8; left: 0; right: 0; bottom: 0;
+    height: 64px; max-height: 80%;
+    border-left: 0; border-top: 1px solid var(--rand);
+    transition: height 0.28s ease; overflow: hidden; display: flex; flex-direction: column;
+  }
+  .lk-seite[data-offen="ja"] { height: 80%; }
+  .lk-seite[data-offen="ja"] .lk-seite-inhalt { overflow: auto; }
+  .lk-seite-griff {
+    position: relative; display: flex; flex: 0 0 64px; align-items: center; gap: 10px;
+    width: 100%; padding: 0 18px; border: 0; border-bottom: 1px solid var(--rand);
+    background: var(--flaeche); cursor: pointer; font-weight: 600; font-size: 15px; text-align: left;
+  }
+  .lk-seite-griff::before {
+    content: ""; position: absolute; left: 50%; top: 6px; width: 36px; height: 4px; margin-left: -18px;
+    background: var(--rand-stark); border-radius: var(--kante);
+  }
+  .lk-seite-griff .zahl { margin-left: auto; font-weight: 500; font-size: 12px; color: var(--text-leise); }
+  .lk-seite-inhalt { flex: 1; min-height: 0; }
+  .lk-unten { bottom: 76px; }
+  .lk-klein, .lk-nur-gross { display: none; }
+  .lk-fang { flex-basis: 100%; max-width: none; order: -1; }
 
   /* Platz für Uhr und Fußleiste am Fuß der Seite. Ohne das liegt die letzte
      Tabellenzeile unter der Leiste und ist nicht erreichbar. */

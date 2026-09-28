@@ -214,7 +214,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, nach Fälligkeit." },
-            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die SPG Academy und die Praktikantenstellen." },
+            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die SPG Academy, die Praktikantenstellen und die Lagekarte." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
@@ -832,6 +832,66 @@ function ModuleDoku() {
             {
               begriff: "Wer was darf",
               text: "Sehen und das PDF laden dürfen alle. Themen anlegen, ändern und die Ausschreibung speichern dürfen Admin und Bearbeiter; ein Thema entfernen nur der Admin.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="lagekarte"
+        titel="Lagekarte: was ansteht und worauf gewartet wird"
+        vorspann="Eine Karte der Themenfelder — Gründung, Praktikantinnen, Pilotpatient … — mit den Schritten darin und wer an wem hängt. Die Seitenspalte sagt jederzeit, was wartet und was als Nächstes frei ist."
+      >
+        <Schritte
+          schritte={[
+            "Oben „Gedanke festhalten“: Was du tippst, landet mit Enter als loser Gedanke um die Mitte. Beginnt es mit einem Thema und Doppelpunkt — „Gründung: Notar anrufen“ —, landet es gleich dort; der Anfang des Namens genügt.",
+            "Einen losen Gedanken ziehst du auf ein Thema, um ihn zuzuordnen. Oder du wählst ihn und tippst rechts auf das Thema.",
+            "Tab legt den nächsten Schritt an — hinter dem gewählten, schon mit Pfeil. Titel tippen, Enter. Leer lassen und Escape verwirft ihn wieder.",
+            "Der Punkt links an einer Kachel hakt ab und öffnet wieder. Sobald alles vor einem Schritt erledigt ist, steht er unter „Als Nächstes frei“.",
+          ]}
+        />
+        <Merke>
+          Die Fläche einer Kachel sagt, zu welchem Thema sie gehört, die Kante, wie sie steht:
+          grün erledigt, gestrichelt wartend. „Wartet“ und „als Nächstes frei“ rechnet SoCoS aus
+          den Pfeilen — gesetzt wird nur offen oder erledigt.
+        </Merke>
+        <Begriffe
+          paare={[
+            {
+              begriff: "Sternkarte und Stränge",
+              text: "Oben links umzuschalten. Auf der Sternkarte legst du die Kacheln selbst hin, wo sie hingehören; sie bleiben dort. In den Strängen ordnet SoCoS: eine Zeile je Thema, von links nach rechts in der Reihenfolge, in der die Schritte aneinander hängen — auch über Themen hinweg. Eine Lücke in einem Strang heißt: Hier wird auf ein anderes Thema gewartet.",
+            },
+            {
+              begriff: "Lage, Karte, Details",
+              text: "Drei Tiefen, unten links oder mit den Tasten 1, 2 und 3; Zoomen wechselt ebenso. Die Lage zeigt nur die Themen mit dem, was darin wartet und frei ist, und welches Thema welches aufhält. Die Karte zeigt die Schritte, die Details dazu ihre Notizen.",
+            },
+            {
+              begriff: "Verbinden",
+              text: "Am rechten Rand jeder Kachel sitzt ein Kreis. Ziehst du ihn auf eine andere Kachel, hängt diese an der ersten: Sie ist erst frei, wenn die erste erledigt ist. Danach kannst du den Pfeil gleich beschriften — „Zusage“, „wenn geliefert“ — oder mit Enter leer lassen.",
+            },
+            {
+              begriff: "Einen Pfeil ändern",
+              text: "Ein Klick auf den Pfeil öffnet die Beschriftung. Ziehst du ihn, hängst du das nähere Ende auf eine andere Kachel um. Rechts in der Spalte lässt er sich umdrehen und lösen.",
+            },
+            {
+              begriff: "Kein Kreis",
+              text: "Einen Pfeil, der einen Kreis schlösse, nimmt SoCoS nicht an — dann wartete alles aufeinander, und nichts würde je frei.",
+            },
+            {
+              begriff: "Die Art eines Schritts",
+              text: "Schritt, Warten auf, Entscheidung oder Termin. „Warten auf“ ist für das, was von außen kommt — eine Lieferung, eine Rückmeldung. So ein Schritt steht nie unter „Als Nächstes frei“, weil du ihn nicht selbst erledigen kannst.",
+            },
+            {
+              begriff: "Weitere Griffe",
+              text: "Doppelklick auf die freie Fläche legt dort einen Gedanken an, Doppelklick auf eine Kachel ändert den Titel. Leertaste hakt die gewählte Kachel ab, Escape hebt die Auswahl auf, + und − zoomen. Das Rad der Maus zoomt, das Trackpad schwenkt.",
+            },
+            {
+              begriff: "Ein Thema auflösen",
+              text: "Rechts im Thema unter „Auflösen …“. Seine Schritte bleiben dabei als lose Gedanken um die Mitte liegen. Einen Schritt zu löschen schlägt SoCoS den milderen Weg vor: ihn als erledigt zu führen.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen dürfen alle. Anlegen, verschieben, verbinden und abhaken dürfen Admin und Bearbeiter. Entfernen — einen Schritt, ein Thema oder einen Pfeil — darf nur der Admin.",
             },
           ]}
         />

@@ -13,7 +13,7 @@ from pathlib import Path
 from django.contrib.auth import logout
 from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.http import content_disposition_header
@@ -25,6 +25,9 @@ from rest_framework.response import Response
 
 from socos import aenderungen, berechtigung, serializer as ser, sicherung
 from socos.models import (
+    Lageschritt,
+    Lagethema,
+    Lageverbindung,
     AUFGABEN,
     LEITFRAGEN,
     UMFANG,
@@ -799,6 +802,51 @@ class PraktikumsthemaViewSet(SocosViewSet):
         antwort = HttpResponse(daten, content_type="application/pdf")
         antwort["Content-Disposition"] = f'attachment; filename="{ausschreibung.dateiname(thema)}"'
         return antwort
+
+
+# --- Module: Lagekarte -------------------------------------------------------
+#
+# Die gewöhnliche Regel: sehen alle, anlegen und ändern Admin und Bearbeiter,
+# entfernen nur der Admin. Was beim Entfernen mitgeht, steht hier und nicht in
+# der Oberfläche — sonst hinge es davon ab, welcher Knopf gedrückt wurde.
+
+
+class LagethemaViewSet(SocosViewSet):
+    serializer_class = ser.LagethemaSerializer
+    queryset = Lagethema.objects.all()
+
+    @transaction.atomic
+    def perform_destroy(self, thema):
+        """
+        Ein Thema auflösen heißt nicht, seine Schritte wegzuwerfen: Sie bleiben
+        als lose Gedanken um die Mitte liegen. Einzeln gespeichert, damit das
+        Protokoll bei jedem Schritt sagt, dass er sein Thema verloren hat.
+        """
+        for schritt in Lageschritt.objects.filter(thema=thema):
+            schritt.thema = None
+            schritt.save()
+        thema.delete()
+
+
+class LageschrittViewSet(SocosViewSet):
+    serializer_class = ser.LageschrittSerializer
+    queryset = Lageschritt.objects.all()
+
+    @transaction.atomic
+    def perform_destroy(self, schritt):
+        """Mit dem Schritt gehen seine Verbindungen — ein Pfeil ins Leere hülfe niemandem."""
+        for verbindung in Lageverbindung.objects.filter(Q(von=schritt) | Q(nach=schritt)):
+            verbindung.delete()
+        schritt.delete()
+
+
+class LageverbindungViewSet(SocosViewSet):
+    serializer_class = ser.LageverbindungSerializer
+
+    def get_queryset(self):
+        # Nur Verbindungen, deren beide Enden noch da sind. Über eine
+        # Beziehung sähe Django auch weich gelöschte Schritte.
+        return Lageverbindung.objects.filter(von__geloescht_am__isnull=True, nach__geloescht_am__isnull=True)
 
 
 # --- Finanzen ---------------------------------------------------------------

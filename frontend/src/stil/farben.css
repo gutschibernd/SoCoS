@@ -90,6 +90,22 @@
   --wartend: #5c4a70;
   --wartend-hell: #eee9f2;
 
+  /* Thementöne der Lagekarte: je eine Fläche (`--f`) und ein Ton (`--t`).
+     **Die Fläche sagt, wohin etwas gehört** — der Status steht an der Kante,
+     nie in der Farbe, sonst liest man Grün als „erledigt".
+     Gerechnet gegen jeden Untergrund, auf dem sie vorkommen:
+     --text auf --f ≥ 14,39 · --text-leise auf --f ≥ 5,62 · --warnung auf --f
+     ≥ 5,77 · --auf-ton auf --t ≥ 6,10 · --t auf --grund ≥ 5,84. */
+  --f1: #e6edf6; --t1: #2f5e8c;   /* Blau */
+  --f2: #f6edd8; --t2: #7f5c10;   /* Ocker */
+  --f3: #f5e5e9; --t3: #8c3a52;   /* Beere */
+  --f4: #eaeedb; --t4: #52611c;   /* Oliv */
+  --f5: #efe8e2; --t5: #6d5444;   /* Ton */
+  --f6: #e1eef0; --t6: #2b606b;   /* Petrol */
+  --f7: #eee6f1; --t7: #6b3f78;   /* Pflaume */
+  --f8: #e7e9ee; --t8: #4a5263;   /* Schiefer */
+  --auf-ton: #ffffff;
+
   /* Maße */
   --kante: 2px;          /* eckige Kanten, verbindlich aus dem Entwurf */
   --griff: 44px;         /* was der Finger trifft, ist mindestens so hoch */
@@ -147,6 +163,18 @@
     --ruhend-hell: #23292c;
     --wartend: #ac9bc2;
     --wartend-hell: #241f2e;
+
+    /* Thementöne dunkel: --text auf --f ≥ 13,11 · --text-leise auf --f ≥ 6,98
+       · --warnung auf --f ≥ 5,80 · --auf-ton auf --t ≥ 7,19. */
+    --f1: #1b2530; --t1: #86acd4;
+    --f2: #2a2416; --t2: #d4af62;
+    --f3: #2e1d23; --t3: #db90a6;
+    --f4: #22271a; --t4: #afc175;
+    --f5: #2a2320; --t5: #c7a58e;
+    --f6: #182629; --t6: #7fb8c4;
+    --f7: #271e2b; --t7: #bd96cb;
+    --f8: #202329; --t8: #a8b0c2;
+    --auf-ton: #14171a;
   }
 }
 
@@ -194,4 +222,16 @@
   --ruhend-hell: #23292c;
   --wartend: #ac9bc2;
   --wartend-hell: #241f2e;
+
+  /* Thementöne dunkel: --text auf --f ≥ 13,11 · --text-leise auf --f ≥ 6,98
+     · --warnung auf --f ≥ 5,80 · --auf-ton auf --t ≥ 7,19. */
+  --f1: #1b2530; --t1: #86acd4;
+  --f2: #2a2416; --t2: #d4af62;
+  --f3: #2e1d23; --t3: #db90a6;
+  --f4: #22271a; --t4: #afc175;
+  --f5: #2a2320; --t5: #c7a58e;
+  --f6: #182629; --t6: #7fb8c4;
+  --f7: #271e2b; --t7: #bd96cb;
+  --f8: #202329; --t8: #a8b0c2;
+  --auf-ton: #14171a;
 }
