@@ -230,7 +230,7 @@ def _karte_datei(tmp_path, **mehr):
         "kanten": [{"von": "gv", "nach": "ko", "text": "dann"}],
     }
     daten.update(mehr)
-    pfad = tmp_path / "stellwerk.json"
+    pfad = tmp_path / "thoughts.json"
     pfad.write_text(json.dumps(daten), encoding="utf-8")
     return str(pfad)
 
@@ -238,7 +238,7 @@ def _karte_datei(tmp_path, **mehr):
 @pytest.mark.django_db
 class TestEinspielen:
     def test_uebernimmt_die_karte_des_entwurfs(self, tmp_path):
-        call_command("stellwerk_einspielen", datei=_karte_datei(tmp_path), verbosity=0)
+        call_command("thoughts_einspielen", datei=_karte_datei(tmp_path), verbosity=0)
 
         thema = Lagethema.objects.get()
         assert (thema.name, thema.farbe, thema.x, thema.y) == ("Gründung", 1, -420, -160)
@@ -253,23 +253,23 @@ class TestEinspielen:
     def test_vermischt_keine_zwei_karten(self, tmp_path):
         Lagethema.objects.create(name="Schon da")
         with pytest.raises(CommandError, match="vermischt keine"):
-            call_command("stellwerk_einspielen", datei=_karte_datei(tmp_path), verbosity=0)
+            call_command("thoughts_einspielen", datei=_karte_datei(tmp_path), verbosity=0)
         assert Lagethema.objects.count() == 1
 
     def test_ersetzen_loescht_den_alten_stand_weich(self, tmp_path):
         alt = Lagethema.objects.create(name="Alt")
-        call_command("stellwerk_einspielen", datei=_karte_datei(tmp_path), ersetzen=True, verbosity=0)
+        call_command("thoughts_einspielen", datei=_karte_datei(tmp_path), ersetzen=True, verbosity=0)
         assert list(Lagethema.objects.values_list("name", flat=True)) == ["Gründung"]
         assert Lagethema.alle_objekte.get(pk=alt.pk).geloescht_am is not None
 
     def test_eine_kaputte_datei_spielt_nichts_ein(self, tmp_path):
         kaputt = _karte_datei(tmp_path, kanten=[{"von": "gv", "nach": "gibtsnicht"}])
         with pytest.raises(CommandError, match="ein Ende gibt es nicht"):
-            call_command("stellwerk_einspielen", datei=kaputt, verbosity=0)
+            call_command("thoughts_einspielen", datei=kaputt, verbosity=0)
         assert not Lageschritt.objects.exists()
 
     def test_ein_kreis_in_der_datei_spielt_nichts_ein(self, tmp_path):
         kreis = _karte_datei(tmp_path, kanten=[{"von": "gv", "nach": "ko"}, {"von": "ko", "nach": "gv"}])
         with pytest.raises(CommandError, match="Kreis"):
-            call_command("stellwerk_einspielen", datei=kreis, verbosity=0)
+            call_command("thoughts_einspielen", datei=kreis, verbosity=0)
         assert not Lageschritt.objects.exists()

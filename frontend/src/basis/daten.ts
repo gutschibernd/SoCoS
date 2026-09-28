@@ -505,9 +505,9 @@ export const usePraktikumsthemen = () =>
     queryFn: () => hole<Praktikumsthema[]>("/praktikumsthemen/"),
   });
 
-/* --- Stellwerk (im Code: die Lagekarte) ----------------------------------- */
+/* --- Thoughts (im Code: die Lagekarte) ----------------------------------- */
 
-/** Ein Themenfeld im Stellwerk. `farbe` ist einer der acht Thementöne (1–8). */
+/** Ein Themenfeld in Thoughts. `farbe` ist einer der acht Thementöne (1–8). */
 export type Lagethema = { id: number; name: string; farbe: number; x: number; y: number };
 
 export type Schrittart = "schritt" | "warten" | "entscheidung" | "termin";

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { Karte, Lageschritt, Lagethema, Lageverbindung } from "./daten";
 import {
+  ANDOCK_ABSTAND,
+  ANDOCK_RAND,
   alsSchritt,
   alsThema,
   belegt,
@@ -178,6 +180,61 @@ describe("Pfeilführung", () => {
     const drin = pts!.some((q) => Math.abs(q.x - m.x) < m.w && Math.abs(q.y - m.y) < m.h);
     expect(drin).toBe(false);
     expect(pts!.length).toBeGreaterThan(2);
+  });
+
+  it("kein Pfeil setzt an einer Ecke an, und an einer Seite halten sie Abstand", () => {
+    const gross: Rechteck = { x: 0, y: 0, w: 110, h: 45 };
+    const kacheln: Record<string, Rechteck> = { a: gross };
+    const pfeile = [-360, -240, -120, 0, 120, 240, 360].map((y, i) => {
+      kacheln[`z${i}`] = kachel(500, y);
+      return { a: "a", b: `z${i}` };
+    });
+    for (const fein of [false, true]) {
+      const starts = fuehre(pfeile, kacheln, fein, Object.values(kacheln)).map((pts) => pts![0]);
+      for (const q of starts) {
+        const rechts = Math.abs(q.x - (gross.x + gross.w + 4)) < 0.01;
+        const kante = rechts || Math.abs(Math.abs(q.y) - (gross.h + 4)) < 0.01;
+        expect(kante).toBe(true);
+        // Entlang der Seite mindestens ANDOCK_RAND von der Ecke entfernt.
+        if (rechts) expect(Math.abs(q.y)).toBeLessThanOrEqual(gross.h - ANDOCK_RAND);
+        else expect(Math.abs(q.x)).toBeLessThanOrEqual(gross.w - ANDOCK_RAND);
+      }
+      // Je Seite: Nachbarn mindestens ANDOCK_ABSTAND auseinander.
+      const seiten = new Map<string, number[]>();
+      for (const q of starts) {
+        const k = Math.abs(q.x - (gross.x + gross.w + 4)) < 0.01 ? "r" : q.y < 0 ? "o" : "u";
+        seiten.set(k, [...(seiten.get(k) ?? []), k === "r" ? q.y : q.x]);
+      }
+      for (const werte of seiten.values()) {
+        werte.sort((p, q) => p - q);
+        werte.slice(1).forEach((v, i) => expect(v - werte[i]).toBeGreaterThanOrEqual(ANDOCK_ABSTAND - 0.01));
+      }
+    }
+  });
+
+  it("ein Fächer geht rechts hinaus, symmetrisch und ohne Kreuzung", () => {
+    const mitte: Rechteck = { x: -420, y: 0, w: 170, h: 64 };
+    const kacheln: Record<string, Rechteck> = { m: mitte };
+    const ys = [-444, -222, 0, 222, 444];
+    ys.forEach((y, i) => (kacheln[`t${i}`] = { x: 0, y, w: 200, h: 40 + 10 * i }));
+    const pfeile = ys.map((_, i) => ({ a: "m", b: `t${i}` }));
+    for (const fein of [false, true]) {
+      const wege = fuehre(pfeile, kacheln, fein, Object.values(kacheln)).map((pts) => pts!);
+      // Alle an der rechten Seite, gespiegelt um die Mitte.
+      const starts = wege.map((pts) => pts[0]);
+      starts.forEach((q) => expect(q.x).toBeCloseTo(mitte.x + mitte.w + 4));
+      starts.forEach((q, i) => expect(q.y).toBeCloseTo(-starts[starts.length - 1 - i].y));
+      // Keine zwei Wege kreuzen sich.
+      const strecken = wege.flatMap((pts, i) => pts.slice(1).map((q, k) => ({ i, a: pts[k], b: q })));
+      for (const s of strecken)
+        for (const t of strecken) {
+          if (s.i === t.i) continue;
+          const [h, v] = Math.abs(s.a.y - s.b.y) < 0.01 ? [s, t] : [t, s];
+          if (Math.abs(h.a.y - h.b.y) > 0.01 || Math.abs(v.a.x - v.b.x) > 0.01) continue;
+          const zwischen = (w: number, p: number, q: number) => w > Math.min(p, q) + 0.5 && w < Math.max(p, q) - 0.5;
+          expect(zwischen(v.a.x, h.a.x, h.b.x) && zwischen(h.a.y, v.a.y, v.b.y)).toBe(false);
+        }
+    }
   });
 
   it("liegen zwei Kacheln aufeinander, gibt es keinen Pfeil", () => {

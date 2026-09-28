@@ -1,5 +1,5 @@
 /**
- * Die Bühne des Stellwerks — seine Lagekarte: eine unendliche Fläche mit Kacheln und Pfeilen,
+ * Die Bühne von Thoughts — die Lagekarte: eine unendliche Fläche mit Kacheln und Pfeilen,
  * die man schwenkt, zoomt und auf der man zieht.
  *
  * **Warum das kein React ist:** Beim Zoomen und Ziehen gleiten alle Kacheln
@@ -7,7 +7,7 @@
  * jeder dieser Schritte durch einen Abgleich des ganzen Baums; hier setzt ein
  * Takt nur `left`/`top` und zeichnet die Pfeile neu. Die Kacheln selbst
  * werden nur gebaut, wenn sich die Daten ändern. Werkzeugleisten und
- * Seitenspalte sind React (`ansichten/Stellwerk.tsx`) — dort ändert sich
+ * Seitenspalte sind React (`ansichten/Thoughts.tsx`) — dort ändert sich
  * nichts im Takt.
  *
  * **Die Bühne speichert nichts.** Jede Handlung geht als Ereignis hinaus, die
@@ -1329,13 +1329,15 @@ export class Lagebuehne {
         ev.preventDefault();
         this.camZiel = null;
         const r = this.flaeche();
-        // Mausrad (ganze Rasten, nur senkrecht) zoomt; Trackpad schwenkt, Kneifen zoomt.
-        const rad = ev.deltaMode === 1 || (ev.deltaX === 0 && Number.isInteger(ev.deltaY) && Math.abs(ev.deltaY) >= 50);
-        if (ev.ctrlKey || ev.metaKey) this.zoomUm(ev.clientX - r.left, ev.clientY - r.top, Math.exp(-ev.deltaY * 0.01));
-        else if (rad) this.zoomUm(ev.clientX - r.left, ev.clientY - r.top, Math.exp(-ev.deltaY * 0.0016));
-        else {
-          this.cam.x -= ev.deltaX;
-          this.cam.y -= ev.deltaY;
+        // Senkrecht zoomt immer, auch ohne Taste. Ein Mausrad am Mac liefert
+        // geglättete Pixel wie ein Trackpad; die Unterscheidung daran riet oft
+        // falsch, und dann rollte die Karte weg, statt zu zoomen. Geschwenkt
+        // wird durch Ziehen auf der Fläche; waagrecht (Trackpad) schwenkt.
+        const zeilen = ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? r.height : 1;
+        const tempo = ev.ctrlKey || ev.metaKey ? 0.01 : 0.0016;
+        if (ev.deltaY) this.zoomUm(ev.clientX - r.left, ev.clientY - r.top, Math.exp(-ev.deltaY * zeilen * tempo));
+        if (ev.deltaX && Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) {
+          this.cam.x -= ev.deltaX * zeilen;
           this.dirty = true;
         }
       },

@@ -7,18 +7,36 @@ betrifft.
 
 ---
 
-## 2026-09-28 — Stellwerk, ein drittes Modul (Migrationen 0032, 0033)
+## 2026-09-28 — Thoughts, ein drittes Modul (Migrationen 0032–0034)
 
-**Das Modul heißt „Stellwerk", die Karte darin im Code weiter Lagekarte.**
-Umbenannt am selben Tag (Wunsch von Bernd): Ein Stellwerk entscheidet, welches
-Gleis frei ist und welcher Zug wartet — genau das zeigt die Karte. Weg, Titel,
-Doku, Änderungsfenster und die Namen im Protokoll (Migration 0033, nur
-`verbose_name`) sagen Stellwerk. Modelle, API-Wege und die Rechnung
+**Das Modul heißt „Thoughts", die Karte darin im Code weiter Lagekarte.**
+Zweimal umbenannt am selben Tag (Wunsch von Bernd): erst Lagekarte →
+Stellwerk (0033), dann Stellwerk → Thoughts (0034). Weg `/module/thoughts`,
+Titel, Doku, Änderungsfenster, der Einspielbefehl und die Namen im Protokoll
+(nur `verbose_name`) sagen Thoughts. Modelle, API-Wege und die Rechnung
 (`Lagethema`, `/api/lageschritte/`, `basis/lagekarte.ts`, CSS `lk-`) heißen
 weiter Lage…: **Die Modellnamen stehen in jeder Sicherung**, und ein
-Umbenennen machte vorhandene Archive uneinspielbar.
+Umbenennen machte vorhandene Archive uneinspielbar. Der alte Weg
+`/module/stellwerk` führt nirgends mehr hin — er war nur Stunden in Gebrauch.
 
-**Die Karte selbst kommt aus `daten/stellwerk.json`** (`stellwerk_einspielen`),
+**Mausrad zoomt immer, Pfeile halten Abstand** (Rückmeldung 2026-09-28). Die
+Unterscheidung „Mausrad zoomt, Trackpad schwenkt" riet am Mac falsch, weil ein
+Mausrad dort geglättete Pixel liefert; jetzt zoomt jedes senkrechte Rollen,
+geschwenkt wird durch Ziehen. Pfeile docken nie näher als 12 px an einer
+Kachelecke an und an derselben Seite mindestens 24 px auseinander; passen
+nicht alle, weichen die äußeren auf die Nachbarseite aus — das jetzt auch in
+der schnellen Führung beim Ziehen, damit ein Pfeil beim Loslassen nicht die
+Seite wechselt. Dazu, nach „die Anordnung überlappt, soll symmetrisch sein und nicht
+überkreuzen": Ein Pfeil geht **waagrecht** hinaus, sobald daneben Platz für
+einen Knick ist (früher gewann die Richtung mit mehr Platz, und ein Fächer
+ging halb oben und unten hinaus, durch den Spalt zwischen zwei Themen). An
+einer Seite wird **nach dem Winkel zum Ziel** sortiert statt nach dessen Lage
+— zwei Ziele gleich weit rechts hatten sonst Zufallsreihenfolge und kreuzten.
+Die Andockpunkte liegen **symmetrisch um die Mittellinie**, und der Wegsucher
+zahlt für jede Kreuzung einen Aufschlag. In der schnellen Führung nimmt die weiteste Strecke
+die Mittelspur, die anderen weichen zum Ziel hin aus — innen vorbei.
+
+**Die Karte selbst kommt aus `daten/thoughts.json`** (`thoughts_einspielen`),
 im Format des Entwurfs. Sie ist mit Bernd im Entwurf erarbeitet worden und
 stand dort als Beispieldaten; der Browserspeicher des Prototyps, in dem sie
 weiterbearbeitet worden sein könnte, war nicht mehr auffindbar. Nicht als

@@ -121,25 +121,25 @@ python manage.py probedaten --entfernen
 etwas zeigen. Ihre Adressen enden auf `.invalid` (per RFC 2606 reserviert) und
 sie haben kein Passwort — anmelden kann sich damit niemand.
 
-## Die Karte des Stellwerks
+## Die Karte von Thoughts
 
-Die Karte unter Module · Stellwerk kommt aus `daten/stellwerk.json`, im Format
+Die Karte unter Module · Thoughts kommt aus `daten/thoughts.json`, im Format
 des Entwurfs `entwurf/module/Lagekarte.html` (Themen, Knoten, Kanten). Der
 Befehl vermischt keine zwei Karten; `--ersetzen` entfernt die vorhandene zuerst
 (weich).
 
 ```bash
-python manage.py stellwerk_einspielen
+python manage.py thoughts_einspielen
 ```
 
 Am Server liegt `daten/` nicht im Abbild. Die Datei wird hineinkopiert:
 
 ```bash
-scp daten/stellwerk.json socos:/tmp/stellwerk.json
+scp daten/thoughts.json socos:/tmp/thoughts.json
 ```
 
 ```bash
-ssh socos 'cd /opt/socos && docker compose -f betrieb/anwendung.yml cp /tmp/stellwerk.json anwendung:/tmp/stellwerk.json && docker compose -f betrieb/anwendung.yml exec anwendung python manage.py stellwerk_einspielen --datei /tmp/stellwerk.json && rm /tmp/stellwerk.json'
+ssh socos 'cd /opt/socos && docker compose -f betrieb/anwendung.yml cp /tmp/thoughts.json anwendung:/tmp/thoughts.json && docker compose -f betrieb/anwendung.yml exec anwendung python manage.py thoughts_einspielen --datei /tmp/thoughts.json && rm /tmp/thoughts.json'
 ```
 
 ## Symbole der Marke

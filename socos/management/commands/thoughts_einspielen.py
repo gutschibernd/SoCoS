@@ -1,5 +1,5 @@
 """
-Spielt die Karte des Stellwerks aus `daten/stellwerk.json` ein.
+Spielt die Karte von Thoughts aus `daten/thoughts.json` ein.
 
 Das Format ist das des Entwurfs (`entwurf/module/Lagekarte.html`): Themen,
 Knoten und Kanten mit eigenen, kurzen Kennungen („gr", „gv"). So lässt sich
@@ -24,13 +24,13 @@ from django.db import transaction
 from socos.models import Lageschritt, Lagethema, Lageverbindung
 from socos.services import lagekarte
 
-STANDARDDATEI = Path("daten/stellwerk.json")
+STANDARDDATEI = Path("daten/thoughts.json")
 
 ARTEN = {wert for wert, _ in Lageschritt.Art.choices}
 
 
 class Command(BaseCommand):
-    help = "Spielt die Karte des Stellwerks aus daten/stellwerk.json ein."
+    help = "Spielt die Karte von Thoughts aus daten/thoughts.json ein."
 
     def add_arguments(self, parser):
         parser.add_argument("--datei", default=str(STANDARDDATEI))

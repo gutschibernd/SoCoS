@@ -1,5 +1,5 @@
 """
-Stellwerk (die Lagekarte): was der Server an den Verbindungen prüft.
+Thoughts (die Lagekarte): was der Server an den Verbindungen prüft.
 
 Nur das, was die Datenbank allein nicht halten kann. Doppelte Verbindungen und
 Verbindungen auf sich selbst hält sie (Einschränkungen am Modell). Einen Kreis

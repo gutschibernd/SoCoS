@@ -23,7 +23,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-28",
-        "titel": "Aufgaben als eine Liste, und das Stellwerk",
+        "titel": "Aufgaben als eine Liste, und Thoughts",
         "punkte": [
             {
                 "titel": "Was drängt, steht oben",
@@ -53,13 +53,13 @@ VERSIONEN = [
                 "wo": "aufgaben/archiv",
             },
             {
-                "titel": "Neu: das Stellwerk",
+                "titel": "Neu: Thoughts",
                 "text": (
-                    "Unter Module · Stellwerk stehen unsere Themenfelder als Karte: "
+                    "Unter Module · Thoughts stehen unsere Themenfelder als Karte: "
                     "was darin ansteht und wer an wem hängt. Rechts steht immer, "
                     "was gerade wartet und was als Nächstes frei ist."
                 ),
-                "wo": "module/stellwerk",
+                "wo": "module/thoughts",
             },
             {
                 "titel": "Gedanken festhalten und verbinden",

@@ -805,7 +805,7 @@ class PraktikumsthemaSerializer(serializers.ModelSerializer):
         return text
 
 
-# --- Module: Stellwerk (die Lagekarte) ------------------------------------------------------
+# --- Module: Thoughts (die Lagekarte) ------------------------------------------------------
 
 
 class LagethemaSerializer(serializers.ModelSerializer):

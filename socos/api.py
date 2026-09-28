@@ -804,7 +804,7 @@ class PraktikumsthemaViewSet(SocosViewSet):
         return antwort
 
 
-# --- Module: Stellwerk (die Lagekarte) -------------------------------------------------------
+# --- Module: Thoughts (die Lagekarte) -------------------------------------------------------
 #
 # Die gewöhnliche Regel: sehen alle, anlegen und ändern Admin und Bearbeiter,
 # entfernen nur der Admin. Was beim Entfernen mitgeht, steht hier und nicht in

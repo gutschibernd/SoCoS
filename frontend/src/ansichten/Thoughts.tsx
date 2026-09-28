@@ -1,10 +1,9 @@
 /**
- * Module · Stellwerk: was in welchem Themenfeld ansteht, was frei ist und
+ * Module · Thoughts: was in welchem Themenfeld ansteht, was frei ist und
  * worauf gewartet wird.
  *
- * **Warum „Stellwerk":** Ein Stellwerk entscheidet, welches Gleis frei ist und
- * welcher Zug wartet, bis ein anderer durch ist — genau das zeigt die Karte.
- * Die Karte selbst heißt im Code weiter Lagekarte (`basis/lagekarte.ts`,
+ * Das Modul hieß zuerst Lagekarte, dann Stellwerk, jetzt Thoughts (Wunsch
+ * von Bernd, 2026-09-28). Die Karte selbst heißt im Code weiter Lagekarte (`basis/lagekarte.ts`,
  * `Lagethema`, `/api/lageschritte/`): Die Modellnamen stehen in jeder
  * Sicherung, und ein Umbenennen machte vorhandene Archive uneinspielbar.
  *
@@ -45,7 +44,7 @@ import { Leerstelle } from "../bausteine/Leerstelle";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
-export function Stellwerk({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }) {
+export function Thoughts({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }) {
   const karte = useLagekarte();
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
   if (!karte.data) return <Zustand abfrage={karte} erneut={() => karte.refetch()} />;
@@ -247,7 +246,7 @@ function Kartenseite({ ich, daten, wechseln }: { ich: Ich; daten: Karte; wechsel
   const zahlen = `${l.wartet.length + l.haengt.length} warten · ${l.frei.length} frei`;
 
   return (
-    <div className="stellwerk">
+    <div className="thoughts">
       <main className="lk-buehne" ref={buehneRef}>
         <div className="lk-host" ref={hostRef} />
 

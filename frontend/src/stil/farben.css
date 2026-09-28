@@ -90,7 +90,7 @@
   --wartend: #5c4a70;
   --wartend-hell: #eee9f2;
 
-  /* Thementöne des Stellwerks: je eine Fläche (`--f`) und ein Ton (`--t`).
+  /* Thementöne von Thoughts: je eine Fläche (`--f`) und ein Ton (`--t`).
      **Die Fläche sagt, wohin etwas gehört** — der Status steht an der Kante,
      nie in der Farbe, sonst liest man Grün als „erledigt".
      Gerechnet gegen jeden Untergrund, auf dem sie vorkommen:

@@ -214,7 +214,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, nach Fälligkeit." },
-            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die SPG Academy, die Praktikantenstellen und das Stellwerk." },
+            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die SPG Academy, die Praktikantenstellen und Thoughts." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
@@ -838,8 +838,8 @@ function ModuleDoku() {
       </Abschnitt>
 
       <Abschnitt
-        zeichen="stellwerk"
-        titel="Stellwerk: was frei ist und worauf gewartet wird"
+        zeichen="thoughts"
+        titel="Thoughts: was frei ist und worauf gewartet wird"
         vorspann="Eine Karte der Themenfelder — Gründung, Praktikantinnen, Pilotpatient … — mit den Schritten darin und wer an wem hängt. Die Seitenspalte sagt jederzeit, was wartet und was als Nächstes frei ist."
       >
         <Schritte
@@ -883,7 +883,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Weitere Griffe",
-              text: "Doppelklick auf die freie Fläche legt dort einen Gedanken an, Doppelklick auf eine Kachel ändert den Titel. Leertaste hakt die gewählte Kachel ab, Escape hebt die Auswahl auf, + und − zoomen. Das Rad der Maus zoomt, das Trackpad schwenkt.",
+              text: "Doppelklick auf die freie Fläche legt dort einen Gedanken an, Doppelklick auf eine Kachel ändert den Titel. Leertaste hakt die gewählte Kachel ab, Escape hebt die Auswahl auf, + und − zoomen. Das Mausrad zoomt; geschwenkt wird durch Ziehen auf der freien Fläche.",
             },
             {
               begriff: "Ein Thema auflösen",

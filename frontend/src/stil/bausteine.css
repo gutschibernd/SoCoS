@@ -43,7 +43,7 @@
  * Ist die Leiste höher als das Fenster — bei 800 px Höhe mit aufgeklapptem
  * Modulzweig ist sie 984 hoch —, rollt sie in sich selbst. Ohne das ragte
  * sie unten aus der Seite, die ganze Seite bekam einen Rollbalken, und auf
- * dem Stellwerk, das genau fensterhoch ist, rutschte die Fläche beim Rollen
+ * Thoughts, das genau fensterhoch ist, rutschte die Fläche beim Rollen
  * unter die Kontextleiste. Nichts in der Leiste klappt über ihren Rand
  * hinaus; die Paketwahl öffnet ein Fenster.
  */
@@ -2229,7 +2229,7 @@ a.mini { text-decoration: none; }
 }
 .feld-blaettern > :last-child { margin-left: auto; }
 
-/* --- Module · Stellwerk --------------------------------------------------- */
+/* --- Module · Thoughts --------------------------------------------------- */
 /*
  * Eine Fläche bis an die Ränder, daneben die Seitenspalte. Alle Klassen
  * tragen `lk-`: `.leiste`, `.seite`, `.raster` und `.knopf` sind in der
@@ -2244,7 +2244,7 @@ a.mini { text-decoration: none; }
 .inhalt:has(> .seite[data-voll="ja"]) { height: 100vh; height: 100dvh; }
 .seite[data-voll="ja"] { padding: 0; max-width: none; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
-.stellwerk {
+.thoughts {
   position: relative; flex: 1; min-height: 0;
   display: grid; grid-template-columns: minmax(0, 1fr) 344px;
 }
@@ -2688,12 +2688,12 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .aufgabe-menue { padding-left: 12px; padding-right: 12px; }
   .aufgaben-neu-menue { padding-left: 12px; padding-right: 12px; }
 
-  /* Das Stellwerk endet über Uhr und Fußleiste (61 + 60 px), statt darunter
+  /* Thoughts endet über Uhr und Fußleiste (61 + 60 px), statt darunter
      weiterzulaufen — sonst lägen die Tiefenknöpfe und das Blatt hinter der
      Leiste. Die Seitenspalte wird zum Blatt von unten. Der Abstand gewinnt
      über das Attribut gegen `.seite` weiter unten, nicht über die Reihenfolge. */
   .seite[data-voll="ja"] { padding: 0 0 calc(121px + env(safe-area-inset-bottom)); }
-  .stellwerk { grid-template-columns: minmax(0, 1fr); }
+  .thoughts { grid-template-columns: minmax(0, 1fr); }
   .lk-seite {
     position: absolute; z-index: 8; left: 0; right: 0; bottom: 0;
     height: 64px; max-height: 80%;
