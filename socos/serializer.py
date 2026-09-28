@@ -12,6 +12,9 @@ from rest_framework import serializers
 from socos import berechtigung
 from socos.models import (
     Arbeitspaket,
+    Lageschritt,
+    Lagethema,
+    Lageverbindung,
     Aufgabe,
     Canvaspunkt,
     Event,
@@ -37,7 +40,7 @@ from socos.models import (
     Vorhaben,
     Zeitbuchung,
 )
-from socos.services import ausschreibung, auswertung, zeit as zeitdienst
+from socos.services import ausschreibung, auswertung, lagekarte, zeit as zeitdienst
 
 
 class NutzerSerializer(serializers.ModelSerializer):
@@ -800,3 +803,64 @@ class PraktikumsthemaSerializer(serializers.ModelSerializer):
                 "Kürze sie — oder bitte das LLM darum."
             )
         return text
+
+
+# --- Module: Lagekarte ------------------------------------------------------
+
+
+class LagethemaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lagethema
+        fields = ["id", "name", "farbe", "x", "y"]
+
+
+class LageschrittSerializer(serializers.ModelSerializer):
+    """
+    Ein Schritt. `haengt_an` gibt es nur beim Anlegen: „Nächster Schritt"
+    legt den Schritt **und** die Verbindung zum Vorgänger an — in einem Zug,
+    damit nie ein neuer Schritt ohne seinen Pfeil dasteht, weil die zweite
+    Anfrage gescheitert ist.
+    """
+
+    haengt_an = serializers.PrimaryKeyRelatedField(
+        queryset=Lageschritt.objects.all(), write_only=True, required=False, allow_null=True
+    )
+
+    class Meta:
+        model = Lageschritt
+        fields = ["id", "thema", "titel", "art", "status", "frist", "notiz", "x", "y", "haengt_an"]
+
+    def create(self, daten):
+        vorgaenger = daten.pop("haengt_an", None)
+        schritt = super().create(daten)
+        if vorgaenger is not None:
+            Lageverbindung.objects.create(von=vorgaenger, nach=schritt)
+        return schritt
+
+    def update(self, schritt, daten):
+        daten.pop("haengt_an", None)
+        return super().update(schritt, daten)
+
+
+class LageverbindungSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lageverbindung
+        fields = ["id", "von", "nach", "text"]
+        # Die Einschränkung am Modell gilt nur unter den lebenden; DRF liest
+        # daraus sonst einen Prüfer, der auch gelöste Verbindungen mitzählt.
+        validators = []
+
+    def validate(self, daten):
+        alt = self.instance
+        von = daten.get("von", alt.von if alt else None)
+        nach = daten.get("nach", alt.nach if alt else None)
+        if von == nach:
+            raise serializers.ValidationError("Ein Schritt kann nicht an sich selbst hängen.")
+        doppelt = Lageverbindung.objects.filter(von=von, nach=nach)
+        if alt:
+            doppelt = doppelt.exclude(pk=alt.pk)
+        if doppelt.exists():
+            raise serializers.ValidationError("Diese Verbindung gibt es schon.")
+        if lagekarte.ergaebe_kreis(von.pk, nach.pk, ohne_id=alt.pk if alt else None):
+            raise serializers.ValidationError("Das ergäbe einen Kreis — dann wartet alles aufeinander.")
+        return daten

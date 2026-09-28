@@ -7,6 +7,53 @@ betrifft.
 
 ---
 
+## 2026-09-28 — Lagekarte, ein drittes Modul (Migration 0032)
+
+Eine Karte, auf der steht, was in welchem Themenfeld ansteht und worauf
+gewartet wird — Gründung, Praktikantinnen, Pilotpatient. Entwurf in
+`entwurf/module/Lagekarte.html`.
+
+**Drei Modelle: `Lagethema`, `Lageschritt`, `Lageverbindung`.** Gespeichert
+wird nur, was jemand hingestellt hat: Titel, Art, Status, Frist, Notiz, wer an
+wem hängt, und wo eine Kachel auf der Sternkarte liegt. **„Wartet" und „als
+Nächstes frei" werden gerechnet** — ein gespeichertes „wartet" wäre nach dem
+ersten Abhaken eines Vorgängers falsch, und niemand würde es merken. Ebenso die
+Anordnung der Stränge und die Führung der Pfeile.
+
+**Nur zwei Status: offen und erledigt** (Rückmeldung 2026-09-28). „Läuft" und
+„wartet" gab es im Entwurf: „wartet" folgt aus offenen Vorgängern, und was von
+außen kommt, hat die **Art** „Warten auf". Dazu die Arten Schritt, Entscheidung,
+Termin.
+
+**`x`/`y` stehen nicht im Änderungsprotokoll** (`protokoll_ohne`). Jedes
+Verschieben schriebe sonst einen Eintrag, und „wer hat hier etwas geändert"
+ginge zwischen hundert Mausbewegungen unter.
+
+**Kreise weist der Server ab** (`services/lagekarte.py`), auch beim Umhängen und
+Umdrehen — dort zählt die Verbindung, die gerade geändert wird, nicht mit, sonst
+meldete „Umdrehen" einen Kreis mit sich selbst. Doppelte Verbindungen und
+Verbindungen auf sich selbst hält die Datenbank; die Eindeutigkeit gilt nur
+unter den lebenden, damit eine gelöste Verbindung neu gezogen werden darf.
+Deshalb hat der Serializer `validators = []` und prüft selbst — DRF läse aus
+der Einschränkung sonst einen Prüfer, der die gelösten mitzählt.
+
+**„Nächster Schritt" legt Schritt und Pfeil in einer Anfrage an**
+(`haengt_an`, nur beim Anlegen). Mit zwei Anfragen stünde nach einer
+gescheiterten zweiten ein Schritt ohne seinen Pfeil da.
+
+**Beim Entfernen:** Ein Thema aufzulösen lässt seine Schritte als lose Gedanken
+um die Mitte liegen; mit einem Schritt gehen seine Verbindungen. Beides steht
+im ViewSet, nicht in der Oberfläche. Die Verbindungsliste zeigt nur
+Verbindungen, deren beide Enden leben — über eine Beziehung sähe Django auch
+weich gelöschte Schritte. Entfernen darf, wie überall, nur der Admin — auch
+das Lösen einer Verbindung.
+
+Alle drei Modelle stehen in `MODELLE_IM_ARCHIV` und in der Löschreihenfolge
+(Verbindungen vor Schritten vor Themen); ein Test schickt eine Karte durch
+Ausfuhr und Einfuhr.
+
+---
+
 ## 2026-09-28 — Aufgaben als eine Liste, mehrere Personen, Archiv (Migration 0031)
 
 ### Aus den Spalten wird eine Liste nach Fälligkeit

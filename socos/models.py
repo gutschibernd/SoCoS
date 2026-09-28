@@ -6,6 +6,7 @@ kommen in eigenen Dateien und werden hier importiert.
 """
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
@@ -1903,3 +1904,123 @@ class Praktikumsthema(Basismodell):
 
     def __str__(self):
         return self.titel
+
+
+# --- Module: Lagekarte -------------------------------------------------------
+#
+# Die Karte, auf der steht, was in welchem Themenfeld gerade ansteht und
+# worauf gewartet wird. Drei Modelle: Themen, Schritte, Verbindungen.
+#
+# **Gespeichert wird nur, was jemand hingestellt hat** — Titel, Status, wer an
+# wem hängt, und wo eine Kachel auf der Sternkarte liegt. Ob ein Schritt
+# „wartet" oder „als Nächstes frei" ist, wie die Stränge angeordnet sind und
+# wie ein Pfeil läuft, wird gerechnet (`frontend/src/basis/lagekarte.ts`).
+# Ein gespeichertes „wartet" wäre nach dem ersten Abhaken eines Vorgängers
+# falsch, und niemand würde es merken.
+#
+# **Die Lage auf der Karte (`x`, `y`) steht nicht im Änderungsprotokoll.** Jedes
+# Verschieben schriebe sonst einen Eintrag, und die Frage „wer hat hier etwas
+# geändert" ginge zwischen hundert Mausbewegungen unter.
+
+
+class Lagethema(Basismodell):
+    """Ein Themenfeld — Gründung, Praktikantinnen, Pilotpatient …"""
+
+    protokoll_ohne = ("x", "y")
+
+    name = models.CharField("Name", max_length=80)
+    # Einer der acht Thementöne aus farben.css (--f1…--f8, --t1…--t8).
+    farbe = models.PositiveSmallIntegerField(
+        "Farbe", default=1, validators=[MinValueValidator(1), MaxValueValidator(8)]
+    )
+    x = models.IntegerField("x", default=0)
+    y = models.IntegerField("y", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Thema der Lagekarte"
+        verbose_name_plural = "Themen der Lagekarte"
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.name
+
+
+class Lageschritt(Basismodell):
+    """
+    Ein Schritt, ein Gedanke, eine Entscheidung. Ohne Thema ist er ein loser
+    Gedanke, der um die Mitte kreist, bis ihn jemand zuordnet.
+
+    **Nur zwei Status: offen und erledigt.** „Läuft" und „wartet" gab es im
+    Entwurf und sind mit Absicht weg (Rückmeldung 2026-09-28): „wartet" folgt
+    aus offenen Vorgängern, und was von außen kommt, hat die Art „Warten".
+    """
+
+    class Status(models.TextChoices):
+        OFFEN = "offen", "offen"
+        ERLEDIGT = "erledigt", "erledigt"
+
+    class Art(models.TextChoices):
+        SCHRITT = "schritt", "Schritt"
+        WARTEN = "warten", "Warten auf"
+        ENTSCHEIDUNG = "entscheidung", "Entscheidung"
+        TERMIN = "termin", "Termin"
+
+    protokoll_ohne = ("x", "y")
+
+    thema = models.ForeignKey(
+        Lagethema,
+        verbose_name="Thema",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="schritte",
+    )
+    titel = models.CharField("Titel", max_length=160)
+    art = models.CharField("Art", max_length=16, choices=Art.choices, default=Art.SCHRITT)
+    status = models.CharField("Status", max_length=12, choices=Status.choices, default=Status.OFFEN)
+    frist = models.DateField("Frist", null=True, blank=True)
+    notiz = models.TextField("Notiz", blank=True)
+    x = models.IntegerField("x", default=0)
+    y = models.IntegerField("y", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Schritt der Lagekarte"
+        verbose_name_plural = "Schritte der Lagekarte"
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.titel
+
+
+class Lageverbindung(Basismodell):
+    """
+    „`nach` hängt an `von`" — erst wenn `von` erledigt ist, ist `nach` frei.
+
+    Kreise werden abgewiesen (`services/lagekarte.py`): In einem Kreis wartet
+    alles aufeinander, und nichts würde je frei.
+    """
+
+    von = models.ForeignKey(
+        Lageschritt, verbose_name="von", on_delete=models.CASCADE, related_name="ausgaenge"
+    )
+    nach = models.ForeignKey(
+        Lageschritt, verbose_name="nach", on_delete=models.CASCADE, related_name="eingaenge"
+    )
+    text = models.CharField("Beschriftung", max_length=40, blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Verbindung der Lagekarte"
+        verbose_name_plural = "Verbindungen der Lagekarte"
+        ordering = ["id"]
+        constraints = [
+            # Nur unter den lebenden: Eine gelöste Verbindung darf neu gezogen werden.
+            models.UniqueConstraint(
+                fields=["von", "nach"],
+                condition=models.Q(geloescht_am__isnull=True),
+                name="lageverbindung_einmal",
+            ),
+            models.CheckConstraint(condition=~models.Q(von=models.F("nach")), name="lageverbindung_nicht_auf_sich"),
+        ]
+
+    def __str__(self):
+        return f"{self.von} → {self.nach}"
