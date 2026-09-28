@@ -1906,7 +1906,7 @@ class Praktikumsthema(Basismodell):
         return self.titel
 
 
-# --- Module: Lagekarte -------------------------------------------------------
+# --- Module: Stellwerk (die Lagekarte) -------------------------------------------------------
 #
 # Die Karte, auf der steht, was in welchem Themenfeld gerade ansteht und
 # worauf gewartet wird. Drei Modelle: Themen, Schritte, Verbindungen.
@@ -1937,8 +1937,8 @@ class Lagethema(Basismodell):
     y = models.IntegerField("y", default=0)
 
     class Meta(Basismodell.Meta):
-        verbose_name = "Thema der Lagekarte"
-        verbose_name_plural = "Themen der Lagekarte"
+        verbose_name = "Thema im Stellwerk"
+        verbose_name_plural = "Themen im Stellwerk"
         ordering = ["id"]
 
     def __str__(self):
@@ -1984,8 +1984,8 @@ class Lageschritt(Basismodell):
     y = models.IntegerField("y", default=0)
 
     class Meta(Basismodell.Meta):
-        verbose_name = "Schritt der Lagekarte"
-        verbose_name_plural = "Schritte der Lagekarte"
+        verbose_name = "Schritt im Stellwerk"
+        verbose_name_plural = "Schritte im Stellwerk"
         ordering = ["id"]
 
     def __str__(self):
@@ -2009,8 +2009,8 @@ class Lageverbindung(Basismodell):
     text = models.CharField("Beschriftung", max_length=40, blank=True)
 
     class Meta(Basismodell.Meta):
-        verbose_name = "Verbindung der Lagekarte"
-        verbose_name_plural = "Verbindungen der Lagekarte"
+        verbose_name = "Verbindung im Stellwerk"
+        verbose_name_plural = "Verbindungen im Stellwerk"
         ordering = ["id"]
         constraints = [
             # Nur unter den lebenden: Eine gelöste Verbindung darf neu gezogen werden.

@@ -26,9 +26,9 @@ import {
 } from "./module";
 
 describe("die Wege der Module", () => {
-  it("kennt die Workshops der SPG Academy, die Praktikantenstellen und die Lagekarte", () => {
-    expect(MODULWEGE).toEqual(["spg", "spg-businessplan", "spg-vision", "praktikum", "praktikum-ideen", "lagekarte"]);
-    expect(teilZuWeg("lagekarte")?.teil.schluessel).toBe("lagekarte");
+  it("kennt die Workshops der SPG Academy, die Praktikantenstellen und das Stellwerk", () => {
+    expect(MODULWEGE).toEqual(["spg", "spg-businessplan", "spg-vision", "praktikum", "praktikum-ideen", "stellwerk"]);
+    expect(teilZuWeg("stellwerk")?.teil.schluessel).toBe("stellwerk");
     expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikantenstellen");
     expect(teilZuWeg("praktikum")?.teil.titel).toBe("Haupt-Aufgabenstellungen");
     expect(teilZuWeg("spg-businessplan")?.teil.schluessel).toBe("businessplan");

@@ -1,5 +1,5 @@
 /**
- * Die Bühne der Lagekarte: eine unendliche Fläche mit Kacheln und Pfeilen,
+ * Die Bühne des Stellwerks — seine Lagekarte: eine unendliche Fläche mit Kacheln und Pfeilen,
  * die man schwenkt, zoomt und auf der man zieht.
  *
  * **Warum das kein React ist:** Beim Zoomen und Ziehen gleiten alle Kacheln
@@ -7,7 +7,7 @@
  * jeder dieser Schritte durch einen Abgleich des ganzen Baums; hier setzt ein
  * Takt nur `left`/`top` und zeichnet die Pfeile neu. Die Kacheln selbst
  * werden nur gebaut, wenn sich die Daten ändern. Werkzeugleisten und
- * Seitenspalte sind React (`ansichten/Lagekarte.tsx`) — dort ändert sich
+ * Seitenspalte sind React (`ansichten/Stellwerk.tsx`) — dort ändert sich
  * nichts im Takt.
  *
  * **Die Bühne speichert nichts.** Jede Handlung geht als Ereignis hinaus, die

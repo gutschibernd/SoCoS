@@ -58,7 +58,7 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   "module/spg-vision": { titel: "SPG Academy", unter: "Vision Statement" },
   "module/praktikum": { titel: "Praktikantenstellen", unter: "Haupt-Aufgabenstellungen" },
   "module/praktikum-ideen": { titel: "Praktikantenstellen", unter: "Sonstige Ideen" },
-  "module/lagekarte": { titel: "Lagekarte", unter: "Was ansteht, worauf gewartet wird" },
+  "module/stellwerk": { titel: "Stellwerk", unter: "Was frei ist, was wartet" },
 };
 
 export function App() {
@@ -128,9 +128,9 @@ export function App() {
           <div className="unter">{kopfzeile.unter}</div>
         </div>
 
-        {/* Die Lagekarte ist eine Fläche bis an die Ränder — ohne den Innenabstand
+        {/* Das Stellwerk ist eine Fläche bis an die Ränder — ohne den Innenabstand
             und die Höchstbreite, die einer Liste Luft geben. */}
-        <main className="seite" data-voll={ort.seite === "module" && ort.unter === "lagekarte" ? "ja" : undefined}>
+        <main className="seite" data-voll={ort.seite === "module" && ort.unter === "stellwerk" ? "ja" : undefined}>
           {ort.seite === "start" && <Start ich={ich.data} wechseln={wechseln} />}
           {ort.seite === "dashboard" && <Dashboard ich={ich.data} wechseln={wechseln} />}
           {ort.seite === "projekt" && (

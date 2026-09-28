@@ -121,6 +121,27 @@ python manage.py probedaten --entfernen
 etwas zeigen. Ihre Adressen enden auf `.invalid` (per RFC 2606 reserviert) und
 sie haben kein Passwort — anmelden kann sich damit niemand.
 
+## Die Karte des Stellwerks
+
+Die Karte unter Module · Stellwerk kommt aus `daten/stellwerk.json`, im Format
+des Entwurfs `entwurf/module/Lagekarte.html` (Themen, Knoten, Kanten). Der
+Befehl vermischt keine zwei Karten; `--ersetzen` entfernt die vorhandene zuerst
+(weich).
+
+```bash
+python manage.py stellwerk_einspielen
+```
+
+Am Server liegt `daten/` nicht im Abbild. Die Datei wird hineinkopiert:
+
+```bash
+scp daten/stellwerk.json socos:/tmp/stellwerk.json
+```
+
+```bash
+ssh socos 'cd /opt/socos && docker compose -f betrieb/anwendung.yml cp /tmp/stellwerk.json anwendung:/tmp/stellwerk.json && docker compose -f betrieb/anwendung.yml exec anwendung python manage.py stellwerk_einspielen --datei /tmp/stellwerk.json && rm /tmp/stellwerk.json'
+```
+
 ## Symbole der Marke
 
 Favicon, ICO und Apple-Touch-Icon liegen fertig in `statisch/` und gehören ins

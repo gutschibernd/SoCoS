@@ -60,7 +60,7 @@ import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
-import { Lagekarte } from "./Lagekarte";
+import { Stellwerk } from "./Stellwerk";
 import { Praktikum, Themenseite } from "./Praktikum";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
@@ -79,7 +79,7 @@ export function Module({
   const treffer = teilZuWeg(unter);
   if (!treffer) return <Uebersicht wechseln={wechseln} />;
   const { modul, teil } = treffer;
-  if (teil.schluessel === "lagekarte") return <Lagekarte ich={ich} wechseln={wechseln} />;
+  if (teil.schluessel === "stellwerk") return <Stellwerk ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "praktikum")
     return (
       <Praktikum
@@ -139,7 +139,7 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
             {m.teile.map((teil, i) =>
               teil.schluessel === "praktikum" ? (
                 <Themenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
-              ) : teil.schluessel === "lagekarte" ? (
+              ) : teil.schluessel === "stellwerk" ? (
                 <Kartenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : (
                 <Teilzeile key={teil.weg} teil={teil} stelle={i} vorhaben={eines} wechseln={wechseln} />
@@ -236,7 +236,7 @@ function Themenzeile({
   );
 }
 
-/** Eine Zeile der Kachel für die Lagekarte: wie viele Themen, wie viel noch offen ist. */
+/** Eine Zeile der Kachel für das Stellwerk: wie viele Themen, wie viel noch offen ist. */
 function Kartenzeile({ teil, stelle, wechseln }: { teil: Kartenteil; stelle: number; wechseln: Wechseln }) {
   const karte = useLagekarte();
   const stand = karte.data
