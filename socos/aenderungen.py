@@ -23,7 +23,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-09-28",
-        "titel": "Aufgaben als eine Liste, und die Lagekarte",
+        "titel": "Aufgaben als eine Liste, und das Stellwerk",
         "punkte": [
             {
                 "titel": "Was drängt, steht oben",
@@ -53,13 +53,13 @@ VERSIONEN = [
                 "wo": "aufgaben/archiv",
             },
             {
-                "titel": "Neu: die Lagekarte",
+                "titel": "Neu: das Stellwerk",
                 "text": (
-                    "Unter Module · Lagekarte stehen unsere Themenfelder als Karte: "
+                    "Unter Module · Stellwerk stehen unsere Themenfelder als Karte: "
                     "was darin ansteht und wer an wem hängt. Rechts steht immer, "
                     "was gerade wartet und was als Nächstes frei ist."
                 ),
-                "wo": "module/lagekarte",
+                "wo": "module/stellwerk",
             },
             {
                 "titel": "Gedanken festhalten und verbinden",

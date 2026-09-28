@@ -7,7 +7,22 @@ betrifft.
 
 ---
 
-## 2026-09-28 — Lagekarte, ein drittes Modul (Migration 0032)
+## 2026-09-28 — Stellwerk, ein drittes Modul (Migrationen 0032, 0033)
+
+**Das Modul heißt „Stellwerk", die Karte darin im Code weiter Lagekarte.**
+Umbenannt am selben Tag (Wunsch von Bernd): Ein Stellwerk entscheidet, welches
+Gleis frei ist und welcher Zug wartet — genau das zeigt die Karte. Weg, Titel,
+Doku, Änderungsfenster und die Namen im Protokoll (Migration 0033, nur
+`verbose_name`) sagen Stellwerk. Modelle, API-Wege und die Rechnung
+(`Lagethema`, `/api/lageschritte/`, `basis/lagekarte.ts`, CSS `lk-`) heißen
+weiter Lage…: **Die Modellnamen stehen in jeder Sicherung**, und ein
+Umbenennen machte vorhandene Archive uneinspielbar.
+
+**Die Karte selbst kommt aus `daten/stellwerk.json`** (`stellwerk_einspielen`),
+im Format des Entwurfs. Sie ist mit Bernd im Entwurf erarbeitet worden und
+stand dort als Beispieldaten; der Browserspeicher des Prototyps, in dem sie
+weiterbearbeitet worden sein könnte, war nicht mehr auffindbar. Nicht als
+Migration und nicht als Fixture: Sie nennt Personen und Vorhaben.
 
 Eine Karte, auf der steht, was in welchem Themenfeld ansteht und worauf
 gewartet wird — Gründung, Praktikantinnen, Pilotpatient. Entwurf in

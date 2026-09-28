@@ -56,9 +56,9 @@ NAMEN = {
     "socos.Canvaspunkt": ("m", "Canvas-Punkt", "Canvas-Punkte"),
     "socos.Persona": ("f", "Persona", "Personas"),
     "socos.Praktikumsthema": ("n", "Praktikumsthema", "Praktikumsthemen"),
-    "socos.Lagethema": ("n", "Thema der Lagekarte", "Themen der Lagekarte"),
-    "socos.Lageschritt": ("m", "Schritt der Lagekarte", "Schritte der Lagekarte"),
-    "socos.Lageverbindung": ("f", "Verbindung der Lagekarte", "Verbindungen der Lagekarte"),
+    "socos.Lagethema": ("n", "Thema im Stellwerk", "Themen im Stellwerk"),
+    "socos.Lageschritt": ("m", "Schritt im Stellwerk", "Schritte im Stellwerk"),
+    "socos.Lageverbindung": ("f", "Verbindung im Stellwerk", "Verbindungen im Stellwerk"),
 }
 UNBEKANNT = ("m", "Eintrag", "Einträge")
 

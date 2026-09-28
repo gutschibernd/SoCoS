@@ -158,7 +158,7 @@ def test_langer_objekttext_wird_gekuerzt_und_ohne_sternchen(als, bearbeiter):
 def test_jedes_gesicherte_modell_hat_einen_namen_im_satz():
     """
     Ohne Eintrag in `NAMEN` stünde am Dashboard „hat einen neuen Eintrag
-    angelegt" — plausibel und nichtssagend. Genau das wäre der Lagekarte
+    angelegt" — plausibel und nichtssagend. Genau das wäre dem Stellwerk
     passiert: Sie und diese Kachel sind in zwei Zweigen gleichzeitig
     entstanden, und keiner der beiden konnte vom anderen wissen.
 

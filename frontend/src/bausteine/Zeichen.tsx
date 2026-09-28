@@ -48,7 +48,7 @@ export type ZeichenName =
   | "module"
   | "akademie"
   | "mappe"
-  | "lagekarte";
+  | "stellwerk";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -135,7 +135,7 @@ const PFADE: Record<ZeichenName, string> = {
   // Eine Mitte und drei Themen darum, jedes mit seinem Strich dorthin — die
   // Sternkarte im Kleinen. Drei und nicht vier: Symmetrisch wird daraus bei
   // 18 px ein Kreuz, und ein Kreuz heißt „schließen".
-  lagekarte: "M10 10h4v4h-4zM4 4h4v4H4zM16 4h4v4h-4zM4 16h4v4H4zM8 8l2 2M16 8l-2 2M8 16l2-2",
+  stellwerk: "M10 10h4v4h-4zM4 4h4v4H4zM16 4h4v4h-4zM4 16h4v4H4zM8 8l2 2M16 8l-2 2M8 16l2-2",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

@@ -30,10 +30,10 @@ export type Workshop = {
 export type Themenliste = { weg: string; titel: string; schluessel: "praktikum"; art: Themenart };
 
 /**
- * Ein Teil, der eine eigene Seite ohne Felder vom Server ist — die Lagekarte.
+ * Ein Teil, der eine eigene Seite ohne Felder vom Server ist — das Stellwerk.
  * Sie hat keine Unterteile und zählt nichts gegen eine feste Zahl.
  */
-export type Kartenteil = { weg: string; titel: string; schluessel: "lagekarte" };
+export type Kartenteil = { weg: string; titel: string; schluessel: "stellwerk" };
 
 export type Teil = Workshop | Themenliste | Kartenteil;
 
@@ -70,11 +70,11 @@ export const MODULE: Modul[] = [
     ],
   },
   {
-    weg: "lagekarte",
-    titel: "Lagekarte",
+    weg: "stellwerk",
+    titel: "Stellwerk",
     wozu: "Was in welchem Thema ansteht und worauf gewartet wird",
-    zeichen: "lagekarte",
-    teile: [{ weg: "lagekarte", titel: "Themen, Schritte, Abhängigkeiten", schluessel: "lagekarte" }],
+    zeichen: "stellwerk",
+    teile: [{ weg: "stellwerk", titel: "Themen, Schritte, Abhängigkeiten", schluessel: "stellwerk" }],
   },
 ];
 

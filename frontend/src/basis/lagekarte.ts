@@ -1,5 +1,5 @@
 /**
- * Module · Lagekarte: was aus der Karte gerechnet wird.
+ * Module · Stellwerk: was aus seiner Lagekarte gerechnet wird.
  *
  * Gespeichert ist nur, was jemand hingestellt hat — Themen, Schritte, wer an
  * wem hängt, und wo eine Kachel auf der Sternkarte liegt. **Alles hier ist
