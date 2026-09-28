@@ -922,6 +922,11 @@ nebenbei „seit wann", und der Vergleich „was ist für diesen Nutzer neu" ist
 Zeichenkettenvergleich. Zwei Änderungen an einem Tag bekommen **einen** Eintrag mit
 zwei Punkten.
 
+**Nur größere Änderungen kommen hinein** (Entscheidung 2026-09-28): neues Modul,
+geänderter Ablauf, etwas fällt weg oder zieht um. Kleinigkeiten nicht mehr — ein
+Fenster, das nach jeder Anmeldung wegen eines umbenannten Knopfs aufgeht, wird
+ungelesen weggeklickt, auch wenn es einmal darauf ankommt.
+
 ### Warum `neuigkeiten_bis` eine Version ist und kein Zeitstempel
 
 `Nutzer.neuigkeiten_bis` merkt sich die zuletzt bestätigte **Version**, nicht den

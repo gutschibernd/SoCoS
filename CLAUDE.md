@@ -197,12 +197,19 @@ liegen. Die Zahlen stehen als Kommentar in `farben.css`.
 `--auf-marke` kippen zwischen hell und dunkel, die Leiste nicht — wer dort einen
 Markenton benutzt, bekommt im dunklen Thema Hell auf Hell.
 
-## Änderungen werden protokolliert — in `socos/aenderungen.py`
+## Größere Änderungen werden angekündigt — in `socos/aenderungen.py`
 
-**Wer etwas ändert, das man in der Oberfläche merkt, trägt es dort ein — im selben
-Commit.** Auch Kleinigkeiten: ein umbenannter Knopf, ein Feld, das dazukommt, eine
-Liste, die anders sortiert. Genau die fallen sonst niemandem auf außer dem, der sie
-am nächsten Tag sucht.
+**Nur größere Änderungen bekommen einen Eintrag** — und damit das Fenster nach der
+Anmeldung. Größer heißt: ein neues Modul oder eine neue Seite, ein Arbeitsablauf,
+der anders geht als gewohnt, etwas, das wegfällt oder an einen anderen Ort zieht.
+Dann im selben Commit.
+
+**Kleinigkeiten bekommen keinen**: ein umbenannter Knopf, ein Feld, das dazukommt,
+eine andere Sortierung, Feinschliff an der Optik. Ein Fenster, das nach jeder
+Anmeldung wegen solcher Dinge aufgeht, wird nach dem dritten Mal ungelesen
+weggeklickt — und dann auch das, bei dem es darauf ankam.
+
+**Im Zweifel keiner.** Wer unsicher ist, fragt nach.
 
 Ein Eintrag ist **kein Commit-Text**. Er sagt einem Nutzer, was er jetzt anders machen
 kann — nicht, welche Datei angefasst wurde:
