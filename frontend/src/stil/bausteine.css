@@ -1413,151 +1413,168 @@ a.mini { text-decoration: none; }
 }
 .verlauf-fuss { display: block; margin-top: 4px; font-size: 11px; color: var(--text-sehr-leise); }
 
-/* --- Die Aufgabentafel ---------------------------------------------------- */
+/* --- Aufgaben ------------------------------------------------------------ */
 /*
- * Spalten nebeneinander, jede eine Karte. Kein Raster mit fester Spaltenzahl:
- * Wie viele Spalten es gibt, hängt daran, wie viele Leute es gibt und wie
- * viele davon zugeklappt sind — ein `repeat(4, …)` wäre bei dreien falsch und
- * bei fünfen zu eng.
- *
- * `align-items: flex-start`, damit eine Spalte mit zwei Zeilen nicht auf die
- * Höhe der Spalte mit zwanzig gezogen wird.
+ * Eine Liste, nicht Spalten. Begrenzt auf eine Lesebreite: Über 1400 px
+ * gelesen, verliert man am Zeilenende die Zeile — und eine Aufgabe ist ein
+ * Satz, kein Absatz.
  */
-.tafel { display: flex; gap: 16px; align-items: flex-start; }
-.tafel-spalte { flex: 1 1 0; min-width: 0; padding: 14px 16px; }
+.aufgabenseite { max-width: 820px; display: flex; flex-direction: column; gap: 16px; }
+.aufgaben-kopf { display: flex; flex-direction: column; gap: 12px; }
+.aufgaben-kopf > .spannenwahl { align-self: flex-start; }
+.aufgaben-kopf .spannenwahl .zahl { margin-left: 6px; font-size: 12px; opacity: 0.8; }
 
-/* Die zugeklappte Spalte: ein schmaler Streifen am rechten Rand, der sich mit
-   einem Tipp wieder öffnet. Beschriftet, nicht nur ein Kürzel — wer die Tafel
-   zum ersten Mal sieht, soll nicht raten, was hinter dem Streifen liegt. */
-.tafel-streifen {
-  flex: 0 0 52px; align-self: stretch;
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 14px 6px;
-  background: var(--flaeche); border: 1px solid var(--rand);
-  border-radius: var(--kante); cursor: pointer;
-  font: inherit; color: var(--text-leise);
+/* Knöpfe mit An/Aus: der Filter, die Personen, die Schnellfristen. Einer
+   Form für alle drei, damit „gewählt" überall gleich aussieht. */
+.aufgaben-filter {
+  display: flex; gap: 8px; align-items: center;
+  /* Am Handy passt die Reihe nicht — sie läuft seitlich weiter, statt in
+     zwei Zeilen umzubrechen, die den Anfang der Liste wegschieben. */
+  overflow-x: auto; scrollbar-width: none; padding-bottom: 2px;
 }
-.tafel-streifen:hover { border-color: var(--akzent); color: var(--akzent); }
-/* Der Name steht aufrecht gestellt — quer gelesen braucht der Streifen sonst
-   die Breite einer halben Spalte. */
-.tafel-streifen-name {
-  writing-mode: vertical-rl; font-size: 12.5px; font-weight: 600;
-  letter-spacing: 0.02em;
+.aufgaben-filter::-webkit-scrollbar { display: none; }
+.aufgaben-trenner { flex: 0 0 1px; align-self: stretch; margin: 6px 2px; background: var(--rand); }
+.aufgaben-knoepfe { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.aufgaben-chip {
+  flex: 0 0 auto; min-height: 36px; padding: 0 12px;
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--rand); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text-leise);
+  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap;
 }
+.aufgaben-chip:hover:not(:disabled) { border-color: var(--rand-stark); color: var(--text); }
+.aufgaben-chip:disabled { cursor: default; }
+.aufgaben-chip .zahl { font-size: 12px; color: var(--text-sehr-leise); }
+/* `aria-pressed` und keine eigene Klasse — wie bei `.spannenwahl`. */
+.aufgaben-chip[aria-pressed="true"] { background: var(--marke-hell); border-color: var(--marke); color: var(--marke); font-weight: 600; }
+.aufgaben-chip[aria-pressed="true"] .zahl { color: var(--marke); }
+.aufgaben-chip .kuerzel { padding: 2px 4px; font-size: 9px; }
+.aufgaben-datum { width: auto; min-height: 36px; margin-top: 0; padding: 4px 8px; font-family: var(--schrift-zahl); }
 
-.tafel-kopf { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
-.tafel-kopf h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
-.tafel-zahl {
-  font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-sehr-leise);
+/* Das Feld zum Schreiben und das Menü darunter: ein Kasten. */
+.aufgaben-neu { background: var(--flaeche); border: 1px solid var(--rand-stark); border-radius: var(--kante); }
+.aufgaben-neu:focus-within { border-color: var(--marke); }
+.aufgaben-neu-zeile { display: flex; align-items: center; gap: 8px; padding: 0 6px 0 14px; }
+.aufgaben-neu-zeile > .zeichen { width: 16px; height: 16px; flex: 0 0 auto; color: var(--text-sehr-leise); }
+.aufgaben-neu-feld {
+  flex: 1 1 auto; min-width: 0; min-height: var(--griff);
+  border: 0; background: none; outline: none; color: var(--text);
+  /* 16 px: darunter zoomt iOS beim Hineintippen. */
+  font: inherit; font-size: 16px;
 }
-.tafel-klappen { margin-left: auto; min-width: 32px; justify-content: center; }
-.tafel-klappen .zeichen { width: 14px; height: 14px; }
+/* Der Kasten zeigt den Fokus schon (`:focus-within`); ein zweiter Rahmen im
+   Feld selbst stünde doppelt. */
+.aufgaben-neu-feld:focus-visible { outline: none; }
+.aufgaben-neu-zeile > .knopf { flex: 0 0 auto; min-height: 34px; padding: 0 14px; }
+.aufgaben-neu-menue {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 10px 14px 14px; border-top: 1px solid var(--rand);
+}
+.aufgaben-reihe { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; }
+.aufgaben-reihe > .beschriftung-klein { margin: 0; }
+.aufgaben-reihe > .spannenwahl { justify-self: start; }
 
-.tafel-neu { display: flex; gap: 6px; margin-bottom: 10px; }
-.tafel-neu .feld { flex: 1 1 auto; min-width: 0; margin-top: 0; }
-.tafel-neu .mini { flex: 0 0 auto; min-width: 38px; justify-content: center; }
+/* Gruppen nach Fälligkeit. Die Überschrift trägt die Lage — Überfälliges in
+   der Warnfarbe, Heutiges im Akzent —, damit man sie beim Überfliegen sieht,
+   ohne die Fristen einzeln zu lesen. */
+.aufgaben-gruppe { display: flex; flex-direction: column; }
+.aufgaben-gruppenkopf {
+  display: flex; align-items: baseline; gap: 8px; margin: 0;
+  padding: 0 0 6px; border-bottom: 1px solid var(--rand);
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-leise);
+}
+.aufgaben-gruppenkopf .zahl { font-size: 12px; font-weight: 400; letter-spacing: 0; color: var(--text-sehr-leise); }
+.aufgaben-gruppenkopf[data-art="drueber"] { color: var(--warnung); border-bottom-color: var(--warnung); }
+.aufgaben-gruppenkopf[data-art="heute"] { color: var(--akzent); }
 
 .aufgabenliste { list-style: none; margin: 0; padding: 0; }
 .aufgabe {
-  display: flex; align-items: flex-start; gap: 6px;
+  position: relative; display: flex; align-items: stretch;
   border-bottom: 1px solid var(--flaeche-leise);
 }
-.aufgabe:last-child { border-bottom: 0; }
-
-/* Der Prioritätsknopf trägt sein Wort selbst — eine Farbe allein müsste man
-   lernen, und wer die Tafel zu zweit benutzt, lernt sie verschieden. */
-.aufgabe-prio {
-  flex: 0 0 auto; border: 1px solid transparent; cursor: pointer;
-  font: inherit; font-size: 11px; font-weight: 600;
-  /* Volle Griffhöhe wie alles andere in der Zeile: Ein 30 px hoher Chip in
-     einer 44 px hohen Zeile sieht getroffen aus und ist es am Daumen nicht. */
-  min-height: var(--griff); padding: 3px 7px;
-}
-.aufgabe-prio:hover:not(:disabled) { border-color: var(--rand-stark); }
-.aufgabe-prio:disabled { cursor: default; }
-
-/* Der Text: `Feldtext`, also im Ruhezustand ein Knopf, der aussieht wie Text.
-   Er **bricht um** — in einer Spalte von 280 px wäre eine Zeile, die nach 30
-   Zeichen endet, keine Aufgabe mehr, sondern ein Rätsel. Griffhöhe auch hier:
-   Was man antippt, ist 44 px hoch, auch wenn nur eine Zeile darin steht. */
-.aufgabe-text {
-  flex: 1 1 auto; min-width: 0;
-  display: flex; align-items: center; min-height: var(--griff);
-  font-size: 14.5px; line-height: 1.4; text-align: left;
-  overflow-wrap: anywhere;
-}
-/* Text und Frist darunter. Die Mitte nimmt die Breite, nicht der Text selbst. */
-.aufgabe-mitte { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-/* Aufgeklappt ist es ein gewöhnliches Feld — es darf nur nicht die Breite des
-   Prioritätsknopfes an sich reißen. */
-.aufgabe-mitte > .feld { flex: 1 1 auto; min-width: 0; margin-top: 0; padding: 6px 8px; }
-/* Das Fenster zu einer Aufgabe: Text und Frist untereinander. */
-.aufgabendialog { display: flex; flex-direction: column; gap: 12px; }
-.aufgabendialog h2 { margin-bottom: 0; }
-.aufgabendialog .profilfeld { margin-bottom: 0; }
-/* Der Text öffnet ein Fenster und ist kein Eingabefeld mehr — also kein Textcursor. */
-.aufgabe .inline-aendern.aufgabe-text { cursor: pointer; }
-.aufgabendialog-frist { display: flex; gap: 8px; align-items: center; }
-.aufgabendialog-frist .feld { flex: 1 1 auto; min-width: 0; margin-top: 0; }
-.aufgabendialog-frist .knopf-still { flex: 0 0 auto; }
-.aufgabendialog .dialog-knoepfe { margin-top: 4px; }
-
-/* Die Frist: leise, solange sie weit weg ist, dunkel in der letzten Woche,
-   in der Warnfarbe, wenn sie vorbei ist. */
-.aufgabe-frist {
-  display: inline-flex; align-items: center; gap: 5px; margin: -6px 0 8px;
-  font-family: var(--schrift-zahl); font-size: 11.5px; color: var(--text-leise);
-  white-space: nowrap;
-}
-.aufgabe-frist .zeichen { width: 12px; height: 12px; }
-.aufgabe-frist[data-lage="bald"] { color: var(--text); font-weight: 600; }
-.aufgabe-frist[data-lage="drueber"] { color: var(--warnung); font-weight: 600; }
-.aufgabe[data-erledigt="ja"] .aufgabe-text {
-  text-decoration: line-through; color: var(--text-sehr-leise);
+.aufgabe:hover, .aufgabe[data-auf="ja"] { background: var(--flaeche); }
+.aufgabe[data-auf="ja"] { border-bottom-color: transparent; }
+/* Hohe Priorität: ein Strich am Rand **und** das Wort in der Zeile. Der Strich
+   fällt beim Überfliegen auf, das Wort sagt, was er bedeutet. */
+.aufgabe[data-prio="hoch"]::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px;
+  background: var(--akzent);
 }
 
 .aufgabe-haken {
-  flex: 0 0 auto; min-width: 36px; min-height: var(--griff);
-  display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--rand); border-radius: var(--kante);
-  background: var(--flaeche); color: var(--text-sehr-leise); cursor: pointer;
+  flex: 0 0 var(--griff); min-height: var(--griff);
+  display: grid; place-items: center;
+  border: 0; background: none; padding: 0; cursor: pointer; color: var(--flaeche);
 }
-.aufgabe-haken:hover:not(:disabled) { border-color: var(--gut); color: var(--gut); }
-.aufgabe-haken:disabled { opacity: 0.4; cursor: default; }
-.aufgabe-haken .zeichen { width: 15px; height: 15px; }
-.aufgabe[data-erledigt="ja"] .aufgabe-haken {
-  background: var(--gut-hell); border-color: var(--gut-hell); color: var(--gut);
+.aufgabe-haken > i {
+  width: 20px; height: 20px; display: grid; place-items: center;
+  border: 1.5px solid var(--rand-stark); border-radius: var(--kante); background: var(--flaeche);
 }
+.aufgabe-haken .zeichen { width: 14px; height: 14px; opacity: 0; }
+.aufgabe-haken:hover:not(:disabled) > i { border-color: var(--gut); }
+.aufgabe-haken:hover:not(:disabled) .zeichen { opacity: 0.5; color: var(--gut); }
+.aufgabe-haken:disabled { cursor: default; }
+.aufgabe[data-erledigt="ja"] .aufgabe-haken > i { background: var(--gut); border-color: var(--gut); }
+.aufgabe[data-erledigt="ja"] .aufgabe-haken .zeichen { opacity: 1; color: var(--flaeche); }
 
-.tafel-erledigt { border-top: 1px solid var(--rand); padding-top: 10px; margin-top: 10px; }
-.tafel-erledigt > summary .klapptitel { font-size: 11px; }
-.tafel-erledigt .aufgabenliste { margin-top: 4px; }
-/* In einer Spalte ist die Leerstelle ein Satz, keine halbe Seite. */
-.tafel-spalte .leerstelle { padding: 14px 4px; }
+/* Die ganze Zeile ist der Griff. Der Text **bricht um** — eine Aufgabe, die
+   nach 30 Zeichen abgeschnitten wird, ist keine mehr, sondern ein Rätsel. */
+.aufgabe-text {
+  flex: 1 1 auto; min-width: 0; min-height: var(--griff);
+  display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 0;
+  border: 0; background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer;
+}
+.aufgabe-text:disabled { cursor: default; color: var(--text); }
+.aufgabe-wort { flex: 1 1 auto; min-width: 0; font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.aufgabe[data-prio="gering"] .aufgabe-wort { color: var(--text-leise); }
+.aufgabe[data-erledigt="ja"] .aufgabe-wort { color: var(--text-sehr-leise); text-decoration: line-through; }
+.aufgabe-meta { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.aufgabe-meta:empty { display: none; }
+.aufgabe-meta .kuerzel { padding: 2px 5px; }
+/* Die Personenfarbe ist ein heller Ton und kippt nicht mit dem Thema. Der
+   Text darauf darf es deshalb auch nicht: `--marke` wird im dunklen Thema
+   hell und stünde dann Hell auf Hell. */
+.aufgaben-chip .kuerzel, .aufgabe-meta .kuerzel { color: var(--marke-tiefer); }
 
-/* Der Weg zur Ideenliste, über der Tafel und rechts: Links steht die erste
-   Spaltenüberschrift, und ein Knopf davor wäre das Erste, was man liest — die
-   Tafel ist aber das, weswegen man hier ist. */
-.tafel-wege { display: flex; justify-content: flex-end; margin-bottom: 12px; }
-.tafel-wege .knopf-still { display: inline-flex; align-items: center; gap: 8px; }
-.tafel-wege .zeichen { width: 15px; height: 15px; }
+/* „Mittel" steht nicht da: Es ist die Vorgabe, und ein Wort an jeder zweiten
+   Zeile, das nichts unterscheidet, ist Rauschen. */
+.aufgabe-marke {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: var(--kante);
+  background: var(--flaeche-leise); color: var(--text-leise);
+}
+.aufgabe-marke[data-prio="hoch"] { background: var(--akzent-hell); color: var(--akzent); }
+.aufgabe-marke[data-prio="gering"] { background: none; border: 1px solid var(--rand); color: var(--text-sehr-leise); }
 
-/* Die Ideenliste: **eine** Liste statt Spalten, und deshalb begrenzt. Über die
-   volle Breite von 1400 px gelesen, verliert man am Zeilenende die Zeile — und
-   eine Idee ist ein Satz, kein Absatz. */
-.ideenliste { max-width: 720px; }
-.ideenliste .karte { padding: 14px 16px; }
+/* Die Frist: leise, solange sie weit weg ist, im Akzent heute, in der
+   Warnfarbe, wenn sie vorbei ist. */
+.aufgabe-frist {
+  font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-leise);
+  white-space: nowrap; padding: 3px 6px; border-radius: var(--kante);
+}
+.aufgabe-frist[data-lage="heute"] { background: var(--akzent-hell); color: var(--akzent); font-weight: 600; }
+.aufgabe-frist[data-lage="drueber"] { background: var(--warnung-hell); color: var(--warnung); font-weight: 600; }
+
+/* Die aufgeklappte Zeile. Eingerückt bis unter den Text, damit klar ist, zu
+   welcher Zeile sie gehört. */
+.aufgabe-menue {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 2px 16px 16px var(--griff);
+  background: var(--flaeche); border-bottom: 1px solid var(--rand);
+}
+.aufgabe-menue-text { margin-top: 0; font-size: 16px; }
+.aufgabe-menue-fuss { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.aufgabe-menue-fuss > .knopf-still { margin-right: auto; }
 
 /* „Auf die Tafel": Wort **und** Pfeil. Ein Pfeil allein stünde neben dem Haken
    und sähe aus wie „eins weiter", nicht wie „das machen wir". */
-.idee-uebernehmen {
-  flex: 0 0 auto; align-self: center; gap: 4px; white-space: nowrap;
-  /* Volle Griffhöhe wie Priorität und Haken in derselben Zeile — `.mini`
-     allein brächte 32 px, und drei verschieden hohe Griffe nebeneinander
-     treffen am Daumen zwei von dreien. */
-  min-height: var(--griff);
-}
+.idee-uebernehmen { flex: 0 0 auto; align-self: center; margin-right: 6px; gap: 4px; white-space: nowrap; }
 .idee-uebernehmen .zeichen { width: 13px; height: 13px; }
+
+@media (pointer: coarse) {
+  .aufgaben-chip, .aufgaben-datum, .idee-uebernehmen { min-height: var(--griff); }
+}
 
 
 /* --- Meetings ------------------------------------------------------------- */
@@ -2290,30 +2307,14 @@ a.mini { text-decoration: none; }
     background: var(--kopf-kante);
   }
 
-  /* Die Tafel steht am Handy untereinander. Der zugeklappte Streifen wird zur
-     Zeile — quer gestellt wäre er hier ein Strich über die halbe Höhe. */
-  .tafel { flex-direction: column; align-items: stretch; gap: 12px; }
-  .tafel-streifen {
-    flex: 0 0 auto; align-self: stretch;
-    flex-direction: row; justify-content: flex-start; gap: 10px;
-    min-height: var(--griff); padding: 8px 12px;
-  }
-  .tafel-streifen-name { writing-mode: horizontal-tb; }
-  .tafel-streifen .tafel-zahl { margin-left: auto; }
-  /* Zugeklappt wird am Handy nach oben und nicht zur Seite — der Pfeil zeigt
-     deshalb dorthin, wohin die Spalte verschwindet. */
-  .tafel-klappen .zeichen { transform: rotate(-90deg); }
-
-  /* Auf der Ideenliste stehen drei Griffe in einer Zeile, und einer davon
-     trägt zwei Wörter. Nebeneinander bliebe für den Text der Idee eine Spalte
-     von zwei Handbreit Buchstaben. Deshalb bricht die Zeile hier um: der Text
-     zuerst über die volle Breite, die Griffe darunter — der Pfeil und der
-     Haken rechts, wo der Daumen liegt. */
-  .ideenliste .aufgabe { flex-wrap: wrap; padding: 6px 0; }
-  .ideenliste .aufgabe > .aufgabe-mitte { order: -1; flex: 1 1 100%; }
-  .ideenliste .aufgabe-mitte > .aufgabe-text,
-  .ideenliste .aufgabe-mitte > .feld { min-height: 0; }
-  .ideenliste .idee-uebernehmen { margin-left: auto; }
+  /* Am Handy steht die Frist unter dem Text, nicht daneben — neben einer
+     Frist und zwei Kürzeln bliebe dem Text eine Spalte von zwei Handbreit
+     Buchstaben. */
+  .aufgabe-text { flex-wrap: wrap; row-gap: 4px; }
+  .aufgabe-wort { flex-basis: 100%; }
+  .aufgaben-reihe { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .aufgabe-menue { padding-left: 12px; padding-right: 12px; }
+  .aufgaben-neu-menue { padding-left: 12px; padding-right: 12px; }
 
   /* Platz für Uhr und Fußleiste am Fuß der Seite. Ohne das liegt die letzte
      Tabellenzeile unter der Leiste und ist nicht erreichbar. */

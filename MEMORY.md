@@ -7,6 +7,61 @@ betrifft.
 
 ---
 
+## 2026-09-28 — Aufgaben als eine Liste, mehrere Personen, Archiv (Migration 0031)
+
+### Aus den Spalten wird eine Liste nach Fälligkeit
+
+Die Tafel mit einer Spalte je Person ist ersetzt: **eine** Liste, gruppiert nach
+Überfällig / Heute / Nächste 7 Tage / Später / Ohne Frist, darüber ein Filter
+Meine · Alle · je Person · Allgemein (Vorgabe „Meine", gemerkt im Browser unter
+`socos.aufgaben.filter`). **Warum:** Überfälliges stand in einer fremden Spalte,
+wo es niemand sah. Die Frage beim Öffnen ist „was drängt", nicht „was hat Anna".
+Das Zuklappen von Spalten (`socos.aufgaben.zugeklappt`) ist damit weg.
+
+### `Aufgabe.person` → `Aufgabe.personen` (ManyToMany)
+
+Manches machen zwei gemeinsam. Zweimal abgetippt wird es einmal abgehakt und
+einmal vergessen. Leere Menge heißt weiter „Allgemein". Die Migration hängt die
+Menge erst unter `personen_neu` an (der `related_name="aufgaben"` war noch
+belegt), überträgt jede Person, entfernt das alte Feld und benennt um. Rückwärts
+geht nur die erste Person zurück.
+
+**Das Protokoll sieht keine Mengen** — die Signale in `protokoll.py` laufen über
+`concrete_fields`. Der `AufgabeSerializer.update` schreibt deshalb selbst einen
+Eintrag `personen: alt → neu`. Kein allgemeines `m2m_changed`: Das feuert auch
+beim Einspielen einer Sicherung, ohne `raw`, und schriebe dann Einträge, die
+niemand gemacht hat. Meeting- und Event-Teilnehmer bleiben damit wie bisher
+ohne Protokoll ihrer Menge — bekannt, nicht neu.
+
+Die Sicherung braucht nichts Neues: Die Menge wandert mit der Aufgabe (wie bei
+den Meeting-Teilnehmern), der Test schickt eine Aufgabe mit zwei Personen durch.
+
+### Eine Aufgabe wechselt jetzt die Person
+
+Früher bewusst ausgeschlossen („abhaken und drüben neu schreiben"). Mit einer
+Menge ist Umverteilen ein Tipp in der aufgeklappten Zeile, und das Protokoll
+hält fest, wer es war.
+
+### Erledigtes steht im Reiter „Archiv"
+
+Nicht mehr unten an der Liste. Nach Monaten aus `geaendert_am` geteilt — ein
+eigenes „erledigt am" gibt es nicht; wer es genau wissen muss, liest das
+Protokoll. Abgehakte Ideen („vom Tisch") stehen dort auch.
+
+### Neue Zeile mit Menü, Bearbeiten in der Zeile
+
+Das Eingabefeld öffnet beim Hineintippen ein Menü mit Frist (morgen, in 3/7/14
+Tagen — gezählt ab heute, nicht Wochentage) und Personen. Die Knöpfe darin
+nehmen dem Feld den Fokus nicht (`preventDefault` auf `pointerdown`), sonst
+klappte es beim Tippen zu. Das Feld wird **vor** der Serverantwort geleert —
+wer gleich weitertippt, verlöre sonst seinen Text.
+
+Das Fenster zum Bearbeiten ist weg: Die Zeile klappt auf, jeder Knopf speichert
+sofort, der Text beim Verlassen oder mit Enter. Die Priorität wird dort
+gewählt, nicht mehr durch Tippen weitergedreht (`naechstePrioritaet` ist weg).
+
+---
+
 ## 2026-09-26 — Praktikantenstellen, ein zweites Modul (Migration 0029)
 
 **`Praktikumsthema`: Titel, Kurzbeschreibung, Punkte, Ausschreibung** — ein

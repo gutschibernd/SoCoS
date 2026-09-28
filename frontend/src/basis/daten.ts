@@ -77,8 +77,8 @@ export type Rueckmeldung = {
 export type Aufgabe = {
   id: number;
   text: string;
-  person: number | null;
-  person_name: string;
+  /** Leer heißt „Allgemein". Mit zwei Personen steht sie bei beiden. */
+  personen: number[];
   prioritaet: "hoch" | "mittel" | "gering";
   erledigt: boolean;
   /** "2026-10-12" oder null — die meisten Zettel haben keine. */

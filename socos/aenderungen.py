@@ -6,8 +6,10 @@ etwas noch nicht gesehen hat, und die Rubrik „Änderungen" in der Doku. Zwei
 Listen liefen auseinander, und die zweite fiele niemandem auf — gelesen wird
 immer nur die, die gerade aufgeht.
 
-**Wer etwas ändert, das man in der Oberfläche merkt, trägt es hier ein — im
-selben Commit.** Ein Eintrag ist kein Commit-Text: Er sagt einem Nutzer, was er
+**Nur größere Änderungen kommen hier hinein** — ein neues Modul, ein Ablauf,
+der anders geht, etwas, das wegfällt oder umzieht. Dann im selben Commit.
+Kleinigkeiten nicht: Ein Fenster, das wegen eines umbenannten Knopfs aufgeht,
+wird bald ungelesen weggeklickt. Ein Eintrag ist kein Commit-Text: Er sagt einem Nutzer, was er
 jetzt anders machen kann, nicht welche Datei angefasst wurde.
 
 Die Version ist das Datum (`JJJJ-MM-TT`). Sie sortiert sich damit selbst und
@@ -19,6 +21,39 @@ Die Liste steht **neueste zuerst**.
 """
 
 VERSIONEN = [
+    {
+        "version": "2026-09-28",
+        "titel": "Aufgaben neu: eine Liste statt Spalten",
+        "punkte": [
+            {
+                "titel": "Was drängt, steht oben",
+                "text": (
+                    "Die Aufgaben stehen jetzt in einer Liste, nach Fälligkeit "
+                    "geordnet — Überfälliges ganz oben. Oben wählst du, wessen "
+                    "Aufgaben du siehst: Meine, Alle, eine Person oder Allgemein."
+                ),
+                "wo": "aufgaben",
+            },
+            {
+                "titel": "Eine Aufgabe für mehrere",
+                "text": (
+                    "Eine Aufgabe kann jetzt mehreren gehören und steht dann bei "
+                    "jedem. Wenn du ins Feld „Neue Aufgabe“ tippst, wählst du "
+                    "darunter, für wen — und eine Frist: morgen, in 3, 7 oder 14 Tagen."
+                ),
+                "wo": "aufgaben",
+            },
+            {
+                "titel": "Bearbeiten direkt in der Zeile",
+                "text": (
+                    "Ein Tipp auf eine Aufgabe klappt sie auf: Text, Priorität, "
+                    "Personen und Frist. Jede Änderung gilt sofort. Erledigtes "
+                    "steht nicht mehr unter der Liste, sondern im Reiter „Archiv“."
+                ),
+                "wo": "aufgaben/archiv",
+            },
+        ],
+    },
     {
         "version": "2026-09-26",
         "titel": "Neues Modul: Praktikantenstellen",

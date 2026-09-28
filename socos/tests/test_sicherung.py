@@ -397,16 +397,18 @@ def test_rueckmeldung_wandert_mit_stand_und_melder_mit(tmp_path, medien, bearbei
 
 
 @pytest.mark.django_db(transaction=True)
-def test_die_aufgabentafel_wandert_mit(tmp_path, medien, bearbeiter):
+def test_die_aufgabentafel_wandert_mit(tmp_path, medien, bearbeiter, admin_nutzer):
     """
     Die Tafel ist das, was am ehesten für „nur ein Zettel" gehalten wird — und
     genau deshalb der Kandidat, den jemand beim Archiv vergisst. Geprüft wird
-    beides: die Aufgabe **mit** Person und die allgemeine ohne.
+    die Aufgabe **mit zwei** Personen und die allgemeine ohne: Die Personen
+    stehen in einer Zwischentabelle, und die wandert nur mit, wenn die Menge
+    mit der Aufgabe ausgegeben wird.
     """
-    Aufgabe.objects.create(
-        person=bearbeiter, text="Vertrag gegenzeichnen", prioritaet="hoch",
-        frist=date(2026, 10, 12),
+    gemeinsam = Aufgabe.objects.create(
+        text="Vertrag gegenzeichnen", prioritaet="hoch", frist=date(2026, 10, 12),
     )
+    gemeinsam.personen.add(bearbeiter, admin_nutzer)
     Aufgabe.objects.create(text="Kaffee bestellen", erledigt=True)
 
     archiv = tmp_path / "archiv.tar.gz"
@@ -415,13 +417,13 @@ def test_die_aufgabentafel_wandert_mit(tmp_path, medien, bearbeiter):
     Aufgabe.objects.all().hart_loeschen()
     call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
 
-    meine = Aufgabe.objects.get(text="Vertrag gegenzeichnen")
-    assert meine.person.email == bearbeiter.email
-    assert meine.prioritaet == "hoch"
-    assert meine.frist == date(2026, 10, 12)
+    wieder = Aufgabe.objects.get(text="Vertrag gegenzeichnen")
+    assert {p.email for p in wieder.personen.all()} == {bearbeiter.email, admin_nutzer.email}
+    assert wieder.prioritaet == "hoch"
+    assert wieder.frist == date(2026, 10, 12)
 
     allgemein = Aufgabe.objects.get(text="Kaffee bestellen")
-    assert allgemein.person is None
+    assert not allgemein.personen.exists()
     assert allgemein.erledigt
 
 

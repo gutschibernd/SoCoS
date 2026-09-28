@@ -71,7 +71,7 @@ const KACHELN: Ziel[][] = [
   [
     {
       titel: "Aufgaben",
-      satz: "Die gemeinsame Tafel — allgemein und je Person.",
+      satz: "Die gemeinsame Tafel — was drängt, steht oben.",
       zeichen: "aufgaben",
       seite: "aufgaben",
     },

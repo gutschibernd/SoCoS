@@ -213,7 +213,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "dashboard" as const, zeichen: "dashboard" as const, titel: "Dashboard", text: "Woche, Geld, Fortschritt auf einen Blick." },
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
-            { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, je Person." },
+            { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, nach Fälligkeit." },
             { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die SPG Academy und die Praktikantenstellen." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
@@ -345,82 +345,81 @@ function AufgabenDoku() {
     <>
       <Abschnitt
         zeichen="aufgaben"
-        titel="Eine Tafel, drei Griffe"
-        vorspann="Spalten nebeneinander: „Allgemein“ für das, was niemandem bestimmt gehört, und eine je Person. Alle sehen alles, und jeder darf in jede Spalte schreiben — das ist der Zweck."
+        titel="Eine Liste, nach Fälligkeit"
+        vorspann="Oben steht, was drängt: Überfällig, Heute, Nächste 7 Tage, Später, Ohne Frist. Darüber wählst du, wessen Aufgaben du siehst — Meine, Alle, eine Person oder Allgemein. Alle sehen alles, und jeder darf jedem etwas aufschreiben."
       >
         <Schritte
           schritte={[
-            "Oben in die Zeile schreiben und Enter drücken. Fertig — es gibt kein Formular und keinen „Speichern“-Knopf.",
-            "Auf die Priorität tippen dreht sie weiter: Mittel → Hoch → Gering → Mittel. Die Liste ordnet sich sofort neu.",
-            "Der Haken rechts legt die Zeile ins Erledigte am Fuß der Spalte. Ein zweiter Tipp dort holt sie zurück.",
+            "Ins Feld „Neue Aufgabe“ tippen. Darunter geht ein kleines Menü auf: eine Frist (morgen, in 3, 7 oder 14 Tagen) und für wen. Enter legt an — es gibt keinen „Speichern“-Knopf.",
+            "Ein Tipp auf eine Aufgabe klappt sie auf: Text, Priorität, Personen, Frist. Jede Änderung gilt sofort, „Fertig“ klappt wieder zu.",
+            "Das Kästchen links hakt ab. Die Aufgabe wandert ins Archiv.",
           ]}
         />
         <Begriffe
           paare={[
             {
+              begriff: "Mehrere Personen",
+              text: "Eine Aufgabe kann mehreren gehören und steht dann bei jedem von ihnen — einmal, nicht abgetippt. Keine Person heißt „Allgemein“.",
+            },
+            {
+              begriff: "Priorität",
+              text: "Hoch steht mit einem Strich am Rand und dem Wort „Hoch“ da, gering etwas leiser. Mittel ist die Vorgabe und trägt kein Wort. Innerhalb einer Gruppe steht Hohes oben.",
+            },
+            {
               begriff: "Frist",
-              text: "Tippe auf eine Aufgabe, und im Fenster setzt du ein Datum — oder nimmst es mit „Ohne Frist“ wieder weg. Es steht dann unter der Aufgabe, in der letzten Woche dunkel, danach rot. Bei gleicher Priorität steht die frühere Frist oben.",
+              text: "Heute im Kupferton, überfällig in Rot. „Ohne“ nimmt sie wieder weg. Ein anderes Datum als die vier Knöpfe setzt du in der aufgeklappten Zeile.",
             },
           ]}
         />
         <p className="doku-text">
-          Ein Tipp auf den Text öffnet ein kleines Fenster, in dem du ihn änderst und eine Frist
-          setzt. Mit Enter oder „Speichern“ ist es übernommen, Escape bricht ab.
-        </p>
-      </Abschnitt>
-
-      <Abschnitt
-        zeichen="mehr"
-        titel="Spalten, die man selten braucht"
-        vorspann="Jede Spalte lässt sich zu einem schmalen Streifen am rechten Rand zusammenklappen."
-      >
-        <p className="doku-text">
-          Das merkt sich <b>der Browser, nicht das Konto</b>: Wer am eigenen Rechner eine
-          Spalte zuklappt, klappt sie nicht für die anderen zu. An einem anderen Gerät
-          steht sie wieder offen.
+          Den Filter merkt sich <b>der Browser, nicht das Konto</b>. Am anderen Gerät steht
+          wieder „Meine“. Die Taste <b>N</b> springt ins Feld für eine neue Aufgabe.
         </p>
       </Abschnitt>
 
       <Abschnitt
         zeichen="idee"
-        titel="Die Ideenliste"
-        vorspann="Eine Ebene unter der Tafel, über den Knopf „Ideenliste“ rechts oben. Dort steht, was möglich wäre und noch nicht entschieden ist — damit es die Tafel nicht zuwächst."
+        titel="Ideen"
+        vorspann="Der zweite Reiter. Dort steht, was möglich wäre und noch nicht entschieden ist — damit es die Liste nicht zuwächst."
       >
         <Schritte
           schritte={[
-            "Hineinschreiben und Enter, genau wie auf der Tafel. Die Priorität sagt hier, wie gut die Idee ist, nicht wie dringend.",
-            "„Auf die Tafel“ macht aus der Idee eine Aufgabe unter „Allgemein“ — dieselbe Zeile, derselbe Text. Wer sie übernimmt, schreibt sie sich von dort in die eigene Spalte.",
-            "Der Haken legt sie unter „Vom Tisch“ am Fuß der Liste. Ein zweiter Tipp dort holt sie zurück — nichts ist weg.",
+            "Hineinschreiben und Enter, genau wie bei den Aufgaben. Die Priorität sagt hier, wie gut die Idee ist, nicht wie dringend.",
+            "„Auf die Tafel“ macht aus der Idee eine Aufgabe unter „Allgemein“ — dieselbe Zeile, derselbe Text. Wer sie übernimmt, trägt sich ein.",
+            "Das Kästchen legt sie „vom Tisch“ ins Archiv.",
           ]}
         />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="haken"
+        titel="Archiv"
+        vorspann="Der dritte Reiter: alles Abgehakte, nach Monaten, zuletzt Abgehaktes oben. Der Filter gilt hier wie auf der Tafel."
+      >
         <p className="doku-text">
-          Die Zahl neben dem Knopf auf der Tafel ist die Zahl der <b>offenen</b> Ideen.
-          Wer wann etwas auf die Tafel geholt hat, steht im Änderungsprotokoll.
+          Ein Tipp auf das Kästchen holt eine Aufgabe zurück auf die Tafel. Wer wann etwas
+          abgehakt, umverteilt oder geändert hat, steht im Änderungsprotokoll.
         </p>
       </Abschnitt>
 
       <Abschnitt
         zeichen="achtung"
-        titel="Was die Tafel bewusst nicht kann"
-        vorspann="Sie ist ein Zettel am Bildschirmrand, keine zweite Projektansicht."
+        titel="Was die Aufgaben bewusst nicht können"
+        vorspann="Sie sind ein Zettel am Bildschirmrand, keine zweite Projektansicht."
       >
         <Begriffe
           paare={[
-            {
-              begriff: "Kein Datum",
-              text: "Kein „fällig am“. Was dringend ist, steht auf Hoch und damit oben.",
-            },
             {
               begriff: "Kein Arbeitspaket",
               text: "Eine Aufgabe hängt an keinem Paket. Projektarbeit steht unter Projekt — sonst stünde sie an zwei Orten verschieden.",
             },
             {
-              begriff: "Kein Verschieben",
-              text: "Eine Zeile wandert nicht in eine andere Spalte. Abhaken und drüben neu schreiben dauert zwei Sekunden. Die einzige Ausnahme ist der Weg von der Ideenliste auf die Tafel — und der endet immer bei „Allgemein“.",
+              begriff: "Keine Beschreibung",
+              text: "Eine Zeile Text. Was mehr braucht, gehört in ein Meeting oder ins Projekt.",
             },
             {
               begriff: "Kein Wer-war-das",
-              text: "Es gibt kein Feld dafür. Wer eine Zeile angelegt oder geändert hat, steht ohnehin im Änderungsprotokoll.",
+              text: "Es gibt kein Feld dafür. Wer eine Zeile angelegt oder geändert hat, steht im Änderungsprotokoll.",
             },
           ]}
         />
