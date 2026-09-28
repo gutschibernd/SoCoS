@@ -919,38 +919,60 @@ a.leiste-knopf { text-decoration: none; }
 
 /* --- Dashboard ----------------------------------------------------------- */
 
-.personen { list-style: none; margin: 0; padding: 0; }
-.personen li {
-  display: flex; align-items: center; gap: 11px;
+/* Das Team: eine Zeile je Person. Kürzel, Name mit Status darunter, ein
+   Balken für die Stunden und die Zahl. Am Handy rutscht der Balken unter
+   den Namen — nebeneinander bliebe für ihn keine Breite übrig. */
+.team { list-style: none; margin: 0; padding: 0; }
+.team li {
+  display: grid; align-items: center; column-gap: 11px; row-gap: 6px;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(48px, 22%) 44px;
+  grid-template-areas: "kuerzel wer balken stunden";
   padding: 9px 0; border-bottom: 1px solid var(--flaeche-leise);
 }
-.personen li:last-child { border-bottom: 0; }
-.personen i {
-  width: 28px; height: 28px; flex: 0 0 28px; border-radius: var(--kante);
+.team li:last-child { border-bottom: 0; }
+.team li > i {
+  grid-area: kuerzel;
+  width: 28px; height: 28px; border-radius: var(--kante);
   display: grid; place-items: center;
   font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
 }
-.personen .name { font-weight: 500; }
-.personen .tun {
-  flex: 1; min-width: 0; font-size: 13px; color: var(--text-leise);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.team .wer { grid-area: wer; display: flex; flex-direction: column; min-width: 0; }
+.team .name { font-weight: 500; }
+/* Umbrechen statt abschneiden: Abgeschnitten fiele genau die Klammer mit
+   dem „zuletzt" weg, und die ist der Grund für die Zeile. */
+.team .anwesenheit { font-size: 12.5px; line-height: 1.4; color: var(--text-leise); }
+.team .balken {
+  grid-area: balken; height: 8px; border-radius: var(--kante);
+  background: var(--flaeche-leise); overflow: hidden;
 }
+.team .balken i { display: block; height: 100%; }
+.team .stunden { grid-area: stunden; text-align: right; font-size: 13px; }
 
-.saeulen { display: flex; gap: 14px; align-items: flex-end; height: 150px; }
-/* Die Breite ist gedeckelt: Bei einer einzigen Person wäre die Säule sonst
-   ein Block über die halbe Karte und sähe aus wie ein Fehler. */
-.saeule {
-  flex: 0 1 64px; display: flex; flex-direction: column; align-items: center;
-  gap: 5px; height: 100%;
+/* Eingestempelt oder nicht: ein Punkt vor dem Satz. Grün heißt „läuft", wie
+   im Uhrblock der Kopfleiste; aus ist er hohl, damit der Unterschied nicht
+   allein an der Farbe hängt. */
+.anwesenheit::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px;
+  border-radius: 50%; border: 1.5px solid var(--text-sehr-leise); vertical-align: 0;
 }
-.saeulen { justify-content: flex-start; }
-.saeule .stab {
-  flex: 1; width: 100%; display: flex; align-items: flex-end;
-  background: var(--flaeche-leise); border-radius: var(--kante);
+.anwesenheit[data-an="ja"] { color: var(--text); }
+.anwesenheit[data-an="ja"]::before { background: var(--gut); border-color: var(--gut); }
+.anwesenheit small { font-size: 12px; color: var(--text-sehr-leise); white-space: nowrap; }
+
+.aktivitaet { list-style: none; margin: 0; padding: 0; }
+.aktivitaet li {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 8px 0; border-bottom: 1px solid var(--flaeche-leise);
 }
-.saeule .stab i { display: block; width: 100%; border-radius: var(--kante); min-height: 2px; }
-.saeule .zahl { font-size: 12px; }
-.saeule .fuss { font-size: 11px; color: var(--text-sehr-leise); font-weight: 600; }
+.aktivitaet li:last-child { border-bottom: 0; }
+.aktivitaet i {
+  width: 22px; height: 22px; flex: 0 0 22px; border-radius: var(--kante);
+  display: grid; place-items: center; margin-top: 1px;
+  font-size: 9.5px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
+}
+.aktivitaet .satz { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.45; color: var(--text-leise); }
+.aktivitaet .satz b { font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.aktivitaet .wann { flex: 0 0 auto; font-size: 12px; color: var(--text-sehr-leise); padding-top: 1px; }
 
 .verteilung {
   display: flex; height: 14px; border-radius: var(--kante); overflow: hidden;
@@ -2335,6 +2357,11 @@ a.mini { text-decoration: none; }
    ========================================================================== */
 
 @media (max-width: 720px) {
+  .team li {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-areas: "kuerzel wer stunden" ". balken balken";
+  }
+
   /* Aus einer Tabelle wird eine Karte — aus demselben Markup, über das
      data-spalte je Zelle. Keine zweite Ansicht: die zweite wird beim nächsten
      neuen Feld vergessen. */

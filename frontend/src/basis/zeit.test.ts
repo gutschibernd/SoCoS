@@ -12,6 +12,7 @@ import {
   summeGerundet,
   tagAusZeitpunkt,
   uhrzeitAusZeitpunkt,
+  wannKurz,
 } from "./zeit";
 
 describe("Anzeige", () => {
@@ -117,5 +118,24 @@ describe("spanne", () => {
   it("gibt null zurück, solange etwas fehlt", () => {
     expect(spanne("2026-09-15", "", "17:00")).toBeNull();
     expect(spanne("", "09:00", "17:00")).toBeNull();
+  });
+});
+
+describe("wannKurz", () => {
+  const jetzt = new Date(2026, 8, 28, 8, 0);
+  const iso = (d: Date) => d.toISOString();
+
+  it("sagt Minuten, solange es unter einer Stunde ist", () => {
+    expect(wannKurz(iso(new Date(2026, 8, 28, 7, 59, 40)), jetzt)).toBe("gerade eben");
+    expect(wannKurz(iso(new Date(2026, 8, 28, 7, 56)), jetzt)).toBe("vor 4 Min.");
+  });
+
+  it("zeigt heute nur die Uhrzeit", () => {
+    expect(wannKurz(iso(new Date(2026, 8, 28, 6, 5)), jetzt)).toBe("06:05");
+  });
+
+  it("zählt nach dem Kalendertag, nicht nach 24 Stunden", () => {
+    expect(wannKurz(iso(new Date(2026, 8, 27, 23, 50)), jetzt)).toBe("gestern 23:50");
+    expect(wannKurz(iso(new Date(2026, 8, 25, 9, 12)), jetzt)).toBe("25.09. 09:12");
   });
 });

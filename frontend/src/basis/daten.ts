@@ -178,10 +178,24 @@ export type Dashboard = {
     sekunden: number;
     laeuft_auf: string | null;
     laeuft_seit: string | null;
+    /** Das Ende der letzten abgeschlossenen Buchung — `null`, wenn es keine gibt. */
+    zuletzt_bis: string | null;
   }[];
   team_sekunden: number;
   projekte: { id: number; titel: string; untertitel: string; farbe: string; sekunden: number }[];
   offene_entwuerfe: Buchung[];
+  /**
+   * Die letzten Handgriffe aus dem Änderungsprotokoll, als Satz in drei
+   * Teilen. `objekt` steht getrennt, damit es hervorgehoben werden kann.
+   */
+  aktivitaet: {
+    id: number;
+    zeitpunkt: string;
+    wer: { name: string; initialen: string; farbe: string };
+    vor: string;
+    objekt: string | null;
+    nach: string;
+  }[];
 };
 
 export type Kontakt = {

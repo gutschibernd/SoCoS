@@ -7,6 +7,38 @@ betrifft.
 
 ---
 
+## 2026-09-28 — Dashboard: „Zuletzt passiert" und das Team in einer Kachel
+
+**Die Aktivität wird aus dem Änderungsprotokoll gelesen, es gibt keine eigene
+Ereignistabelle** (`socos/services/aktivitaet.py`). Eine zweite Liste müsste
+jede Schreibstelle mitbedienen; die, die es vergisst, fehlte still in der Kachel.
+
+Das Protokoll ist zum Nachweisen gebaut, nicht zum Vorlesen. Ausgedünnt wird
+deshalb beim Lesen, nie beim Schreiben:
+
+- **je Objekt nur der neueste Eintrag** — Clock-in und Clock-out sind eine Zeile;
+- **gleiche Handgriffe hintereinander werden ein Satz** („hat 12
+  Protokollabschnitte angelegt"), Buchungen ausgenommen;
+- **es fehlt, was niemand getan hat**: Einträge ohne Nutzer, Änderungen am
+  Nutzer selbst (dort landet jedes „Neuigkeiten gelesen") und die am Tagesende
+  abgeschnittene Buchung. Die hat zwar einen Nutzer im Protokoll — den, der
+  gerade das Dashboard öffnete —, aber keinen Handelnden.
+
+Genus und Mehrzahl stehen als eigene Tabelle im Dienst, weil `verbose_name_plural`
+Überschriften sind („Hitlist", „Wünsche und Fehler") und in „hat 3 … angelegt"
+nicht passen. **Ein neues Modell ohne Eintrag dort erscheint als „Eintrag"** —
+grammatisch richtig, aber nichtssagend.
+
+Beträge (Kontostand, Kosten) stehen nicht im Satz; die Zahl steht formatiert in
+den Kennzahlen darüber.
+
+Die Kachel „Team jetzt" und die Säulen „Stunden pro Person" sind **eine Kachel**
+geworden: je Person Status und Stunden in einer Zeile. Zweimal dieselben Namen
+nebeneinander war Platz, der nichts Neues sagte. `team[].zuletzt_bis` ist das
+Ende der letzten abgeschlossenen Buchung — gerechnet, nicht gespeichert.
+
+---
+
 ## 2026-09-26 — Praktikantenstellen, ein zweites Modul (Migration 0029)
 
 **`Praktikumsthema`: Titel, Kurzbeschreibung, Punkte, Ausschreibung** — ein

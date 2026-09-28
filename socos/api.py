@@ -13,6 +13,7 @@ from pathlib import Path
 from django.contrib.auth import logout
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.db.models import Max
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.http import content_disposition_header
@@ -60,7 +61,7 @@ from socos.models import (
     Zeitbuchung,
     auffangpaket,
 )
-from socos.services import auswertung, finanzen
+from socos.services import aktivitaet, auswertung, finanzen
 from socos.services import zeit as zeitdienst
 
 logger = logging.getLogger(__name__)
@@ -1110,6 +1111,13 @@ def dashboard(request):
             "paket", "paket__phase", "paket__phase__projekt"
         ).filter(ende__isnull=True)
     }
+    # Wann jemand zuletzt ausgestempelt hat — für „nicht da (zuletzt …)".
+    zuletzt = dict(
+        Zeitbuchung.objects.filter(ende__isnull=False)
+        .values("person")
+        .annotate(bis=Max("ende"))
+        .values_list("person", "bis")
+    )
 
     return Response(
         {
@@ -1129,6 +1137,7 @@ def dashboard(request):
                         laufende[n.pk].paket.titel if n.pk in laufende else None
                     ),
                     "laeuft_seit": laufende[n.pk].start if n.pk in laufende else None,
+                    "zuletzt_bis": zuletzt.get(n.pk),
                 }
                 for n in team
             ],
@@ -1146,6 +1155,7 @@ def dashboard(request):
             "offene_entwuerfe": ser.ZeitbuchungSerializer(
                 auswertung.offene_entwuerfe(request.user), many=True
             ).data,
+            "aktivitaet": aktivitaet.letzte(5),
         }
     )
 

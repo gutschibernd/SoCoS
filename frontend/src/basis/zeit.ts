@@ -113,3 +113,25 @@ export function plusMinuten(uhrzeit: string, minuten: number): string {
   const zwei = (n: number) => String(n).padStart(2, "0");
   return `${zwei(Math.floor(gesamt / 60))}:${zwei(gesamt % 60)}`;
 }
+
+/**
+ * Ein Zeitpunkt so kurz, wie er am Dashboard gebraucht wird: „vor 4 Min.",
+ * „14:05", „gestern 17:40", „25.09. 09:12".
+ *
+ * Verglichen wird der **Kalendertag** an der Wand, nicht „weniger als 24
+ * Stunden her" — sonst hieße 23:50 von gestern um 08:00 noch „heute".
+ */
+export function wannKurz(iso: string, jetzt = new Date()): string {
+  const d = new Date(iso);
+  const minuten = Math.floor((jetzt.getTime() - d.getTime()) / 60_000);
+  const tag = heuteAlsDatum(d);
+  if (tag === heuteAlsDatum(jetzt)) {
+    if (minuten < 1) return "gerade eben";
+    if (minuten < 60) return `vor ${minuten} Min.`;
+    return uhrzeitAusZeitpunkt(iso);
+  }
+  const gestern = new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() - 1);
+  if (tag === heuteAlsDatum(gestern)) return `gestern ${uhrzeitAusZeitpunkt(iso)}`;
+  const zwei = (n: number) => String(n).padStart(2, "0");
+  return `${zwei(d.getDate())}.${zwei(d.getMonth() + 1)}. ${uhrzeitAusZeitpunkt(iso)}`;
+}

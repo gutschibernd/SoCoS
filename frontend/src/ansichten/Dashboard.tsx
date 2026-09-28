@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useDashboard, type Ich } from "../basis/daten";
 import type { Seite } from "../basis/router";
-import { alsDauer, heuteAlsDatum } from "../basis/zeit";
+import { alsDauer, heuteAlsDatum, uhrzeitAusZeitpunkt, wannKurz } from "../basis/zeit";
 import { Kontostandlinie } from "../bausteine/Kontostandlinie";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
@@ -66,7 +66,6 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
   if (!abfrage.data) return <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />;
   const d = abfrage.data;
 
-  const gesamtWoche = d.team.reduce((s, p) => s + p.sekunden, 0);
   const maxPerson = Math.max(1, ...d.team.map((p) => p.sekunden));
   const gesamtProjekte = d.projekte.reduce((s, p) => s + p.sekunden, 0);
 
@@ -155,19 +154,30 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
         </div>
       </div>
 
+      {/*
+        Links, was zuletzt passiert ist; rechts das Team in einer Zeile je
+        Person — wer eingestempelt ist und wie viel Zeit im gewählten Zeitraum
+        zusammenkam. Beides stand einmal in drei Kacheln: eine Liste der
+        Personen, daneben Säulen für dieselben Personen. Zweimal dieselben
+        Namen nebeneinander ist Platz, der nichts Neues sagt.
+      */}
       <div className="raster raster-2">
         <div className="karte">
-          <h2>Team jetzt</h2>
-          {d.team.length === 0 ? (
-            <Leerstelle was="Noch niemand da" satz="Konten legt ein Administrator an." />
+          <h2>Zuletzt passiert</h2>
+          {d.aktivitaet.length === 0 ? (
+            <Leerstelle
+              was="Noch nichts passiert"
+              satz="Sobald jemand etwas anlegt, ändert oder bucht, steht es hier."
+            />
           ) : (
-            <ul className="personen">
-              {d.team.map((p) => (
-                <li key={p.id}>
-                  <i style={{ background: p.farbe }}>{p.initialen}</i>
-                  <span className="name">{p.name}</span>
-                  <span className="tun">{p.laeuft_auf ?? "—"}</span>
-                  <span className="zahl">{alsDauer(p.sekunden)}</span>
+            <ul className="aktivitaet">
+              {d.aktivitaet.map((a) => (
+                <li key={a.id}>
+                  <i style={{ background: a.wer.farbe }}>{a.wer.initialen}</i>
+                  <span className="satz">
+                    <b>{a.wer.name}</b> {a.vor} {a.objekt && <b>{a.objekt}</b>} {a.nach}
+                  </span>
+                  <span className="zahl wann">{wannKurz(a.zeitpunkt)}</span>
                 </li>
               ))}
             </ul>
@@ -175,30 +185,42 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
         </div>
 
         <div className="karte">
-          <h2>Stunden pro Person · {SPANNENTEXT[spanne].dazu}</h2>
-          {gesamtWoche === 0 ? (
-            <Leerstelle
-              was={`Noch keine Zeit gebucht (${SPANNENTEXT[spanne].dazu})`}
-              satz="Die Uhr startet auf einem Arbeitspaket."
-              aktion={{ text: "Zu den Projekten", tun: () => wechseln("projekt") }}
-            />
+          <h2>Team · {SPANNENTEXT[spanne].dazu}</h2>
+          {d.team.length === 0 ? (
+            <Leerstelle was="Noch niemand da" satz="Konten legt ein Administrator an." />
           ) : (
-            <div className="saeulen">
+            <ul className="team">
               {d.team.map((p) => (
-                <div key={p.id} className="saeule">
-                  <div className="stab">
+                <li key={p.id}>
+                  <i style={{ background: p.farbe }}>{p.initialen}</i>
+                  <span className="wer">
+                    <span className="name">{p.name}</span>
+                    {p.laeuft_seit ? (
+                      <span className="anwesenheit" data-an="ja">
+                        seit <span className="zahl">{uhrzeitAusZeitpunkt(p.laeuft_seit)}</span>
+                        {p.laeuft_auf && <> · {p.laeuft_auf}</>}
+                      </span>
+                    ) : (
+                      <span className="anwesenheit">
+                        nicht eingestempelt{" "}
+                        <small>
+                          ({p.zuletzt_bis ? <>zuletzt <span className="zahl">{wannKurz(p.zuletzt_bis)}</span></> : "noch nie"})
+                        </small>
+                      </span>
+                    )}
+                  </span>
+                  <span className="balken" aria-hidden="true">
                     <i
                       style={{
-                        height: `${Math.round((100 * p.sekunden) / maxPerson)}%`,
+                        width: `${Math.round((100 * p.sekunden) / maxPerson)}%`,
                         background: p.farbe,
                       }}
                     />
-                  </div>
-                  <span className="zahl">{alsDauer(p.sekunden)}</span>
-                  <span className="fuss">{p.initialen}</span>
-                </div>
+                  </span>
+                  <span className="zahl stunden">{alsDauer(p.sekunden)}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>
