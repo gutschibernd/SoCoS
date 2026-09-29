@@ -196,14 +196,15 @@ function Uebersicht({
     if (!neues.titel.trim())
       return setFehler("Worum geht es? Ohne Titel steht das Meeting später namenlos in der Liste.");
     if (!neues.datum) return setFehler("Wann ist das? Ohne Datum steht es nirgends in der Zeit.");
+    // Pflicht, weil das Meeting sonst im Kalender-Abo als ganzer Tag steht.
+    if (!neues.uhrzeit) return setFehler("Um wie viel Uhr? Ohne Uhrzeit steht es im Kalender als ganzer Tag.");
     setFehler("");
     const angelegt = await hole<Meeting>("/meetings/", {
       method: "POST",
       body: JSON.stringify({
         titel: neues.titel.trim(),
         datum: neues.datum,
-        // Leer heißt: nur der Tag ist bekannt.
-        uhrzeit: neues.uhrzeit || null,
+        uhrzeit: neues.uhrzeit,
         ort: neues.ort.trim(),
       }),
     });
@@ -239,7 +240,8 @@ function Uebersicht({
           style={{ flex: "0 1 120px" }}
           value={neues.uhrzeit}
           onChange={(e) => setNeues({ ...neues, uhrzeit: e.target.value })}
-          aria-label="Uhrzeit (kann leer bleiben)"
+          aria-label="Uhrzeit"
+          required
         />
         <input
           className="feld"
@@ -511,12 +513,15 @@ function Meetingseite({
             </label>
             <label className="datumsfeld">
               <span className="beschriftung-klein">Uhrzeit</span>
-              {/* Leer ist erlaubt: „irgendwann am Dienstag" ist eine Angabe. */}
+              {/* Leeren geht nicht — wie beim Tag. Meetings von früher, die
+                  noch keine Uhrzeit haben, stehen hier leer, bis jemand eine
+                  einträgt. */}
               <input
                 type="time"
                 className="feld"
+                required
                 value={meeting.uhrzeit ? meeting.uhrzeit.slice(0, 5) : ""}
-                onChange={(e) => speichern({ uhrzeit: e.target.value || null })}
+                onChange={(e) => e.target.value && speichern({ uhrzeit: e.target.value })}
               />
             </label>
           </div>

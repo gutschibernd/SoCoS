@@ -33,6 +33,8 @@ const event = (teil: Partial<Event>): Event => ({
   ort: "Wien",
   von: "2026-10-14",
   bis: null,
+  beginn: null,
+  ende: null,
   notiz: "",
   teilnehmer: [],
   teilnehmer_namen: [],

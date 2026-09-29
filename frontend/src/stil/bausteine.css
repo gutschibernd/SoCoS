@@ -133,6 +133,17 @@
   }
 }
 
+/* --- Integrationen ------------------------------------------------------- */
+/* Der Link ist lang und soll ganz lesbar sein — Zahlenschrift, weil er aus
+   Zeichen besteht, die man sonst verwechselt (l, 1, I). */
+.feld-reihe > .integration-link { flex: 1 1 360px; font-family: var(--schrift-zahl); }
+.integration-titel { margin: 20px 0 10px; font-size: 14px; font-weight: 600; }
+.integration-merke { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.55; color: var(--text-leise); }
+.integration-merke li { margin-bottom: 6px; }
+.integration-merke b { color: var(--text); }
+.feld-reihe > .integration-leise { flex: 1 1 auto; color: var(--text-leise); align-self: center; }
+.feld-reihe.integration-nachfrage > span { flex: 1 1 260px; align-self: center; }
+
 .leiste-fuss { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
 
 /* --- Kontextleiste ------------------------------------------------------- */

@@ -426,7 +426,7 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            "id", "titel", "ort", "von", "bis", "notiz", "teilnehmer",
+            "id", "titel", "ort", "von", "bis", "beginn", "ende", "notiz", "teilnehmer",
             "teilnehmer_namen", "ziele", "verlauf", "anhaenge",
         ]
 
@@ -452,6 +452,14 @@ class EventSerializer(serializers.ModelSerializer):
         bis = daten.get("bis", getattr(self.instance, "bis", None))
         if von and bis and bis < von:
             raise serializers.ValidationError({"bis": "Das Ende liegt vor dem Anfang."})
+        beginn = daten.get("beginn", getattr(self.instance, "beginn", None))
+        ende = daten.get("ende", getattr(self.instance, "ende", None))
+        if ende and not beginn:
+            raise serializers.ValidationError({"ende": "Ein Ende braucht einen Beginn."})
+        # Nur am selben Tag zu prüfen: Über mehrere Tage darf 10:00 am letzten
+        # vor 18:00 am ersten liegen.
+        if beginn and ende and (not bis or bis == von) and ende <= beginn:
+            raise serializers.ValidationError({"ende": "Das Ende liegt vor dem Beginn."})
         return daten
 
 
@@ -522,6 +530,11 @@ class MeetingSerializer(serializers.ModelSerializer):
             "teilnehmer", "teilnehmer_namen",
             "vorbereitung", "mitschrift", "abschnitte", "anhaenge",
         ]
+        # Ohne Uhrzeit kein Kalendereintrag mit Uhrzeit. Pflicht beim Anlegen,
+        # und beim Ändern darf sie nicht geleert werden. Ein PATCH, das nur die
+        # Mitschrift schickt, geht bei einem alten Meeting ohne Uhrzeit
+        # trotzdem durch — sonst ließe es sich nicht mehr weiterschreiben.
+        extra_kwargs = {"uhrzeit": {"required": True, "allow_null": False}}
 
     def get_abschnitte(self, meeting):
         # Nur die nicht gelöschten: über die Beziehung käme sonst auch weich

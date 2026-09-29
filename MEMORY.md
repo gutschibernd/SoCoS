@@ -7,6 +7,57 @@ betrifft.
 
 ---
 
+## 2026-09-29 — Kalender-Abo, Uhrzeiten an Events, Pflicht-Uhrzeit bei Meetings (Migration 0036)
+
+**Das kippt „SoCoS ist kein Kalender".** Bernd wollte Events und Meetings in
+seinem privaten Kalender (Proton) sehen. Gebaut ist das Kleinste, was das
+leistet: ein iCal-Abo (`/kalender/<schlüssel>.ics`, `socos/kalender.py`), nur
+in eine Richtung. Keine Erinnerung, keine Einladung, kein Abgleich zurück —
+wer im Kalender verschiebt, ändert in SoCoS nichts. Die Punkte weiter unten
+(„Kein Kalender", „Ein Event ist kein Termin") gelten seitdem nur noch in
+diesem Sinn: SoCoS erinnert an nichts.
+
+**Alle Events und Meetings, nicht nur die eigenen.** Bernds Entscheidung: Bei
+drei Leuten ist „wo bin ich eingetragen" die falsche Frage. Kein Zeitfilter.
+
+**Ein Schlüssel je Nutzer, obwohl alle dasselbe sehen.** So stirbt das Abo mit
+einem stillgelegten Konto oder einer entzogenen Rolle, ohne dass die anderen
+neu eintragen müssen. Der Schlüssel entsteht beim ersten Öffnen von Software ·
+Integrationen, lässt sich dort erneuern, steht **nicht** im Änderungsprotokoll
+(`protokoll_ohne`) und wandert mit der Sicherung (sonst liefe das Abo nach
+einem Wiederherstellen still ins Leere). Unbekannt, stillgelegt, ohne Rolle:
+dieselbe 404.
+
+**Im Feed steht nur Titel, Zeit, Ort und ein Link zurück.** Die Datei liegt beim
+Kalenderanbieter; Notizen, Vorbereitung und Kontaktnamen bleiben hinter der
+Anmeldung.
+
+**Zeiten in UTC, nicht als Ortszeit mit `VTIMEZONE`.** Ein falsch gelesener
+Zeitzonenblock verschöbe jeden Termin an den Umstellungstagen um eine Stunde.
+Von Hand geschrieben, keine Bibliothek: zwei Eintragsarten, drei Regeln
+(maskieren, nach Byte falten, CRLF).
+
+**Dauer pauschal eine Stunde** — Meetings haben kein Ende, und Bernd wollte
+keins. Events bekamen `beginn` (am ersten Tag) und `ende` (am letzten), beide
+freiwillig; ohne Beginn ganztägig, ohne Ende eine Stunde nach dem Beginn am
+letzten Tag. Ein Ende ohne Beginn verbietet die Datenbank.
+
+**Meeting-Uhrzeit ist Pflicht — im Serializer, nicht in der Datenbank.** Ältere
+Meetings haben keine, und eine erfundene Uhrzeit wäre schlimmer als keine. Sie
+stehen im Kalender ganztägig. Ein PATCH, das nur die Mitschrift schickt, geht
+bei ihnen weiter durch; leeren lässt sich eine gesetzte Uhrzeit nicht.
+
+**Proton holt Abos nur alle 4–16 Stunden.** `REFRESH-INTERVAL` ist ein Wunsch,
+den Proton nicht erfüllt. Das steht auf der Seite, damit niemand einen Fehler
+sucht. Die Anleitung steht dort und nicht in der Doku, anders als sonst: Sie
+gehört zu genau diesem Link und wird genau beim Kopieren gebraucht.
+
+**Der Link zeigt auf die Testmaschine** (`socos.test.sopharmis.com`). Zieht
+SoCoS auf eine andere Domain, muss jedes Abo neu eingetragen werden — mit
+Bernd so besprochen.
+
+---
+
 ## 2026-09-29 — Anhänge am Event (`Eventanhang`, Migration 0035)
 
 **Ein eigenes Modell neben `Meetinganhang`, kein gemeinsames „Anhang"** mit
@@ -951,6 +1002,8 @@ nächsten Tastendruck am falschen Ort.
 
 - **Kein Kalender, keine Erinnerung, keine Einladung.** Ein Meeting ist ein
   Zettel mit einem Datum, kein Termin mit Benachrichtigung (siehe auch Event).
+  *Seit 2026-09-29 gibt es ein Kalender-Abo in eine Richtung — siehe oben;
+  erinnert wird weiterhin an nichts.*
 - **Keine Anhänge.** Käme das, müsste es unter `MEDIA_ROOT` liegen, sonst
   wandert es nicht in die Sicherung.
 - **Keine Aufgaben aus dem Protokoll.** „Nächste Schritte" ist ein Abschnitt,
@@ -2134,7 +2187,8 @@ ein nullbares Feld `event` am `Verlaufseintrag`.
 Entscheidungen, die man dem Code sonst nicht ansieht:
 
 - **Ein Event ist kein Termin.** Keine Uhrzeit, keine Erinnerung, kein
-  Kalender. Termine und Aufgaben bleiben zurückgestellt (siehe unten bei den
+  Kalender. *(Überholt 2026-09-29: freiwillige Uhrzeiten und Kalender-Abo —
+  siehe oben. Erinnert wird weiterhin an nichts.)* Termine und Aufgaben bleiben zurückgestellt (siehe unten bei den
   offenen Punkten) — das hier beantwortet eine andere Frage, nämlich „was ist
   mit diesem Haus passiert".
 - **Der Verlauf am Event ist derselbe Verlauf wie beim Kontakt**, nur mit
@@ -2589,7 +2643,8 @@ Die Zeitdokumentation **muss auditierbar sein**.
 - **Termine und Tasks** — bewusst zurückgestellt. Bernd geht die Liste erst durch.
 - **Datenimport** aus `daten/sopharmis-daten.json` — die Datei wird erst gekürzt.
   Der Import kommt danach.
-- **Fremdsysteme** (Kalender, Buchhaltung) — derzeit keine, ggf. später.
+- **Fremdsysteme** (Kalender, Buchhaltung) — Kalender seit 2026-09-29 als Abo in
+  eine Richtung; Buchhaltung weiterhin keine.
 
 ### Betrieb
 

@@ -278,6 +278,10 @@ export type Event = {
   von: string;
   /** Leer heißt eintägig. */
   bis: string | null;
+  /** Uhrzeit am ersten Tag, „HH:MM:SS". Leer heißt ganztägig. */
+  beginn: string | null;
+  /** Uhrzeit am letzten Tag. Nur mit Beginn. */
+  ende: string | null;
   notiz: string;
   teilnehmer: number[];
   teilnehmer_namen: string[];

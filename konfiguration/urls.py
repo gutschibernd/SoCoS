@@ -7,6 +7,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path, re_path
 
+from socos import kalender
 from socos.views import anwendung, healthz
 
 urlpatterns = [
@@ -23,10 +24,14 @@ urlpatterns = [
     ),
     path("abmelden/", auth_views.LogoutView.as_view(), name="logout"),
 
+    # Das Kalender-Abo. Außerhalb von /api/, weil es ohne Sitzung auskommen
+    # muss — der Schlüssel im Pfad ist die Anmeldung (siehe socos/kalender.py).
+    path("kalender/<str:schluessel>.ics", kalender.abo, name="kalender-abo"),
+
     # Der Django-Admin bleibt der Notzugang.
     path("admin/", admin.site.urls),
     path("api/", include("socos.urls")),
 
     # Alles Übrige ist die React-Anwendung. Muss zuletzt stehen.
-    re_path(r"^(?!api/|admin/|static/|medien/).*$", anwendung, name="anwendung"),
+    re_path(r"^(?!api/|admin/|static/|medien/|kalender/).*$", anwendung, name="anwendung"),
 ]

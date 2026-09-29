@@ -211,6 +211,27 @@ def test_stillgelegter_nutzer_wandert_mit(tmp_path, medien, bearbeiter):
     assert Nutzer.objects.get(email="bearbeiter@example.invalid").is_active is False
 
 
+@pytest.mark.django_db(transaction=True)
+def test_kalenderschluessel_und_eventzeiten_wandern_mit(tmp_path, medien, bearbeiter):
+    """
+    Der Schlüssel des Kalender-Abos steht in einem Kalender draußen. Käme er
+    nach dem Wiederherstellen nicht mit, liefe das Abo still ins Leere — der
+    Kalender zeigte einfach die alten Einträge weiter.
+    """
+    bearbeiter.kalenderschluessel = "schluessel-aus-dem-archiv"
+    bearbeiter.save()
+    Event.objects.create(titel="Messe", von="2026-11-03", beginn="09:00", ende="17:30")
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    wieder = Nutzer.objects.get(email=bearbeiter.email)
+    assert wieder.kalenderschluessel == "schluessel-aus-dem-archiv"
+    messe = Event.objects.get(titel="Messe")
+    assert (str(messe.beginn), str(messe.ende)) == ("09:00:00", "17:30:00")
+
+
 @pytest.mark.django_db
 def test_einspielen_ohne_bestaetigung_tut_nichts(tmp_path, medien, admin_nutzer):
     from django.core.management.base import CommandError

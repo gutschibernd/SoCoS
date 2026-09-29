@@ -51,7 +51,7 @@ class TestAnlegen:
 
         antwort = client.post(
             "/api/meetings/",
-            {"titel": "Erstgespräch", "datum": "2026-10-01"},
+            {"titel": "Erstgespräch", "datum": "2026-10-01", "uhrzeit": "10:00"},
             content_type="application/json",
         )
 

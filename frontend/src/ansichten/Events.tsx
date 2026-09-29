@@ -75,13 +75,17 @@ const TAG_MONAT = new Intl.DateTimeFormat("de-AT", { day: "2-digit", month: "2-d
 const alsTag = (iso: string) => DATUM.format(new Date(`${iso}T00:00:00`));
 const alsDatum = (iso: string | null) => (iso ? alsTag(iso) : "—");
 
-/** „14.10.2026" oder „14.10.–16.10.2026" — das Jahr nur einmal. */
+/** „14.10.2026" oder „14.10.–16.10.2026" — das Jahr nur einmal. Mit Beginn
+    steht die Uhrzeit dahinter: „14.10.2026, 09:00–17:00". */
 function zeitraum(event: Event): string {
-  if (!event.bis || event.bis === event.von) return alsTag(event.von);
+  const uhr = event.beginn
+    ? `, ${event.beginn.slice(0, 5)}${event.ende ? `–${event.ende.slice(0, 5)}` : ""}`
+    : "";
+  if (!event.bis || event.bis === event.von) return alsTag(event.von) + uhr;
   const von = new Date(`${event.von}T00:00:00`);
   const bis = new Date(`${event.bis}T00:00:00`);
   const anfang = von.getFullYear() === bis.getFullYear() ? TAG_MONAT.format(von) : DATUM.format(von);
-  return `${anfang}–${DATUM.format(bis)}`;
+  return `${anfang}–${DATUM.format(bis)}${uhr}`;
 }
 
 async function aendern(pfad: string, daten: Record<string, unknown>): Promise<void> {
@@ -501,6 +505,30 @@ function Eventseite({
                 value={event.bis ?? ""}
                 min={event.von}
                 onChange={(e) => speichern({ bis: e.target.value || null })}
+              />
+            </label>
+            {/* Beide freiwillig: Leer heißt ganztägig. Wird der Beginn
+                geleert, geht das Ende mit — ein Ende ohne Beginn nimmt der
+                Server nicht an. */}
+            <label className="datumsfeld">
+              <span className="beschriftung-klein">Beginn</span>
+              <input
+                type="time"
+                className="feld"
+                value={event.beginn ? event.beginn.slice(0, 5) : ""}
+                onChange={(e) =>
+                  speichern(e.target.value ? { beginn: e.target.value } : { beginn: null, ende: null })
+                }
+              />
+            </label>
+            <label className="datumsfeld">
+              <span className="beschriftung-klein">Ende</span>
+              <input
+                type="time"
+                className="feld"
+                disabled={!event.beginn}
+                value={event.ende ? event.ende.slice(0, 5) : ""}
+                onChange={(e) => speichern({ ende: e.target.value || null })}
               />
             </label>
           </div>

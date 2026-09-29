@@ -35,6 +35,7 @@ export const SEITEN = [
   "einstellungen",
   "doku",
   "rueckmeldungen",
+  "integrationen",
 ] as const;
 export type Seite = (typeof SEITEN)[number];
 

@@ -44,6 +44,7 @@ export type ZeichenName =
   | "mehr"
   | "buch"
   | "sprechblase"
+  | "stecker"
   | "idee"
   | "module"
   | "akademie"
@@ -116,6 +117,10 @@ const PFADE: Record<ZeichenName, string> = {
      Zipfel sitzt am Rand und nicht in der Mitte: mittig wird er bei 18 px zu
      einem Zacken, den man für einen Fehler im Strich hält. */
   sprechblase: "M4 5h16v11H9l-4 4v-4H4z",
+  /* Ein Stecker mit zwei Stiften und Kabel — „hier wird etwas angeschlossen".
+     Kein Kettenglied: das heißt im Netz „Link", und der ist hier nur das
+     Mittel, nicht die Sache. */
+  stecker: "M9 4v3.5M15 4v3.5M6.5 7.5h11V11a5.5 5.5 0 0 1-11 0zM12 16.5V20",
   /* Dieselbe Blase mit zwei Zeilen darin — „es wird geredet und mitgeschrieben".
      Sie muss neben `sprechblase` (Wünsche & Fehler) im selben Menü noch
      unterscheidbar sein; zwei Blasen übereinander waren es bei 18 px nicht. */

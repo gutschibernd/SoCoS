@@ -23,7 +23,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from socos import aenderungen, berechtigung, serializer as ser, sicherung
+from socos import aenderungen, berechtigung, kalender, serializer as ser, sicherung
 from socos.models import (
     Lageschritt,
     Lagethema,
@@ -1120,6 +1120,31 @@ def neuigkeiten_gesehen(request):
     nutzer.neuigkeiten_bis = aenderungen.NEUESTE
     nutzer.save(update_fields=["neuigkeiten_bis"])
     return Response({"neuigkeiten_bis": nutzer.neuigkeiten_bis})
+
+
+@api_view(["GET"])
+def kalenderlink(request):
+    """
+    Der eigene Abo-Link für die Seite „Integrationen".
+
+    Jeder bekommt seinen eigenen, obwohl alle dasselbe sehen: Geht jemand,
+    stirbt sein Link mit dem stillgelegten Konto, und die anderen müssen
+    nichts neu eintragen.
+    """
+    if not berechtigung.darf_sehen(request.user):
+        raise PermissionDenied()
+    return Response({"link": kalender.abo_link(request, request.user)})
+
+
+@api_view(["POST"])
+def kalenderlink_neu(request):
+    """Ein neuer Schlüssel. Der alte Link liefert ab sofort nur noch 404."""
+    if not berechtigung.darf_sehen(request.user):
+        raise PermissionDenied()
+    nutzer = request.user
+    nutzer.kalenderschluessel = kalender.neuer_schluessel()
+    nutzer.save(update_fields=["kalenderschluessel"])
+    return Response({"link": kalender.abo_link(request, nutzer)})
 
 
 @api_view(["GET"])

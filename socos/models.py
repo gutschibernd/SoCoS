@@ -99,6 +99,19 @@ class Nutzer(AbstractBaseUser, PermissionsMixin):
     # kennt, die vor seinem letzten Besuch veröffentlicht wurde.
     neuigkeiten_bis = models.CharField("Neuigkeiten gesehen bis", max_length=20, blank=True)
 
+    # Der geheime Teil des Kalender-Abos (siehe socos/kalender.py). Er *ist*
+    # der Zugang: Eine Kalender-App kann sich nicht anmelden, also steht er in
+    # der URL. `null` statt leer, weil `unique` sonst an zwei Nutzern ohne Abo
+    # scheitert. Angelegt wird er erst, wenn jemand die Seite „Integrationen"
+    # öffnet — ein Schlüssel, den niemand kennt, wäre nur eine offene Tür mehr.
+    kalenderschluessel = models.CharField(
+        "Kalenderschlüssel", max_length=64, null=True, blank=True, unique=True
+    )
+
+    # Der Schlüssel steht nicht im Änderungsprotokoll: Das liest jeder Admin,
+    # und ein Schlüssel im Klartext dort wäre ein zweiter Weg an das Abo.
+    protokoll_ohne = ("kalenderschluessel",)
+
     objects = NutzerVerwaltung()
 
     USERNAME_FIELD = "email"
@@ -932,11 +945,14 @@ class Event(Basismodell):
     Eine Tagung, ein Kongress, ein Messetag — ein Anlass, bei dem man Leute
     trifft.
 
-    Ein Event ist **kein Termin**: Es gibt keine Uhrzeit, keine Erinnerung und
-    keinen Kalender dahinter. Was es gibt, ist die Vorbereitung (wen wollen wir
-    dort ansprechen) und das Ergebnis (mit wem haben wir geredet, was kam
-    dabei heraus). Termine und Aufgaben sind bewusst zurückgestellt — siehe
-    MEMORY.md.
+    Im Kern geht es um die Vorbereitung (wen wollen wir dort ansprechen) und
+    das Ergebnis (mit wem haben wir geredet, was kam dabei heraus). Seit dem
+    Kalender-Abo hat es auch Uhrzeiten — beide freiwillig: Ein Messetag ist
+    oft einfach der ganze Tag, und so steht er dann auch im Kalender.
+
+    `beginn` gilt am ersten Tag, `ende` am letzten. Ein Ende ohne Beginn gibt
+    es nicht; fehlt das Ende, rechnet der Kalender eine Stunde (siehe
+    socos/kalender.py).
     """
 
     titel = models.CharField("Titel", max_length=200)
@@ -946,6 +962,8 @@ class Event(Basismodell):
     # dasselbe wie `von` enthielte, müsste man beim Verschieben doppelt
     # pflegen — und genau das vergisst man.
     bis = models.DateField("Bis", null=True, blank=True)
+    beginn = models.TimeField("Beginn", null=True, blank=True)
+    ende = models.TimeField("Ende", null=True, blank=True)
     notiz = models.TextField("Notiz", blank=True)
     # Wer von uns hinfährt. Ohne `through`: An der Zuordnung selbst hängt
     # nichts weiter — kein Datum, keine Rolle, kein Status.
@@ -965,7 +983,11 @@ class Event(Basismodell):
             models.CheckConstraint(
                 condition=models.Q(bis__isnull=True) | models.Q(bis__gte=models.F("von")),
                 name="event_endet_nicht_vor_seinem_anfang",
-            )
+            ),
+            models.CheckConstraint(
+                condition=models.Q(ende__isnull=True) | models.Q(beginn__isnull=False),
+                name="event_ende_nur_mit_beginn",
+            ),
         ]
 
     def __str__(self):
@@ -1133,9 +1155,10 @@ class Meeting(Basismodell):
 
     titel = models.CharField("Titel", max_length=200)
     datum = models.DateField("Datum", default=timezone.localdate)
-    # Ohne Uhrzeit ist es trotzdem ein Meeting — SoCoS ist kein Kalender und
-    # erinnert an nichts (siehe MEMORY.md). Sie steht hier, weil „Dienstag
-    # 14:00" das ist, was man einander sagt.
+    # Pflicht beim Anlegen und Ändern — durchgesetzt im Serializer, nicht
+    # hier: Meetings aus der Zeit davor haben keine, und eine erfundene
+    # Uhrzeit wäre schlimmer als keine. Die stehen im Kalender ganztägig.
+    # Eine Dauer gibt es nicht; der Kalender rechnet pauschal eine Stunde.
     uhrzeit = models.TimeField("Uhrzeit", null=True, blank=True)
     ort = models.CharField("Ort", max_length=160, blank=True)
 

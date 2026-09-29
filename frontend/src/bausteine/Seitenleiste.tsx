@@ -66,6 +66,7 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[]; klappt?: true }[] =
     eintraege: [
       { seite: "doku", titel: "Doku", zeichen: "buch" },
       { seite: "rueckmeldungen", titel: "Wünsche & Fehler", zeichen: "sprechblase" },
+      { seite: "integrationen", titel: "Integrationen", zeichen: "stecker" },
     ],
   },
 ];

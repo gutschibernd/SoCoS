@@ -18,6 +18,7 @@ import { Module } from "./ansichten/Module";
 import { Profil } from "./ansichten/Profil";
 import { Projekt } from "./ansichten/Projekt";
 import { Rueckmeldungen } from "./ansichten/Rueckmeldungen";
+import { Integrationen } from "./ansichten/Integrationen";
 import { Start } from "./ansichten/Start";
 import { Zeit } from "./ansichten/Zeit";
 
@@ -38,6 +39,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   einstellungen: { titel: "Einstellungen", unter: "Konten, Protokoll, Sicherung" },
   doku: { titel: "Doku", unter: "Wie SoCoS gemeint ist — kurz" },
   rueckmeldungen: { titel: "Wünsche & Fehler", unter: "Was fehlt, was stört, was erledigt ist" },
+  integrationen: { titel: "Integrationen", unter: "Was SoCoS nach draußen gibt" },
 };
 
 /* Die Unterseiten mit einer eigenen Zeile. Sie steht hier ausgeschrieben,
@@ -160,6 +162,7 @@ export function App() {
           )}
           {ort.seite === "doku" && <Doku unter={ort.unter} wechseln={wechseln} />}
           {ort.seite === "rueckmeldungen" && <Rueckmeldungen ich={ich.data} />}
+          {ort.seite === "integrationen" && <Integrationen />}
         </main>
       </div>
     </div>

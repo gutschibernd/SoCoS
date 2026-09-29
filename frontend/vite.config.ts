@@ -43,6 +43,7 @@ export default defineConfig(({ command }) => ({
       "/healthz": { target: django, changeOrigin: false },
       "/static": { target: django, changeOrigin: false },
       "/medien": { target: django, changeOrigin: false },
+      "/kalender": { target: django, changeOrigin: false },
     },
   },
   build: { outDir: "dist", emptyOutDir: true },

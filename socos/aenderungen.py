@@ -22,6 +22,31 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-09-29",
+        "titel": "SoCoS im eigenen Kalender",
+        "punkte": [
+            {
+                "titel": "Events und Meetings im Kalender",
+                "text": (
+                    "Unter Software · Integrationen steht ein Link, den du in "
+                    "deinem Kalender abonnierst — etwa in Proton Calendar. Dann "
+                    "stehen dort alle Events und Meetings mit Zeit und Ort. Die "
+                    "Anleitung steht gleich daneben."
+                ),
+                "wo": "integrationen",
+            },
+            {
+                "titel": "Uhrzeiten an Events, Pflicht bei Meetings",
+                "text": (
+                    "Ein Event kann jetzt Beginn und Ende haben — ohne steht es "
+                    "als ganzer Tag im Kalender. Ein neues Meeting braucht eine "
+                    "Uhrzeit, damit es im Kalender an der richtigen Stelle steht."
+                ),
+                "wo": "events",
+            },
+        ],
+    },
+    {
         "version": "2026-09-28",
         "titel": "Aufgaben als eine Liste, und Thoughts",
         "punkte": [

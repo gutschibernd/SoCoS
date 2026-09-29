@@ -40,6 +40,8 @@ urlpatterns = [
     path("dashboard/", api.dashboard, name="dashboard"),
     path("aenderungen/", api.aenderungsliste, name="aenderungen"),
     path("neuigkeiten/gesehen/", api.neuigkeiten_gesehen, name="neuigkeiten-gesehen"),
+    path("kalender/", api.kalenderlink, name="kalenderlink"),
+    path("kalender/neu/", api.kalenderlink_neu, name="kalenderlink-neu"),
     path("zeitnachweis/", api.zeitnachweis, name="zeitnachweis"),
     # Zwei Pfade und nicht ein GET/POST-Paar: Das Einspielen ersetzt den
     # gesamten Bestand. Dass es einen eigenen, aussprechbaren Pfad hat, ist an
