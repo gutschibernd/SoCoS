@@ -110,6 +110,29 @@
   color: var(--kopf-text-leise); opacity: 0.72;
 }
 
+/* Die einklappbare Gruppe („Software", siehe Seitenleiste.tsx). Eingeklappt
+   wird nur, wo es ein Darüber gibt: Am Handy und am Tablet ohne Maus käme man
+   sonst nie an die Einträge heran.
+
+   Über Zeilenhöhe 0fr → 1fr und nicht über `display: none`: Versteckte Links
+   bleiben so mit der Tabulatortaste erreichbar, und `:focus-within` klappt
+   die Gruppe auf, sobald einer den Fokus hat. */
+.navigation-klappgruppe { display: flex; flex-direction: column; }
+.navigation-klappgruppe .navigation-gruppe { display: flex; align-items: center; }
+/* Ohne Darüber klappt nichts, also zeigt auch kein Pfeil etwas an. */
+.navigation-klappgruppe .navigation-klapp { display: none; width: 1.1em; height: 1.1em; transform: rotate(90deg); }
+.navigation-klappinhalt { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.15s; }
+.navigation-klappinhalt > div { display: flex; flex-direction: column; gap: 1px; min-height: 0; overflow: hidden; }
+@media (hover: hover) {
+  .navigation-klappgruppe .navigation-klapp { display: block; }
+  .navigation-klappgruppe[data-offen="nein"]:not(:hover, :focus-within) .navigation-klappinhalt {
+    grid-template-rows: 0fr;
+  }
+  .navigation-klappgruppe[data-offen="nein"]:not(:hover, :focus-within) .navigation-klapp {
+    transform: none;
+  }
+}
+
 .leiste-fuss { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
 
 /* --- Kontextleiste ------------------------------------------------------- */

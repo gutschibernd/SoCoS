@@ -30,7 +30,7 @@ type Eintrag = { seite: Seite; titel: string; zeichen: ZeichenName };
  * trennte nicht sauber — Zeit ist auch Leute, Events sind auch Arbeit. Intern
  * ist, was wir selbst tun; extern, mit wem wir reden.
  */
-const GRUPPEN: { titel: string | null; eintraege: Eintrag[] }[] = [
+const GRUPPEN: { titel: string | null; eintraege: Eintrag[]; klappt?: true }[] = [
   {
     titel: "Intern",
     eintraege: [
@@ -55,9 +55,14 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[] }[] = [
     deshalb steht sie unten und heißt „Software". Hier stand bis dahin nichts:
     Erklärungen hingen als Fragezeichen neben einzelnen Beschriftungen, und
     was jemandem auffiel, blieb ein Zuruf über den Tisch.
+
+    Sie ist eingeklappt, bis der Zeiger darüber steht: Man braucht sie selten,
+    und die Leiste wird mit jeder Rubrik länger. Nur diese Gruppe — Intern und
+    Extern sind der Alltag, dort kostete jedes Aufklappen einen Griff.
   */
   {
     titel: "Software",
+    klappt: true,
     eintraege: [
       { seite: "doku", titel: "Doku", zeichen: "buch" },
       { seite: "rueckmeldungen", titel: "Wünsche & Fehler", zeichen: "sprechblase" },
@@ -156,10 +161,8 @@ export function Seitenleiste({
         </a>
 
         <nav className="navigation">
-          {GRUPPEN.map((gruppe, i) => (
-            <Fragment key={gruppe.titel ?? `gruppe-${i}`}>
-              {gruppe.titel && <div className="navigation-gruppe">{gruppe.titel}</div>}
-              {gruppe.eintraege.map((eintrag) =>
+          {GRUPPEN.map((gruppe, i) => {
+            const eintraege = gruppe.eintraege.map((eintrag) =>
                 eintrag.seite === "module" ? (
                   <Modulzweig key="module" eintrag={eintrag} ort={ort} hin={hin} />
                 ) : (
@@ -176,9 +179,36 @@ export function Seitenleiste({
                     {eintrag.titel}
                   </a>
                 ),
-              )}
-            </Fragment>
-          ))}
+            );
+            if (gruppe.klappt) {
+              /* Offen, wenn man auf einer ihrer Seiten steht — sonst wäre die
+                 Markierung dessen, wo man ist, unsichtbar. Alles andere macht
+                 das CSS (Zeiger, Tastaturfokus; am Handy gibt es kein Darüber
+                 und damit auch kein Einklappen). */
+              const drin = gruppe.eintraege.some((e) => e.seite === seite);
+              return (
+                <div
+                  key={gruppe.titel ?? `gruppe-${i}`}
+                  className="navigation-klappgruppe"
+                  data-offen={drin ? "ja" : "nein"}
+                >
+                  <div className="navigation-gruppe">
+                    {gruppe.titel}
+                    <Zeichen name="zeiger" klasse="navigation-klapp" />
+                  </div>
+                  <div className="navigation-klappinhalt">
+                    <div>{eintraege}</div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <Fragment key={gruppe.titel ?? `gruppe-${i}`}>
+                {gruppe.titel && <div className="navigation-gruppe">{gruppe.titel}</div>}
+                {eintraege}
+              </Fragment>
+            );
+          })}
         </nav>
 
         <div className="leiste-fuss">
