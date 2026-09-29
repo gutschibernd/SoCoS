@@ -203,12 +203,14 @@ function Uebersicht({
   oeffnen: (id: number) => void;
 }) {
   const [suche, setSuche] = useState("");
-  const [neues, setNeues] = useState({ titel: "", ort: "", von: heuteAlsDatum() });
+  const [neues, setNeues] = useState<NeuesEventDaten>(leeresEvent);
   const [fehler, setFehler] = useState("");
 
   async function anlegen() {
     if (!neues.titel.trim()) return setFehler("Ohne Titel gibt es nichts anzulegen.");
     if (!neues.von) return setFehler("Wann ist das? Ohne ersten Tag steht das Event nirgends in der Zeit.");
+    if (neues.bis && neues.bis <= neues.von)
+      return setFehler("Der letzte Tag liegt nicht nach dem ersten — dann ist es eintägig.");
     setFehler("");
     const angelegt = await hole<Event>("/events/", {
       method: "POST",
@@ -216,9 +218,10 @@ function Uebersicht({
         titel: neues.titel.trim(),
         ort: neues.ort.trim(),
         von: neues.von,
+        bis: neues.bis || null,
       }),
     });
-    setNeues({ titel: "", ort: "", von: heuteAlsDatum() });
+    setNeues(leeresEvent());
     neuLaden();
     // Gleich hinein: Wer ein Event anlegt, will als Nächstes die Hitlist füllen.
     oeffnen(angelegt.id);
@@ -292,14 +295,19 @@ function Uebersicht({
   );
 }
 
+/** `bis` leer heißt eintägig — derselbe Haken wie auf der Eventseite. */
+type NeuesEventDaten = { titel: string; ort: string; von: string; bis: string };
+
+const leeresEvent = (): NeuesEventDaten => ({ titel: "", ort: "", von: heuteAlsDatum(), bis: "" });
+
 function NeuesEvent({
   neues,
   setNeues,
   anlegen,
   fehler,
 }: {
-  neues: { titel: string; ort: string; von: string };
-  setNeues: (n: { titel: string; ort: string; von: string }) => void;
+  neues: NeuesEventDaten;
+  setNeues: (n: NeuesEventDaten) => void;
   anlegen: () => void;
   fehler: string;
 }) {
@@ -327,8 +335,34 @@ function NeuesEvent({
           style={{ flex: "0 1 170px" }}
           value={neues.von}
           onChange={(e) => setNeues({ ...neues, von: e.target.value })}
-          aria-label="Erster Tag"
+          aria-label={neues.bis ? "Erster Tag" : "Tag"}
         />
+        <label className="schalter">
+          <input
+            type="checkbox"
+            checked={!!neues.bis}
+            onChange={(e) =>
+              setNeues({
+                ...neues,
+                bis: e.target.checked
+                  ? (mehrtaegigUmschalten({ von: neues.von, beginn: null, ende: null }, true).bis ?? "")
+                  : "",
+              })
+            }
+          />
+          Mehrtägig
+        </label>
+        {neues.bis && (
+          <input
+            type="date"
+            className="feld"
+            style={{ flex: "0 1 170px" }}
+            value={neues.bis}
+            min={neues.von}
+            onChange={(e) => e.target.value && setNeues({ ...neues, bis: e.target.value })}
+            aria-label="Letzter Tag"
+          />
+        )}
         <button type="button" className="knopf" onClick={anlegen}>
           <Zeichen name="plus" />
           Anlegen
