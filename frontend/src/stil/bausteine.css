@@ -1324,6 +1324,8 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .eventdaten { margin: 10px 0 4px; }
 .datumsfeld { flex: 0 0 auto; width: 170px; }
 .datumsfeld .beschriftung-klein { display: block; margin-bottom: 3px; }
+/* Der Haken steht auf der Linie der Felder, nicht auf der ihrer Beschriftung. */
+.feld-reihe > .eventdaten-schalter { flex: 0 0 auto; align-self: flex-end; }
 
 /* Ein Satz unter einer Tabelle — nicht darüber: Über der Tabelle stünde er
    zwischen Überschrift und Inhalt und würde jedes Mal mitgelesen. */

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { Event, Eventziel, Kontakt, Organisation } from "./daten";
 import {
+  istMehrtaegig,
+  mehrtaegigUmschalten,
   alsAnfrage,
   istVorbei,
   letzterTag,
@@ -42,6 +44,29 @@ const event = (teil: Partial<Event>): Event => ({
   verlauf: [],
   anhaenge: [],
   ...teil,
+});
+
+describe("mehrtägig", () => {
+  it("ist ein Event ohne letzten Tag oder mit demselben Tag eintägig", () => {
+    expect(istMehrtaegig({ von: "2026-10-14", bis: null })).toBe(false);
+    expect(istMehrtaegig({ von: "2026-10-14", bis: "2026-10-14" })).toBe(false);
+    expect(istMehrtaegig({ von: "2026-10-14", bis: "2026-10-16" })).toBe(true);
+  });
+
+  it("setzt beim Einschalten den Tag danach — auch über das Monatsende", () => {
+    const e = { von: "2026-10-31", beginn: null, ende: null };
+    expect(mehrtaegigUmschalten(e, true)).toEqual({ bis: "2026-11-01" });
+  });
+
+  it("leert beim Ausschalten den letzten Tag und behält ein passendes Ende", () => {
+    const e = { von: "2026-10-14", beginn: "09:00:00", ende: "17:00:00" };
+    expect(mehrtaegigUmschalten(e, false)).toEqual({ bis: null });
+  });
+
+  it("nimmt ein Ende mit, das am selben Tag vor dem Beginn läge", () => {
+    const e = { von: "2026-10-14", beginn: "17:00:00", ende: "10:00:00" };
+    expect(mehrtaegigUmschalten(e, false)).toEqual({ bis: null, ende: null });
+  });
 });
 
 describe("letzterTag und istVorbei", () => {

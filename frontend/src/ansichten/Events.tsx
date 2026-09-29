@@ -42,6 +42,8 @@ import {
 import {
   alsAnfrage,
   letzterTag,
+  istMehrtaegig,
+  mehrtaegigUmschalten,
   nochOffen,
   passtEvent,
   teileNachZeit,
@@ -433,6 +435,7 @@ function Eventseite({
     await aendern(`/events/${event.id}/`, daten);
     neuLaden();
   };
+  const mehrtaegig = istMehrtaegig(event);
 
   return (
     <>
@@ -487,7 +490,7 @@ function Eventseite({
         {ich.darf.bearbeiten && (
           <div className="feld-reihe eventdaten">
             <label className="datumsfeld">
-              <span className="beschriftung-klein">Erster Tag</span>
+              <span className="beschriftung-klein">{mehrtaegig ? "Erster Tag" : "Tag"}</span>
               <input
                 type="date"
                 className="feld"
@@ -495,18 +498,30 @@ function Eventseite({
                 onChange={(e) => e.target.value && speichern({ von: e.target.value })}
               />
             </label>
-            <label className="datumsfeld">
-              <span className="beschriftung-klein">Letzter Tag</span>
-              {/* Leer heißt eintägig — deshalb geht auch der leere Wert
-                  durch, anders als beim ersten Tag. */}
+            {/* Der Haken statt eines immer sichtbaren zweiten Datums: Ein
+                leeres Feld „Letzter Tag" sah aus wie etwas Vergessenes. */}
+            <label className="schalter eventdaten-schalter">
               <input
-                type="date"
-                className="feld"
-                value={event.bis ?? ""}
-                min={event.von}
-                onChange={(e) => speichern({ bis: e.target.value || null })}
+                type="checkbox"
+                checked={mehrtaegig}
+                onChange={(e) => speichern(mehrtaegigUmschalten(event, e.target.checked))}
               />
+              Mehrtägig
             </label>
+            {mehrtaegig && (
+              <label className="datumsfeld">
+                <span className="beschriftung-klein">Letzter Tag</span>
+                {/* Leeren geht über den Haken, nicht über das Feld — ein
+                    leeres Feld hieße eintägig, und der Haken stünde noch. */}
+                <input
+                  type="date"
+                  className="feld"
+                  value={event.bis ?? ""}
+                  min={event.von}
+                  onChange={(e) => e.target.value && speichern({ bis: e.target.value })}
+                />
+              </label>
+            )}
             {/* Beide freiwillig: Leer heißt ganztägig. Wird der Beginn
                 geleert, geht das Ende mit — ein Ende ohne Beginn nimmt der
                 Server nicht an. */}

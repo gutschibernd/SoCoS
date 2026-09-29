@@ -12,11 +12,35 @@
  *    nicht vergangen. Das ist genau der Fehler, den man erst im Oktober sieht.
  */
 
+import { datumIn } from "./aufgaben";
 import type { Event, Eventziel, Kontakt, Organisation } from "./daten";
 
 /** Der letzte Tag eines Events. Ohne `bis` ist es eintägig. */
 export function letzterTag(event: Event): string {
   return event.bis || event.von;
+}
+
+/** Ein `bis` gleich `von` ist eintägig — so kann es aus älteren Einträgen kommen. */
+export function istMehrtaegig(event: Pick<Event, "von" | "bis">): boolean {
+  return !!event.bis && event.bis !== event.von;
+}
+
+/**
+ * Was beim Umschalten des Hakens „Mehrtägig" gespeichert wird.
+ *
+ * **An:** Der letzte Tag wird der Tag danach — ein leeres Feld wäre wieder
+ * eintägig, und der Haken spränge nach dem Speichern zurück.
+ * **Aus:** `bis` wird geleert. Liegt das Ende dann am selben Tag vor dem
+ * Beginn (Messe 17:00 bis Folgetag 10:00), geht es mit; sonst wiese der
+ * Server die ganze Änderung ab und der Haken bliebe stehen.
+ */
+export function mehrtaegigUmschalten(
+  event: Pick<Event, "von" | "beginn" | "ende">,
+  an: boolean,
+): Partial<Pick<Event, "bis" | "ende">> {
+  if (an) return { bis: datumIn(1, new Date(`${event.von}T00:00:00`)) };
+  if (event.beginn && event.ende && event.ende <= event.beginn) return { bis: null, ende: null };
+  return { bis: null };
 }
 
 export function istVorbei(event: Event, heute: string): boolean {
