@@ -56,6 +56,7 @@ import { melden } from "../basis/meldungen";
 import type { Seite } from "../basis/router";
 import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
+import { Anhangkarte } from "../bausteine/Anhangkarte";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
@@ -543,6 +544,19 @@ function Eventseite({
         event={event}
         organisationen={organisationen}
         kontakte={kontakte}
+        ich={ich}
+        neuLaden={neuLaden}
+        zumLoeschen={zumLoeschen}
+      />
+
+      {/* Zuletzt: Programm, Hallenplan, die Mail mit der Einladung — was man
+          vor Ort einmal nachschlägt, nicht das, woran man arbeitet. */}
+      <Anhangkarte
+        anhaenge={event.anhaenge}
+        pfad="/eventanhaenge/"
+        besitzer={{ feld: "event", id: event.id }}
+        woran="am Event"
+        leer="Noch nichts angehängt. Programm, Hallenplan oder Fotos als Datei; eine E-Mail als .eml (oder hierher gezogen) bringt ihren Text mit."
         ich={ich}
         neuLaden={neuLaden}
         zumLoeschen={zumLoeschen}

@@ -44,6 +44,7 @@ NAMEN = {
     "socos.Verlaufseintrag": ("m", "Verlaufseintrag", "Verlaufseinträge"),
     "socos.Event": ("n", "Event", "Events"),
     "socos.Eventziel": ("n", "Eventziel", "Eventziele"),
+    "socos.Eventanhang": ("m", "Anhang", "Anhänge"),
     "socos.Meeting": ("n", "Meeting", "Meetings"),
     "socos.Meetingabschnitt": ("m", "Protokollabschnitt", "Protokollabschnitte"),
     "socos.Meetinganhang": ("m", "Anhang", "Anhänge"),

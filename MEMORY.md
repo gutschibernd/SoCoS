@@ -7,6 +7,35 @@ betrifft.
 
 ---
 
+## 2026-09-29 — Anhänge am Event (`Eventanhang`, Migration 0035)
+
+**Ein eigenes Modell neben `Meetinganhang`, kein gemeinsames „Anhang"** mit
+zwei nullbaren Fremdschlüsseln. Das hätte je Zeile eine Bedingung „genau einer
+von beiden" gebraucht, und jede Abfrage „Anhänge dieses Meetings" hätte die
+andere Hälfte mitgeschleppt. Die Felder sind dieselben (Datei, Name, Größe,
+Art, ausgelesener Text); die Datei liegt unter `MEDIA_ROOT/events/`.
+
+**Aber ein Weg dorthin.** Das Hochladen samt Mail-Lesen und „Anhänge ohne"
+steht in `AnhangViewSet` (socos/api.py); Meeting und Event setzen nur Modell
+und Feldnamen. In der Oberfläche dasselbe: `bausteine/Anhangkarte.tsx` samt
+Mailfenster, vorher Teil von `Meetings.tsx`. Zwei Kopien liefen beim ersten
+Nachbessern auseinander — und welche Mail an welchem Ort ihre Ausweiskopien
+behält, merkte niemand.
+
+**Keine Liste erlaubter Dateitypen.** Gewünscht waren „vor allem PDF und Bilder";
+angenommen wird alles bis 12 MB. Eine Endungsliste schützte vor nichts, was der
+erzwungene Download nicht ohnehin abfängt, und lehnte die Excel-Ausstellerliste ab.
+
+**Bilder werden nicht in der Seite gezeigt**, auch nicht als Vorschaubild — wie am
+Meeting geht jede Datei als Download. Ein Bild inline auszuliefern wäre mit
+`nosniff` und festem `image/*`-Typ vertretbar; gebaut wird es, wenn es jemand
+vermisst.
+
+Sicherung: `Eventanhang` steht in `MODELLE_IM_ARCHIV` und vor `Event` in der
+Löschreihenfolge; ein Test schickt Eintrag und Datei durch Ausfuhr und Einfuhr.
+
+---
+
 ## 2026-09-28 — Thoughts, ein drittes Modul (Migrationen 0032–0034)
 
 **Das Modul heißt „Thoughts", die Karte darin im Code weiter Lagekarte.**

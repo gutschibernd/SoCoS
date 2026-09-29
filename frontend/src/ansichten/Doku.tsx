@@ -583,6 +583,29 @@ function EventsDoku() {
           ]}
         />
       </Abschnitt>
+
+      <Abschnitt
+        zeichen="pdf"
+        titel="Anhänge am Event"
+        vorspann="Ganz unten auf der Seite: Programm, Hallenplan, Fotos, die Mail mit der Einladung."
+      >
+        <Begriffe
+          paare={[
+            {
+              begriff: "Anhängen",
+              text: "„Datei oder E-Mail“ drücken oder die Datei auf die Karte ziehen. PDF, Bilder und jede andere Datei bis 12 MB. Am Handy öffnet der Knopf auch die Kamera.",
+            },
+            {
+              begriff: "E-Mails",
+              text: "Wie am Meeting: als .eml hochgeladen, liest SoCoS Absender, Betreff und Text und zeigt sie in einem Fenster. Hat die Mail selbst Anhänge, wird gefragt, ob sie mit sollen.",
+            },
+            {
+              begriff: "Öffnen und entfernen",
+              text: "Ein Klick auf den Namen lädt die Datei herunter. Entfernen darf ein Admin; die Datei bleibt auf dem Server und steht in der Sicherung.",
+            },
+          ]}
+        />
+      </Abschnitt>
     </>
   );
 }

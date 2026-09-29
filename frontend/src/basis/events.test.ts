@@ -38,6 +38,7 @@ const event = (teil: Partial<Event>): Event => ({
   teilnehmer_namen: [],
   ziele: [],
   verlauf: [],
+  anhaenge: [],
   ...teil,
 });
 

@@ -977,6 +977,46 @@ class Event(Basismodell):
         return self.bis or self.von
 
 
+class Anhangart(models.TextChoices):
+    EMAIL = "email", "E-Mail"
+    DATEI = "datei", "Datei"
+
+
+class Eventanhang(Basismodell):
+    """
+    Eine Datei am Event — das Programm als PDF, ein Foto vom Stand, die Mail
+    mit der Einladung.
+
+    Gebaut wie `Meetinganhang` und hochgeladen über denselben Weg
+    (`AnhangViewSet`): Die Datei liegt unter `MEDIA_ROOT` und wandert damit in
+    die Sicherung, ausgeliefert wird sie nur hinter der Anmeldung und immer
+    als Download, und bei einer E-Mail steht ihr Text in `text`.
+
+    Ein eigenes Modell statt eines gemeinsamen „Anhang" mit zwei nullbaren
+    Fremdschlüsseln: Dort hätte jede Zeile eine Bedingung „genau einer von
+    beiden" gebraucht, und jedes Filtern nach „Anhänge dieses Meetings" hätte
+    die andere Hälfte mitgeschleppt.
+    """
+
+    event = models.ForeignKey(
+        Event, verbose_name="Event", on_delete=models.CASCADE, related_name="anhaenge"
+    )
+    datei = models.FileField("Datei", upload_to="events/%Y/%m/", max_length=300)
+    # Der Name, unter dem die Datei hochkam — siehe `Meetinganhang.name`.
+    name = models.CharField("Name", max_length=255)
+    groesse = models.PositiveBigIntegerField("Größe in Byte", default=0)
+    art = models.CharField("Art", max_length=10, choices=Anhangart.choices, default=Anhangart.DATEI)
+    text = models.TextField("Ausgelesener Text", blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Eventanhang"
+        verbose_name_plural = "Eventanhänge"
+        ordering = ["event", "erstellt_am", "id"]
+
+    def __str__(self):
+        return self.name
+
+
 class Zielstand(models.TextChoices):
     """
     Drei Werte, nicht fünf. Vor dem Event ist alles offen; danach ist die
@@ -1193,11 +1233,6 @@ class Meetingabschnitt(Basismodell):
 
     def __str__(self):
         return self.ueberschrift or (self.text[:40] or "Abschnitt")
-
-
-class Anhangart(models.TextChoices):
-    EMAIL = "email", "E-Mail"
-    DATEI = "datei", "Datei"
 
 
 class Meetinganhang(Basismodell):

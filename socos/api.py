@@ -39,6 +39,7 @@ from socos.models import (
     Canvasfeld,
     Canvaspunkt,
     Event,
+    Eventanhang,
     Eventziel,
     Fixkosten,
     Kontakt,
@@ -364,6 +365,7 @@ class EventViewSet(SocosViewSet):
         "verlauf__kontakt",
         "verlauf__organisation",
         "verlauf__wer",
+        "anhaenge",
     )
 
 
@@ -524,33 +526,45 @@ class MeetingabschnittViewSet(SocosViewSet):
 ANHANG_HOECHSTENS = 12 * 1024 * 1024
 
 
-class MeetinganhangViewSet(SocosViewSet):
+class AnhangViewSet(SocosViewSet):
     """
-    Dateien am Meeting: hochladen, herunterladen, entfernen.
+    Dateien an einem Meeting oder Event: hochladen, herunterladen, entfernen.
+
+    Beide gehen über diesen einen Weg, samt dem Lesen einer Mail. Zwei Kopien
+    davon liefen beim ersten Nachbessern auseinander — und welche Mail an
+    welchem Ort ihre Ausweiskopien behält, merkte niemand.
 
     Kein Ändern: Eine Datei ersetzt man, indem man die neue hochlädt und die
     alte entfernt. Ein PATCH auf „Name" wäre eine zweite Wahrheit neben dem,
     was in der Datei steht.
+
+    Angenommen wird jede Datei, nicht nur PDF, Bild und Mail. Eine Liste
+    erlaubter Endungen schützte vor nichts, was der Download nicht ohnehin
+    abfängt.
     """
 
-    serializer_class = ser.MeetinganhangSerializer
-    queryset = Meetinganhang.objects.select_related("meeting")
+    # Das Modell, an dem die Datei hängt, und der Name des Feldes dorthin —
+    # zugleich der Name im Formular und im Filter (`?meeting=3`).
+    besitzer = None
+    besitzerfeld = ""
+    besitzer_fehlt = ""
+
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     http_method_names = ["get", "post", "delete", "head", "options"]
 
     def get_queryset(self):
         menge = super().get_queryset()
-        if meeting := self.request.query_params.get("meeting"):
-            menge = menge.filter(meeting_id=meeting)
+        if wert := self.request.query_params.get(self.besitzerfeld):
+            menge = menge.filter(**{f"{self.besitzerfeld}_id": wert})
         return menge
 
     def create(self, request, *args, **kwargs):
         from socos.services import mailtext
 
         try:
-            meeting = Meeting.objects.get(pk=request.data.get("meeting"))
-        except (Meeting.DoesNotExist, ValueError, TypeError):
-            raise ValidationError({"meeting": "Dieses Meeting gibt es nicht."})
+            besitzer = self.besitzer.objects.get(pk=request.data.get(self.besitzerfeld))
+        except (self.besitzer.DoesNotExist, ValueError, TypeError):
+            raise ValidationError({self.besitzerfeld: self.besitzer_fehlt})
 
         datei = request.FILES.get("datei")
         if datei is None:
@@ -583,8 +597,8 @@ class MeetinganhangViewSet(SocosViewSet):
                 inhalt = datei
             datei.seek(0)
 
-        anhang = Meetinganhang(
-            meeting=meeting,
+        anhang = self.queryset.model(
+            **{self.besitzerfeld: besitzer},
             name=datei.name[:255],
             groesse=inhalt.size,
             art=art,
@@ -611,6 +625,22 @@ class MeetinganhangViewSet(SocosViewSet):
         antwort = FileResponse(griff, as_attachment=True, filename=anhang.name)
         antwort["X-Content-Type-Options"] = "nosniff"
         return antwort
+
+
+class MeetinganhangViewSet(AnhangViewSet):
+    serializer_class = ser.MeetinganhangSerializer
+    queryset = Meetinganhang.objects.select_related("meeting")
+    besitzer = Meeting
+    besitzerfeld = "meeting"
+    besitzer_fehlt = "Dieses Meeting gibt es nicht."
+
+
+class EventanhangViewSet(AnhangViewSet):
+    serializer_class = ser.EventanhangSerializer
+    queryset = Eventanhang.objects.select_related("event")
+    besitzer = Event
+    besitzerfeld = "event"
+    besitzer_fehlt = "Dieses Event gibt es nicht."
 
 
 # --- Module: SPG Academy ----------------------------------------------------

@@ -18,6 +18,7 @@ from socos.models import (
     Aufgabe,
     Canvaspunkt,
     Event,
+    Eventanhang,
     Eventziel,
     Fixkosten,
     Kontakt,
@@ -407,8 +408,18 @@ class EventzielSerializer(serializers.ModelSerializer):
         return vorhanden or super().create(daten)
 
 
+class EventanhangSerializer(serializers.ModelSerializer):
+    """Nur lesend, bis auf das Event — siehe `MeetinganhangSerializer`."""
+
+    class Meta:
+        model = Eventanhang
+        fields = ["id", "event", "name", "groesse", "art", "text", "erstellt_am"]
+        read_only_fields = ["name", "groesse", "art", "text", "erstellt_am"]
+
+
 class EventSerializer(serializers.ModelSerializer):
     ziele = serializers.SerializerMethodField()
+    anhaenge = serializers.SerializerMethodField()
     verlauf = serializers.SerializerMethodField()
     teilnehmer_namen = serializers.SerializerMethodField()
 
@@ -416,7 +427,7 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             "id", "titel", "ort", "von", "bis", "notiz", "teilnehmer",
-            "teilnehmer_namen", "ziele", "verlauf",
+            "teilnehmer_namen", "ziele", "verlauf", "anhaenge",
         ]
 
     def get_ziele(self, event):
@@ -424,6 +435,10 @@ class EventSerializer(serializers.ModelSerializer):
         # Gelöschtes mit, weil Django dafür den Basis-Manager nimmt.
         menge = event.ziele.filter(geloescht_am__isnull=True).order_by("reihenfolge", "id")
         return EventzielSerializer(menge, many=True, context=self.context).data
+
+    def get_anhaenge(self, event):
+        menge = event.anhaenge.filter(geloescht_am__isnull=True)
+        return EventanhangSerializer(menge, many=True, context=self.context).data
 
     def get_verlauf(self, event):
         menge = event.verlauf.filter(geloescht_am__isnull=True).order_by("-datum", "-id")

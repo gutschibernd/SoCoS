@@ -7,8 +7,10 @@ steht an derselben Stelle wie jeder andere Verlauf — beim Kontakt.
 """
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 
-from socos.models import Event, Eventziel, Kontakt, Organisation, Verlaufseintrag
+from socos.models import Event, Eventanhang, Eventziel, Kontakt, Organisation, Verlaufseintrag
 
 
 @pytest.fixture
@@ -273,3 +275,100 @@ class TestKennengelerntAufDemEvent:
         client.force_login(admin_nutzer)
         assert client.delete(f"/api/events/{event.pk}/").status_code == 409
 
+
+
+# --- Anhänge ----------------------------------------------------------------
+#
+# Der Weg ist derselbe wie am Meeting (`AnhangViewSet`); wie eine Mail gelesen
+# wird, prüft test_meetings.py. Hier steht, dass er auch am Event ankommt.
+
+
+@pytest.fixture
+def medien(tmp_path, settings):
+    settings.MEDIA_ROOT = tmp_path / "medien"
+    settings.MEDIA_ROOT.mkdir()
+    return settings.MEDIA_ROOT
+
+
+class TestAnhaenge:
+    @pytest.mark.django_db
+    def test_ein_bild_haengt_am_event(self, client, bearbeiter, event, medien):
+        client.force_login(bearbeiter)
+
+        antwort = client.post(
+            "/api/eventanhaenge/",
+            {"event": event.pk, "datei": SimpleUploadedFile("stand.jpg", b"\xff\xd8\xff")},
+        )
+
+        assert antwort.status_code == 201, antwort.content
+        assert antwort.json()["art"] == "datei"
+        assert antwort.json()["groesse"] == 3
+        eventdaten = client.get(f"/api/events/{event.pk}/").json()
+        assert [a["name"] for a in eventdaten["anhaenge"]] == ["stand.jpg"]
+
+    @pytest.mark.django_db
+    def test_eine_mail_kommt_mit_ihrem_text(self, client, bearbeiter, event, medien):
+        client.force_login(bearbeiter)
+        mail = b"From: Messe <info@example.invalid>\r\nSubject: Ihr Standplatz\r\n\r\nHalle B, Stand 12\r\n"
+
+        daten = client.post(
+            "/api/eventanhaenge/",
+            {"event": event.pk, "datei": SimpleUploadedFile("einladung.eml", mail)},
+        ).json()
+
+        assert daten["art"] == "email"
+        assert "Betreff: Ihr Standplatz" in daten["text"]
+        assert "Halle B, Stand 12" in daten["text"]
+
+    @pytest.mark.django_db
+    def test_herunterladen_nur_als_download(self, client, leser, event, medien):
+        anhang = Eventanhang(event=event, name="Programm.pdf", groesse=8)
+        anhang.datei.save("programm.pdf", SimpleUploadedFile("programm.pdf", b"%PDF-1.4"), save=False)
+        anhang.save()
+        client.force_login(leser)
+
+        antwort = client.get(f"/api/eventanhaenge/{anhang.pk}/datei/")
+
+        assert antwort.status_code == 200
+        assert b"".join(antwort.streaming_content) == b"%PDF-1.4"
+        assert antwort["Content-Disposition"].startswith("attachment")
+
+    @pytest.mark.django_db
+    def test_ein_leser_laedt_nichts_hoch(self, client, leser, event, medien):
+        client.force_login(leser)
+
+        antwort = client.post(
+            "/api/eventanhaenge/",
+            {"event": event.pk, "datei": SimpleUploadedFile("a.pdf", b"x")},
+        )
+
+        assert antwort.status_code == 403
+
+    @pytest.mark.django_db
+    def test_ohne_event_gibt_es_keinen_anhang(self, client, bearbeiter, medien):
+        client.force_login(bearbeiter)
+
+        antwort = client.post(
+            "/api/eventanhaenge/", {"event": 999, "datei": SimpleUploadedFile("a.pdf", b"x")}
+        )
+
+        assert antwort.status_code == 400
+        assert not Eventanhang.objects.exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_eventanhaenge_wandern_durch_die_sicherung(tmp_path, medien, bearbeiter):
+    """Eintrag **und** Datei — ein Anhang ohne seine Datei ist ein toter Link."""
+    event = Event.objects.create(titel="Medica", von="2026-11-16")
+    anhang = Eventanhang(event=event, name="Hallenplan.png", groesse=4)
+    anhang.datei.save("hallenplan.png", SimpleUploadedFile("hallenplan.png", b"\x89PNG"), save=False)
+    anhang.save()
+    pfad = anhang.datei.path
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    wieder_da = Eventanhang.objects.get(event__titel="Medica")
+    assert wieder_da.datei.path == pfad
+    assert wieder_da.datei.read() == b"\x89PNG"

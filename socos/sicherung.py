@@ -27,6 +27,8 @@ MODELLE_IM_ARCHIV = [
     "socos.Verlaufseintrag",
     "socos.Event",
     "socos.Eventziel",
+    # Wie beim Meetinganhang: die Datei wandert mit dem Medienordner.
+    "socos.Eventanhang",
     "socos.Meeting",
     "socos.Meetingabschnitt",
     # Die Dateien selbst liegen unter MEDIA_ROOT und wandern mit dem
@@ -56,6 +58,7 @@ LOESCHREIHENFOLGE = [
     # dreien.
     "socos.Verlaufseintrag",
     "socos.Eventziel",
+    "socos.Eventanhang",
     # Der Abschnitt vor dem Meeting, das Meeting vor Kontakt und Organisation:
     # Es zeigt auf beide (als Menge), und die Zwischentabellen hängen an ihm.
     "socos.Meetingabschnitt",

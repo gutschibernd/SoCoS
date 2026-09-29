@@ -283,6 +283,7 @@ export type Event = {
   teilnehmer_namen: string[];
   ziele: Eventziel[];
   verlauf: Verlaufseintrag[];
+  anhaenge: Eventanhang[];
 };
 
 /**
@@ -313,18 +314,21 @@ export type Meeting = {
 };
 
 /**
- * Eine Datei am Meeting. Bei einer E-Mail steht ihr Text daneben (Kopf,
- * Inhalt, Namen der Anhänge) — ausgelesen beim Hochladen, am Server.
+ * Eine Datei an einem Meeting oder Event. Bei einer E-Mail steht ihr Text
+ * daneben (Kopf, Inhalt, Namen der Anhänge) — ausgelesen beim Hochladen, am
+ * Server.
  */
-export type Meetinganhang = {
+export type Anhang = {
   id: number;
-  meeting: number;
   name: string;
   groesse: number;
   art: "email" | "datei";
   text: string;
   erstellt_am: string;
 };
+
+export type Meetinganhang = Anhang & { meeting: number };
+export type Eventanhang = Anhang & { event: number };
 
 export type Meetingabschnitt = {
   id: number;
