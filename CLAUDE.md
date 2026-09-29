@@ -261,6 +261,20 @@ Produktion gilt (Security-Header, axes-Konfiguration), wird einzeln geprüft.
 - **MEMORY.md wird im selben Commit gepflegt**, sobald eine Änderung ein Schema, eine
   Architekturentscheidung oder einen fachlichen Sonderfall betrifft.
 
+## Einträge in der laufenden Anwendung
+
+Bei Aufträgen wie „lege ein Meeting an", „trag den Kontakt ein" o. ä. ist die
+**Live-Seite https://socos.test.sopharmis.com** gemeint, nicht die lokale
+Datenbank. **Zuerst nachfragen, dass der Nutzer sich dort anmeldet**, bevor
+irgendetwas eingetragen wird — im Browserfenster der App, **selbst**. Die
+Sitzung bleibt danach bestehen, und Claude arbeitet über die Oberfläche weiter.
+
+**Warum der Nutzer das Passwort selbst eintippt:** Claude gibt keine echten
+Passwörter in ein Anmeldeformular ein, auch dann nicht, wenn sie im Chat
+stehen. Ein Passwort im Chat liegt außerdem im Verlauf. Kein Umweg über
+`ssh socos` und die Django-Shell, außer der Nutzer fordert ihn ausdrücklich an
+(siehe Git: kein Serverzugriff ohne Aufforderung).
+
 ## Daten
 
 **Kunden- und Personendaten kommen aus `daten/`** (in `.gitignore`), nie aus einer
