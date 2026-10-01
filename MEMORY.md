@@ -7,21 +7,23 @@ betrifft.
 
 ---
 
-## 2026-10-01 — Aufgaben: „Meine" und „Alle" nebeneinander, „Meine" schließt Allgemeines ein
+## 2026-10-01 — Aufgaben: „Meine" und „Allgemein" nebeneinander
 
 Die Tafel zeigt zwei Spalten zugleich: links (schmaler, 2 : 3) **Meine**, rechts
-**Alle** mit dem Filter auf eine Person oder „Allgemein". Der Filter wird nicht
-mehr im Browser gemerkt (`socos.aufgaben.filter` ist weg) und steht bei jedem
-Öffnen auf „Alle". **Warum:** Bernd wollte beim Tippen auf „To-do" sicher beide
-vor sich haben; ein gemerkter Filter zeigte mal das eine, mal das andere.
+**Allgemein** (niemandem zugeordnet), dort umschaltbar auf „Alle" oder eine
+Person. Der Filter wird nicht mehr im Browser gemerkt (`socos.aufgaben.filter`
+ist weg) und steht bei jedem Öffnen auf „Allgemein". **Warum:** Bernd wollte
+beim Tippen auf „To-do" sicher die eigenen und die allgemeinen Aufgaben vor
+sich haben; ein gemerkter Filter zeigte mal das eine, mal das andere, und das
+Allgemeine sah dabei keiner.
 
-**„Meine" schließt Aufgaben ohne Person ein** (`gehoertZu`, auch im Archiv).
-Was für alle ist, ist für jeden. Der Filter auf eine *andere* Person zeigt
-weiterhin nur ihr Zugeordnetes. Unter „Meine" trägt so eine Zeile das Wort
-„Allgemein", damit sie nicht wie die eigene allein aussieht.
+**„Meine" schließt das Allgemeine nicht ein.** Kurz (am selben Tag, ein Deploy
+lang) tat es das — mit „Allgemein" rechts daneben stünde jede solche Zeile aber
+doppelt.
 
-Dieselbe Aufgabe steht oft in beiden Spalten; welche Zeile aufgeklappt ist,
-merkt sich die Seite deshalb mit Spalte (`"meine:12"`), nicht nur mit Kennung.
+Dieselbe Aufgabe kann trotzdem in beiden Spalten stehen (rechts auf „Alle");
+welche Zeile aufgeklappt ist, merkt sich die Seite deshalb mit Spalte
+(`"meine:12"`), nicht nur mit Kennung.
 
 ---
 

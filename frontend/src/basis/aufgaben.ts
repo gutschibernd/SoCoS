@@ -75,17 +75,11 @@ export type Filter = "ich" | "alle" | "allgemein" | number;
 /**
  * Ob eine Aufgabe unter einem Filter steht. Eine Aufgabe mit zwei Personen
  * steht bei **beiden** — das ist der Sinn davon, sie zweien zu geben.
- *
- * **„Meine" schließt das Allgemeine ein** (seit 2026-10-01): Was für alle
- * ist, ist auch für mich. Unter „Meine" allein fiel es sonst niemandem auf,
- * weil jeder annahm, ein anderer sähe es. Eine andere Person zu filtern
- * zeigt dagegen nur ihr Zugeordnetes — dort ist die Frage „was hat Anna".
  */
 export function gehoertZu(aufgabe: Aufgabe, filter: Filter, ich: number): boolean {
   if (filter === "alle") return true;
   if (filter === "allgemein") return aufgabe.personen.length === 0;
-  if (filter === "ich") return aufgabe.personen.length === 0 || aufgabe.personen.includes(ich);
-  return aufgabe.personen.includes(filter);
+  return aufgabe.personen.includes(filter === "ich" ? ich : filter);
 }
 
 export type Gruppe = {

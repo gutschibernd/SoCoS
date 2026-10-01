@@ -1,13 +1,15 @@
 /**
  * Die Aufgaben: zwei Spalten nebeneinander, beide nach Fälligkeit gruppiert —
- * links, schmaler, **meine** (samt dem Allgemeinen), rechts **alle**, darüber
- * ein Filter auf eine Person. Daneben zwei Reiter: Ideen und Archiv.
+ * links, schmaler, **meine**, rechts das **Allgemeine** (niemandem
+ * zugeordnet). Über der rechten lässt sich auf „Alle" oder eine Person
+ * umschalten. Daneben zwei Reiter: Ideen und Archiv.
  *
  * **Warum beide zugleich** (seit 2026-10-01): Mit einem einzigen Filter, den
- * der Browser sich merkte, stand beim Öffnen mal „Meine", mal „Alle" — je
- * nachdem, wer zuletzt wo geklickt hatte. Wer auf „To-do" tippt, soll ohne
- * Nachsehen beides vor sich haben. Der Filter der rechten Spalte steht deshalb
- * bei jedem Öffnen wieder auf „Alle".
+ * der Browser sich merkte, stand beim Öffnen mal „Meine", mal etwas anderes —
+ * je nachdem, wer zuletzt wo geklickt hatte. Das Allgemeine fiel dabei
+ * niemandem auf, weil jeder annahm, ein anderer sähe es. Wer auf „To-do"
+ * tippt, soll ohne Nachsehen beides vor sich haben; die rechte Spalte steht
+ * deshalb bei jedem Öffnen wieder auf „Allgemein".
  *
  * **Warum keine Spalten je Person mehr** (bis 2026-09-28): Überfälliges stand
  * irgendwo in einer fremden Spalte, wo es niemand sah, und eine Aufgabe, die
@@ -65,7 +67,7 @@ export function Aufgaben({
   const liste = useAufgaben();
   const team = useTeam();
   const neuLaden = useNeuLaden();
-  const [filter, setFilter] = useState<Filter>("alle");
+  const [filter, setFilter] = useState<Filter>("allgemein");
   // Welche Zeile aufgeklappt ist, samt Spalte: Eine Aufgabe steht oft links
   // **und** rechts, und aufklappen soll nur die, auf die getippt wurde.
   const [offen, setOffen] = useState<string | null>(null);
@@ -83,12 +85,12 @@ export function Aufgaben({
   const personen = leute(aufgaben, team.data, ich.id);
   const darfSchreiben = ich.darf.bearbeiten;
   const ansicht = unter === "ideen" ? "ideen" : unter === "archiv" ? "archiv" : "tafel";
-  // Ein Filter auf eine Person, die es nicht mehr gibt, fällt auf „Alle"
+  // Ein Filter auf eine Person, die es nicht mehr gibt, fällt auf „Allgemein"
   // zurück — sonst stünde eine leere Liste da ohne gewählten Knopf. Ebenso
   // „Meine" aus dem Archiv: Auf der Tafel steht das schon links.
   const wirksam: Filter =
     (typeof filter === "number" && !personen.some((p) => p.id === filter)) || (ansicht === "tafel" && filter === "ich")
-      ? "alle"
+      ? "allgemein"
       : filter;
 
   /* Anlegen und Ändern laufen über dieselben zwei Funktionen, gleich in
@@ -163,7 +165,7 @@ export function Aufgaben({
             </div>
             <Tafelliste aufgaben={aufgaben} spalte="meine" filter="ich" {...gemeinsam} />
           </section>
-          <section className="aufgaben-spalte" aria-label="Alle Aufgaben">
+          <section className="aufgaben-spalte" aria-label="Allgemeine und andere Aufgaben">
             <div className="aufgaben-spaltenkopf">{filterleiste(false)}</div>
             <Tafelliste aufgaben={aufgaben} spalte="alle" filter={wirksam} {...gemeinsam} />
           </section>
@@ -232,6 +234,7 @@ function Filterleiste({
   return (
     <div className="aufgaben-filter" role="group" aria-label="Wessen Aufgaben">
       {mitMeinen && knopf("ich", "Meine")}
+      {knopf("allgemein", "Allgemein")}
       {knopf("alle", "Alle")}
       <span className="aufgaben-trenner" aria-hidden="true" />
       {personen
@@ -245,7 +248,6 @@ function Filterleiste({
             </>,
           ),
         )}
-      {knopf("allgemein", "Allgemein")}
     </div>
   );
 }
@@ -499,7 +501,7 @@ function Tafelliste({ aufgaben, ...rest }: Listenteile) {
         was="Nichts offen"
         satz={
           rest.spalte === "meine"
-            ? "Für dich steht nichts an. Rechts steht, was die anderen offen haben."
+            ? "Für dich steht nichts an. Rechts steht das Allgemeine."
             : rest.darfSchreiben
               ? "Oben hineinschreiben und Enter drücken."
               : "Hier steht nichts an."
@@ -642,11 +644,6 @@ function Zeile({
           <span className="aufgabe-wort">{aufgabe.text}</span>
           <span className="aufgabe-meta">
             {aufgabe.ist_idee && aufgabe.erledigt && <span className="aufgabe-marke">Idee</span>}
-            {/* Unter „Meine" steht auch das Allgemeine. Ohne Wort sähe es aus
-                wie meins allein, und keiner wüsste, dass es auch die anderen sehen. */}
-            {filter === "ich" && !aufgabe.ist_idee && aufgabe.personen.length === 0 && (
-              <span className="aufgabe-marke">Allgemein</span>
-            )}
             {aufgabe.prioritaet !== "mittel" && (
               <span className="aufgabe-marke" data-prio={aufgabe.prioritaet}>
                 {prioritaetstext(aufgabe.prioritaet)}

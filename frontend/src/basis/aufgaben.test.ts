@@ -80,12 +80,8 @@ describe("Filter", () => {
 
   it("nimmt „Allgemein“ als: niemandem zugeordnet", () => {
     expect(gehoertZu(aufgabe({ id: 1 }), "allgemein", 1)).toBe(true);
+    expect(gehoertZu(aufgabe({ id: 1 }), "ich", 1)).toBe(false);
     expect(gehoertZu(aufgabe({ id: 1 }), "alle", 1)).toBe(true);
-  });
-
-  it("zeigt Allgemeines auch unter „Meine“, aber nicht bei einer anderen Person", () => {
-    expect(gehoertZu(aufgabe({ id: 1 }), "ich", 1)).toBe(true);
-    expect(gehoertZu(aufgabe({ id: 1 }), 2, 1)).toBe(false);
   });
 });
 

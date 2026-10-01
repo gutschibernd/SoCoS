@@ -345,8 +345,8 @@ function AufgabenDoku() {
     <>
       <Abschnitt
         zeichen="aufgaben"
-        titel="Meine und alle, nach Fälligkeit"
-        vorspann="Zwei Spalten nebeneinander: links deine Aufgaben, rechts alle. In beiden steht oben, was drängt — Überfällig, Heute, Nächste 7 Tage, Später, Ohne Frist. Über der rechten Spalte lässt sie sich auf eine Person oder „Allgemein“ eingrenzen. Alle sehen alles, und jeder darf jedem etwas aufschreiben."
+        titel="Meine und Allgemeines, nach Fälligkeit"
+        vorspann="Zwei Spalten nebeneinander: links deine Aufgaben, rechts die allgemeinen, die niemandem zugeordnet sind. In beiden steht oben, was drängt — Überfällig, Heute, Nächste 7 Tage, Später, Ohne Frist. Über der rechten Spalte lässt sich auf „Alle“ oder eine Person umschalten. Alle sehen alles, und jeder darf jedem etwas aufschreiben."
       >
         <Schritte
           schritte={[
@@ -359,7 +359,7 @@ function AufgabenDoku() {
           paare={[
             {
               begriff: "Mehrere Personen",
-              text: "Eine Aufgabe kann mehreren gehören und steht dann bei jedem von ihnen — einmal, nicht abgetippt. Keine Person heißt „Allgemein“: Das steht bei jedem unter „Meine“, mit dem Wort „Allgemein“ daneben.",
+              text: "Eine Aufgabe kann mehreren gehören und steht dann bei jedem von ihnen — einmal, nicht abgetippt. Keine Person heißt „Allgemein“.",
             },
             {
               begriff: "Priorität",
@@ -372,7 +372,7 @@ function AufgabenDoku() {
           ]}
         />
         <p className="doku-text">
-          Beim Öffnen steht die rechte Spalte immer auf <b>„Alle“</b> — es merkt sich nichts,
+          Beim Öffnen steht die rechte Spalte immer auf <b>„Allgemein“</b> — es merkt sich nichts,
           was dir eine Hälfte verstecken könnte. Die Taste <b>N</b> springt ins Feld für eine
           neue Aufgabe.
         </p>
