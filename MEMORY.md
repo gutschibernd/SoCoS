@@ -7,6 +7,24 @@ betrifft.
 
 ---
 
+## 2026-10-01 — Aufgaben: „Meine" und „Alle" nebeneinander, „Meine" schließt Allgemeines ein
+
+Die Tafel zeigt zwei Spalten zugleich: links (schmaler, 2 : 3) **Meine**, rechts
+**Alle** mit dem Filter auf eine Person oder „Allgemein". Der Filter wird nicht
+mehr im Browser gemerkt (`socos.aufgaben.filter` ist weg) und steht bei jedem
+Öffnen auf „Alle". **Warum:** Bernd wollte beim Tippen auf „To-do" sicher beide
+vor sich haben; ein gemerkter Filter zeigte mal das eine, mal das andere.
+
+**„Meine" schließt Aufgaben ohne Person ein** (`gehoertZu`, auch im Archiv).
+Was für alle ist, ist für jeden. Der Filter auf eine *andere* Person zeigt
+weiterhin nur ihr Zugeordnetes. Unter „Meine" trägt so eine Zeile das Wort
+„Allgemein", damit sie nicht wie die eigene allein aussieht.
+
+Dieselbe Aufgabe steht oft in beiden Spalten; welche Zeile aufgeklappt ist,
+merkt sich die Seite deshalb mit Spalte (`"meine:12"`), nicht nur mit Kennung.
+
+---
+
 ## 2026-09-29 — Kalender-Abo, Uhrzeiten an Events, Pflicht-Uhrzeit bei Meetings (Migration 0036)
 
 **Das kippt „SoCoS ist kein Kalender".** Bernd wollte Events und Meetings in

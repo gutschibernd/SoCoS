@@ -1,6 +1,13 @@
 /**
- * Die Aufgaben: **eine** Liste, nach Fälligkeit gruppiert, darüber ein Filter,
- * wessen Aufgaben. Daneben zwei Reiter: Ideen und Archiv.
+ * Die Aufgaben: zwei Spalten nebeneinander, beide nach Fälligkeit gruppiert —
+ * links, schmaler, **meine** (samt dem Allgemeinen), rechts **alle**, darüber
+ * ein Filter auf eine Person. Daneben zwei Reiter: Ideen und Archiv.
+ *
+ * **Warum beide zugleich** (seit 2026-10-01): Mit einem einzigen Filter, den
+ * der Browser sich merkte, stand beim Öffnen mal „Meine", mal „Alle" — je
+ * nachdem, wer zuletzt wo geklickt hatte. Wer auf „To-do" tippt, soll ohne
+ * Nachsehen beides vor sich haben. Der Filter der rechten Spalte steht deshalb
+ * bei jedem Öffnen wieder auf „Alle".
  *
  * **Warum keine Spalten je Person mehr** (bis 2026-09-28): Überfälliges stand
  * irgendwo in einer fremden Spalte, wo es niemand sah, und eine Aufgabe, die
@@ -18,8 +25,6 @@
  * Bearbeiten klappt **in der Zeile** auf, kein Fenster. Jeder Griff darin
  * gilt sofort; es gibt kein „Speichern", das man vergessen könnte.
  *
- * Der Filter merkt sich der Browser, nicht der Server: Er sagt nichts über die
- * Aufgaben, sondern darüber, wie einer von dreien gerade hinsieht.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -45,20 +50,6 @@ import { Zustand } from "../basis/Zustand";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
 
-const SPEICHER = "socos.aufgaben.filter";
-
-function filterLesen(): Filter {
-  try {
-    const roh = window.localStorage.getItem(SPEICHER);
-    if (roh === "ich" || roh === "alle" || roh === "allgemein") return roh;
-    if (roh && /^\d+$/.test(roh)) return Number(roh);
-  } catch {
-    // Ein privates Fenster oder abgeschaltete Speicherung. Dann eben „Meine" —
-    // das ist kein Fehler, über den jemand lesen muss.
-  }
-  return "ich";
-}
-
 type Speichern = (aufgabe: Aufgabe, daten: Partial<Aufgabe>) => Promise<void>;
 type Anlegen = (daten: Partial<Aufgabe>) => Promise<void>;
 
@@ -74,16 +65,10 @@ export function Aufgaben({
   const liste = useAufgaben();
   const team = useTeam();
   const neuLaden = useNeuLaden();
-  const [filter, setFilter] = useState<Filter>(filterLesen);
-  const [offen, setOffen] = useState<number | null>(null);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SPEICHER, String(filter));
-    } catch {
-      /* Siehe oben: nicht speichern zu können ändert nichts an der Liste. */
-    }
-  }, [filter]);
+  const [filter, setFilter] = useState<Filter>("alle");
+  // Welche Zeile aufgeklappt ist, samt Spalte: Eine Aufgabe steht oft links
+  // **und** rechts, und aufklappen soll nur die, auf die getippt wurde.
+  const [offen, setOffen] = useState<string | null>(null);
 
   // Ein anderer Reiter oder Filter schließt die aufgeklappte Zeile — sie
   // stünde dort sonst offen, wo man sie nicht mehr sieht.
@@ -96,12 +81,15 @@ export function Aufgaben({
 
   const aufgaben = liste.data;
   const personen = leute(aufgaben, team.data, ich.id);
-  // Ein gemerkter Filter auf eine Person, die es nicht mehr gibt, fällt auf
-  // „Meine" zurück — sonst stünde eine leere Liste da ohne gewählten Knopf.
-  const wirksam: Filter =
-    typeof filter === "number" && !personen.some((p) => p.id === filter) ? "ich" : filter;
   const darfSchreiben = ich.darf.bearbeiten;
   const ansicht = unter === "ideen" ? "ideen" : unter === "archiv" ? "archiv" : "tafel";
+  // Ein Filter auf eine Person, die es nicht mehr gibt, fällt auf „Alle"
+  // zurück — sonst stünde eine leere Liste da ohne gewählten Knopf. Ebenso
+  // „Meine" aus dem Archiv: Auf der Tafel steht das schon links.
+  const wirksam: Filter =
+    (typeof filter === "number" && !personen.some((p) => p.id === filter)) || (ansicht === "tafel" && filter === "ich")
+      ? "alle"
+      : filter;
 
   /* Anlegen und Ändern laufen über dieselben zwei Funktionen, gleich in
      welchem Reiter. Der Unterschied steckt einzig in den Feldern, die
@@ -115,17 +103,32 @@ export function Aufgaben({
     neuLaden();
   };
 
-  const zahlTafel = aufgaben.filter((a) => !a.ist_idee && !a.erledigt && gehoertZu(a, wirksam, ich.id)).length;
+  const zahl = (f: Filter) => aufgaben.filter((a) => !a.ist_idee && !a.erledigt && gehoertZu(a, f, ich.id)).length;
   const zahlIdeen = ideen(aufgaben).length;
+  // Auf der Tafel ist eine neue Zeile zu sehen, wenn sie links **oder** rechts steht.
+  const sichtbar = (a: Aufgabe) =>
+    ansicht === "tafel" ? gehoertZu(a, "ich", ich.id) || gehoertZu(a, wirksam, ich.id) : gehoertZu(a, wirksam, ich.id);
 
-  const gemeinsam = { ich, personen, darfSchreiben, speichern, offen, setOffen, filter: wirksam };
+  const gemeinsam = { ich, personen, darfSchreiben, speichern, offen, setOffen };
+
+  const filterleiste = (mitMeinen: boolean) => (
+    <Filterleiste
+      aufgaben={aufgaben}
+      personen={personen}
+      ich={ich.id}
+      filter={wirksam}
+      waehlen={setFilter}
+      erledigte={ansicht === "archiv"}
+      mitMeinen={mitMeinen}
+    />
+  );
 
   return (
     <div className="aufgabenseite">
       <div className="aufgaben-kopf">
         <div className="spannenwahl" role="group" aria-label="Ansicht">
           <button type="button" aria-pressed={ansicht === "tafel"} onClick={() => wechseln("aufgaben", null)}>
-            Tafel <span className="zahl">{zahlTafel}</span>
+            Tafel <span className="zahl">{zahl("alle")}</span>
           </button>
           <button type="button" aria-pressed={ansicht === "ideen"} onClick={() => wechseln("aufgaben", "ideen")}>
             Ideen <span className="zahl">{zahlIdeen}</span>
@@ -135,16 +138,7 @@ export function Aufgaben({
           </button>
         </div>
 
-        {ansicht !== "ideen" && (
-          <Filterleiste
-            aufgaben={aufgaben}
-            personen={personen}
-            ich={ich.id}
-            filter={wirksam}
-            waehlen={setFilter}
-            erledigte={ansicht === "archiv"}
-          />
-        )}
+        {ansicht === "archiv" && filterleiste(true)}
       </div>
 
       {darfSchreiben && ansicht !== "archiv" && (
@@ -154,14 +148,29 @@ export function Aufgaben({
           vorgabe={vorgabePersonen(wirksam, ich.id)}
           personen={personen}
           ich={ich.id}
-          filter={wirksam}
+          sichtbar={sichtbar}
           anlegen={anlegen}
         />
       )}
 
-      {ansicht === "tafel" && <Tafelliste aufgaben={aufgaben} {...gemeinsam} />}
-      {ansicht === "ideen" && <Ideenliste aufgaben={aufgaben} {...gemeinsam} />}
-      {ansicht === "archiv" && <Archivliste aufgaben={aufgaben} {...gemeinsam} />}
+      {ansicht === "tafel" && (
+        <div className="aufgaben-spalten">
+          <section className="aufgaben-spalte" aria-label="Meine Aufgaben">
+            <div className="aufgaben-spaltenkopf">
+              <h2 className="aufgaben-spaltentitel">
+                Meine <span className="zahl">{zahl("ich")}</span>
+              </h2>
+            </div>
+            <Tafelliste aufgaben={aufgaben} spalte="meine" filter="ich" {...gemeinsam} />
+          </section>
+          <section className="aufgaben-spalte" aria-label="Alle Aufgaben">
+            <div className="aufgaben-spaltenkopf">{filterleiste(false)}</div>
+            <Tafelliste aufgaben={aufgaben} spalte="alle" filter={wirksam} {...gemeinsam} />
+          </section>
+        </div>
+      )}
+      {ansicht === "ideen" && <Ideenliste aufgaben={aufgaben} spalte="ideen" filter="alle" {...gemeinsam} />}
+      {ansicht === "archiv" && <Archivliste aufgaben={aufgaben} spalte="archiv" filter={wirksam} {...gemeinsam} />}
     </div>
   );
 }
@@ -191,6 +200,7 @@ function Filterleiste({
   filter,
   waehlen,
   erledigte,
+  mitMeinen,
 }: {
   aufgaben: Aufgabe[];
   personen: Teammitglied[];
@@ -198,6 +208,7 @@ function Filterleiste({
   filter: Filter;
   waehlen: (f: Filter) => void;
   erledigte: boolean;
+  mitMeinen: boolean;
 }) {
   /* Die Zahl neben jedem Knopf ist die Zahl dessen, was man dahinter
      findet — ohne sie wäre jeder Knopf einer, hinter dem man nachsehen muss,
@@ -220,7 +231,7 @@ function Filterleiste({
 
   return (
     <div className="aufgaben-filter" role="group" aria-label="Wessen Aufgaben">
-      {knopf("ich", "Meine")}
+      {mitMeinen && knopf("ich", "Meine")}
       {knopf("alle", "Alle")}
       <span className="aufgaben-trenner" aria-hidden="true" />
       {personen
@@ -362,14 +373,14 @@ function Neuzeile({
   vorgabe,
   personen,
   ich,
-  filter,
+  sichtbar,
   anlegen,
 }: {
   idee: boolean;
   vorgabe: number[];
   personen: Teammitglied[];
   ich: number;
-  filter: Filter;
+  sichtbar: (a: Aufgabe) => boolean;
   anlegen: Anlegen;
 }) {
   const [text, setText] = useState("");
@@ -405,7 +416,7 @@ function Neuzeile({
       await anlegen(idee ? { text: sauber, ist_idee: true } : { text: sauber, personen: fuer, frist });
       // Wer für jemand anderen anlegt, als gerade gefiltert ist, sähe die
       // Zeile sonst einfach nicht erscheinen — und tippte sie ein zweites Mal.
-      if (!idee && !gehoertZu({ personen: fuer } as Aufgabe, filter, ich)) {
+      if (!idee && !sichtbar({ personen: fuer } as Aufgabe)) {
         const namen = fuer.map((id) => personen.find((p) => p.id === id)).filter(Boolean) as Teammitglied[];
         melden("gut", `Angelegt für ${namen.length ? namen.map(vorname).join(" und ") : "Allgemein"}.`);
       }
@@ -472,8 +483,10 @@ type Listenteile = {
   personen: Teammitglied[];
   darfSchreiben: boolean;
   speichern: Speichern;
-  offen: number | null;
-  setOffen: (id: number | null) => void;
+  offen: string | null;
+  setOffen: (schluessel: string | null) => void;
+  /** Welche Liste das ist — damit eine Aufgabe, die links und rechts steht, nur einmal aufklappt. */
+  spalte: string;
   filter: Filter;
 };
 
@@ -485,9 +498,11 @@ function Tafelliste({ aufgaben, ...rest }: Listenteile) {
       <Leerstelle
         was="Nichts offen"
         satz={
-          rest.darfSchreiben
-            ? "Oben hineinschreiben und Enter drücken. Oder oben „Alle“ wählen."
-            : "Hier steht nichts an. Oben „Alle“ zeigt, was die anderen offen haben."
+          rest.spalte === "meine"
+            ? "Für dich steht nichts an. Rechts steht, was die anderen offen haben."
+            : rest.darfSchreiben
+              ? "Oben hineinschreiben und Enter drücken."
+              : "Hier steht nichts an."
         }
       />
     );
@@ -570,9 +585,11 @@ function Zeile({
   speichern,
   offen,
   setOffen,
+  spalte,
   filter,
 }: Omit<Listenteile, "aufgaben"> & { aufgabe: Aufgabe }) {
-  const auf = offen === aufgabe.id;
+  const schluessel = `${spalte}:${aufgabe.id}`;
+  const auf = offen === schluessel;
   const haken = aufgabe.ist_idee
     ? { zurueck: "Wieder auf die Ideenliste", weg: "Vom Tisch" }
     : { zurueck: "Wieder offen", weg: "Erledigt" };
@@ -620,11 +637,16 @@ function Zeile({
           className="aufgabe-text"
           disabled={!darfSchreiben || aufgabe.erledigt}
           aria-expanded={auf}
-          onClick={() => setOffen(auf ? null : aufgabe.id)}
+          onClick={() => setOffen(auf ? null : schluessel)}
         >
           <span className="aufgabe-wort">{aufgabe.text}</span>
           <span className="aufgabe-meta">
             {aufgabe.ist_idee && aufgabe.erledigt && <span className="aufgabe-marke">Idee</span>}
+            {/* Unter „Meine" steht auch das Allgemeine. Ohne Wort sähe es aus
+                wie meins allein, und keiner wüsste, dass es auch die anderen sehen. */}
+            {filter === "ich" && !aufgabe.ist_idee && aufgabe.personen.length === 0 && (
+              <span className="aufgabe-marke">Allgemein</span>
+            )}
             {aufgabe.prioritaet !== "mittel" && (
               <span className="aufgabe-marke" data-prio={aufgabe.prioritaet}>
                 {prioritaetstext(aufgabe.prioritaet)}

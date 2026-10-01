@@ -1482,11 +1482,32 @@ a.mini { text-decoration: none; }
 
 /* --- Aufgaben ------------------------------------------------------------ */
 /*
- * Eine Liste, nicht Spalten. Begrenzt auf eine Lesebreite: Über 1400 px
- * gelesen, verliert man am Zeilenende die Zeile — und eine Aufgabe ist ein
- * Satz, kein Absatz.
+ * Auf der Tafel zwei Spalten: links, schmaler, meine — rechts alle. Die Seite
+ * bleibt trotzdem begrenzt: Über 1400 px gelesen, verliert man am Zeilenende
+ * die Zeile, und eine Aufgabe ist ein Satz, kein Absatz. Ideen und Archiv
+ * sind eine Liste und behalten die Lesebreite.
  */
 .aufgabenseite { max-width: 820px; display: flex; flex-direction: column; gap: 16px; }
+.aufgabenseite:has(.aufgaben-spalten) { max-width: 1240px; }
+.aufgaben-spalten {
+  display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 32px; align-items: start;
+}
+/* Untereinander, sobald die linke Spalte für eine Zeile mit Frist zu schmal
+   würde. „Meine" steht dann oben — das ist die erste Frage. */
+@media (max-width: 960px) {
+  .aufgaben-spalten { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
+.aufgaben-spalte { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* Beide Köpfe gleich hoch, damit die erste Gruppe links und rechts auf
+   einer Linie anfängt. */
+.aufgaben-spaltenkopf { min-height: 38px; display: flex; align-items: center; }
+.aufgaben-spaltenkopf > .aufgaben-filter { min-width: 0; }
+.aufgaben-spaltentitel {
+  margin: 0; display: flex; align-items: baseline; gap: 8px;
+  font-size: 15px; font-weight: 600; color: var(--text);
+}
+.aufgaben-spaltentitel .zahl { font-family: var(--schrift-zahl); font-size: 12px; font-weight: 400; color: var(--text-sehr-leise); }
 .aufgaben-kopf { display: flex; flex-direction: column; gap: 12px; }
 .aufgaben-kopf > .spannenwahl { align-self: flex-start; }
 .aufgaben-kopf .spannenwahl .zahl { margin-left: 6px; font-size: 12px; opacity: 0.8; }
@@ -1593,10 +1614,14 @@ a.mini { text-decoration: none; }
   border: 0; background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer;
 }
 .aufgabe-text:disabled { cursor: default; color: var(--text); }
-.aufgabe-wort { flex: 1 1 auto; min-width: 0; font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; }
+/* Frist und Marken rutschen unter den Text, sobald dem weniger als eine
+   Lesebreite bliebe — in der schmalen Spalte „Meine" stand sonst ein Wort
+   je Zeile, weil die Marken nicht nachgeben. */
+.aufgabe-text { flex-wrap: wrap; row-gap: 4px; }
+.aufgabe-wort { flex: 1 1 16em; min-width: 0; font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; }
 .aufgabe[data-prio="gering"] .aufgabe-wort { color: var(--text-leise); }
 .aufgabe[data-erledigt="ja"] .aufgabe-wort { color: var(--text-sehr-leise); text-decoration: line-through; }
-.aufgabe-meta { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.aufgabe-meta { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .aufgabe-meta:empty { display: none; }
 .aufgabe-meta .kuerzel { padding: 2px 5px; }
 /* Die Personenfarbe ist ein heller Ton und kippt nicht mit dem Thema. Der
@@ -2715,10 +2740,9 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
     background: var(--kopf-kante);
   }
 
-  /* Am Handy steht die Frist unter dem Text, nicht daneben — neben einer
-     Frist und zwei Kürzeln bliebe dem Text eine Spalte von zwei Handbreit
-     Buchstaben. */
-  .aufgabe-text { flex-wrap: wrap; row-gap: 4px; }
+  /* Am Handy steht die Frist immer unter dem Text, nicht daneben — neben
+     einer Frist und zwei Kürzeln bliebe dem Text eine Spalte von zwei
+     Handbreit Buchstaben. Das Umbrechen selbst steht oben. */
   .aufgabe-wort { flex-basis: 100%; }
   .aufgaben-reihe { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .aufgabe-menue { padding-left: 12px; padding-right: 12px; }

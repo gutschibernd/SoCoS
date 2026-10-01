@@ -80,8 +80,12 @@ describe("Filter", () => {
 
   it("nimmt „Allgemein“ als: niemandem zugeordnet", () => {
     expect(gehoertZu(aufgabe({ id: 1 }), "allgemein", 1)).toBe(true);
-    expect(gehoertZu(aufgabe({ id: 1 }), "ich", 1)).toBe(false);
     expect(gehoertZu(aufgabe({ id: 1 }), "alle", 1)).toBe(true);
+  });
+
+  it("zeigt Allgemeines auch unter „Meine“, aber nicht bei einer anderen Person", () => {
+    expect(gehoertZu(aufgabe({ id: 1 }), "ich", 1)).toBe(true);
+    expect(gehoertZu(aufgabe({ id: 1 }), 2, 1)).toBe(false);
   });
 });
 
@@ -122,6 +126,7 @@ describe("Tafel", () => {
 
   it("filtert nach Person", () => {
     const liste = [aufgabe({ id: 1, personen: [1] }), aufgabe({ id: 2, personen: [2] })];
+    expect(tafel(liste, 2, 1, heute).flatMap((g) => g.aufgaben).map((a) => a.id)).toEqual([2]);
     expect(tafel(liste, "ich", 1, heute).flatMap((g) => g.aufgaben).map((a) => a.id)).toEqual([1]);
   });
 });
