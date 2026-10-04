@@ -1181,9 +1181,38 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 /* Woher die Person kommt — leise, weil es eine Herkunftsangabe ist und kein
    Vorgang. Sie steht über dem Fuß und nicht in ihm: Im Fuß stünde sie neben
    „Zuletzt" und läse sich wie ein zweites Datum. */
-.person-herkunft {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 11px; color: var(--text-sehr-leise);
+/* „Über die Person": zugeklappt eine Zeile, aufgeklappt drei Textfelder. */
+.person-mehr { padding-top: 9px; border-top: 1px solid var(--flaeche-leise); font-size: 13px; }
+.person-mehr > summary {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  min-height: 32px; cursor: pointer; list-style: none;
+}
+.person-mehr > summary::-webkit-details-marker { display: none; }
+.person-mehr > summary .zeiger-klapp { width: 14px; height: 14px; }
+.person-mehr[open] > summary .zeiger-klapp { transform: rotate(90deg); }
+.person-mehr-titel { font-weight: 600; }
+.person-mehr > summary:hover .person-mehr-titel { color: var(--marke); }
+.person-mehr-stand { font-size: 11px; color: var(--text-sehr-leise); }
+.person-mehr-feld { margin-top: 8px; white-space: pre-wrap; }
+.person-mehr-feld .beschriftung-klein { display: block; margin-bottom: 2px; }
+/* Was man nicht ansprechen soll, ist das, was man vor dem Gespräch nicht
+   überlesen darf — die Beschriftung steht deshalb im Warnton. */
+.person-mehr-meiden .beschriftung-klein { color: var(--warnung); }
+
+/* Die Events der Person. Jede Zeile führt zum Event; das Auswahlfeld
+   darunter setzt sie auf die Hitlist eines kommenden. */
+.person-events { display: flex; flex-direction: column; gap: 2px; }
+.person-event {
+  display: flex; align-items: center; gap: 7px; min-width: 0; min-height: 28px;
+  padding: 0; background: none; border: 0; cursor: pointer; text-align: left;
+  font: inherit; font-size: 12px; color: var(--marke);
+}
+.person-event:hover .person-event-titel { text-decoration: underline; }
+.person-event-titel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person-event-wie { flex: 0 0 auto; font-size: 11px; color: var(--text-sehr-leise); }
+.person-events .feld-klein { margin-top: 4px; width: 100%; }
+@media (pointer: coarse) {
+  .person-mehr > summary, .person-event { min-height: var(--griff); }
 }
 
 /* Die Namen unter der Organisationszeile. Eingerückt auf die Breite des

@@ -300,7 +300,8 @@ class KontaktSerializer(serializers.ModelSerializer):
             "id", "name", "anrede", "funktion", "email", "telefon",
             "organisation", "organisation_name",
             "kennengelernt_auf", "kennengelernt_auf_titel",
-            "ball", "offener_punkt", "letzter_kontakt", "verlauf", "meetings",
+            "ball", "offener_punkt", "hintergrund", "anknuepfen", "meiden",
+            "letzter_kontakt", "verlauf", "meetings",
         ]
 
     def get_letzter_kontakt(self, kontakt):

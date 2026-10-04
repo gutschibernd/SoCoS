@@ -213,6 +213,12 @@ export type Kontakt = {
   kennengelernt_auf_titel: string;
   ball: "uns" | "ihnen" | "nichts";
   offener_punkt: string;
+  /** Werdegang, Rolle im Haus — was man vor dem ersten Gespräch wissen sollte. */
+  hintergrund: string;
+  /** Worüber man persönlich ins Gespräch kommt. */
+  anknuepfen: string;
+  /** Was man besser nicht anspricht. */
+  meiden: string;
   letzter_kontakt: string | null;
   verlauf: Verlaufseintrag[];
   /** Besprechungen, bei denen diese Person eingetragen ist — kurz, ohne Texte. */

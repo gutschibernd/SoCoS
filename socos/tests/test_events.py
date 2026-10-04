@@ -10,7 +10,15 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 
-from socos.models import Event, Eventanhang, Eventziel, Kontakt, Organisation, Verlaufseintrag
+from socos.models import (
+    Event,
+    Eventanhang,
+    Eventziel,
+    Kontakt,
+    Organisation,
+    Protokolleintrag,
+    Verlaufseintrag,
+)
 
 
 @pytest.fixture
@@ -262,6 +270,23 @@ class TestKennengelerntAufDemEvent:
         assert antwort.status_code == 201
         assert antwort.json()["kennengelernt_auf"] is None
         assert antwort.json()["kennengelernt_auf_titel"] == ""
+
+    @pytest.mark.django_db
+    def test_was_man_ueber_die_person_weiss_wird_protokolliert(self, client, bearbeiter, person):
+        """Wer „lieber nicht ansprechen" nachträglich ändert, steht im Protokoll."""
+        client.force_login(bearbeiter)
+        antwort = client.patch(
+            f"/api/kontakte/{person.pk}/",
+            {"hintergrund": "Kommt aus der Klinik", "meiden": "Die abgelehnte Förderung"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 200
+        assert antwort.json()["meiden"] == "Die abgelehnte Förderung"
+        eintrag = Protokolleintrag.objects.filter(
+            modell="socos.Kontakt", objekt_id=str(person.pk), aktion="geaendert"
+        ).latest("zeitpunkt")
+        assert "meiden" in eintrag.aenderungen
+        assert "hintergrund" in eintrag.aenderungen
 
     @pytest.mark.django_db
     def test_ein_event_mit_kennengelernten_wird_nicht_geloescht(

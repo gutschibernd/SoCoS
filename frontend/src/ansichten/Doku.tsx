@@ -544,6 +544,14 @@ function KontakteDoku() {
               begriff: "Verlauf",
               text: "Gespräche mit Personen und Post ans Haus stehen in einem Faden. Sonst sieht man den Verlauf nur halb.",
             },
+            {
+              begriff: "Über die Person",
+              text: "In jeder Personenkachel zum Aufklappen: Hintergrund, gemeinsame Themen und was man lieber nicht anspricht. Zugeklappt steht daneben, was schon ausgefüllt ist — ein Blick vor dem Gespräch genügt.",
+            },
+            {
+              begriff: "Events der Person",
+              text: "Unter der Kachel stehen die Events, auf denen die Person vorkommt: kennengelernt, getroffen, verpasst oder auf der Hitlist. Über „Auf die Hitlist von …“ setzt man sie auf ein kommendes Event — es ist dieselbe Zeile wie auf der Eventseite.",
+            },
           ]}
         />
         <Merke>

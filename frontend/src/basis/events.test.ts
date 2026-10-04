@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { Event, Eventziel, Kontakt, Organisation } from "./daten";
+import type { Event, Eventziel, Kontakt, Organisation, Verlaufseintrag } from "./daten";
 import {
+  eventsDerPerson,
+  eventsZumVormerken,
   istMehrtaegig,
   mehrtaegigUmschalten,
   alsAnfrage,
@@ -235,5 +237,55 @@ describe("passtEvent", () => {
 
   it("verwirft, was nirgends vorkommt", () => {
     expect(passtEvent(tagung, "graz")).toBe(false);
+  });
+});
+
+const gespraech = (kontakt: number): Verlaufseintrag => ({
+  id: 1,
+  kontakt,
+  kontakt_name: "",
+  organisation: null,
+  organisation_name: "",
+  event: 1,
+  event_titel: "",
+  datum: "2026-10-14",
+  art: "event",
+  titel: "Am Stand",
+  text: "",
+  wer_name: "",
+});
+
+describe("Events einer Person", () => {
+  const vorgemerkt = event({ id: 1, von: "2026-11-02", ziele: [ziel({ kontakt: 7 })] });
+  const getroffen = event({
+    id: 2,
+    von: "2026-09-10",
+    ziele: [ziel({ kontakt: 7, stand: "offen" })],
+    verlauf: [gespraech(7)],
+  });
+  const fremd = event({ id: 3, von: "2026-10-20", ziele: [ziel({ kontakt: 8 })] });
+
+  it("sammelt Hitlist, Verlauf und Herkunft — das Neueste zuerst", () => {
+    const bezuege = eventsDerPerson({ id: 7, kennengelernt_auf: null }, [getroffen, fremd, vorgemerkt]);
+    expect(bezuege.map((b) => [b.id, b.wie])).toEqual([
+      [1, "vorgemerkt"],
+      [2, "getroffen"],
+    ]);
+  });
+
+  // Auf der Hitlist noch offen, aber im Verlauf steht das Gespräch: Getroffen
+  // ist mehr als vorgemerkt, und die Zeile steht nur einmal da.
+  it("zeigt je Event eine Zeile, die stärkste Verbindung gewinnt", () => {
+    expect(eventsDerPerson({ id: 7, kennengelernt_auf: 2 }, [getroffen])).toEqual([
+      { id: 2, titel: "MedTech Days", von: "2026-09-10", wie: "kennengelernt" },
+    ]);
+  });
+
+  it("bietet nur Kommendes an, auf dem die Person noch nicht steht", () => {
+    const frei = event({ id: 4, von: "2026-12-01" });
+    const laeuft = event({ id: 5, von: "2026-10-03", bis: "2026-10-05" });
+    expect(
+      eventsZumVormerken(7, [vorgemerkt, getroffen, frei, laeuft], "2026-10-04").map((e) => e.id),
+    ).toEqual([5, 4]);
   });
 });

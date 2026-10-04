@@ -191,3 +191,66 @@ export function passtEvent(event: Event, suche: string): boolean {
     return enthaelt(`${w.name} ${w.dazu} ${z.anliegen}`, suche);
   });
 }
+
+/** Wie eine Person mit einem Event verbunden ist — das Stärkste gewinnt. */
+export type Eventbezug = {
+  id: number;
+  titel: string;
+  von: string;
+  /** „getroffen" heißt: ein Gespräch steht im Verlauf oder auf der Hitlist abgehakt. */
+  wie: "kennengelernt" | "getroffen" | "verpasst" | "vorgemerkt";
+};
+
+/**
+ * Die Events, mit denen eine Person zu tun hat — für ihre Kachel.
+ *
+ * **Gerechnet und nicht gespeichert:** Die Verbindung steht schon an drei
+ * Stellen — Hitlist, Verlauf mit Event, „kennengelernt auf". Ein viertes Feld
+ * „Events der Person" wäre eine zweite Wahrheit daneben, die beim ersten
+ * Abhaken auf der Hitlist veraltet.
+ *
+ * Je Event eine Zeile. Steht jemand auf der Hitlist **und** im Verlauf, zählt
+ * das Gespräch: Getroffen ist mehr als vorgemerkt.
+ */
+export function eventsDerPerson(
+  kontakt: Pick<Kontakt, "id" | "kennengelernt_auf">,
+  events: Event[],
+): Eventbezug[] {
+  const rang = { kennengelernt: 4, getroffen: 3, verpasst: 2, vorgemerkt: 1 } as const;
+  const bezuege: Eventbezug[] = [];
+  for (const e of events) {
+    const kandidaten: Eventbezug["wie"][] = [];
+    if (kontakt.kennengelernt_auf === e.id) kandidaten.push("kennengelernt");
+    if (e.verlauf.some((v) => v.kontakt === kontakt.id)) kandidaten.push("getroffen");
+    const ziel = e.ziele.find((z) => z.kontakt === kontakt.id);
+    if (ziel) {
+      kandidaten.push(
+        ziel.stand === "getroffen" ? "getroffen" : ziel.stand === "verpasst" ? "verpasst" : "vorgemerkt",
+      );
+    }
+    if (kandidaten.length === 0) continue;
+    const wie = kandidaten.reduce((a, b) => (rang[b] > rang[a] ? b : a));
+    bezuege.push({ id: e.id, titel: e.titel, von: e.von, wie });
+  }
+  // Das Neueste zuerst: Was als Nächstes ansteht oder zuletzt war, ist die Frage.
+  return bezuege.sort((a, b) => (a.von > b.von ? -1 : a.von < b.von ? 1 : 0));
+}
+
+/**
+ * Auf welche Hitlist man die Person von ihrer Kachel aus setzen kann: nur
+ * Events, die noch nicht vorbei sind, und nur die, auf deren Liste sie noch
+ * nicht steht.
+ *
+ * **Warum nichts Vergangenes:** Die Hitlist ist der Plan von vorher. Wen man
+ * auf einem vergangenen Event getroffen hat, steht im Verlauf — dort trägt man
+ * es auf der Eventseite ein, mit dem, was besprochen wurde.
+ */
+export function eventsZumVormerken(
+  kontaktId: number,
+  events: Event[],
+  heute: string,
+): Event[] {
+  return teileNachZeit(events, heute).kommend.filter(
+    (e) => !e.ziele.some((z) => z.kontakt === kontaktId),
+  );
+}

@@ -17,13 +17,16 @@ import { useState } from "react";
 
 import { hole } from "../basis/api";
 import {
+  useEvents,
   useKontakte,
   useNeuLaden,
   useOrganisationen,
+  type Event,
   type Ich,
   type Kontakt,
   type Organisation,
 } from "../basis/daten";
+import { eventsDerPerson, eventsZumVormerken, type Eventbezug } from "../basis/events";
 import {
   ANREDEN,
   artText,
@@ -183,6 +186,7 @@ export function Kontakte({
 }) {
   const organisationen = useOrganisationen();
   const kontakte = useKontakte();
+  const events = useEvents();
   const neuLaden = useNeuLaden();
 
   const [loeschen, setLoeschen] = useState<Loeschauftrag | null>(null);
@@ -191,6 +195,7 @@ export function Kontakte({
   if (!organisationen.data)
     return <Zustand abfrage={organisationen} erneut={() => organisationen.refetch()} />;
   if (!kontakte.data) return <Zustand abfrage={kontakte} erneut={() => kontakte.refetch()} />;
+  if (!events.data) return <Zustand abfrage={events} erneut={() => events.refetch()} />;
 
   async function entfernen() {
     if (!loeschen) return;
@@ -235,20 +240,24 @@ export function Kontakte({
         <Organisationsseite
           org={gewaehlt}
           organisationen={organisationen.data}
+          events={events.data}
           ich={ich}
           neuLaden={neuLaden}
           zurueck={zurueck}
           zumLoeschen={setLoeschen}
           zumMeeting={(id) => wechseln("meetings", String(id))}
+          zumEvent={(id) => wechseln("events", String(id))}
         />
       ) : unter === LOSE ? (
         <LoseSeite
           kontakte={lose}
           organisationen={organisationen.data}
+          events={events.data}
           ich={ich}
           neuLaden={neuLaden}
           zumLoeschen={setLoeschen}
           zumMeeting={(id) => wechseln("meetings", String(id))}
+          zumEvent={(id) => wechseln("events", String(id))}
         />
       ) : (
         <Uebersicht
@@ -587,19 +596,23 @@ function AmZug({ kontakte }: { kontakte: Kontakt[] }) {
 function Organisationsseite({
   org,
   organisationen,
+  events,
   ich,
   neuLaden,
   zurueck,
   zumLoeschen,
   zumMeeting,
+  zumEvent,
 }: {
   org: Organisation;
   organisationen: Organisation[];
+  events: Event[];
   ich: Ich;
   neuLaden: () => void;
   zurueck: () => void;
   zumLoeschen: (auftrag: Loeschauftrag) => void;
   zumMeeting: (id: number) => void;
+  zumEvent: (id: number) => void;
 }) {
   return (
     <>
@@ -700,10 +713,12 @@ function Organisationsseite({
       <Personenkarte
         kontakte={org.kontakte}
         organisationen={organisationen}
+        events={events}
         gehoertZu={org.id}
         ich={ich}
         neuLaden={neuLaden}
         zumLoeschen={zumLoeschen}
+        zumEvent={zumEvent}
       />
 
       <Verlaufskarte
@@ -723,17 +738,21 @@ function Organisationsseite({
 function LoseSeite({
   kontakte,
   organisationen,
+  events,
   ich,
   neuLaden,
   zumLoeschen,
   zumMeeting,
+  zumEvent,
 }: {
   kontakte: Kontakt[];
   organisationen: Organisation[];
+  events: Event[];
   ich: Ich;
   neuLaden: () => void;
   zumLoeschen: (auftrag: Loeschauftrag) => void;
   zumMeeting: (id: number) => void;
+  zumEvent: (id: number) => void;
 }) {
   return (
     <>
@@ -754,10 +773,12 @@ function LoseSeite({
       <Personenkarte
         kontakte={kontakte}
         organisationen={organisationen}
+        events={events}
         gehoertZu={null}
         ich={ich}
         neuLaden={neuLaden}
         zumLoeschen={zumLoeschen}
+        zumEvent={zumEvent}
       />
 
       <Verlaufskarte
@@ -791,18 +812,22 @@ function Brotkrume({ name }: { name: string }) {
 function Personenkarte({
   kontakte,
   organisationen,
+  events,
   gehoertZu,
   ich,
   neuLaden,
   zumLoeschen,
+  zumEvent,
 }: {
   kontakte: Kontakt[];
   organisationen: Organisation[];
+  events: Event[];
   /** Die Organisation, in der wir gerade stehen — `null` bei den losen. */
   gehoertZu: number | null;
   ich: Ich;
   neuLaden: () => void;
   zumLoeschen: (auftrag: Loeschauftrag) => void;
+  zumEvent: (id: number) => void;
 }) {
   const [neue, setNeue] = useState({ name: "", funktion: "" });
   const [fehler, setFehler] = useState("");
@@ -842,9 +867,11 @@ function Personenkarte({
               key={k.id}
               kontakt={k}
               organisationen={organisationen}
+              events={events}
               ich={ich}
               neuLaden={neuLaden}
               zumLoeschen={zumLoeschen}
+              zumEvent={zumEvent}
             />
           ))}
         </div>
@@ -882,15 +909,19 @@ function Personenkarte({
 function Personenkachel({
   kontakt,
   organisationen,
+  events,
   ich,
   neuLaden,
   zumLoeschen,
+  zumEvent,
 }: {
   kontakt: Kontakt;
   organisationen: Organisation[];
+  events: Event[];
   ich: Ich;
   neuLaden: () => void;
   zumLoeschen: (auftrag: Loeschauftrag) => void;
+  zumEvent: (id: number) => void;
 }) {
   const speichern = async (daten: Record<string, unknown>) => {
     await aendern(`/kontakte/${kontakt.id}/`, daten);
@@ -985,16 +1016,15 @@ function Personenkachel({
         />
       </div>
 
-      {/* Woher die Person kommt. Steht nur da, wenn sie auf einem Event
-          angelegt wurde — eine Zeile „kennengelernt: —" bei allen anderen
-          wäre eine Frage, die niemand gestellt hat. Nicht änderbar: Das ist
-          eine Tatsache von damals, kein Feld zum Pflegen. */}
-      {kontakt.kennengelernt_auf_titel && (
-        <div className="person-herkunft">
-          <Zeichen name="fahne" klasse="draht-zeichen" />
-          Kennengelernt auf {kontakt.kennengelernt_auf_titel}
-        </div>
-      )}
+      <UeberDiePerson kontakt={kontakt} ich={ich} speichern={speichern} />
+
+      <Personenevents
+        kontakt={kontakt}
+        events={events}
+        ich={ich}
+        neuLaden={neuLaden}
+        zumEvent={zumEvent}
+      />
 
       {/* „Gehört zu" steht offen da, auch innerhalb einer Organisation, wo in
           jeder Kachel dasselbe Haus steht. Hier stand ein Knopf „Umhängen",
@@ -1075,6 +1105,138 @@ function Personenkachel({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+const UEBER_DIE_PERSON = [
+  { feld: "hintergrund", titel: "Hintergrund", platzhalter: "Werdegang, Rolle im Haus, was sie antreibt …" },
+  { feld: "anknuepfen", titel: "Gemeinsame Themen", platzhalter: "Worüber man ins Gespräch kommt …" },
+  { feld: "meiden", titel: "Lieber nicht ansprechen", platzhalter: "Heikle Themen, alte Geschichten …" },
+] as const;
+
+/**
+ * Was man über die Person wissen sollte, bevor man sie anspricht.
+ *
+ * Zugeklappt, weil drei Textfelder in jeder Kachel das Raster der Personen
+ * sprengen. Die Zeile zum Aufklappen nennt, was schon drinsteht — wer vor
+ * einem Gespräch nachsieht, weiß dann, ob es sich lohnt, ohne jede Kachel
+ * aufzumachen.
+ *
+ * Wer nicht bearbeiten darf und nichts zu lesen bekommt, sieht die Zeile gar
+ * nicht: Ein Aufklapper, unter dem drei Striche stehen, ist eine leere
+ * Schublade.
+ */
+function UeberDiePerson({
+  kontakt,
+  ich,
+  speichern,
+}: {
+  kontakt: Kontakt;
+  ich: Ich;
+  speichern: (daten: Record<string, unknown>) => Promise<void>;
+}) {
+  const gefuellt = UEBER_DIE_PERSON.filter((t) => kontakt[t.feld].trim());
+  if (!ich.darf.bearbeiten && gefuellt.length === 0) return null;
+  return (
+    <details className="person-mehr">
+      <summary>
+        <Zeichen name="zeiger" klasse="zeiger-klapp" />
+        <span className="person-mehr-titel">Über die Person</span>
+        {gefuellt.length > 0 && (
+          <span className="person-mehr-stand">{gefuellt.map((t) => t.titel).join(" · ")}</span>
+        )}
+      </summary>
+      {UEBER_DIE_PERSON.map((t) => (
+        <div key={t.feld} className={`person-mehr-feld person-mehr-${t.feld}`}>
+          <span className="beschriftung-klein">{t.titel}</span>
+          <Feldtext
+            wert={kontakt[t.feld]}
+            mehrzeilig
+            platzhalter={t.platzhalter}
+            aendern={ich.darf.bearbeiten}
+            speichern={(wert) => speichern({ [t.feld]: wert })}
+          />
+        </div>
+      ))}
+    </details>
+  );
+}
+
+const BEZUG: Record<Eventbezug["wie"], string> = {
+  kennengelernt: "kennengelernt",
+  getroffen: "getroffen",
+  verpasst: "verpasst",
+  vorgemerkt: "auf der Hitlist",
+};
+
+/**
+ * Auf welchen Events die Person vorkommt — und der Griff, sie auf die
+ * Hitlist eines kommenden zu setzen.
+ *
+ * Die Verbindung selbst ist die Hitlist-Zeile (`Eventziel`), kein eigenes
+ * Feld am Kontakt: Wer hier ein Event wählt, steht danach auf dessen Hitlist,
+ * und wer dort abgehakt wird, steht hier als „getroffen". Ein Weg, an beiden
+ * Enden sichtbar.
+ *
+ * Ersetzt die Zeile „Kennengelernt auf …", die hier stand — sie ist jetzt
+ * eine der Zeilen dieser Liste.
+ */
+function Personenevents({
+  kontakt,
+  events,
+  ich,
+  neuLaden,
+  zumEvent,
+}: {
+  kontakt: Kontakt;
+  events: Event[];
+  ich: Ich;
+  neuLaden: () => void;
+  zumEvent: (id: number) => void;
+}) {
+  const bezuege = eventsDerPerson(kontakt, events);
+  const vormerkbar = ich.darf.bearbeiten ? eventsZumVormerken(kontakt.id, events, heuteAlsDatum()) : [];
+  if (bezuege.length === 0 && vormerkbar.length === 0) return null;
+
+  async function vormerken(event: number) {
+    await hole("/eventziele/", {
+      method: "POST",
+      body: JSON.stringify({ event, kontakt: kontakt.id, organisation: null }),
+    });
+    neuLaden();
+  }
+
+  return (
+    <div className="person-events">
+      {bezuege.map((b) => (
+        <button
+          key={b.id}
+          type="button"
+          className="person-event"
+          title="Zum Event"
+          onClick={() => zumEvent(b.id)}
+        >
+          <Zeichen name="fahne" klasse="draht-zeichen" />
+          <span className="person-event-titel">{b.titel}</span>
+          <span className="person-event-wie">{BEZUG[b.wie]}</span>
+        </button>
+      ))}
+      {vormerkbar.length > 0 && (
+        <select
+          className="feld feld-klein"
+          value=""
+          onChange={(e) => e.target.value && vormerken(Number(e.target.value))}
+          aria-label={`${kontakt.name} auf die Hitlist eines Events setzen`}
+        >
+          <option value="">Auf die Hitlist von …</option>
+          {vormerkbar.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.titel} · {alsDatum(e.von)}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

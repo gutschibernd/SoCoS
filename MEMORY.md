@@ -7,6 +7,33 @@ betrifft.
 
 ---
 
+## 2026-10-04 — Mehr über die Person, und ihre Events an der Kachel (Migration 0037)
+
+Zwei Wünsche aus dem Team: zu Personen festhalten können, was ihr Hintergrund ist,
+worüber man persönlich ins Gespräch kommt und was man besser nicht anspricht — und
+Kontakte mit Events „vernetzen".
+
+### Drei Textfelder statt einer Notiz
+
+`Kontakt.hintergrund`, `anknuepfen`, `meiden`. Ein einzelnes Notizfeld füllt sich
+mit dem Werdegang, und „lieber nicht ansprechen" steht dann im vierten Absatz —
+genau der Satz, den man vor dem Gespräch nicht überlesen darf. In der Kachel
+zugeklappt unter „Über die Person"; die Zeile nennt, was schon ausgefüllt ist.
+
+### Die Verbindung Kontakt ↔ Event bekam kein neues Feld
+
+Sie stand schon an drei Stellen: Hitlist (`Eventziel.kontakt`), Verlauf mit
+`event`, `kennengelernt_auf`. Gefehlt hat nur, dass man sie **an der Person**
+sieht. `eventsDerPerson` (frontend/src/basis/events.ts) rechnet daraus je Event
+eine Zeile, die stärkste Verbindung gewinnt (kennengelernt > getroffen >
+verpasst > auf der Hitlist). Sie ersetzt die frühere Zeile „Kennengelernt auf …".
+
+Von der Kachel aus setzt man eine Person auf die Hitlist eines **kommenden**
+Events — es entsteht dieselbe `Eventziel`-Zeile wie auf der Eventseite. Vergangenes
+wird nicht angeboten: Wen man dort getroffen hat, gehört in den Verlauf, mit dem,
+was besprochen wurde. Ein eigenes Viertes („Person war auf Event X") wäre eine
+zweite Wahrheit neben der Hitlist, die beim ersten Abhaken veraltet.
+
 ## 2026-10-01 — Aufgaben: „Meine" und „Allgemein" nebeneinander
 
 Die Tafel zeigt zwei Spalten zugleich: links (schmaler, 2 : 3) **Meine**, rechts

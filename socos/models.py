@@ -829,6 +829,15 @@ class Kontakt(Basismodell):
     telefon = models.CharField("Telefon", max_length=60, blank=True)
     ball = models.CharField("Am Zug", max_length=6, choices=Ball.choices, default=Ball.UNS)
     offener_punkt = models.CharField("Offener Punkt", max_length=250, blank=True)
+    # Was man über die Person wissen sollte, bevor man sie anspricht.
+    #
+    # **Warum drei Felder und nicht eine Notiz:** Ein freies Notizfeld füllt
+    # sich mit dem Werdegang, und „worüber besser nicht reden" steht dann im
+    # vierten Absatz — genau der Satz, den man vor dem Gespräch nicht
+    # überlesen darf. Getrennt hat er seinen eigenen Platz.
+    hintergrund = models.TextField("Hintergrund", blank=True)
+    anknuepfen = models.TextField("Gemeinsame Themen", blank=True)
+    meiden = models.TextField("Lieber nicht ansprechen", blank=True)
     # Wo diese Person hergekommen ist.
     #
     # **Warum ein Feld und nicht aus dem Verlauf gerechnet:** Der früheste

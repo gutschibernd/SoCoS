@@ -178,6 +178,9 @@ def test_kontakt_mit_erreichbarkeit_und_herkunft_wandert_mit(tmp_path, medien, b
         email="rauch@example.invalid",
         telefon="+43 664 1234567",
         kennengelernt_auf=event,
+        hintergrund="Früher in der Klinik",
+        anknuepfen="Segeln",
+        meiden="Die abgelehnte Förderung",
     )
 
     archiv = tmp_path / "archiv.tar.gz"
@@ -188,6 +191,9 @@ def test_kontakt_mit_erreichbarkeit_und_herkunft_wandert_mit(tmp_path, medien, b
     assert wieder_da.email == "rauch@example.invalid"
     assert wieder_da.telefon == "+43 664 1234567"
     assert wieder_da.kennengelernt_auf.titel == "FFG Forum"
+    assert wieder_da.hintergrund == "Früher in der Klinik"
+    assert wieder_da.anknuepfen == "Segeln"
+    assert wieder_da.meiden == "Die abgelehnte Förderung"
 
 
 @pytest.mark.django_db(transaction=True)
