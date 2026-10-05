@@ -1,6 +1,11 @@
 """
-Spielt ein Förderprogramm samt Fragen, Anträgen und Arbeitspaketen aus
-`daten/foerderungen.json` ein.
+Spielt Förderprogramme samt Fragen, Anträgen und Arbeitspaketen aus einer
+JSON-Datei ein — Vorgabe `daten/foerderungen.json`.
+
+Die Datei ist entweder **ein** Programm oder `{"programme": [...]}`. Ein
+Programm nennt seinen Fördergeber (`"geber": {"name": …, "kurz": …}`); den
+gibt es danach einmal, gleich wie viele Programme ihn nennen. Ohne Angabe
+kommt es unter das Land Niederösterreich — so war es, bevor es Fördergeber gab.
 
 **Warum ein Befehl und keine Migration:** Die Anträge nennen den Förderwerber,
 ein Pflegeheim, und Zahlen aus dessen Betrieb. Das gehört nach `daten/` (in
@@ -18,10 +23,11 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from socos.models import Foerderantrag, Foerderfrage, Foerderpaket, Foerderprogramm
+from socos.models import Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderprogramm
 
 STANDARDDATEI = Path("daten/foerderungen.json")
 STAENDE = {wert for wert, _ in Foerderantrag.Stand.choices}
+OHNE_GEBER = {"name": "Land Niederösterreich", "kurz": "NÖ"}
 
 
 def _betrag(wert, wo):
@@ -53,25 +59,34 @@ class Command(BaseCommand):
         except json.JSONDecodeError as fehler:
             raise CommandError(f"{pfad} ist kein gültiges JSON: {fehler}")
 
-        self._pruefen(daten)
-        name = daten["name"].strip()
-        vorhanden = Foerderprogramm.objects.filter(name=name).first()
-        if vorhanden and not optionen["ersetzen"]:
-            raise CommandError(
-                f"„{name}“ gibt es schon. Der Befehl vermischt nichts.\n"
-                "Mit `--ersetzen` wird das vorhandene zuerst entfernt (weich)."
-            )
+        programme = daten["programme"] if "programme" in daten else [daten]
+        for programm in programme:
+            self._pruefen(programm)
+
+        vorhanden = {}
+        for programm in programme:
+            name = programm["name"].strip()
+            alt = Foerderprogramm.objects.filter(name=name).first()
+            if alt and not optionen["ersetzen"]:
+                raise CommandError(
+                    f"„{name}“ gibt es schon. Der Befehl vermischt nichts.\n"
+                    "Mit `--ersetzen` wird das vorhandene zuerst entfernt (weich)."
+                )
+            vorhanden[name] = alt
 
         with transaction.atomic():
-            if vorhanden:
-                self._entfernen(vorhanden)
-            zahl = self._einspielen(daten)
-        self.stdout.write(self.style.SUCCESS(f"Eingespielt: {zahl}"))
+            for programm in programme:
+                if vorhanden[programm["name"].strip()]:
+                    self._entfernen(vorhanden[programm["name"].strip()])
+                zahl = self._einspielen(programm)
+                self.stdout.write(self.style.SUCCESS(f"Eingespielt: {zahl}"))
 
     def _pruefen(self, daten):
         """Alles vorher — ein halb eingespielter Stand hülfe niemandem."""
         if not str(daten.get("name", "")).strip():
             raise CommandError("Das Programm braucht einen Namen.")
+        if not str((daten.get("geber") or OHNE_GEBER).get("name", "")).strip():
+            raise CommandError(f"{daten['name']}: Der Fördergeber braucht einen Namen.")
         _betrag(daten.get("max_foerderung"), "Programm")
         for i, a in enumerate(daten.get("antraege", []), start=1):
             if not str(a.get("titel", "")).strip():
@@ -105,7 +120,20 @@ class Command(BaseCommand):
         programm.delete()
 
     def _einspielen(self, daten):
+        angabe = daten.get("geber") or OHNE_GEBER
+        geber, neu = Foerdergeber.objects.get_or_create(
+            name=angabe["name"].strip(),
+            defaults={k: angabe.get(k, "") for k in ("kurz", "link", "beschreibung")},
+        )
+        if not neu:
+            # Was die Datei mitbringt, gilt — leer gelassene Angaben bleiben stehen.
+            geaendert = [k for k in ("kurz", "link", "beschreibung") if angabe.get(k) and angabe[k] != getattr(geber, k)]
+            for k in geaendert:
+                setattr(geber, k, angabe[k])
+            if geaendert:
+                geber.save()
         programm = Foerderprogramm.objects.create(
+            geber=geber,
             name=daten["name"].strip(),
             stelle=daten.get("stelle", ""),
             link=daten.get("link", ""),
@@ -149,4 +177,4 @@ class Command(BaseCommand):
                     reihenfolge=i,
                 )
                 pakete += 1
-        return f"„{programm.name}“ mit {len(fragen)} Fragen, {len(antraege)} Anträgen, {pakete} Arbeitspaketen"
+        return f"„{programm.name}“ ({geber.name}) mit {len(fragen)} Fragen, {len(antraege)} Anträgen, {pakete} Arbeitspaketen"

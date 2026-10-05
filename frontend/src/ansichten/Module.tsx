@@ -65,7 +65,7 @@ import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
-import { Antragsseite, Foerderungen, Programmseite } from "./Foerderungen";
+import { Antragsseite, Foerderungen, Geberseite, Programmseite } from "./Foerderungen";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
@@ -83,8 +83,9 @@ export function Module({
   const foerderung = foerderungAusWeg(unter);
   if (foerderung?.antrag)
     return <Antragsseite key={foerderung.antrag} ich={ich} id={foerderung.antrag} wechseln={wechseln} />;
-  if (foerderung)
+  if (foerderung?.programm)
     return <Programmseite key={foerderung.programm} ich={ich} id={foerderung.programm} wechseln={wechseln} />;
+  if (foerderung) return <Geberseite key={foerderung.geber} ich={ich} id={foerderung.geber} wechseln={wechseln} />;
   const treffer = teilZuWeg(unter);
   if (!treffer) return <Uebersicht wechseln={wechseln} />;
   const { modul, teil } = treffer;

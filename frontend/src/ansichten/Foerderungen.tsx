@@ -1,10 +1,12 @@
 /**
- * Module · Förderungen: die Förderprogramme, je Programm seine Anträge, und
- * je Antrag eine eigene Seite.
+ * Module · Förderungen: die Fördergeber, je Fördergeber seine Programme, je
+ * Programm seine Anträge, und je Antrag eine eigene Seite.
  *
- * Drei Ebenen: `/module/foerderungen` zeigt die Programme als Kacheln,
- * `/module/foerderungen/1` ein Programm, `/module/foerderungen/1/3` einen
- * Antrag darin.
+ * Vier Ebenen im Weg: `/module/foerderungen` zeigt die Fördergeber (FFG, aws,
+ * KWF, Land NÖ) als Kacheln, `/module/foerderungen/2` einen davon mit seinen
+ * Programmen, `/module/foerderungen/2/1` ein Programm und
+ * `/module/foerderungen/2/1/3` einen Antrag darin. „Zurück" geht so Stufe für
+ * Stufe nach oben.
  *
  * **Die Programmseite beantwortet drei Fragen auf einen Blick:** Wie weit sind
  * die Anträge (Geld gegen die Grenze, Zeitleiste, Reife)? Was ist bei der
@@ -26,10 +28,12 @@ import { useEffect, useRef, useState, type PointerEvent as ZeigerEreignis } from
 
 import { hole } from "../basis/api";
 import {
+  useFoerdergeber,
   useFoerderungen,
   useNeuLaden,
   type Foerderantrag,
   type Foerderfrage,
+  type Foerdergeber,
   type Foerderpaket,
   type Foerderprogramm,
   type Ich,
@@ -67,6 +71,9 @@ type Wechseln = (seite: Seite, unter?: string | null) => void;
 
 const WEG = "foerderungen";
 
+/** Der Weg zu einem Programm — sein Fördergeber steht mit darin. */
+const programmweg = (p: Foerderprogramm) => `${WEG}/${p.geber}/${p.id}`;
+
 /** Speichern und danach alles neu holen (`neuLaden`) — die Summen und die Reife rechnet der Server. */
 function useAendern() {
   const neuLaden = useNeuLaden();
@@ -76,54 +83,256 @@ function useAendern() {
   };
 }
 
-/* --- Die Übersicht der Programme -------------------------------------------- */
+/* --- Die Übersicht der Fördergeber ----------------------------------------- */
 
 /**
- * Jedes Förderprogramm als Kachel — heute nur eines, morgen mehrere. Die
- * Kachel sagt, wie viel ein Antrag höchstens bekommt, welche Anträge darin
- * laufen und was bei der Förderstelle noch offen ist; ein Klick öffnet das
- * Programm.
+ * Jeder Fördergeber als Kachel: wie viele Programme er hat, welche, und wie
+ * viele Anträge darin laufen. Ein Klick öffnet ihn.
  */
 export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }) {
+  const geber = useFoerdergeber();
   const programme = useFoerderungen();
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
+  if (!geber.data) return <Zustand abfrage={geber} erneut={() => geber.refetch()} />;
   if (!programme.data) return <Zustand abfrage={programme} erneut={() => programme.refetch()} />;
 
-  if (programme.data.length === 0)
+  if (geber.data.length === 0)
     return (
       <div className="karte">
         <Leerstelle
-          was="Noch kein Förderprogramm"
-          satz="Ein Programm hält die Richtlinie in Kürze, die Fragen an die Förderstelle und die Anträge zusammen."
+          was="Noch kein Fördergeber"
+          satz="Unter einem Fördergeber — FFG, aws, KWF, ein Land — stehen seine Programme, darunter die Anträge."
         />
-        {ich.darf.bearbeiten && <NeuesProgramm wechseln={wechseln} />}
+        {ich.darf.bearbeiten && <GeberAnlegen wechseln={wechseln} />}
       </div>
     );
 
   return (
     <div className="fd-programme">
-      {programme.data.map((p) => (
-        <Programmkachel key={p.id} programm={p} wechseln={wechseln} />
+      {geber.data.map((g) => (
+        <Geberkachel
+          key={g.id}
+          geber={g}
+          programme={programme.data.filter((p) => p.geber === g.id)}
+          wechseln={wechseln}
+        />
       ))}
-      {ich.darf.bearbeiten && <ProgrammDazu wechseln={wechseln} />}
+      {ich.darf.bearbeiten && (
+        <Dazu text="Fördergeber dazu" titel="Neuer Fördergeber">
+          <GeberAnlegen wechseln={wechseln} autoFokus />
+        </Dazu>
+      )}
     </div>
   );
 }
 
-/** Erst ein Knopf, erst nach dem Tippen darauf ein Feld — ein neues Programm ist selten. */
-function ProgrammDazu({ wechseln }: { wechseln: Wechseln }) {
+/** Erst ein Knopf, erst nach dem Tippen darauf ein Feld — Neues ist hier selten. */
+function Dazu({ text, titel, children }: { text: string; titel: string; children: React.ReactNode }) {
   const [offen, setOffen] = useState(false);
   if (!offen)
     return (
       <button type="button" className="fd-antrag-dazu" onClick={() => setOffen(true)}>
         <Zeichen name="plus" />
-        Programm dazu
+        {text}
       </button>
     );
   return (
     <div className="karte fd-programm-neu">
-      <h2>Neues Förderprogramm</h2>
-      <NeuesProgramm wechseln={wechseln} autoFokus />
+      <h2>{titel}</h2>
+      {children}
+    </div>
+  );
+}
+
+function Geberkachel({
+  geber,
+  programme,
+  wechseln,
+}: {
+  geber: Foerdergeber;
+  programme: Foerderprogramm[];
+  wechseln: Wechseln;
+}) {
+  const antraege = programme.reduce((n, p) => n + p.antraege.length, 0);
+  return (
+    <article className="fd-antragskarte fd-programmkachel">
+      <div className="fd-antragskarte-kopf">
+        <span className="modul-siegel fd-kuerzel">{geber.kurz || <Zeichen name="foerderung" />}</span>
+        {antraege > 0 && (
+          <span className="stand stand-offen">
+            {antraege} {antraege === 1 ? "Antrag" : "Anträge"}
+          </span>
+        )}
+      </div>
+      <h2>
+        <a
+          className="thema-kachel-link"
+          href={`/module/${WEG}/${geber.id}`}
+          onClick={(e) => {
+            e.preventDefault();
+            wechseln("module", `${WEG}/${geber.id}`);
+          }}
+        >
+          {geber.name}
+        </a>
+      </h2>
+      {geber.beschreibung && <p className="thema-kachel-text">{geber.beschreibung}</p>}
+      {programme.length > 0 && (
+        <ul className="fd-kachelantraege">
+          {programme.map((p) => (
+            <li key={p.id}>
+              <span className="fd-kachelantrag-titel">{p.name}</span>
+              {p.max_foerderung && <span className="zahl fd-nummer">bis {alsEuro(p.max_foerderung)}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="thema-kachel-fuss">
+        <span className="fd-kartenfuss zahl">
+          {programme.length} {programme.length === 1 ? "Programm" : "Programme"}
+        </span>
+        <Zeichen name="zeiger" klasse="thema-kachel-zeiger" />
+      </div>
+    </article>
+  );
+}
+
+/** Ein Feld, ein Knopf: einen Namen eintippen, anlegen, dorthin wechseln. */
+function Anlegen({
+  platzhalter,
+  autoFokus,
+  anlegen,
+}: {
+  platzhalter: string;
+  autoFokus?: boolean;
+  anlegen: (name: string) => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  return (
+    <form
+      className="feld-reihe fd-neu"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (name.trim()) await anlegen(name.trim());
+      }}
+    >
+      <input
+        className="feld"
+        value={name}
+        placeholder={platzhalter}
+        autoFocus={autoFokus}
+        aria-label={platzhalter}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <button type="submit" className="knopf" disabled={!name.trim()}>
+        <Zeichen name="plus" />
+        Anlegen
+      </button>
+    </form>
+  );
+}
+
+function GeberAnlegen({ wechseln, autoFokus }: { wechseln: Wechseln; autoFokus?: boolean }) {
+  const neuLaden = useNeuLaden();
+  return (
+    <Anlegen
+      platzhalter="Name des Fördergebers, z. B. FFG"
+      autoFokus={autoFokus}
+      anlegen={async (name) => {
+        const neu = await hole<Foerdergeber>("/foerdergeber/", { method: "POST", body: JSON.stringify({ name }) });
+        neuLaden();
+        wechseln("module", `${WEG}/${neu.id}`);
+      }}
+    />
+  );
+}
+
+function ProgrammAnlegen({ geber, wechseln, autoFokus }: { geber: number; wechseln: Wechseln; autoFokus?: boolean }) {
+  const neuLaden = useNeuLaden();
+  return (
+    <Anlegen
+      platzhalter="Name des Programms, z. B. Basisprogramm"
+      autoFokus={autoFokus}
+      anlegen={async (name) => {
+        const neu = await hole<Foerderprogramm>("/foerderprogramme/", {
+          method: "POST",
+          body: JSON.stringify({ geber, name }),
+        });
+        neuLaden();
+        wechseln("module", programmweg(neu));
+      }}
+    />
+  );
+}
+
+/* --- Die Seite eines Fördergebers -------------------------------------------- */
+
+export function Geberseite({ ich, id, wechseln }: { ich: Ich; id: number; wechseln: Wechseln }) {
+  const alle = useFoerdergeber();
+  const programme = useFoerderungen();
+  const speichern = useAendern();
+  if (!alle.data) return <Zustand abfrage={alle} erneut={() => alle.refetch()} />;
+  if (!programme.data) return <Zustand abfrage={programme} erneut={() => programme.refetch()} />;
+  const geber = alle.data.find((g) => g.id === id);
+  if (!geber)
+    return (
+      <div className="karte">
+        <Leerstelle
+          was="Diesen Fördergeber gibt es nicht mehr"
+          satz="Er wurde entfernt. Ein Admin kann ihn wiederherstellen."
+          aktion={{ text: "Zu den Förderungen", tun: () => wechseln("module", WEG) }}
+        />
+      </div>
+    );
+  const darf = ich.darf.bearbeiten;
+  const seine = programme.data.filter((p) => p.geber === geber.id);
+  const pfad = `/foerdergeber/${geber.id}/`;
+
+  return (
+    <div className="spalte">
+      <div className="vorhabenleiste">
+        <span className="modul-siegel fd-kuerzel">{geber.kurz || <Zeichen name="foerderung" />}</span>
+        <div className="vorhaben-kopf">
+          <Feldtext
+            wert={geber.name}
+            aendern={darf}
+            klasse="fd-programmname"
+            speichern={(name) => speichern(pfad, { name })}
+          />
+          <Feldtext
+            wert={geber.beschreibung}
+            aendern={darf}
+            klasse="fd-stelle"
+            platzhalter="Wer das ist, wofür er fördert"
+            speichern={(beschreibung) => speichern(pfad, { beschreibung })}
+          />
+        </div>
+        {geber.link && (
+          <div className="vorhaben-aktionen">
+            <a className="knopf-still" href={geber.link} target="_blank" rel="noreferrer noopener">
+              Zur Seite
+              <Zeichen name="zeiger" />
+            </a>
+          </div>
+        )}
+      </div>
+
+      {seine.length === 0 && !darf ? (
+        <div className="karte">
+          <Leerstelle was="Noch kein Programm" satz="Hier stehen die Förderprogramme dieses Fördergebers." />
+        </div>
+      ) : (
+        <div className="fd-programme">
+          {seine.map((p) => (
+            <Programmkachel key={p.id} programm={p} wechseln={wechseln} />
+          ))}
+          {darf && (
+            <Dazu text="Programm dazu" titel="Neues Förderprogramm">
+              <ProgrammAnlegen geber={geber.id} wechseln={wechseln} autoFokus />
+            </Dazu>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -145,10 +354,10 @@ function Programmkachel({ programm, wechseln }: { programm: Foerderprogramm; wec
       <h2>
         <a
           className="thema-kachel-link"
-          href={`/module/${WEG}/${programm.id}`}
+          href={`/module/${programmweg(programm)}`}
           onClick={(e) => {
             e.preventDefault();
-            wechseln("module", `${WEG}/${programm.id}`);
+            wechseln("module", `${programmweg(programm)}`);
           }}
         >
           {programm.name}
@@ -188,39 +397,6 @@ function Programmkachel({ programm, wechseln }: { programm: Foerderprogramm; wec
   );
 }
 
-function NeuesProgramm({ wechseln, autoFokus }: { wechseln: Wechseln; autoFokus?: boolean }) {
-  const neuLaden = useNeuLaden();
-  const [name, setName] = useState("");
-  return (
-    <form
-      className="feld-reihe fd-neu"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (!name.trim()) return;
-        const neu = await hole<Foerderprogramm>("/foerderprogramme/", {
-          method: "POST",
-          body: JSON.stringify({ name: name.trim() }),
-        });
-        neuLaden();
-        wechseln("module", `${WEG}/${neu.id}`);
-      }}
-    >
-      <input
-        className="feld"
-        value={name}
-        placeholder="Name des Programms, z. B. Pflegeinnovation NÖ"
-        autoFocus={autoFokus}
-        aria-label="Name des Programms"
-        onChange={(e) => setName(e.target.value)}
-      />
-      <button type="submit" className="knopf" disabled={!name.trim()}>
-        <Zeichen name="plus" />
-        Anlegen
-      </button>
-    </form>
-  );
-}
-
 /* --- Die Seite eines Programms ---------------------------------------------- */
 
 export function Programmseite({ ich, id, wechseln }: { ich: Ich; id: number; wechseln: Wechseln }) {
@@ -257,7 +433,7 @@ function Programm({ programm, ich, wechseln }: { programm: Foerderprogramm; ich:
       body: JSON.stringify({ programm: programm.id, nummer, titel: `Antrag ${nummer}` }),
     });
     neuLaden();
-    wechseln("module", `${WEG}/${programm.id}/${neu.id}`);
+    wechseln("module", `${programmweg(programm)}/${neu.id}`);
   }
 
   return (
@@ -379,10 +555,10 @@ function Antragskarte({
       <h2>
         <a
           className="thema-kachel-link"
-          href={`/module/${WEG}/${programm.id}/${antrag.id}`}
+          href={`/module/${programmweg(programm)}/${antrag.id}`}
           onClick={(e) => {
             e.preventDefault();
-            wechseln("module", `${WEG}/${programm.id}/${antrag.id}`);
+            wechseln("module", `${programmweg(programm)}/${antrag.id}`);
           }}
         >
           {antrag.titel}
@@ -727,10 +903,10 @@ function Antrag({
           <div className="fd-antragskopf-oben">
             <a
               className="fd-zurueck"
-              href={`/module/${WEG}/${programm.id}`}
+              href={`/module/${programmweg(programm)}`}
               onClick={(e) => {
                 e.preventDefault();
-                wechseln("module", `${WEG}/${programm.id}`);
+                wechseln("module", `${programmweg(programm)}`);
               }}
             >
               {programm.name}
@@ -852,10 +1028,10 @@ function Antrag({
         {programm.fragen.some(istOffen) && (
           <a
             className="karte fd-fragenhinweis"
-            href={`/module/${WEG}/${programm.id}#fd-fragen`}
+            href={`/module/${programmweg(programm)}#fd-fragen`}
             onClick={(e) => {
               e.preventDefault();
-              wechseln("module", `${WEG}/${programm.id}`);
+              wechseln("module", `${programmweg(programm)}`);
             }}
           >
             <Zeichen name="sprechblase" />
@@ -884,7 +1060,7 @@ function Antrag({
             try {
               await hole(pfad, { method: "DELETE" });
               neuLaden();
-              wechseln("module", `${WEG}/${programm.id}`);
+              wechseln("module", `${programmweg(programm)}`);
             } catch {
               setFragtLoeschen(false);
             }

@@ -46,6 +46,7 @@ MODELLE_IM_ARCHIV = [
     "socos.Lagethema",
     "socos.Lageschritt",
     "socos.Lageverbindung",
+    "socos.Foerdergeber",
     "socos.Foerderprogramm",
     "socos.Foerderfrage",
     "socos.Foerderantrag",
@@ -97,11 +98,13 @@ LOESCHREIHENFOLGE = [
     "socos.Lageverbindung",
     "socos.Lageschritt",
     "socos.Lagethema",
-    # Paket vor Antrag, Frage und Antrag vor ihrem Programm.
+    # Paket vor Antrag, Frage und Antrag vor ihrem Programm, das Programm vor
+    # seinem Fördergeber.
     "socos.Foerderpaket",
     "socos.Foerderantrag",
     "socos.Foerderfrage",
     "socos.Foerderprogramm",
+    "socos.Foerdergeber",
     "socos.Protokolleintrag",
     "socos.Nutzer",
     "auth.Group",

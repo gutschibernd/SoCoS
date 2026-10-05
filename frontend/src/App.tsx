@@ -61,7 +61,7 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   "module/praktikum": { titel: "Praktikantenstellen", unter: "Haupt-Aufgabenstellungen" },
   "module/praktikum-ideen": { titel: "Praktikantenstellen", unter: "Sonstige Ideen" },
   "module/thoughts": { titel: "Thoughts", unter: "Was frei ist, was wartet" },
-  "module/foerderungen": { titel: "Förderungen", unter: "Programme und Anträge" },
+  "module/foerderungen": { titel: "Förderungen", unter: "Fördergeber, Programme, Anträge" },
 };
 
 export function App() {

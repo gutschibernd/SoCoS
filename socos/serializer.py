@@ -22,6 +22,7 @@ from socos.models import (
     Eventziel,
     Fixkosten,
     Foerderantrag,
+    Foerdergeber,
     Foerderfrage,
     Foerderpaket,
     Foerderprogramm,
@@ -965,6 +966,12 @@ class FoerderfrageSerializer(serializers.ModelSerializer):
         read_only_fields = ["geaendert_am"]
 
 
+class FoerdergeberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Foerdergeber
+        fields = ["id", "name", "kurz", "link", "beschreibung"]
+
+
 class FoerderprogrammSerializer(serializers.ModelSerializer):
     """
     Das Programm mit allem, was darunter hängt — eine Abfrage für die ganze
@@ -977,7 +984,7 @@ class FoerderprogrammSerializer(serializers.ModelSerializer):
     class Meta:
         model = Foerderprogramm
         fields = [
-            "id", "name", "stelle", "link", "max_foerderung", "max_monate", "steckbrief",
+            "id", "geber", "name", "stelle", "link", "max_foerderung", "max_monate", "steckbrief",
             "fragen", "antraege",
         ]
 

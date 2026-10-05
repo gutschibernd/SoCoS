@@ -931,11 +931,12 @@ function ModuleDoku() {
 
       <Abschnitt
         zeichen="foerderung"
-        titel="Förderungen: vom Programm zum Antrag"
-        vorspann="Ein Förderprogramm mit seiner Richtlinie in Kürze, den Fragen an die Förderstelle und den Anträgen. Jeder Antrag hat seine Arbeitspakete auf einer Zeitleiste, die Texte, die Formular und Richtlinie verlangen, und rechts, was noch fehlt."
+        titel="Förderungen: vom Fördergeber zum Antrag"
+        vorspann="Oben die Fördergeber — FFG, aws, KWF, Land Niederösterreich —, darunter ihre Programme mit der Richtlinie in Kürze und den Fragen an die Förderstelle, darin die Anträge. Jeder Antrag hat seine Arbeitspakete auf einer Zeitleiste, die Texte, die Formular und Richtlinie verlangen, und rechts, was noch fehlt."
       >
         <Schritte
           schritte={[
+            "Unter Förderungen steht je Fördergeber eine Kachel mit seinen Programmen und dem Höchstbetrag. Ein Klick öffnet ihn, ein Klick auf ein Programm das Programm. „Fördergeber dazu“ und „Programm dazu“ legen Neues an.",
             "Auf der Seite des Programms steht je Antrag eine Kachel: wie viel Geld er belegt, wie seine Pakete in der Zeit liegen und wie viele Punkte der Antragsreife erfüllt sind. Ein Klick öffnet den Antrag.",
             "Oben im Antrag stehen die Arbeitspakete als Zeitleiste. Einen Balken ziehst du in der Mitte, um ihn zu verschieben, an einem Rand, um ihn zu verlängern. Mit der Tastatur geht es mit ← und →, mit Umschalt verschiebst du nur das Ende.",
             "Ein Klick auf den Titel eines Pakets klappt es auf: Ziel und Inhalt, Ergebnis, Monate, Reihenfolge. Ein Klick auf den Betrag ändert ihn. Ein neues Paket ist die Zeile unter der Leiste: tippen, Enter.",

@@ -38,10 +38,20 @@ hieß „beantwortet": eine Antwort steht da. Das ließ sich nicht abhaken
 (Rückmeldung Bernd, am selben Tag), und eine offene Frage mit dem, was man
 schon weiß, sah beantwortet aus. Die Migration übernimmt den alten Stand.
 
-**Förderungen hat drei Ebenen im Weg** (Wunsch Bernd, am selben Tag):
-`/module/foerderungen` die Programme als Kacheln, `/foerderungen/1` ein
-Programm, `/foerderungen/1/3` ein Antrag darin (`foerderungAusWeg`). Das
-Programm steht im Weg des Antrags, damit „zurück" in sein Programm führt.
+**Förderungen hat vier Ebenen im Weg** (Wunsch Bernd, am selben Tag, in zwei
+Schritten): `/module/foerderungen` die Fördergeber als Kacheln,
+`/foerderungen/2` einer mit seinen Programmen, `/foerderungen/2/1` ein
+Programm, `/foerderungen/2/1/3` ein Antrag (`foerderungAusWeg`). Was darüber
+liegt, steht im Weg, damit „zurück" Stufe für Stufe nach oben führt.
+
+**`Foerdergeber` (Migration 0040)** ist eine eigene Ebene über dem Programm,
+`PROTECT`. Die Migration legt „Land Niederösterreich" an und hängt das
+bestehende Programm darunter — ein öffentlicher Fördergeber ist kein
+Kundendatum. FFG, aws und KWF mit ihren Programmen kommen aus
+`daten/foerderprogramme.json` (`foerderungen_einspielen` nimmt jetzt auch
+`{"programme": [...]}` mit `"geber"` je Programm). Die Steckbriefe stehen so,
+wie die Seiten der Fördergeber am 2026-10-05 lauteten; die Zeile „Stand:"
+darin sagt das, denn die Bedingungen ändern sich jedes Jahr.
 
 **Die langen Antragstexte stehen nicht im Änderungsprotokoll**
 (`protokoll_ohne`), aus demselben Grund wie die Mitschrift eines Meetings: Sie

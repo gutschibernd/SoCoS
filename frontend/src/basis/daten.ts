@@ -620,8 +620,13 @@ export type Foerderfrage = {
   geaendert_am: string;
 };
 
+/** Wer fördert — FFG, aws, KWF, ein Land. */
+export type Foerdergeber = { id: number; name: string; kurz: string; link: string; beschreibung: string };
+
 export type Foerderprogramm = {
   id: number;
+  /** Der Fördergeber, unter dem das Programm steht. */
+  geber: number;
   name: string;
   stelle: string;
   link: string;
@@ -636,6 +641,10 @@ export type Foerderprogramm = {
 /* Eine Abfrage für das ganze Modul: Programm, Fragen, Anträge, Pakete. */
 export const useFoerderungen = () =>
   useQuery({ queryKey: ["foerderungen"], queryFn: () => hole<Foerderprogramm[]>("/foerderprogramme/") });
+
+/* Unter demselben Schlüssel wie die Programme — `neuLaden` verwirft beide. */
+export const useFoerdergeber = () =>
+  useQuery({ queryKey: ["foerderungen", "geber"], queryFn: () => hole<Foerdergeber[]>("/foerdergeber/") });
 
 /* Die Felder ändern sich nur mit einer neuen Version der Anwendung — sie
    werden deshalb nicht bei jedem Fensterwechsel neu geholt. */

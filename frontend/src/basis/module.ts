@@ -84,7 +84,7 @@ export const MODULE: Modul[] = [
     titel: "Förderungen",
     wozu: "Programme verstehen, Anträge mit Arbeitspaketen planen",
     zeichen: "foerderung",
-    teile: [{ weg: "foerderungen", titel: "Programme und Anträge", schluessel: "foerderung" }],
+    teile: [{ weg: "foerderungen", titel: "Fördergeber, Programme, Anträge", schluessel: "foerderung" }],
   },
 ];
 
@@ -106,22 +106,28 @@ export function themaAusWeg(unter: string | null): { modul: Modul; teil: Themenl
 }
 
 /**
- * Ein Förderprogramm hinter `foerderungen/4`, ein Antrag darin hinter
- * `foerderungen/4/12` — oder nichts. Das Programm steht mit im Weg, damit
- * „zurück" vom Antrag in sein Programm führt und von dort in die Übersicht.
- * Ob es beides gibt, sagt erst der Server; die Seite zeigt dann, dass es fehlt.
+ * Ein Fördergeber hinter `foerderungen/2`, ein Programm darin hinter
+ * `foerderungen/2/4`, ein Antrag hinter `foerderungen/2/4/12` — oder nichts.
+ * Was darüber liegt, steht mit im Weg, damit „zurück" Stufe für Stufe nach
+ * oben führt. Ob es alles gibt, sagt erst der Server; die Seite zeigt dann,
+ * dass es fehlt.
  */
-export function foerderungAusWeg(
-  unter: string | null,
-): { modul: Modul; teil: Foerderteil; programm: number; antrag: number | null } | null {
-  const treffer = /^([a-z-]+)\/(\d+)(?:\/(\d+))?$/.exec(unter ?? "");
+export function foerderungAusWeg(unter: string | null): {
+  modul: Modul;
+  teil: Foerderteil;
+  geber: number;
+  programm: number | null;
+  antrag: number | null;
+} | null {
+  const treffer = /^([a-z-]+)\/(\d+)(?:\/(\d+))?(?:\/(\d+))?$/.exec(unter ?? "");
   const gefunden = treffer && teilZuWeg(treffer[1]);
   if (!treffer || !gefunden || gefunden.teil.schluessel !== "foerderung") return null;
   return {
     modul: gefunden.modul,
     teil: gefunden.teil,
-    programm: Number(treffer[2]),
-    antrag: treffer[3] ? Number(treffer[3]) : null,
+    geber: Number(treffer[2]),
+    programm: treffer[3] ? Number(treffer[3]) : null,
+    antrag: treffer[4] ? Number(treffer[4]) : null,
   };
 }
 

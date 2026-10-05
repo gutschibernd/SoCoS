@@ -106,11 +106,12 @@ describe("Fragen an die Förderstelle", () => {
 });
 
 describe("der Weg zu einem Antrag", () => {
-  it("findet Programm und Antrag und verwechselt sie nicht mit einem Thema", () => {
-    expect(foerderungAusWeg("foerderungen/4")).toMatchObject({ programm: 4, antrag: null });
-    expect(foerderungAusWeg("foerderungen/4/12")).toMatchObject({ programm: 4, antrag: 12 });
+  it("findet Fördergeber, Programm und Antrag und verwechselt sie nicht mit einem Thema", () => {
+    expect(foerderungAusWeg("foerderungen/2")).toMatchObject({ geber: 2, programm: null, antrag: null });
+    expect(foerderungAusWeg("foerderungen/2/4")).toMatchObject({ geber: 2, programm: 4, antrag: null });
+    expect(foerderungAusWeg("foerderungen/2/4/12")).toMatchObject({ geber: 2, programm: 4, antrag: 12 });
     expect(foerderungAusWeg("praktikum/12")).toBeNull();
-    expect(foerderungAusWeg("foerderungen/4/12/1")).toBeNull();
+    expect(foerderungAusWeg("foerderungen/2/4/12/1")).toBeNull();
     expect(themaAusWeg("foerderungen/12")).toBeNull();
     expect(foerderungAusWeg("foerderungen")).toBeNull();
   });

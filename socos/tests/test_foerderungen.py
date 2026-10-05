@@ -14,14 +14,19 @@ import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from socos.models import Foerderantrag, Foerderfrage, Foerderpaket, Foerderprogramm
+from socos.models import Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderprogramm
 from socos.services import foerderung
 
 
 @pytest.fixture
-def programm(db):
+def geber(db):
+    return Foerdergeber.objects.create(name="Land Niederösterreich", kurz="NÖ")
+
+
+@pytest.fixture
+def programm(geber):
     return Foerderprogramm.objects.create(
-        name="Pflegeinnovation NÖ", max_foerderung=Decimal("50000.00"), max_monate=24
+        geber=geber, name="Pflegeinnovation NÖ", max_foerderung=Decimal("50000.00"), max_monate=24
     )
 
 
@@ -118,6 +123,8 @@ class TestSchnittstelle:
         client.force_login(leser)
 
         daten = client.get("/api/foerderprogramme/").json()[0]
+        assert daten["geber"] == programm.geber_id
+        assert client.get("/api/foerdergeber/").json()[0]["kurz"] == "NÖ"
 
         assert daten["max_foerderung"] == "50000.00"
         assert daten["fragen"][0]["frage"] == "Wie lang?"
@@ -169,6 +176,10 @@ class TestSchnittstelle:
         client.force_login(admin_nutzer)
         assert client.delete(f"/api/foerderprogramme/{programm.pk}/").status_code == 409
 
+    def test_geber_mit_programmen_bleibt_stehen(self, client, admin_nutzer, programm):
+        client.force_login(admin_nutzer)
+        assert client.delete(f"/api/foerdergeber/{programm.geber_id}/").status_code == 409
+
 
 class TestEinspielen:
     DATEN = {
@@ -199,6 +210,7 @@ class TestEinspielen:
         call_command("foerderungen_einspielen", datei=self._datei(tmp_path, self.DATEN), verbosity=0)
 
         programm = Foerderprogramm.objects.get()
+        assert programm.geber.name == "Land Niederösterreich"  # ohne Angabe
         assert programm.steckbrief == "Höhe: 50.000 €\nLaufzeit: 2 Jahre"
         antrag = Foerderantrag.objects.get()
         assert antrag.nutzen == "Zeile eins\nZeile zwei"
@@ -217,6 +229,21 @@ class TestEinspielen:
         assert Foerderpaket.objects.count() == 2
         assert Foerderpaket.alle_objekte.count() == 4
 
+    def test_mehrere_programme_teilen_einen_geber(self, db, tmp_path):
+        daten = {
+            "programme": [
+                {"name": "Basisprogramm", "geber": {"name": "FFG", "kurz": "FFG"}},
+                {"name": "Kleinprojekt", "geber": {"name": "FFG", "link": "https://www.ffg.at"}},
+                {"name": "Preseed", "geber": {"name": "aws"}},
+            ]
+        }
+        call_command("foerderungen_einspielen", datei=self._datei(tmp_path, daten), verbosity=0)
+
+        ffg = Foerdergeber.objects.get(name="FFG")
+        assert sorted(p.name for p in ffg.programme.all()) == ["Basisprogramm", "Kleinprojekt"]
+        assert (ffg.kurz, ffg.link) == ("FFG", "https://www.ffg.at")
+        assert Foerdergeber.objects.count() == 2
+
     def test_weist_unsinnige_monate_ab(self, db, tmp_path):
         daten = json.loads(json.dumps(self.DATEN))
         daten["antraege"][0]["pakete"][0]["bis"] = 0
@@ -234,7 +261,8 @@ def medien(tmp_path, settings):
 
 @pytest.mark.django_db(transaction=True)
 def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
-    programm = Foerderprogramm.objects.create(name="Pflegeinnovation NÖ", max_foerderung=Decimal("50000"))
+    geber = Foerdergeber.objects.create(name="FFG", kurz="FFG", link="https://www.ffg.at")
+    programm = Foerderprogramm.objects.create(geber=geber, name="Pflegeinnovation NÖ", max_foerderung=Decimal("50000"))
     Foerderfrage.objects.create(programm=programm, frage="Wie lang?", antwort="2 Jahre")
     antrag = Foerderantrag.objects.create(programm=programm, titel="Befüllsystem", wirkung="DGKP-Zeit")
     _paket(antrag, "Bau", 2, 9, "12345.67")
@@ -249,3 +277,4 @@ def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
     assert (paket.von, paket.bis, paket.betrag) == (2, 9, Decimal("12345.67"))
     assert paket.antrag.wirkung == "DGKP-Zeit"
     assert Foerderfrage.objects.get().antwort == "2 Jahre"
+    assert paket.antrag.programm.geber.link == "https://www.ffg.at"

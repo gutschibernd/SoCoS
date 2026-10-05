@@ -2095,8 +2095,9 @@ class Lageverbindung(Basismodell):
 
 # --- Module: Förderungen -------------------------------------------------------
 #
-# Programm → Antrag → Arbeitspaket, dazu die Fragen an die Förderstelle am
-# Programm. Drei Ebenen, nicht mehr.
+# Fördergeber → Programm → Antrag → Arbeitspaket, dazu die Fragen an die
+# Förderstelle am Programm. Der Fördergeber kam als Ebene darüber dazu
+# (2026-10-05), als neben dem Land NÖ auch FFG, aws und KWF eingetragen wurden.
 #
 # **Die Arbeitspakete eines Antrags sind keine Arbeitspakete eines Projekts.**
 # Vor der Förderzusage bucht niemand darauf, und ein SoCoS-Projekt je Antrag
@@ -2112,6 +2113,23 @@ class Lageverbindung(Basismodell):
 # **Summen werden gerechnet** (`services/foerderung.py`), ebenso die Antragsreife.
 
 
+class Foerdergeber(Basismodell):
+    """Wer fördert — FFG, aws, KWF, ein Land. Unter ihm stehen seine Programme."""
+
+    name = models.CharField("Name", max_length=160)
+    kurz = models.CharField("Kürzel", max_length=12, blank=True)
+    link = models.URLField("Link", blank=True)
+    beschreibung = models.TextField("Beschreibung", blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Fördergeber"
+        verbose_name_plural = "Fördergeber"
+        ordering = ["name", "id"]
+
+    def __str__(self):
+        return self.name
+
+
 class Foerderprogramm(Basismodell):
     """
     Ein Förderprogramm — „Pflegeinnovation NÖ".
@@ -2122,6 +2140,9 @@ class Foerderprogramm(Basismodell):
     Punkt, „Begriff: Erklärung".
     """
 
+    geber = models.ForeignKey(
+        Foerdergeber, verbose_name="Fördergeber", on_delete=models.PROTECT, related_name="programme"
+    )
     name = models.CharField("Name", max_length=160)
     stelle = models.CharField("Förderstelle", max_length=250, blank=True)
     link = models.URLField("Link", blank=True)

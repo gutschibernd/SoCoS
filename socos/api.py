@@ -55,6 +55,7 @@ from socos.models import (
     Planabschnitt,
     Praktikumsthema,
     Foerderantrag,
+    Foerdergeber,
     Foerderfrage,
     Foerderpaket,
     Foerderprogramm,
@@ -1359,6 +1360,11 @@ def sicherung_einspielen(request):
 # Die gewöhnliche Regel: sehen alle, anlegen und ändern Admin und Bearbeiter,
 # entfernen nur der Admin. Gelesen wird über das Programm — eine Abfrage für
 # die ganze Seite; die anderen Wege sind zum Schreiben da.
+
+
+class FoerdergeberViewSet(SocosViewSet):
+    serializer_class = ser.FoerdergeberSerializer
+    queryset = Foerdergeber.objects.all()
 
 
 class FoerderprogrammViewSet(SocosViewSet):

@@ -44,6 +44,16 @@ VERSIONEN = [
                 ),
                 "wo": "module/foerderungen",
             },
+            {
+                "titel": "FFG, aws und KWF",
+                "text": (
+                    "Die Förderungen sind jetzt nach Fördergeber geordnet. Neben dem "
+                    "Land Niederösterreich stehen FFG, aws und KWF mit den Programmen, "
+                    "die für uns in Frage kommen — je mit Höchstbetrag und den "
+                    "Bedingungen von der Seite des Fördergebers."
+                ),
+                "wo": "module/foerderungen",
+            },
         ],
     },
     {

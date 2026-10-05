@@ -60,6 +60,7 @@ NAMEN = {
     "socos.Lagethema": ("n", "Thema in Thoughts", "Themen in Thoughts"),
     "socos.Lageschritt": ("m", "Schritt in Thoughts", "Schritte in Thoughts"),
     "socos.Lageverbindung": ("f", "Verbindung in Thoughts", "Verbindungen in Thoughts"),
+    "socos.Foerdergeber": ("m", "Fördergeber", "Fördergeber"),
     "socos.Foerderprogramm": ("n", "Förderprogramm", "Förderprogramme"),
     "socos.Foerderfrage": ("f", "Frage an die Förderstelle", "Fragen an die Förderstelle"),
     "socos.Foerderantrag": ("m", "Förderantrag", "Förderanträge"),

@@ -98,7 +98,7 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   // Ein Workshop eines Moduls: `/module/spg`, `/module/spg-businessplan`. Die
   // Liste steht in basis/module.ts und nicht ein zweites Mal hier. Dazu ein
   // einzelnes Praktikumsthema: `/module/praktikum/12`, `/module/praktikum-ideen/7`,
-  // ein Förderprogramm und ein Antrag darin: `/module/foerderungen/1`, `/module/foerderungen/1/3`.
+  // Fördergeber, Programm und Antrag: `/module/foerderungen/2`, `/2/1`, `/2/1/3`.
   module: (unter) => MODULWEGE.includes(unter) || themaAusWeg(unter) !== null || foerderungAusWeg(unter) !== null,
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
   profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),
