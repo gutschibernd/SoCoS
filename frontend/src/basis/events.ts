@@ -237,20 +237,25 @@ export function eventsDerPerson(
 }
 
 /**
- * Auf welche Hitlist man die Person von ihrer Kachel aus setzen kann: nur
- * Events, die noch nicht vorbei sind, und nur die, auf deren Liste sie noch
- * nicht steht.
+ * Mit welchen Events man die Person von ihrer Kachel aus verbinden kann — alle,
+ * auf deren Hitlist sie noch nicht steht, getrennt nach kommend und vergangen.
  *
- * **Warum nichts Vergangenes:** Die Hitlist ist der Plan von vorher. Wen man
- * auf einem vergangenen Event getroffen hat, steht im Verlauf — dort trägt man
- * es auf der Eventseite ein, mit dem, was besprochen wurde.
+ * **Auch Vergangenes:** Wen man auf einer Tagung kennengelernt hat, trägt man
+ * oft erst Tage später ein. Die Zeile auf der Hitlist eines vergangenen Events
+ * kommt dann gleich als „getroffen" (siehe `standBeimVerbinden`) — als „offen"
+ * stünde sie dort für immer als verpasste Vorbereitung.
  */
-export function eventsZumVormerken(
+export function eventsZumVerbinden(
   kontaktId: number,
   events: Event[],
   heute: string,
-): Event[] {
-  return teileNachZeit(events, heute).kommend.filter(
-    (e) => !e.ziele.some((z) => z.kontakt === kontaktId),
-  );
+): { kommend: Event[]; vergangen: Event[] } {
+  const frei = (e: Event) => !e.ziele.some((z) => z.kontakt === kontaktId);
+  const { kommend, vergangen } = teileNachZeit(events, heute);
+  return { kommend: kommend.filter(frei), vergangen: vergangen.filter(frei) };
+}
+
+/** Vor dem Event ist es ein Vorhaben, danach ein Treffen. */
+export function standBeimVerbinden(event: Event, heute: string): Eventziel["stand"] {
+  return istVorbei(event, heute) ? "getroffen" : "offen";
 }

@@ -550,7 +550,7 @@ function KontakteDoku() {
             },
             {
               begriff: "Events der Person",
-              text: "Unter der Kachel stehen die Events, auf denen die Person vorkommt: kennengelernt, getroffen, verpasst oder auf der Hitlist. Über „Auf die Hitlist von …“ setzt man sie auf ein kommendes Event — es ist dieselbe Zeile wie auf der Eventseite.",
+              text: "Unter der Kachel stehen die Events, auf denen die Person vorkommt: kennengelernt, getroffen, verpasst oder auf der Hitlist. Über „Mit Event verbinden …“ setzt man sie auf die Hitlist eines Events — es ist dieselbe Zeile wie auf der Eventseite. Ein vergangenes Event lässt sich nachtragen; die Person steht dann gleich als „getroffen“ darauf.",
             },
           ]}
         />

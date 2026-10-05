@@ -28,10 +28,12 @@ sieht. `eventsDerPerson` (frontend/src/basis/events.ts) rechnet daraus je Event
 eine Zeile, die stärkste Verbindung gewinnt (kennengelernt > getroffen >
 verpasst > auf der Hitlist). Sie ersetzt die frühere Zeile „Kennengelernt auf …".
 
-Von der Kachel aus setzt man eine Person auf die Hitlist eines **kommenden**
-Events — es entsteht dieselbe `Eventziel`-Zeile wie auf der Eventseite. Vergangenes
-wird nicht angeboten: Wen man dort getroffen hat, gehört in den Verlauf, mit dem,
-was besprochen wurde. Ein eigenes Viertes („Person war auf Event X") wäre eine
+Von der Kachel aus verbindet man eine Person mit einem Event — es entsteht
+dieselbe `Eventziel`-Zeile wie auf der Eventseite. **Auch vergangene Events**
+(Nachtrag gewünscht, 2026-10-05: kennengelernt wird auf der Tagung, eingetragen
+Tage später). Auf einem vergangenen Event kommt die Zeile gleich als
+„getroffen" — „offen" stünde dort für immer als nicht eingelöste Vorbereitung.
+Ein eigenes Viertes („Person war auf Event X") wäre eine
 zweite Wahrheit neben der Hitlist, die beim ersten Abhaken veraltet.
 
 ## 2026-10-01 — Aufgaben: „Meine" und „Allgemein" nebeneinander

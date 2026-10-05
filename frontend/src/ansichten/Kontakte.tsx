@@ -26,7 +26,7 @@ import {
   type Kontakt,
   type Organisation,
 } from "../basis/daten";
-import { eventsDerPerson, eventsZumVormerken, type Eventbezug } from "../basis/events";
+import { eventsDerPerson, eventsZumVerbinden, standBeimVerbinden, type Eventbezug } from "../basis/events";
 import {
   ANREDEN,
   artText,
@@ -1171,8 +1171,8 @@ const BEZUG: Record<Eventbezug["wie"], string> = {
 };
 
 /**
- * Auf welchen Events die Person vorkommt — und der Griff, sie auf die
- * Hitlist eines kommenden zu setzen.
+ * Auf welchen Events die Person vorkommt — und der Griff, sie mit einem
+ * weiteren zu verbinden, auch einem vergangenen (nachgetragen).
  *
  * Die Verbindung selbst ist die Hitlist-Zeile (`Eventziel`), kein eigenes
  * Feld am Kontakt: Wer hier ein Event wählt, steht danach auf dessen Hitlist,
@@ -1196,13 +1196,24 @@ function Personenevents({
   zumEvent: (id: number) => void;
 }) {
   const bezuege = eventsDerPerson(kontakt, events);
-  const vormerkbar = ich.darf.bearbeiten ? eventsZumVormerken(kontakt.id, events, heuteAlsDatum()) : [];
-  if (bezuege.length === 0 && vormerkbar.length === 0) return null;
+  const heute = heuteAlsDatum();
+  const wahl = ich.darf.bearbeiten
+    ? eventsZumVerbinden(kontakt.id, events, heute)
+    : { kommend: [], vergangen: [] };
+  const waehlbar = wahl.kommend.length + wahl.vergangen.length > 0;
+  if (bezuege.length === 0 && !waehlbar) return null;
 
-  async function vormerken(event: number) {
+  async function verbinden(id: number) {
+    const event = events.find((e) => e.id === id);
+    if (!event) return;
     await hole("/eventziele/", {
       method: "POST",
-      body: JSON.stringify({ event, kontakt: kontakt.id, organisation: null }),
+      body: JSON.stringify({
+        event: id,
+        kontakt: kontakt.id,
+        organisation: null,
+        stand: standBeimVerbinden(event, heute),
+      }),
     });
     neuLaden();
   }
@@ -1222,19 +1233,28 @@ function Personenevents({
           <span className="person-event-wie">{BEZUG[b.wie]}</span>
         </button>
       ))}
-      {vormerkbar.length > 0 && (
+      {waehlbar && (
         <select
           className="feld feld-klein"
           value=""
-          onChange={(e) => e.target.value && vormerken(Number(e.target.value))}
-          aria-label={`${kontakt.name} auf die Hitlist eines Events setzen`}
+          onChange={(e) => e.target.value && verbinden(Number(e.target.value))}
+          aria-label={`${kontakt.name} mit einem Event verbinden`}
         >
-          <option value="">Auf die Hitlist von …</option>
-          {vormerkbar.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.titel} · {alsDatum(e.von)}
-            </option>
-          ))}
+          <option value="">Mit Event verbinden …</option>
+          {[
+            { titel: "Kommend", liste: wahl.kommend },
+            { titel: "Vergangen — als getroffen", liste: wahl.vergangen },
+          ]
+            .filter((g) => g.liste.length > 0)
+            .map((g) => (
+              <optgroup key={g.titel} label={g.titel}>
+                {g.liste.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.titel} · {alsDatum(e.von)}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
         </select>
       )}
     </div>

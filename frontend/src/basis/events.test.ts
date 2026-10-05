@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { Event, Eventziel, Kontakt, Organisation, Verlaufseintrag } from "./daten";
 import {
   eventsDerPerson,
-  eventsZumVormerken,
+  eventsZumVerbinden,
+  standBeimVerbinden,
   istMehrtaegig,
   mehrtaegigUmschalten,
   alsAnfrage,
@@ -281,11 +282,19 @@ describe("Events einer Person", () => {
     ]);
   });
 
-  it("bietet nur Kommendes an, auf dem die Person noch nicht steht", () => {
+  it("bietet an, worauf die Person noch nicht steht — Kommendes und Vergangenes getrennt", () => {
     const frei = event({ id: 4, von: "2026-12-01" });
     const laeuft = event({ id: 5, von: "2026-10-03", bis: "2026-10-05" });
-    expect(
-      eventsZumVormerken(7, [vorgemerkt, getroffen, frei, laeuft], "2026-10-04").map((e) => e.id),
-    ).toEqual([5, 4]);
+    const vorbei = event({ id: 6, von: "2026-09-01" });
+    const wahl = eventsZumVerbinden(7, [vorgemerkt, getroffen, frei, laeuft, vorbei], "2026-10-04");
+    expect(wahl.kommend.map((e) => e.id)).toEqual([5, 4]);
+    expect(wahl.vergangen.map((e) => e.id)).toEqual([6]);
+  });
+
+  // Wer jemanden nachträgt, hat ihn getroffen. Ein „offen" auf einem
+  // vergangenen Event stünde dort als Vorbereitung, die nie eingelöst wurde.
+  it("trägt auf einem vergangenen Event gleich als getroffen ein", () => {
+    expect(standBeimVerbinden(event({ von: "2026-09-01" }), "2026-10-04")).toBe("getroffen");
+    expect(standBeimVerbinden(event({ von: "2026-10-04" }), "2026-10-04")).toBe("offen");
   });
 });
