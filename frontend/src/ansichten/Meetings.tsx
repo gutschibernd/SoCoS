@@ -49,7 +49,7 @@ import {
   type Organisation,
   type Teammitglied,
 } from "../basis/daten";
-import { standText, useEntwurf } from "../basis/entwurf";
+import { Entwurfsfeld } from "../bausteine/Entwurfsfeld";
 import {
   abschnitteAusText,
   auftragFuerLLM,
@@ -803,54 +803,6 @@ function Personensuche({
 }
 
 /* --- Die drei Texte ------------------------------------------------------- */
-
-/**
- * Ein Feld, das sich beim Tippen selbst speichert, mit seinem Stand darunter.
- *
- * Der Stand steht immer da, auch wenn alles gespeichert ist: Wer mitschreibt,
- * soll nicht raten müssen, ob er raten muss.
- */
-function Entwurfsfeld({
-  wert,
-  speichern,
-  platzhalter,
-  zeilen,
-  aendern,
-  klasse,
-}: {
-  wert: string;
-  speichern: (text: string) => Promise<unknown>;
-  platzhalter: string;
-  zeilen: number;
-  aendern: boolean;
-  klasse?: string;
-}) {
-  // Der Haken muss über der Verzweigung stehen: Ein Leser sieht kein Feld,
-  // aber Haken werden bei jedem Zeichnen in derselben Reihenfolge gerufen.
-  const entwurf = useEntwurf(wert, speichern);
-
-  if (!aendern)
-    return <p className={`vorgelesen ${klasse ?? ""}`}>{wert || "Noch nichts eingetragen."}</p>;
-
-  return (
-    <>
-      <textarea
-        className={`feld entwurfsfeld ${klasse ?? ""}`}
-        rows={zeilen}
-        value={entwurf.text}
-        placeholder={platzhalter}
-        onChange={(e) => entwurf.setzen(e.target.value)}
-        /* Wer wegklickt, hat aufgehört zu tippen — dann muss niemand auf die
-           Pause warten. */
-        onBlur={entwurf.jetztSichern}
-      />
-      <div className="entwurfsstand" data-stand={entwurf.stand}>
-        {entwurf.stand === "fehler" && <Zeichen name="achtung" />}
-        {standText(entwurf.stand, entwurf.zuletzt)}
-      </div>
-    </>
-  );
-}
 
 /** Zugeklappt, sobald ein Protokoll steht — wie die Mitschrift. */
 function Vorbereitungskarte({

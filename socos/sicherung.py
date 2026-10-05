@@ -46,6 +46,10 @@ MODELLE_IM_ARCHIV = [
     "socos.Lagethema",
     "socos.Lageschritt",
     "socos.Lageverbindung",
+    "socos.Foerderprogramm",
+    "socos.Foerderfrage",
+    "socos.Foerderantrag",
+    "socos.Foerderpaket",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
@@ -93,6 +97,11 @@ LOESCHREIHENFOLGE = [
     "socos.Lageverbindung",
     "socos.Lageschritt",
     "socos.Lagethema",
+    # Paket vor Antrag, Frage und Antrag vor ihrem Programm.
+    "socos.Foerderpaket",
+    "socos.Foerderantrag",
+    "socos.Foerderfrage",
+    "socos.Foerderprogramm",
     "socos.Protokolleintrag",
     "socos.Nutzer",
     "auth.Group",

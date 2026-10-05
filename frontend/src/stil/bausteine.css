@@ -3001,3 +3001,286 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 }
 .protokoll-feld { font-size: 13px; line-height: 1.5; }
 .protokoll-feld b { font-weight: 600; }
+
+/* --- Förderungen ----------------------------------------------------------- */
+/*
+ * Die Programmseite: Eckdaten als Leiste, die Anträge als Kacheln, darunter
+ * Fragen und Richtlinie nebeneinander. Die Antragsseite: links der Antrag,
+ * rechts eine Spalte, die beim Rollen stehen bleibt — Geld, Reife, Bedarf.
+ *
+ * Die Zeitleiste rechnet mit drei Zahlen aus dem Markup (`--monate`, `--von`,
+ * `--bis`) und sonst nichts. Ein Balken ist damit ein einziges Element, das
+ * beim Ziehen nur zwei Zahlen ändert.
+ */
+
+.fd-programmname, .fd-programmname.inline-aendern { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.fd-stelle { font-size: 13.5px; color: var(--text-leise); }
+.fd-leise { color: var(--text-sehr-leise); font-size: 12.5px; }
+.fd-klein { min-height: 36px; padding: 6px 10px; font-size: 13px; }
+.fd-neu { margin-top: 12px; }
+.fd-knopfzeile { margin-top: 8px; }
+.fd-rechts { margin-left: auto; }
+.fd-kartenkopf { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.fd-kartenkopf > h2 { margin: 0; flex: 1 1 auto; font-size: 12.5px; font-weight: 600; color: var(--text-leise); }
+
+.fd-eckdaten {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante);
+}
+.fd-eckdatum { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; min-width: 0; }
+.fd-eckdatum + .fd-eckdatum { border-left: 1px solid var(--rand); }
+.fd-eckdatum .beschriftung-klein { margin: 0; }
+.fd-eckwert, .fd-eckdatum .inline-aendern {
+  font-family: var(--schrift-zahl); font-size: 20px; font-weight: 500; color: var(--text);
+  letter-spacing: -0.02em; text-decoration: none;
+}
+.fd-eckdatum[data-achtung] a.fd-eckwert { color: var(--akzent); }
+.fd-eckwert-mit { display: inline-flex; align-items: baseline; gap: 6px; }
+.fd-einheit { font-size: 13px; color: var(--text-leise); }
+
+.fd-antraege { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fd-antragskarte {
+  position: relative; display: flex; flex-direction: column; gap: 10px;
+  padding: 16px 16px 0; background: var(--flaeche);
+  border: 1px solid var(--rand); border-radius: var(--kante);
+}
+.fd-antragskarte:hover { border-color: var(--rand-stark); }
+.fd-antragskarte:hover .thema-kachel-link { color: var(--akzent); }
+.fd-antragskarte:focus-within { border-color: var(--akzent); }
+.fd-antragskarte h2 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; }
+.fd-antragskarte-kopf { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fd-nummer { font-size: 12px; color: var(--text-sehr-leise); }
+.fd-antrag-dazu {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 120px;
+  background: transparent; color: var(--text-leise); font-weight: 600; cursor: pointer;
+  border: 1px dashed var(--rand-stark); border-radius: var(--kante);
+}
+.fd-antrag-dazu:hover { color: var(--akzent); border-color: var(--akzent); }
+.fd-antraege:has(.fd-antragskarte:nth-child(2n)) .fd-antrag-dazu { min-height: var(--griff); grid-column: 1 / -1; }
+
+/* Der Stand eines Antrags — dieselben Flächen wie die übrigen Stände. */
+.stand[data-antrag="entwurf"]     { background: var(--ruhend-hell);  color: var(--text-leise); }
+.stand[data-antrag="eingereicht"] { background: var(--marke-hell);   color: var(--marke); }
+.stand[data-antrag="bewilligt"]   { background: var(--gut-hell);     color: var(--gut); }
+.stand[data-antrag="abgelehnt"]   { background: var(--warnung-hell); color: var(--warnung); }
+
+.fd-geldzeile { display: flex; align-items: baseline; gap: 10px; font-size: 13px; color: var(--text-leise); }
+.fd-geldzeile b { color: var(--text); font-size: 15px; font-weight: 500; }
+.fd-ueber { color: var(--warnung); font-weight: 600; font-size: 12px; }
+.fd-geldbalken { display: block; height: 6px; background: var(--flaeche-leise); border-radius: var(--kante); overflow: hidden; }
+.fd-geldbalken > span { display: block; height: 100%; background: var(--marke); }
+.fd-geldbalken[data-ueber] > span { background: var(--warnung); }
+
+.fd-mini {
+  display: grid; grid-template-columns: repeat(var(--monate), minmax(0, 1fr));
+  row-gap: 3px; padding: 8px 0 2px; border-top: 1px solid var(--flaeche-leise);
+}
+.fd-mini > i {
+  grid-column: var(--von) / calc(var(--bis) + 1); height: 4px;
+  background: var(--marke-rand); border-radius: 1px;
+}
+
+.fd-kartenfuss { font-size: 12px; color: var(--text-sehr-leise); }
+.fd-reifezahl { display: inline-flex; align-items: center; gap: 8px; font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-leise); margin-left: auto; }
+.fd-reifezahl[data-fertig] { color: var(--gut); }
+.fd-reifezahl + .thema-kachel-zeiger { margin-left: 4px; }
+.fd-punkte { display: inline-flex; gap: 3px; }
+.fd-punkte > i { width: 7px; height: 7px; border: 1px solid var(--rand-stark); border-radius: 1px; }
+.fd-punkte > i[data-erfuellt] { background: var(--gut); border-color: var(--gut); }
+
+.fd-unten { display: grid; gap: 16px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
+
+/* Fragen: offene mit leerem Kästchen oben, beantwortete mit Haken darunter. */
+.fd-fragenliste { list-style: none; margin: 0; padding: 0; }
+.fd-frage { border-top: 1px solid var(--rand); }
+.fd-frage-kopf {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--griff);
+  padding: 8px 0; background: none; border: 0; color: var(--text);
+  font-size: 14px; text-align: left; cursor: pointer;
+}
+.fd-frage-kopf:hover .fd-frage-text { color: var(--akzent); }
+.fd-frage-text { flex: 1 1 auto; line-height: 1.45; }
+.fd-frage[data-beantwortet] .fd-frage-text { color: var(--text-leise); }
+.fd-frage-kopf .zeiger-klapp { flex: 0 0 auto; width: 12px; height: 12px; color: var(--text-sehr-leise); transition: transform 0.12s; }
+.fd-frage-kopf[aria-expanded="true"] .zeiger-klapp { transform: rotate(90deg); }
+.fd-frage-punkt {
+  flex: 0 0 auto; width: 18px; height: 18px; display: grid; place-items: center;
+  border: 1.5px solid var(--akzent); border-radius: var(--kante);
+}
+.fd-frage[data-beantwortet] .fd-frage-punkt { border-color: var(--gut); background: var(--gut-hell); color: var(--gut); }
+.fd-frage-punkt .zeichen { width: 13px; height: 13px; }
+.fd-antwort-kurz {
+  margin: -4px 0 10px 30px; font-size: 13px; line-height: 1.5; color: var(--text-sehr-leise);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.fd-frage-innen { padding: 4px 0 14px 30px; }
+
+.fd-steckbrief { margin: 0; }
+.fd-steckbrief > div {
+  display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 2px 12px;
+  padding: 8px 0; border-top: 1px solid var(--flaeche-leise); font-size: 13.5px; line-height: 1.5;
+}
+.fd-steckbrief > div:first-child { border-top: 0; padding-top: 0; }
+.fd-steckbrief dt { font-weight: 600; font-size: 12.5px; color: var(--text-leise); }
+.fd-steckbrief dd { margin: 0; grid-column: 2; }
+
+/* Die Antragsseite. */
+.fd-antragsseite { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+.fd-hauptspalte, .fd-seitenspalte { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.fd-seitenspalte { position: sticky; top: 16px; }
+.fd-antragskopf-oben { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.fd-zurueck { font-size: 13px; font-weight: 600; }
+.fd-antragstitel, .fd-antragstitel.inline-aendern {
+  display: block; font-size: 20px; font-weight: 600; line-height: 1.3; letter-spacing: -0.015em; color: var(--text);
+}
+.zeichenzahl { font-family: var(--schrift-zahl); font-size: 11.5px; color: var(--text-sehr-leise); margin-left: auto; }
+.zeichenzahl[data-ueber] { color: var(--warnung); font-weight: 600; }
+.fd-antragskopf > .zeichenzahl { display: block; margin: 4px 0 0; }
+.fd-kopfzeile { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 14px; }
+.fd-kopffeld { flex: 1 1 180px; min-width: 0; }
+.fd-kopffeld .beschriftung-klein { margin-bottom: 4px; }
+.fd-standwahl { flex: 0 0 auto; }
+.fd-standwahl button { min-height: var(--griff); }
+.fd-standwahl button:disabled { cursor: default; }
+
+.fd-abschnitt > h2 { margin-bottom: 2px; }
+.fd-wozu { margin: 0 0 12px; font-size: 12.5px; color: var(--text-sehr-leise); }
+.fd-teil + .fd-teil { margin-top: 18px; }
+.fd-teil > h3 { margin: 0 0 6px; font-size: 13.5px; font-weight: 600; }
+.fd-fussknopf { display: flex; justify-content: flex-end; }
+
+/* Rechts: Geld, Reife, Bedarf. */
+.fd-geld { display: flex; flex-direction: column; gap: 6px; }
+.fd-geld .beschriftung-klein { margin: 0; }
+.fd-summe { font-size: 26px; font-weight: 500; letter-spacing: -0.03em; }
+.fd-geld[data-ueber] .fd-summe { color: var(--warnung); }
+.fd-geldtext { font-size: 12.5px; color: var(--text-leise); }
+.fd-geldtext b { font-weight: 500; color: var(--text); }
+
+.fd-reife ul, .fd-bedarf ul { list-style: none; margin: 0; padding: 0; }
+.fd-reife li button {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: var(--griff);
+  padding: 7px 0; background: none; border: 0; border-top: 1px solid var(--flaeche-leise);
+  color: var(--text); font-size: 13.5px; text-align: left; cursor: pointer;
+}
+.fd-reife li:first-child button { border-top: 0; }
+.fd-reife li button:hover > span { color: var(--akzent); }
+.fd-reife li > button > i {
+  flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; display: grid; place-items: center;
+  border: 1.5px solid var(--rand-stark); border-radius: var(--kante);
+}
+.fd-reife li[data-erfuellt] > button > i { border-color: var(--gut); background: var(--gut-hell); color: var(--gut); }
+.fd-reife li[data-erfuellt] > button > span { color: var(--text-leise); }
+.fd-reife li > button > i .zeichen { width: 12px; height: 12px; }
+.fd-reife em { display: block; font-style: normal; font-size: 12px; color: var(--warnung); margin-top: 1px; }
+
+.fd-bedarf label {
+  display: flex; align-items: center; gap: 10px; min-height: var(--griff);
+  border-top: 1px solid var(--flaeche-leise); font-size: 13.5px; cursor: pointer;
+}
+.fd-bedarf li:first-child label { border-top: 0; }
+.fd-bedarf input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--gut); flex: 0 0 auto; }
+.fd-bedarf input:checked + span { color: var(--text-sehr-leise); text-decoration: line-through; }
+
+.fd-fragenhinweis {
+  display: flex; align-items: center; gap: 10px; min-height: var(--griff);
+  color: var(--akzent); font-weight: 600; font-size: 13.5px; text-decoration: none;
+}
+.fd-fragenhinweis > span { flex: 1 1 auto; }
+.fd-fragenhinweis:hover { border-color: var(--akzent); color: var(--akzent); }
+
+/* Die Zeitleiste. */
+.fd-zeilen { display: flex; flex-direction: column; }
+.fd-zeile {
+  display: grid; grid-template-columns: 26px minmax(150px, 1.15fr) minmax(0, 3fr) 108px;
+  align-items: center; gap: 0 12px; min-height: 52px; border-top: 1px solid var(--rand);
+}
+.fd-monatskopf { min-height: 28px; border-top: 0; }
+.fd-paket[data-offen] { background: var(--flaeche-leise); margin: 0 -20px; padding: 0 20px; }
+.fd-apnr { font-size: 12px; color: var(--text-sehr-leise); text-align: right; }
+.fd-aptitel {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0; min-height: var(--griff);
+  justify-content: center; padding: 4px 0; background: none; border: 0; color: var(--text);
+  font-size: 14px; font-weight: 500; text-align: left; cursor: pointer;
+}
+.fd-aptitel > span { line-height: 1.35; }
+.fd-aptitel > em { font-style: normal; font-size: 11.5px; font-weight: 400; color: var(--text-sehr-leise); }
+.fd-aptitel:hover > span { color: var(--akzent); }
+.fd-achse { position: relative; height: 32px; min-width: 0; }
+.fd-monatskopf .fd-achse {
+  display: grid; grid-template-columns: repeat(var(--monate), minmax(0, 1fr)); height: auto; align-items: end;
+}
+.fd-monat {
+  font-family: var(--schrift-zahl); font-size: 10.5px; color: var(--text-sehr-leise);
+  white-space: nowrap; overflow: visible; padding: 0 0 4px 2px; border-left: 1px solid var(--rand);
+}
+.fd-monat[data-ueber] { background: var(--warnung-hell); color: var(--warnung); }
+.fd-betragkopf { font-size: 12px; font-weight: 600; color: var(--text-leise); text-align: right; }
+.fd-raster { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--monate), minmax(0, 1fr)); }
+.fd-raster > i { border-left: 1px solid var(--flaeche-leise); }
+.fd-paket[data-offen] .fd-raster > i { border-left-color: var(--rand); }
+
+.fd-balken {
+  position: absolute; top: 7px; bottom: 7px;
+  left: calc((var(--von) - 1) / var(--monate) * 100%);
+  width: calc((var(--bis) - var(--von) + 1) / var(--monate) * 100%);
+  background: var(--marke); border-radius: var(--kante);
+  cursor: grab; touch-action: none; user-select: none;
+}
+.fd-balken:hover { background: var(--marke-dunkel); }
+.fd-balken[data-zieht] { background: var(--akzent); cursor: grabbing; }
+.fd-balken[data-ueber] { background: var(--warnung); }
+.fd-balken:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+.fd-balken > i { position: absolute; top: 0; bottom: 0; width: 8px; cursor: ew-resize; }
+.fd-balken > i[data-griff="anfang"] { left: 0; }
+.fd-balken > i[data-griff="ende"] { right: 0; }
+.fd-balken:hover > i::after {
+  content: ""; position: absolute; top: 4px; bottom: 4px; left: 3px; width: 2px;
+  background: var(--auf-marke); opacity: 0.7;
+}
+
+.fd-betrag { text-align: right; font-size: 13.5px; justify-self: end; }
+.fd-zeile > .inline-aendern.fd-betrag { min-height: var(--griff); padding: 4px 6px; }
+.fd-betragfeld { text-align: right; min-height: 38px; padding: 6px 8px; }
+.fd-summenzeile { min-height: 44px; border-top: 1px solid var(--rand-stark); }
+.fd-summenzeile .beschriftung-klein { margin: 0; }
+.fd-summenzeile b { font-weight: 600; }
+
+.fd-paketdetail {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px;
+  padding: 10px 0 14px 38px;
+}
+.fd-paketdetail .profilfeld { margin-bottom: 10px; }
+.fd-breit { grid-column: 1 / -1; }
+
+@media (max-width: 960px) {
+  .fd-antragsseite, .fd-unten { grid-template-columns: minmax(0, 1fr); }
+  .fd-seitenspalte { position: static; }
+}
+
+/* Am Handy: Nummer, Titel und Betrag in einer Zeile, der Balken darunter
+   über die ganze Breite — vier Spalten in 345 px ließen der Achse 60 px. */
+@media (max-width: 720px) {
+  .fd-eckdaten { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fd-eckdatum:nth-child(3) { border-left: 0; }
+  .fd-eckdatum:nth-child(n + 3) { border-top: 1px solid var(--rand); }
+  .fd-antraege { grid-template-columns: 1fr; }
+  .fd-zeile {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    grid-template-areas: "nr titel betrag" ". achse achse";
+    padding-bottom: 8px;
+  }
+  .fd-zeile > :nth-child(1) { grid-area: nr; }
+  .fd-zeile > :nth-child(2) { grid-area: titel; }
+  .fd-zeile > :nth-child(3) { grid-area: achse; }
+  .fd-zeile > :nth-child(4) { grid-area: betrag; }
+  .fd-monatskopf { grid-template-areas: ". achse achse"; padding-bottom: 0; }
+  .fd-monatskopf > :nth-child(1), .fd-monatskopf > :nth-child(2), .fd-monatskopf > :nth-child(4) { display: none; }
+  .fd-summenzeile { grid-template-areas: "nr titel betrag"; padding-bottom: 0; }
+  .fd-summenzeile > :nth-child(3) { display: none; }
+  .fd-paket[data-offen] { margin: 0 -18px; padding: 0 18px; }
+  .fd-paketdetail { padding-left: 0; }
+  .fd-steckbrief > div { grid-template-columns: minmax(0, 1fr); }
+  .fd-steckbrief dd { grid-column: 1; }
+  .fd-frage-innen, .fd-antwort-kurz { margin-left: 0; padding-left: 0; }
+}

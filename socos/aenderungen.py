@@ -22,6 +22,31 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-10-05",
+        "titel": "Förderungen, ein neues Modul",
+        "punkte": [
+            {
+                "titel": "Förderanträge an einem Ort",
+                "text": (
+                    "Unter Module · Förderungen steht das Pflegeinnovationsprogramm NÖ "
+                    "mit seiner Richtlinie in Kürze, den Fragen an die Förderstelle "
+                    "und unseren zwei Anträgen. Je Antrag siehst du auf einen Blick, "
+                    "wie viel Geld er belegt und was noch fehlt."
+                ),
+                "wo": "module/foerderungen",
+            },
+            {
+                "titel": "Arbeitspakete auf einer Zeitleiste",
+                "text": (
+                    "Im Antrag stehen die Arbeitspakete als Balken. Ziehen verschiebt "
+                    "sie, ein Klick auf den Betrag ändert ihn. Die Summe läuft gegen "
+                    "die 50.000 € des Programms mit."
+                ),
+                "wo": "module/foerderungen",
+            },
+        ],
+    },
+    {
         "version": "2026-09-29",
         "titel": "SoCoS im eigenen Kalender",
         "punkte": [

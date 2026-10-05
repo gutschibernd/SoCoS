@@ -16,6 +16,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { hole } from "../basis/api";
 import {
   useCanvasfelder,
+  useFoerderungen,
   useLagekarte,
   useNeuLaden,
   usePraktikumsthemen,
@@ -48,7 +49,9 @@ import {
   zuletztText,
   teilZuWeg,
   themaAusWeg,
+  antragAusWeg,
   zumSenden,
+  type Foerderteil,
   type Kartenteil,
   type Modul,
   type Punktentwurf,
@@ -62,6 +65,7 @@ import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
+import { Antragsseite, Foerderungen } from "./Foerderungen";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
@@ -76,10 +80,13 @@ export function Module({
 }) {
   const thema = themaAusWeg(unter);
   if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} />;
+  const antrag = antragAusWeg(unter);
+  if (antrag) return <Antragsseite key={antrag.id} ich={ich} id={antrag.id} wechseln={wechseln} />;
   const treffer = teilZuWeg(unter);
   if (!treffer) return <Uebersicht wechseln={wechseln} />;
   const { modul, teil } = treffer;
   if (teil.schluessel === "thoughts") return <Thoughts ich={ich} wechseln={wechseln} />;
+  if (teil.schluessel === "foerderung") return <Foerderungen ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "praktikum")
     return (
       <Praktikum
@@ -141,6 +148,8 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
                 <Themenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "thoughts" ? (
                 <Kartenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
+              ) : teil.schluessel === "foerderung" ? (
+                <Foerderzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : (
                 <Teilzeile key={teil.weg} teil={teil} stelle={i} vorhaben={eines} wechseln={wechseln} />
               ),
@@ -244,6 +253,33 @@ function Kartenzeile({ teil, stelle, wechseln }: { teil: Kartenteil; stelle: num
         karte.data.schritte.filter((x) => x.status === "offen").length
       } offen`
     : "";
+  return (
+    <li>
+      <a
+        href={`/module/${teil.weg}`}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", teil.weg);
+        }}
+      >
+        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
+        {teil.titel}
+        <span className="modul-stand">{stand}</span>
+        <Zeichen name="zeiger" klasse="modul-zeiger" />
+      </a>
+    </li>
+  );
+}
+
+/** Eine Zeile der Kachel für die Förderungen: wie viele Anträge, wie viele Fragen offen. */
+function Foerderzeile({ teil, stelle, wechseln }: { teil: Foerderteil; stelle: number; wechseln: Wechseln }) {
+  const programme = useFoerderungen();
+  const antraege = programme.data?.reduce((n, p) => n + p.antraege.length, 0);
+  const offen = programme.data?.reduce((n, p) => n + p.fragen.filter((f) => !f.antwort.trim()).length, 0);
+  const stand =
+    antraege === undefined
+      ? ""
+      : `${antraege} ${antraege === 1 ? "Antrag" : "Anträge"}${offen ? ` · ${offen} ${offen === 1 ? "Frage" : "Fragen"} offen` : ""}`;
   return (
     <li>
       <a

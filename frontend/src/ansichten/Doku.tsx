@@ -928,6 +928,58 @@ function ModuleDoku() {
           ]}
         />
       </Abschnitt>
+
+      <Abschnitt
+        zeichen="foerderung"
+        titel="Förderungen: vom Programm zum Antrag"
+        vorspann="Ein Förderprogramm mit seiner Richtlinie in Kürze, den Fragen an die Förderstelle und den Anträgen. Jeder Antrag hat seine Arbeitspakete auf einer Zeitleiste, die Texte, die Formular und Richtlinie verlangen, und rechts, was noch fehlt."
+      >
+        <Schritte
+          schritte={[
+            "Auf der Seite des Programms steht je Antrag eine Kachel: wie viel Geld er belegt, wie seine Pakete in der Zeit liegen und wie viele Punkte der Antragsreife erfüllt sind. Ein Klick öffnet den Antrag.",
+            "Oben im Antrag stehen die Arbeitspakete als Zeitleiste. Einen Balken ziehst du in der Mitte, um ihn zu verschieben, an einem Rand, um ihn zu verlängern. Mit der Tastatur geht es mit ← und →, mit Umschalt verschiebst du nur das Ende.",
+            "Ein Klick auf den Titel eines Pakets klappt es auf: Ziel und Inhalt, Ergebnis, Monate, Reihenfolge. Ein Klick auf den Betrag ändert ihn. Ein neues Paket ist die Zeile unter der Leiste: tippen, Enter.",
+            "Darunter stehen die Texte in der Reihenfolge, die der Antrag verlangt: die Beschreibung für das Online-Formular, die Projektbeschreibung (Nutzen, Mehrwert, Wirkungsziele) und die Kostenprognose für den Regelbetrieb. Sie speichern sich beim Tippen.",
+            "Rechts steht, was noch fehlt. Ein Klick auf einen Punkt springt an die Stelle, an der du ihn erledigst.",
+          ]}
+        />
+        <Merke>
+          Die Fördersumme ist die Summe der Pakete. Liegt sie über der Grenze des Programms oder
+          läuft ein Paket länger als erlaubt, wird es rot, und die Antragsreife sagt, um wie viel.
+        </Merke>
+        <Begriffe
+          paare={[
+            {
+              begriff: "Projektmonate",
+              text: "Die Zeitleiste zählt M1, M2 … ab dem Projektbeginn, denn der hängt an der Förderzusage. Trägst du oben einen geplanten Beginn ein, stehen dort die Kalendermonate.",
+            },
+            {
+              begriff: "Antragsreife",
+              text: "Neun Punkte aus der Richtlinie (V.4 a–e) und dem Online-Formular: Kurzbezeichnung, Beschreibung, Nutzen, Mehrwert, Wirkungsziele, Pakete mit Beträgen, Summe und Laufzeit in der Grenze, Kostenprognose. Sie wird gerechnet, abhaken muss man nichts.",
+            },
+            {
+              begriff: "Zeichen zählen",
+              text: "Das Online-Formular nimmt für die Kurzbezeichnung 200 und für die Beschreibung 500 Zeichen. Die Zahl steht unter dem Feld und wird rot, sobald es zu viel ist. Gespeichert wird trotzdem, gekürzt wird dann beim Feinschliff.",
+            },
+            {
+              begriff: "Fragen an die Förderstelle",
+              text: "Offene Fragen stehen oben. Ein Tipp klappt eine Frage auf, dort trägst du Antwort und Quelle ein. Sobald eine Antwort dasteht, gilt sie als beantwortet und rutscht nach unten. Ist nur ein Teil geklärt, trag den Rest als neue Frage ein.",
+            },
+            {
+              begriff: "Was wir noch brauchen",
+              text: "Die Liste rechts im Antrag: Daten und Unterlagen, die von anderen kommen. Abhaken, sobald sie da sind.",
+            },
+            {
+              begriff: "Kein SoCoS-Projekt",
+              text: "Die Arbeitspakete eines Antrags sind keine Projektpakete, auf sie wird keine Zeit gebucht. Wird ein Antrag bewilligt, legst du das Projekt unter Projekt an.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen dürfen alle. Anlegen und ändern dürfen Admin und Bearbeiter. Einen Antrag, ein Paket oder eine Frage entfernen darf nur der Admin. Der mildere Weg für einen Antrag ist, ihn als abgelehnt zu führen.",
+            },
+          ]}
+        />
+      </Abschnitt>
     </>
   );
 }

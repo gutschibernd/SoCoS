@@ -562,6 +562,79 @@ export const useLagekarte = () =>
     },
   });
 
+/* --- Förderungen ------------------------------------------------------------ */
+
+export type Antragsstand = "entwurf" | "eingereicht" | "bewilligt" | "abgelehnt";
+
+/** Ein Arbeitspaket eines Antrags. Die Laufzeit in Projektmonaten (M1 …). */
+export type Foerderpaket = {
+  id: number;
+  antrag: number;
+  titel: string;
+  ziel: string;
+  ergebnis: string;
+  von: number;
+  bis: number;
+  /** Geld als Zeichenkette, z. B. "12000.00" — oder noch keiner. */
+  betrag: string | null;
+  reihenfolge: number;
+};
+
+/** Ein Punkt der Antragsreife — gerechnet in socos/services/foerderung.py. */
+export type Reifepunkt = { schluessel: string; text: string; erfuellt: boolean; hinweis: string };
+
+export type Foerderantrag = {
+  id: number;
+  programm: number;
+  nummer: number;
+  titel: string;
+  stand: Antragsstand;
+  foerderwerber: string;
+  /** Geplanter Beginn — rechnet Projektmonate in Kalendermonate um. */
+  beginn: string | null;
+  beschreibung: string;
+  nutzen: string;
+  mehrwert: string;
+  wirkung: string;
+  regelbetrieb: string;
+  /** Eine Zeile je Punkt; „✓ " davor heißt: ist da. */
+  datenbedarf: string;
+  pakete: Foerderpaket[];
+  summe: string;
+  laufzeit: number;
+  reife: Reifepunkt[];
+  /** Was das Online-Formular höchstens nimmt. */
+  zeichen: { titel: number; beschreibung: number };
+  geaendert_am: string;
+};
+
+export type Foerderfrage = {
+  id: number;
+  programm: number;
+  frage: string;
+  antwort: string;
+  quelle: string;
+  reihenfolge: number;
+  geaendert_am: string;
+};
+
+export type Foerderprogramm = {
+  id: number;
+  name: string;
+  stelle: string;
+  link: string;
+  max_foerderung: string | null;
+  max_monate: number | null;
+  /** Eine Zeile je Punkt: „Begriff: Erklärung". */
+  steckbrief: string;
+  fragen: Foerderfrage[];
+  antraege: Foerderantrag[];
+};
+
+/* Eine Abfrage für das ganze Modul: Programm, Fragen, Anträge, Pakete. */
+export const useFoerderungen = () =>
+  useQuery({ queryKey: ["foerderungen"], queryFn: () => hole<Foerderprogramm[]>("/foerderprogramme/") });
+
 /* Die Felder ändern sich nur mit einer neuen Version der Anwendung — sie
    werden deshalb nicht bei jedem Fensterwechsel neu geholt. */
 export const useCanvasfelder = (workshop: Workshopschluessel = "canvas") =>
@@ -584,7 +657,7 @@ export function useNeuLaden() {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
       "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben", "vorhaben",
-      "praktikumsthemen", "lagekarte",
+      "praktikumsthemen", "lagekarte", "foerderungen",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

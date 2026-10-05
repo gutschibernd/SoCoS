@@ -21,6 +21,10 @@ from socos.models import (
     Eventanhang,
     Eventziel,
     Fixkosten,
+    Foerderantrag,
+    Foerderfrage,
+    Foerderpaket,
+    Foerderprogramm,
     Kontakt,
     Kontostand,
     Meeting,
@@ -41,7 +45,7 @@ from socos.models import (
     Vorhaben,
     Zeitbuchung,
 )
-from socos.services import ausschreibung, auswertung, lagekarte, zeit as zeitdienst
+from socos.services import ausschreibung, auswertung, foerderung, lagekarte, zeit as zeitdienst
 
 
 class NutzerSerializer(serializers.ModelSerializer):
@@ -893,3 +897,94 @@ class LageverbindungSerializer(serializers.ModelSerializer):
         if lagekarte.ergaebe_kreis(von.pk, nach.pk, ohne_id=alt.pk if alt else None):
             raise serializers.ValidationError("Das ergäbe einen Kreis — dann wartet alles aufeinander.")
         return daten
+
+
+# --- Module: Förderungen ----------------------------------------------------
+
+
+class FoerderpaketSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Foerderpaket
+        fields = ["id", "antrag", "titel", "ziel", "ergebnis", "von", "bis", "betrag", "reihenfolge"]
+
+    def validate(self, daten):
+        # Hier und nicht erst in der Datenbank: Deren Einschränkung käme als
+        # 500 zurück, nicht als Satz, der sagt, was falsch ist.
+        von = daten.get("von", self.instance.von if self.instance else 1)
+        bis = daten.get("bis", self.instance.bis if self.instance else von)
+        if bis < von:
+            raise serializers.ValidationError({"bis": "Das Paket endet, bevor es anfängt."})
+        if daten.get("betrag") is not None and daten["betrag"] < 0:
+            raise serializers.ValidationError({"betrag": "Ein Betrag ist nicht negativ."})
+        return daten
+
+
+class FoerderantragSerializer(serializers.ModelSerializer):
+    """
+    Ein Antrag samt Paketen und dem, was daraus gerechnet wird — Summe,
+    Laufzeit, Reife. `zeichen` sagt der Seite, was das Formular höchstens nimmt,
+    damit die Zahl nur in `services/foerderung.py` steht.
+    """
+
+    pakete = serializers.SerializerMethodField()
+    summe = serializers.SerializerMethodField()
+    laufzeit = serializers.SerializerMethodField()
+    reife = serializers.SerializerMethodField()
+    zeichen = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Foerderantrag
+        fields = [
+            "id", "programm", "nummer", "titel", "stand", "foerderwerber", "beginn",
+            "beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb", "datenbedarf",
+            "pakete", "summe", "laufzeit", "reife", "zeichen", "geaendert_am",
+        ]
+        read_only_fields = ["geaendert_am"]
+
+    def get_pakete(self, antrag):
+        pakete = sorted(foerderung.lebende_pakete(antrag), key=lambda p: (p.reihenfolge, p.id))
+        return FoerderpaketSerializer(pakete, many=True).data
+
+    def get_summe(self, antrag):
+        return str(foerderung.summe(antrag))
+
+    def get_laufzeit(self, antrag):
+        return foerderung.laufzeit(antrag)
+
+    def get_reife(self, antrag):
+        return foerderung.reife(antrag)
+
+    def get_zeichen(self, antrag):
+        return foerderung.ZEICHEN
+
+
+class FoerderfrageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Foerderfrage
+        fields = ["id", "programm", "frage", "antwort", "quelle", "reihenfolge", "geaendert_am"]
+        read_only_fields = ["geaendert_am"]
+
+
+class FoerderprogrammSerializer(serializers.ModelSerializer):
+    """
+    Das Programm mit allem, was darunter hängt — eine Abfrage für die ganze
+    Seite. Geschrieben wird je Teil über dessen eigenen Weg.
+    """
+
+    fragen = serializers.SerializerMethodField()
+    antraege = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Foerderprogramm
+        fields = [
+            "id", "name", "stelle", "link", "max_foerderung", "max_monate", "steckbrief",
+            "fragen", "antraege",
+        ]
+
+    def get_fragen(self, programm):
+        fragen = [f for f in programm.fragen.all() if f.geloescht_am is None]
+        return FoerderfrageSerializer(sorted(fragen, key=lambda f: (f.reihenfolge, f.id)), many=True).data
+
+    def get_antraege(self, programm):
+        antraege = [a for a in programm.antraege.all() if a.geloescht_am is None]
+        return FoerderantragSerializer(sorted(antraege, key=lambda a: (a.nummer, a.id)), many=True).data

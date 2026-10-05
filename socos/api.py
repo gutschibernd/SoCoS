@@ -54,6 +54,10 @@ from socos.models import (
     Persona,
     Planabschnitt,
     Praktikumsthema,
+    Foerderantrag,
+    Foerderfrage,
+    Foerderpaket,
+    Foerderprogramm,
     Projekt,
     Projektphase,
     Protokolleintrag,
@@ -1348,3 +1352,40 @@ def sicherung_einspielen(request):
             "hinweis": "Der Bestand wurde ersetzt. Bitte neu anmelden.",
         }
     )
+
+
+# --- Module: Förderungen ----------------------------------------------------
+#
+# Die gewöhnliche Regel: sehen alle, anlegen und ändern Admin und Bearbeiter,
+# entfernen nur der Admin. Gelesen wird über das Programm — eine Abfrage für
+# die ganze Seite; die anderen Wege sind zum Schreiben da.
+
+
+class FoerderprogrammViewSet(SocosViewSet):
+    serializer_class = ser.FoerderprogrammSerializer
+    queryset = Foerderprogramm.objects.prefetch_related("fragen", "antraege", "antraege__pakete")
+
+
+class FoerderfrageViewSet(SocosViewSet):
+    serializer_class = ser.FoerderfrageSerializer
+    queryset = Foerderfrage.objects.all()
+
+
+class FoerderantragViewSet(SocosViewSet):
+    serializer_class = ser.FoerderantragSerializer
+    queryset = Foerderantrag.objects.select_related("programm").prefetch_related("pakete")
+
+    @transaction.atomic
+    def perform_destroy(self, antrag):
+        """
+        Die Pakete gehen mit. Über `on_delete=CASCADE` geschähe das nur beim
+        harten Löschen; weich gelöscht blieben sie als Waisen stehen.
+        """
+        for paket in Foerderpaket.objects.filter(antrag=antrag):
+            paket.delete()
+        antrag.delete()
+
+
+class FoerderpaketViewSet(SocosViewSet):
+    serializer_class = ser.FoerderpaketSerializer
+    queryset = Foerderpaket.objects.all()

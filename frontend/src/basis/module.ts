@@ -35,7 +35,10 @@ export type Themenliste = { weg: string; titel: string; schluessel: "praktikum";
  */
 export type Kartenteil = { weg: string; titel: string; schluessel: "thoughts" };
 
-export type Teil = Workshop | Themenliste | Kartenteil;
+/** Die Förderungen: Programme mit Anträgen — eine eigene Seite, Anträge darunter. */
+export type Foerderteil = { weg: string; titel: string; schluessel: "foerderung" };
+
+export type Teil = Workshop | Themenliste | Kartenteil | Foerderteil;
 
 export type Modul = {
   /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
@@ -76,6 +79,13 @@ export const MODULE: Modul[] = [
     zeichen: "thoughts",
     teile: [{ weg: "thoughts", titel: "Themen, Schritte, Abhängigkeiten", schluessel: "thoughts" }],
   },
+  {
+    weg: "foerderungen",
+    titel: "Förderungen",
+    wozu: "Programme verstehen, Anträge mit Arbeitspaketen planen",
+    zeichen: "foerderung",
+    teile: [{ weg: "foerderungen", titel: "Programme und Anträge", schluessel: "foerderung" }],
+  },
 ];
 
 /** Alle Wege, die hinter `/module/` stehen dürfen — der Router fragt hier. */
@@ -92,6 +102,17 @@ export function themaAusWeg(unter: string | null): { modul: Modul; teil: Themenl
   const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
   const gefunden = treffer && teilZuWeg(treffer[1]);
   if (!treffer || !gefunden || gefunden.teil.schluessel !== "praktikum") return null;
+  return { modul: gefunden.modul, teil: gefunden.teil, id: Number(treffer[2]) };
+}
+
+/**
+ * Der Antrag hinter `foerderungen/12` — oder nichts. Ob es ihn gibt, sagt
+ * erst der Server; die Seite zeigt dann, dass er fehlt.
+ */
+export function antragAusWeg(unter: string | null): { modul: Modul; teil: Foerderteil; id: number } | null {
+  const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
+  const gefunden = treffer && teilZuWeg(treffer[1]);
+  if (!treffer || !gefunden || gefunden.teil.schluessel !== "foerderung") return null;
   return { modul: gefunden.modul, teil: gefunden.teil, id: Number(treffer[2]) };
 }
 

@@ -2091,3 +2091,157 @@ class Lageverbindung(Basismodell):
 
     def __str__(self):
         return f"{self.von} → {self.nach}"
+
+
+# --- Module: Förderungen -------------------------------------------------------
+#
+# Programm → Antrag → Arbeitspaket, dazu die Fragen an die Förderstelle am
+# Programm. Drei Ebenen, nicht mehr.
+#
+# **Die Arbeitspakete eines Antrags sind keine Arbeitspakete eines Projekts.**
+# Vor der Förderzusage bucht niemand darauf, und ein SoCoS-Projekt je Antrag
+# füllte die Projektliste mit Einträgen, die vielleicht nie bewilligt werden
+# (Entscheidung 2026-10-05). Wird ein Antrag bewilligt, entsteht das Projekt
+# dann von Hand.
+#
+# **Die Laufzeit steht in Projektmonaten (M1, M2 …), nicht in Daten.** Der Beginn
+# hängt an der Förderzusage, und die kennt beim Schreiben niemand; mit Daten
+# müsste jedes Paket verschoben werden, sobald sie kommt. Ein `beginn` am Antrag
+# rechnet die Monate in Kalendermonate um, wenn er bekannt ist.
+#
+# **Summen werden gerechnet** (`services/foerderung.py`), ebenso die Antragsreife.
+
+
+class Foerderprogramm(Basismodell):
+    """
+    Ein Förderprogramm — „Pflegeinnovation NÖ".
+
+    Die Obergrenzen stehen als Zahl am Programm und nicht im Steckbrief-Text,
+    weil gegen sie gerechnet wird: Summe gegen `max_foerderung`, Laufzeit gegen
+    `max_monate`. Alles andere aus der Richtlinie ist Text — eine Zeile je
+    Punkt, „Begriff: Erklärung".
+    """
+
+    name = models.CharField("Name", max_length=160)
+    stelle = models.CharField("Förderstelle", max_length=250, blank=True)
+    link = models.URLField("Link", blank=True)
+    max_foerderung = models.DecimalField(
+        "Höchstförderung je Antrag", max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    max_monate = models.PositiveSmallIntegerField("Höchstlaufzeit in Monaten", null=True, blank=True)
+    steckbrief = models.TextField(
+        "Richtlinie in Kürze", blank=True, help_text="Eine Zeile je Punkt: „Begriff: Erklärung“."
+    )
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Förderprogramm"
+        verbose_name_plural = "Förderprogramme"
+        ordering = ["name", "id"]
+
+    def __str__(self):
+        return self.name
+
+
+class Foerderfrage(Basismodell):
+    """
+    Eine Frage an die Förderstelle. **Beantwortet ist sie, sobald eine Antwort
+    dasteht** — kein eigener Status daneben, der einmal „offen" sagt, obwohl
+    die Antwort längst eingetragen ist.
+    """
+
+    programm = models.ForeignKey(
+        Foerderprogramm, verbose_name="Programm", on_delete=models.PROTECT, related_name="fragen"
+    )
+    frage = models.TextField("Frage")
+    antwort = models.TextField("Antwort", blank=True)
+    # Wer es gesagt hat oder wo es steht: „Richtlinie V.4", „Telefonat GS5".
+    quelle = models.CharField("Quelle", max_length=200, blank=True)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Frage an die Förderstelle"
+        verbose_name_plural = "Fragen an die Förderstelle"
+        ordering = ["reihenfolge", "id"]
+
+    def __str__(self):
+        return self.frage[:80]
+
+
+class Foerderantrag(Basismodell):
+    """
+    Ein Antrag in einem Programm.
+
+    Die Textfelder folgen den Pflichtinhalten der Richtlinie (V.4 a–e) und den
+    Feldern des Online-Formulars — damit die Antragsreife sagen kann, was noch
+    fehlt, ohne dass jemand eine eigene Gliederung pflegt.
+    """
+
+    class Stand(models.TextChoices):
+        ENTWURF = "entwurf", "Entwurf"
+        EINGEREICHT = "eingereicht", "eingereicht"
+        BEWILLIGT = "bewilligt", "bewilligt"
+        ABGELEHNT = "abgelehnt", "abgelehnt"
+
+    # Die langen Texte speichern sich beim Tippen selbst (wie die Mitschrift
+    # eines Meetings). Jede Schreibpause schriebe sonst einen Eintrag mit dem
+    # ganzen alten und dem ganzen neuen Text, und das Protokoll des Antrags
+    # bestünde nach einer Stunde Schreiben nur noch aus Absätzen.
+    protokoll_ohne = ("beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb")
+
+    programm = models.ForeignKey(
+        Foerderprogramm, verbose_name="Programm", on_delete=models.PROTECT, related_name="antraege"
+    )
+    nummer = models.PositiveSmallIntegerField("Nummer", default=1)
+    # Die „Kurzbezeichnung des Projekts" im Formular nimmt 200 Zeichen.
+    titel = models.CharField("Kurzbezeichnung", max_length=200)
+    stand = models.CharField("Stand", max_length=12, choices=Stand.choices, default=Stand.ENTWURF)
+    foerderwerber = models.CharField("Förderwerber", max_length=200, blank=True)
+    beginn = models.DateField("Geplanter Beginn", null=True, blank=True)
+    # Das Formular nimmt 500 Zeichen. **Nicht** hart begrenzt: Beim Schreiben
+    # ist ein Satz zu viel normal; die Seite zählt mit und sagt es.
+    beschreibung = models.TextField("Beschreibung des Vorhabens", blank=True)
+    nutzen = models.TextField("Projektbeschreibung und Nutzen (V.4.a)", blank=True)
+    mehrwert = models.TextField("Mehrwert gegenüber Bestehendem (V.4.b)", blank=True)
+    wirkung = models.TextField("Wirkungsziele und Kennzahlen (V.4.c)", blank=True)
+    regelbetrieb = models.TextField("Kostenprognose Regelbetrieb (V.4.e)", blank=True)
+    datenbedarf = models.TextField(
+        "Was wir noch brauchen", blank=True, help_text="Eine Zeile je Punkt; „✓ “ davor heißt: ist da."
+    )
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Förderantrag"
+        verbose_name_plural = "Förderanträge"
+        ordering = ["programm", "nummer", "id"]
+
+    def __str__(self):
+        return self.titel
+
+
+class Foerderpaket(Basismodell):
+    """
+    Ein Arbeitspaket eines Antrags. Ein Betrag je Paket, nicht Personal und
+    Sachkosten getrennt (Entscheidung 2026-10-05): Für den Antrag reicht die
+    Summe; die Aufschlüsselung steht im Finanzierungskonzept.
+    """
+
+    antrag = models.ForeignKey(
+        Foerderantrag, verbose_name="Antrag", on_delete=models.CASCADE, related_name="pakete"
+    )
+    titel = models.CharField("Titel", max_length=200)
+    ziel = models.TextField("Ziel und Inhalt", blank=True)
+    ergebnis = models.CharField("Ergebnis", max_length=250, blank=True)
+    von = models.PositiveSmallIntegerField("von Monat", default=1, validators=[MinValueValidator(1)])
+    bis = models.PositiveSmallIntegerField("bis Monat", default=1, validators=[MinValueValidator(1)])
+    betrag = models.DecimalField("Betrag", max_digits=12, decimal_places=2, null=True, blank=True)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Arbeitspaket eines Antrags"
+        verbose_name_plural = "Arbeitspakete eines Antrags"
+        ordering = ["reihenfolge", "id"]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(bis__gte=models.F("von")), name="foerderpaket_bis_nach_von"),
+        ]
+
+    def __str__(self):
+        return self.titel

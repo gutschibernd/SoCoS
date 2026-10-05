@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from "react";
 
-import { MODULWEGE, themaAusWeg } from "./module";
+import { MODULWEGE, antragAusWeg, themaAusWeg } from "./module";
 
 export const SEITEN = [
   "start",
@@ -97,8 +97,9 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   meetings: (unter) => /^\d+$/.test(unter),
   // Ein Workshop eines Moduls: `/module/spg`, `/module/spg-businessplan`. Die
   // Liste steht in basis/module.ts und nicht ein zweites Mal hier. Dazu ein
-  // einzelnes Praktikumsthema: `/module/praktikum/12`, `/module/praktikum-ideen/7`.
-  module: (unter) => MODULWEGE.includes(unter) || themaAusWeg(unter) !== null,
+  // einzelnes Praktikumsthema: `/module/praktikum/12`, `/module/praktikum-ideen/7`,
+  // und ein Förderantrag: `/module/foerderungen/3`.
+  module: (unter) => MODULWEGE.includes(unter) || themaAusWeg(unter) !== null || antragAusWeg(unter) !== null,
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
   profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),
   doku: (unter) => (DOKUTEILE as readonly string[]).includes(unter),

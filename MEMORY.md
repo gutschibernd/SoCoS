@@ -7,6 +7,53 @@ betrifft.
 
 ---
 
+## 2026-10-05 — Förderungen, ein viertes Modul (Migration 0038)
+
+Für zwei Anträge beim NÖ Pflegeinnovationsprogramm: Programm → Antrag →
+Arbeitspaket, dazu die Fragen an die Förderstelle am Programm. Vier Modelle
+(`Foerderprogramm`, `Foerderfrage`, `Foerderantrag`, `Foerderpaket`).
+
+**Die Pakete eines Antrags sind keine `Arbeitspaket`e eines Projekts**
+(Entscheidung Bernd). Vor der Zusage bucht niemand darauf, und ein Projekt je
+Antrag füllte die Projektliste mit Einträgen, die vielleicht nie bewilligt
+werden. Wird bewilligt, entsteht das Projekt von Hand.
+
+**Ein Betrag je Paket**, nicht Personal und Sachkosten getrennt (Entscheidung
+Bernd): Für den Antrag zählt die Summe, die Aufschlüsselung steht im
+Finanzierungskonzept.
+
+**Laufzeit in Projektmonaten (`von`/`bis` ab 1), nicht in Daten.** Der Beginn
+hängt an der Förderzusage; mit Daten müsste jedes Paket verschoben werden,
+sobald sie kommt. `Foerderantrag.beginn` rechnet nur die Beschriftung um.
+
+**Summe, Laufzeit und Antragsreife werden gerechnet** (`services/foerderung.py`).
+Die Reife ist die Liste aus Richtlinie V.4 a–e und Online-Formular — am Server,
+damit nicht eine zweite Stelle weiß, was ein Antrag braucht. Die Zeichengrenzen
+des Formulars (200/500) stehen dort in `ZEICHEN` und kommen mit dem Antrag zur
+Seite. Die Kurzbezeichnung ist auch in der Datenbank auf 200 begrenzt, die
+Beschreibung nicht: Beim Schreiben ist ein Satz zu viel normal.
+
+**Eine Frage ist beantwortet, sobald eine Antwort dasteht** — kein Status
+daneben. Ist nur ein Teil geklärt, wird der Rest eine eigene Frage.
+
+**Die langen Antragstexte stehen nicht im Änderungsprotokoll**
+(`protokoll_ohne`), aus demselben Grund wie die Mitschrift eines Meetings: Sie
+speichern sich beim Tippen. `Entwurfsfeld` ist dafür aus `Meetings.tsx` nach
+`bausteine/` gezogen und kann jetzt Zeichen zählen (`hoechstens`).
+
+**Ein Antrag entfernt seine Pakete im ViewSet mit**; `CASCADE` griffe nur beim
+harten Löschen. Programm ← Frage/Antrag ist `PROTECT`.
+
+**Die Zeitleiste** rechnet in CSS mit `--monate`, `--von`, `--bis`; ein Balken
+ist ein Element. Während des Ziehens zeichnet die Seite eine Vorschau,
+gespeichert wird beim Loslassen — jeder Monat dazwischen wäre sonst ein
+Protokolleintrag. Tastatur: ← → verschiebt, mit Umschalt das Ende.
+
+**Die Inhalte kommen aus `daten/foerderungen.json`** (`foerderungen_einspielen`),
+nicht aus einer Migration: Die Anträge nennen den Förderwerber und Zahlen aus
+dessen Betrieb. Die Monatsplanung darin ist ein erster Vorschlag, die Beträge
+sind leer.
+
 ## 2026-10-04 — Mehr über die Person, und ihre Events an der Kachel (Migration 0037)
 
 Zwei Wünsche aus dem Team: zu Personen festhalten können, was ihr Hintergrund ist,
