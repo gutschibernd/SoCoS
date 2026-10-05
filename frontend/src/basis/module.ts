@@ -106,14 +106,23 @@ export function themaAusWeg(unter: string | null): { modul: Modul; teil: Themenl
 }
 
 /**
- * Der Antrag hinter `foerderungen/12` — oder nichts. Ob es ihn gibt, sagt
- * erst der Server; die Seite zeigt dann, dass er fehlt.
+ * Ein Förderprogramm hinter `foerderungen/4`, ein Antrag darin hinter
+ * `foerderungen/4/12` — oder nichts. Das Programm steht mit im Weg, damit
+ * „zurück" vom Antrag in sein Programm führt und von dort in die Übersicht.
+ * Ob es beides gibt, sagt erst der Server; die Seite zeigt dann, dass es fehlt.
  */
-export function antragAusWeg(unter: string | null): { modul: Modul; teil: Foerderteil; id: number } | null {
-  const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
+export function foerderungAusWeg(
+  unter: string | null,
+): { modul: Modul; teil: Foerderteil; programm: number; antrag: number | null } | null {
+  const treffer = /^([a-z-]+)\/(\d+)(?:\/(\d+))?$/.exec(unter ?? "");
   const gefunden = treffer && teilZuWeg(treffer[1]);
   if (!treffer || !gefunden || gefunden.teil.schluessel !== "foerderung") return null;
-  return { modul: gefunden.modul, teil: gefunden.teil, id: Number(treffer[2]) };
+  return {
+    modul: gefunden.modul,
+    teil: gefunden.teil,
+    programm: Number(treffer[2]),
+    antrag: treffer[3] ? Number(treffer[3]) : null,
+  };
 }
 
 /** „3 Themen", „1 Idee" — wie die Zeile auf der Übersicht und die Leiste zählen. */

@@ -2144,9 +2144,11 @@ class Foerderprogramm(Basismodell):
 
 class Foerderfrage(Basismodell):
     """
-    Eine Frage an die Förderstelle. **Beantwortet ist sie, sobald eine Antwort
-    dasteht** — kein eigener Status daneben, der einmal „offen" sagt, obwohl
-    die Antwort längst eingetragen ist.
+    Eine Frage an die Förderstelle.
+
+    **Beantwortet ist ein eigener Haken**, nicht „eine Antwort steht da"
+    (Rückmeldung Bernd, 2026-10-05): Man will abhaken können, und zu einer noch
+    offenen Frage steht oft schon ein halber Satz — was man bisher weiß.
     """
 
     programm = models.ForeignKey(
@@ -2154,6 +2156,7 @@ class Foerderfrage(Basismodell):
     )
     frage = models.TextField("Frage")
     antwort = models.TextField("Antwort", blank=True)
+    beantwortet = models.BooleanField("beantwortet", default=False)
     # Wer es gesagt hat oder wo es steht: „Richtlinie V.4", „Telefonat GS5".
     quelle = models.CharField("Quelle", max_length=200, blank=True)
     reihenfolge = models.IntegerField("Reihenfolge", default=0)

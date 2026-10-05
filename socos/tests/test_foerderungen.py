@@ -157,6 +157,14 @@ class TestSchnittstelle:
         assert not Foerderpaket.objects.filter(pk=paket.pk).exists()
         assert Foerderpaket.alle_objekte.filter(pk=paket.pk).exists()  # weich
 
+    def test_frage_abhaken_ohne_antworttext(self, client, bearbeiter, programm):
+        frage = Foerderfrage.objects.create(programm=programm, frage="Wie lang?")
+        client.force_login(bearbeiter)
+        antwort = client.patch(f"/api/foerderfragen/{frage.pk}/", {"beantwortet": True}, content_type="application/json")
+        assert antwort.status_code == 200
+        frage.refresh_from_db()
+        assert frage.beantwortet and frage.antwort == ""
+
     def test_programm_mit_antraegen_bleibt_stehen(self, client, admin_nutzer, programm, antrag):
         client.force_login(admin_nutzer)
         assert client.delete(f"/api/foerderprogramme/{programm.pk}/").status_code == 409
@@ -168,7 +176,11 @@ class TestEinspielen:
         "max_foerderung": "50000",
         "max_monate": 24,
         "steckbrief": ["Höhe: 50.000 €", "Laufzeit: 2 Jahre"],
-        "fragen": [{"frage": "Wie lang?", "antwort": "", "quelle": "Richtlinie"}],
+        "fragen": [
+            {"frage": "Wie lang?", "antwort": "", "quelle": "Richtlinie"},
+            {"frage": "Wie viel?", "antwort": "50.000 €"},
+            {"frage": "Wer?", "antwort": "Teils geklärt", "beantwortet": False},
+        ],
         "antraege": [
             {
                 "titel": "Befüllsystem",
@@ -191,6 +203,8 @@ class TestEinspielen:
         antrag = Foerderantrag.objects.get()
         assert antrag.nutzen == "Zeile eins\nZeile zwei"
         assert [(p.titel, p.von, p.bis) for p in Foerderpaket.objects.all()] == [("Bau", 1, 6), ("Test", 6, 6)]
+        # Ohne Haken in der Datei: beantwortet, wenn eine Antwort dasteht.
+        assert [f.beantwortet for f in Foerderfrage.objects.all()] == [False, True, False]
 
     def test_vermischt_nicht_und_ersetzt_auf_wunsch(self, db, tmp_path):
         datei = self._datei(tmp_path, self.DATEN)

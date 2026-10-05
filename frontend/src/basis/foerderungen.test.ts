@@ -17,12 +17,12 @@ import {
   spanne,
   steckbriefpunkte,
 } from "./foerderungen";
-import { antragAusWeg, themaAusWeg } from "./module";
+import { foerderungAusWeg, themaAusWeg } from "./module";
 
 const antrag = (teil: Partial<Foerderantrag> = {}) => ({ laufzeit: 0, ...teil }) as Foerderantrag;
 const programm = (teil: Partial<Foerderprogramm> = {}) => ({ max_monate: 24, ...teil }) as Foerderprogramm;
-const frage = (id: number, antwort: string, reihenfolge = id) =>
-  ({ id, antwort, reihenfolge, frage: `F${id}` }) as Foerderfrage;
+const frage = (id: number, beantwortet: boolean, reihenfolge = id) =>
+  ({ id, beantwortet, antwort: "", reihenfolge, frage: `F${id}` }) as Foerderfrage;
 
 describe("Geld in Cent", () => {
   it("liest und schreibt Beträge ohne Gleitkomma", () => {
@@ -97,19 +97,21 @@ describe("Listen aus Text", () => {
 
 describe("Fragen an die Förderstelle", () => {
   it("stellt offene vor beantwortete", () => {
-    const fragen = [frage(1, "ja"), frage(2, ""), frage(3, " "), frage(4, "nein")];
+    const fragen = [frage(1, true), frage(2, false), frage(3, false), frage(4, true)];
     expect(fragenSortiert(fragen).map((f) => f.id)).toEqual([2, 3, 1, 4]);
     expect(fragenStand(fragen)).toBe("2 offen");
-    expect(fragenStand([frage(1, "ja")])).toBe("alle beantwortet");
+    expect(fragenStand([frage(1, true)])).toBe("alle beantwortet");
     expect(fragenStand([])).toBe("noch keine");
   });
 });
 
 describe("der Weg zu einem Antrag", () => {
-  it("findet den Antrag und verwechselt ihn nicht mit einem Thema", () => {
-    expect(antragAusWeg("foerderungen/12")?.id).toBe(12);
-    expect(antragAusWeg("praktikum/12")).toBeNull();
+  it("findet Programm und Antrag und verwechselt sie nicht mit einem Thema", () => {
+    expect(foerderungAusWeg("foerderungen/4")).toMatchObject({ programm: 4, antrag: null });
+    expect(foerderungAusWeg("foerderungen/4/12")).toMatchObject({ programm: 4, antrag: 12 });
+    expect(foerderungAusWeg("praktikum/12")).toBeNull();
+    expect(foerderungAusWeg("foerderungen/4/12/1")).toBeNull();
     expect(themaAusWeg("foerderungen/12")).toBeNull();
-    expect(antragAusWeg("foerderungen")).toBeNull();
+    expect(foerderungAusWeg("foerderungen")).toBeNull();
   });
 });

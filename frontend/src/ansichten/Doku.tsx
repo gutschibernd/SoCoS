@@ -963,7 +963,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Fragen an die Förderstelle",
-              text: "Offene Fragen stehen oben. Ein Tipp klappt eine Frage auf, dort trägst du Antwort und Quelle ein. Sobald eine Antwort dasteht, gilt sie als beantwortet und rutscht nach unten. Ist nur ein Teil geklärt, trag den Rest als neue Frage ein.",
+              text: "Offene Fragen stehen oben. Das Kästchen davor hakt eine Frage ab, dann rutscht sie nach unten; ein zweiter Tipp öffnet sie wieder. Ein Tipp auf den Text klappt sie auf, dort trägst du Antwort und Quelle ein — auch schon, solange sie noch offen ist.",
             },
             {
               begriff: "Was wir noch brauchen",

@@ -33,8 +33,15 @@ des Formulars (200/500) stehen dort in `ZEICHEN` und kommen mit dem Antrag zur
 Seite. Die Kurzbezeichnung ist auch in der Datenbank auf 200 begrenzt, die
 Beschreibung nicht: Beim Schreiben ist ein Satz zu viel normal.
 
-**Eine Frage ist beantwortet, sobald eine Antwort dasteht** — kein Status
-daneben. Ist nur ein Teil geklärt, wird der Rest eine eigene Frage.
+**Eine Frage hat einen eigenen Haken `beantwortet`** (Migration 0039). Zuerst
+hieß „beantwortet": eine Antwort steht da. Das ließ sich nicht abhaken
+(Rückmeldung Bernd, am selben Tag), und eine offene Frage mit dem, was man
+schon weiß, sah beantwortet aus. Die Migration übernimmt den alten Stand.
+
+**Förderungen hat drei Ebenen im Weg** (Wunsch Bernd, am selben Tag):
+`/module/foerderungen` die Programme als Kacheln, `/foerderungen/1` ein
+Programm, `/foerderungen/1/3` ein Antrag darin (`foerderungAusWeg`). Das
+Programm steht im Weg des Antrags, damit „zurück" in sein Programm führt.
 
 **Die langen Antragstexte stehen nicht im Änderungsprotokoll**
 (`protokoll_ohne`), aus demselben Grund wie die Mitschrift eines Meetings: Sie

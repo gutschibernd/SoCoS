@@ -613,6 +613,8 @@ export type Foerderfrage = {
   programm: number;
   frage: string;
   antwort: string;
+  /** Abgehakt — unabhängig davon, ob schon ein Antworttext dasteht. */
+  beantwortet: boolean;
   quelle: string;
   reihenfolge: number;
   geaendert_am: string;

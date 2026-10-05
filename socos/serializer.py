@@ -961,7 +961,7 @@ class FoerderantragSerializer(serializers.ModelSerializer):
 class FoerderfrageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Foerderfrage
-        fields = ["id", "programm", "frage", "antwort", "quelle", "reihenfolge", "geaendert_am"]
+        fields = ["id", "programm", "frage", "antwort", "beantwortet", "quelle", "reihenfolge", "geaendert_am"]
         read_only_fields = ["geaendert_am"]
 
 

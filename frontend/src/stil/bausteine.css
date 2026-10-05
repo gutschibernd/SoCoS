@@ -3038,6 +3038,19 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-eckwert-mit { display: inline-flex; align-items: baseline; gap: 6px; }
 .fd-einheit { font-size: 13px; color: var(--text-leise); }
 
+/* Die Übersicht: je Programm eine Kachel, zwei je Zeile. */
+.fd-programme { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fd-programmkachel h2 { font-size: 17px; }
+.fd-kachelzahlen { display: flex; gap: 24px; margin: 0; }
+.fd-kachelzahlen dt { font-size: 12px; font-weight: 600; color: var(--text-leise); }
+.fd-kachelzahlen dd { margin: 2px 0 0; font-size: 15px; }
+.fd-kachelantraege { list-style: none; margin: 0; padding: 0; }
+.fd-kachelantraege li {
+  display: flex; align-items: center; gap: 10px; padding: 7px 0;
+  border-top: 1px solid var(--flaeche-leise); font-size: 13.5px;
+}
+.fd-kachelantrag-titel { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .fd-antraege { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .fd-antragskarte {
   position: relative; display: flex; flex-direction: column; gap: 10px;
@@ -3093,8 +3106,9 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 /* Fragen: offene mit leerem Kästchen oben, beantwortete mit Haken darunter. */
 .fd-fragenliste { list-style: none; margin: 0; padding: 0; }
 .fd-frage { border-top: 1px solid var(--rand); }
+.fd-frage-zeile { display: flex; align-items: center; }
 .fd-frage-kopf {
-  display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--griff);
+  display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 0; min-height: var(--griff);
   padding: 8px 0; background: none; border: 0; color: var(--text);
   font-size: 14px; text-align: left; cursor: pointer;
 }
@@ -3103,17 +3117,26 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-frage[data-beantwortet] .fd-frage-text { color: var(--text-leise); }
 .fd-frage-kopf .zeiger-klapp { flex: 0 0 auto; width: 12px; height: 12px; color: var(--text-sehr-leise); transition: transform 0.12s; }
 .fd-frage-kopf[aria-expanded="true"] .zeiger-klapp { transform: rotate(90deg); }
+/* Das Kästchen selbst ist 18 px, die Fläche, die der Finger trifft, 44 px —
+   ein Rand aus durchsichtigem Rahmen, der mitklickt. */
 .fd-frage-punkt {
-  flex: 0 0 auto; width: 18px; height: 18px; display: grid; place-items: center;
-  border: 1.5px solid var(--akzent); border-radius: var(--kante);
+  flex: 0 0 auto; width: 44px; height: 44px; margin-left: -13px; padding: 0;
+  display: grid; place-items: center; background: none; border: 0; cursor: pointer; color: var(--gut);
 }
-.fd-frage[data-beantwortet] .fd-frage-punkt { border-color: var(--gut); background: var(--gut-hell); color: var(--gut); }
+.fd-frage-punkt::before {
+  content: ""; grid-area: 1 / 1; width: 18px; height: 18px;
+  border: 1.5px solid var(--akzent); border-radius: var(--kante); box-sizing: border-box;
+}
+.fd-frage-punkt:hover::before { background: var(--akzent-hell); }
+.fd-frage-punkt:disabled { cursor: default; }
+.fd-frage-punkt > .zeichen { grid-area: 1 / 1; }
+.fd-frage[data-beantwortet] .fd-frage-punkt::before { border-color: var(--gut); background: var(--gut-hell); }
 .fd-frage-punkt .zeichen { width: 13px; height: 13px; }
 .fd-antwort-kurz {
-  margin: -4px 0 10px 30px; font-size: 13px; line-height: 1.5; color: var(--text-sehr-leise);
+  margin: -6px 0 10px 31px; font-size: 13px; line-height: 1.5; color: var(--text-sehr-leise);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.fd-frage-innen { padding: 4px 0 14px 30px; }
+.fd-frage-innen { padding: 4px 0 14px 31px; }
 
 .fd-steckbrief { margin: 0; }
 .fd-steckbrief > div {
@@ -3264,7 +3287,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .fd-eckdaten { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .fd-eckdatum:nth-child(3) { border-left: 0; }
   .fd-eckdatum:nth-child(n + 3) { border-top: 1px solid var(--rand); }
-  .fd-antraege { grid-template-columns: 1fr; }
+  .fd-antraege, .fd-programme { grid-template-columns: minmax(0, 1fr); }
   .fd-zeile {
     grid-template-columns: 22px minmax(0, 1fr) auto;
     grid-template-areas: "nr titel betrag" ". achse achse";

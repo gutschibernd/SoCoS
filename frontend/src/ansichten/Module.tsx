@@ -49,7 +49,7 @@ import {
   zuletztText,
   teilZuWeg,
   themaAusWeg,
-  antragAusWeg,
+  foerderungAusWeg,
   zumSenden,
   type Foerderteil,
   type Kartenteil,
@@ -65,7 +65,7 @@ import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
-import { Antragsseite, Foerderungen } from "./Foerderungen";
+import { Antragsseite, Foerderungen, Programmseite } from "./Foerderungen";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
@@ -80,8 +80,11 @@ export function Module({
 }) {
   const thema = themaAusWeg(unter);
   if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} />;
-  const antrag = antragAusWeg(unter);
-  if (antrag) return <Antragsseite key={antrag.id} ich={ich} id={antrag.id} wechseln={wechseln} />;
+  const foerderung = foerderungAusWeg(unter);
+  if (foerderung?.antrag)
+    return <Antragsseite key={foerderung.antrag} ich={ich} id={foerderung.antrag} wechseln={wechseln} />;
+  if (foerderung)
+    return <Programmseite key={foerderung.programm} ich={ich} id={foerderung.programm} wechseln={wechseln} />;
   const treffer = teilZuWeg(unter);
   if (!treffer) return <Uebersicht wechseln={wechseln} />;
   const { modul, teil } = treffer;
@@ -275,7 +278,7 @@ function Kartenzeile({ teil, stelle, wechseln }: { teil: Kartenteil; stelle: num
 function Foerderzeile({ teil, stelle, wechseln }: { teil: Foerderteil; stelle: number; wechseln: Wechseln }) {
   const programme = useFoerderungen();
   const antraege = programme.data?.reduce((n, p) => n + p.antraege.length, 0);
-  const offen = programme.data?.reduce((n, p) => n + p.fragen.filter((f) => !f.antwort.trim()).length, 0);
+  const offen = programme.data?.reduce((n, p) => n + p.fragen.filter((f) => !f.beantwortet).length, 0);
   const stand =
     antraege === undefined
       ? ""

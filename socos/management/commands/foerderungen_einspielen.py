@@ -119,6 +119,8 @@ class Command(BaseCommand):
                 programm=programm,
                 frage=f["frage"].strip(),
                 antwort=f.get("antwort", ""),
+                # Fehlt der Haken in der Datei, gilt: beantwortet, wenn eine Antwort dasteht.
+                beantwortet=f.get("beantwortet", bool(f.get("antwort", "").strip())),
                 quelle=f.get("quelle", ""),
                 reihenfolge=i,
             )

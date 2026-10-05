@@ -143,8 +143,8 @@ export function bedarfDazu(text: string, neu: string): string {
 
 /* --- Fragen ---------------------------------------------------------------- */
 
-/** Beantwortet ist eine Frage, sobald eine Antwort dasteht — kein Status daneben. */
-export const istOffen = (f: Foerderfrage) => f.antwort.trim() === "";
+/** Offen ist eine Frage, solange sie nicht abgehakt ist — ein Antworttext allein genügt nicht. */
+export const istOffen = (f: Foerderfrage) => !f.beantwortet;
 
 /** Offene zuerst, in ihrer Reihenfolge; beantwortete rutschen nach unten. */
 export function fragenSortiert(fragen: Foerderfrage[]): Foerderfrage[] {

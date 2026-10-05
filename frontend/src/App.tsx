@@ -1,6 +1,6 @@
 import { useIch } from "./basis/daten";
 import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
-import { antragAusWeg, themaAusWeg } from "./basis/module";
+import { foerderungAusWeg, themaAusWeg } from "./basis/module";
 import { useSeite, type Seite } from "./basis/router";
 import { Zustand } from "./basis/Zustand";
 import { Zeichen } from "./bausteine/Zeichen";
@@ -80,7 +80,7 @@ export function App() {
   if (!ich.data) return <Zustand abfrage={ich} erneut={() => ich.refetch()} />;
 
   const bearbeiten = ort.seite === "projekt" && ort.unter === "bearbeiten";
-  const thema = ort.seite === "module" ? (themaAusWeg(ort.unter) ?? antragAusWeg(ort.unter)) : null;
+  const thema = ort.seite === "module" ? (themaAusWeg(ort.unter) ?? foerderungAusWeg(ort.unter)) : null;
   const kopfzeile =
     UNTERTITEL[`${ort.seite}/${ort.unter}`] ??
     // Ein einzelnes Thema: Sein Titel steht groß auf der Seite selbst.

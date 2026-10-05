@@ -1,6 +1,10 @@
 /**
- * Module · Förderungen: ein Programm mit seinen Anträgen, und je Antrag eine
- * eigene Seite (`/module/foerderungen/3`).
+ * Module · Förderungen: die Förderprogramme, je Programm seine Anträge, und
+ * je Antrag eine eigene Seite.
+ *
+ * Drei Ebenen: `/module/foerderungen` zeigt die Programme als Kacheln,
+ * `/module/foerderungen/1` ein Programm, `/module/foerderungen/1/3` einen
+ * Antrag darin.
  *
  * **Die Programmseite beantwortet drei Fragen auf einen Blick:** Wie weit sind
  * die Anträge (Geld gegen die Grenze, Zeitleiste, Reife)? Was ist bei der
@@ -72,8 +76,14 @@ function useAendern() {
   };
 }
 
-/* --- Die Programmseite ----------------------------------------------------- */
+/* --- Die Übersicht der Programme -------------------------------------------- */
 
+/**
+ * Jedes Förderprogramm als Kachel — heute nur eines, morgen mehrere. Die
+ * Kachel sagt, wie viel ein Antrag höchstens bekommt, welche Anträge darin
+ * laufen und was bei der Förderstelle noch offen ist; ein Klick öffnet das
+ * Programm.
+ */
 export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }) {
   const programme = useFoerderungen();
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
@@ -86,21 +96,100 @@ export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }
           was="Noch kein Förderprogramm"
           satz="Ein Programm hält die Richtlinie in Kürze, die Fragen an die Förderstelle und die Anträge zusammen."
         />
-        {ich.darf.bearbeiten && <NeuesProgramm />}
+        {ich.darf.bearbeiten && <NeuesProgramm wechseln={wechseln} />}
       </div>
     );
 
   return (
-    <div className="spalte">
+    <div className="fd-programme">
       {programme.data.map((p) => (
-        <Programm key={p.id} programm={p} ich={ich} wechseln={wechseln} />
+        <Programmkachel key={p.id} programm={p} wechseln={wechseln} />
       ))}
+      {ich.darf.bearbeiten && <ProgrammDazu wechseln={wechseln} />}
     </div>
   );
 }
 
-function NeuesProgramm() {
-  const speichern = useAendern();
+/** Erst ein Knopf, erst nach dem Tippen darauf ein Feld — ein neues Programm ist selten. */
+function ProgrammDazu({ wechseln }: { wechseln: Wechseln }) {
+  const [offen, setOffen] = useState(false);
+  if (!offen)
+    return (
+      <button type="button" className="fd-antrag-dazu" onClick={() => setOffen(true)}>
+        <Zeichen name="plus" />
+        Programm dazu
+      </button>
+    );
+  return (
+    <div className="karte fd-programm-neu">
+      <h2>Neues Förderprogramm</h2>
+      <NeuesProgramm wechseln={wechseln} autoFokus />
+    </div>
+  );
+}
+
+function Programmkachel({ programm, wechseln }: { programm: Foerderprogramm; wechseln: Wechseln }) {
+  const offen = programm.fragen.filter(istOffen).length;
+  return (
+    <article className="fd-antragskarte fd-programmkachel">
+      <div className="fd-antragskarte-kopf">
+        <span className="modul-siegel">
+          <Zeichen name="foerderung" />
+        </span>
+        {offen > 0 && (
+          <span className="stand stand-offen">
+            {offen} {offen === 1 ? "Frage" : "Fragen"} offen
+          </span>
+        )}
+      </div>
+      <h2>
+        <a
+          className="thema-kachel-link"
+          href={`/module/${WEG}/${programm.id}`}
+          onClick={(e) => {
+            e.preventDefault();
+            wechseln("module", `${WEG}/${programm.id}`);
+          }}
+        >
+          {programm.name}
+        </a>
+      </h2>
+      {programm.stelle && <p className="thema-kachel-text">{programm.stelle}</p>}
+      <dl className="fd-kachelzahlen">
+        <div>
+          <dt>Höchstens je Antrag</dt>
+          <dd className="zahl">{programm.max_foerderung ? alsEuro(programm.max_foerderung) : "—"}</dd>
+        </div>
+        <div>
+          <dt>Laufzeit höchstens</dt>
+          <dd className="zahl">{programm.max_monate ? `${programm.max_monate} Mon.` : "—"}</dd>
+        </div>
+      </dl>
+      {programm.antraege.length > 0 && (
+        <ul className="fd-kachelantraege">
+          {programm.antraege.map((a) => (
+            <li key={a.id}>
+              <span className="zahl fd-nummer">{a.nummer}</span>
+              <span className="fd-kachelantrag-titel">{a.titel}</span>
+              <span className="stand" data-antrag={a.stand}>
+                {antragsstandText(a.stand)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="thema-kachel-fuss">
+        <span className="fd-kartenfuss zahl">
+          {programm.antraege.length} {programm.antraege.length === 1 ? "Antrag" : "Anträge"}
+        </span>
+        <Zeichen name="zeiger" klasse="thema-kachel-zeiger" />
+      </div>
+    </article>
+  );
+}
+
+function NeuesProgramm({ wechseln, autoFokus }: { wechseln: Wechseln; autoFokus?: boolean }) {
+  const neuLaden = useNeuLaden();
   const [name, setName] = useState("");
   return (
     <form
@@ -108,14 +197,19 @@ function NeuesProgramm() {
       onSubmit={async (e) => {
         e.preventDefault();
         if (!name.trim()) return;
-        await speichern("/foerderprogramme/", { name: name.trim() }, "POST");
-        setName("");
+        const neu = await hole<Foerderprogramm>("/foerderprogramme/", {
+          method: "POST",
+          body: JSON.stringify({ name: name.trim() }),
+        });
+        neuLaden();
+        wechseln("module", `${WEG}/${neu.id}`);
       }}
     >
       <input
         className="feld"
         value={name}
         placeholder="Name des Programms, z. B. Pflegeinnovation NÖ"
+        autoFocus={autoFokus}
         aria-label="Name des Programms"
         onChange={(e) => setName(e.target.value)}
       />
@@ -124,6 +218,29 @@ function NeuesProgramm() {
         Anlegen
       </button>
     </form>
+  );
+}
+
+/* --- Die Seite eines Programms ---------------------------------------------- */
+
+export function Programmseite({ ich, id, wechseln }: { ich: Ich; id: number; wechseln: Wechseln }) {
+  const programme = useFoerderungen();
+  if (!programme.data) return <Zustand abfrage={programme} erneut={() => programme.refetch()} />;
+  const programm = programme.data.find((p) => p.id === id);
+  if (!programm)
+    return (
+      <div className="karte">
+        <Leerstelle
+          was="Dieses Förderprogramm gibt es nicht mehr"
+          satz="Es wurde entfernt. Ein Admin kann es wiederherstellen."
+          aktion={{ text: "Zu den Förderungen", tun: () => wechseln("module", WEG) }}
+        />
+      </div>
+    );
+  return (
+    <div className="spalte">
+      <Programm programm={programm} ich={ich} wechseln={wechseln} />
+    </div>
   );
 }
 
@@ -140,7 +257,7 @@ function Programm({ programm, ich, wechseln }: { programm: Foerderprogramm; ich:
       body: JSON.stringify({ programm: programm.id, nummer, titel: `Antrag ${nummer}` }),
     });
     neuLaden();
-    wechseln("module", `${WEG}/${neu.id}`);
+    wechseln("module", `${WEG}/${programm.id}/${neu.id}`);
   }
 
   return (
@@ -262,10 +379,10 @@ function Antragskarte({
       <h2>
         <a
           className="thema-kachel-link"
-          href={`/module/${WEG}/${antrag.id}`}
+          href={`/module/${WEG}/${programm.id}/${antrag.id}`}
           onClick={(e) => {
             e.preventDefault();
-            wechseln("module", `${WEG}/${antrag.id}`);
+            wechseln("module", `${WEG}/${programm.id}/${antrag.id}`);
           }}
         >
           {antrag.titel}
@@ -406,14 +523,27 @@ function Fragezeile({
 
   return (
     <li className="fd-frage" data-beantwortet={beantwortet || undefined} data-offen={offen || undefined}>
-      <button type="button" className="fd-frage-kopf" aria-expanded={offen} onClick={umschalten}>
-        <i className="fd-frage-punkt" aria-hidden="true">
+      <div className="fd-frage-zeile">
+        {/* Der Haken ist ein eigener Knopf neben dem Aufklappen — ein Knopf
+            in einem Knopf ginge nicht, und abhaken soll nicht aufklappen. */}
+        <button
+          type="button"
+          className="fd-frage-punkt"
+          role="checkbox"
+          aria-checked={beantwortet}
+          aria-label={beantwortet ? "Wieder als offen führen" : "Als beantwortet abhaken"}
+          title={beantwortet ? "Wieder als offen führen" : "Als beantwortet abhaken"}
+          disabled={!darf}
+          onClick={() => speichern(pfad, { beantwortet: !beantwortet })}
+        >
           {beantwortet && <Zeichen name="haken" />}
-        </i>
-        <span className="fd-frage-text">{frage.frage}</span>
-        <Zeichen name="zeiger" klasse="zeiger-klapp" />
-      </button>
-      {!offen && beantwortet && <p className="fd-antwort-kurz">{frage.antwort}</p>}
+        </button>
+        <button type="button" className="fd-frage-kopf" aria-expanded={offen} onClick={umschalten}>
+          <span className="fd-frage-text">{frage.frage}</span>
+          <Zeichen name="zeiger" klasse="zeiger-klapp" />
+        </button>
+      </div>
+      {!offen && frage.antwort.trim() && <p className="fd-antwort-kurz">{frage.antwort}</p>}
       {offen && (
         <div className="fd-frage-innen">
           {darf && (
@@ -457,9 +587,9 @@ function Fragezeile({
           milder={
             beantwortet
               ? undefined
-              : { text: "Als erledigt beantworten", tun: async () => {
+              : { text: "Als beantwortet abhaken", tun: async () => {
                   setFragtLoeschen(false);
-                  await speichern(pfad, { antwort: "Hat sich erledigt." });
+                  await speichern(pfad, { beantwortet: true });
                 } }
           }
           abbrechen={() => setFragtLoeschen(false)}
@@ -597,10 +727,10 @@ function Antrag({
           <div className="fd-antragskopf-oben">
             <a
               className="fd-zurueck"
-              href={`/module/${WEG}`}
+              href={`/module/${WEG}/${programm.id}`}
               onClick={(e) => {
                 e.preventDefault();
-                wechseln("module", WEG);
+                wechseln("module", `${WEG}/${programm.id}`);
               }}
             >
               {programm.name}
@@ -722,10 +852,10 @@ function Antrag({
         {programm.fragen.some(istOffen) && (
           <a
             className="karte fd-fragenhinweis"
-            href={`/module/${WEG}#fd-fragen`}
+            href={`/module/${WEG}/${programm.id}#fd-fragen`}
             onClick={(e) => {
               e.preventDefault();
-              wechseln("module", WEG);
+              wechseln("module", `${WEG}/${programm.id}`);
             }}
           >
             <Zeichen name="sprechblase" />
@@ -754,7 +884,7 @@ function Antrag({
             try {
               await hole(pfad, { method: "DELETE" });
               neuLaden();
-              wechseln("module", WEG);
+              wechseln("module", `${WEG}/${programm.id}`);
             } catch {
               setFragtLoeschen(false);
             }
