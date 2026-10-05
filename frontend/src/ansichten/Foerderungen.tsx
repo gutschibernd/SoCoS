@@ -107,9 +107,14 @@ export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }
       </div>
     );
 
+  // Nach Kürzel geordnet — so stehen sie, wie man sie nennt: AWS, FFG, KWF …
+  const geordnet = [...geber.data].sort((a, b) =>
+    (a.kurz || a.name).localeCompare(b.kurz || b.name, "de", { sensitivity: "base" }),
+  );
+
   return (
-    <div className="fd-programme">
-      {geber.data.map((g) => (
+    <div className="fd-geberraster">
+      {geordnet.map((g) => (
         <Geberkachel
           key={g.id}
           geber={g}
@@ -118,7 +123,7 @@ export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }
         />
       ))}
       {ich.darf.bearbeiten && (
-        <Dazu text="Fördergeber dazu" titel="Neuer Fördergeber">
+        <Dazu text="Fördergeber" titel="Neuer Fördergeber">
           <GeberAnlegen wechseln={wechseln} autoFokus />
         </Dazu>
       )}
@@ -144,6 +149,18 @@ function Dazu({ text, titel, children }: { text: string; titel: string; children
   );
 }
 
+/** „aws – Austria Wirtschaftsservice" unter „AWS" → „Austria Wirtschaftsservice". */
+function ohneKuerzel(g: Foerdergeber): string {
+  const vorne = g.name.match(/^(\S+)\s+[–-]\s+(.+)$/);
+  return vorne && vorne[1].toLowerCase() === g.kurz.toLowerCase() ? vorne[2] : g.name;
+}
+
+/**
+ * Ein Fördergeber als kleine Kachel: das Kürzel groß, der volle Name klein,
+ * wie viel darunter steht. **Keine Programmliste darin** (Rückmeldung Bernd,
+ * 2026-10-05): Die oberste Ebene ist eine Wahl zwischen vier, fünf Gebern,
+ * und mit den Programmen darin wurde sie unübersichtlich.
+ */
 function Geberkachel({
   geber,
   programme,
@@ -155,45 +172,22 @@ function Geberkachel({
 }) {
   const antraege = programme.reduce((n, p) => n + p.antraege.length, 0);
   return (
-    <article className="fd-antragskarte fd-programmkachel">
-      <div className="fd-antragskarte-kopf">
-        <span className="modul-siegel fd-kuerzel">{geber.kurz || <Zeichen name="foerderung" />}</span>
-        {antraege > 0 && (
-          <span className="stand stand-offen">
-            {antraege} {antraege === 1 ? "Antrag" : "Anträge"}
-          </span>
-        )}
-      </div>
-      <h2>
-        <a
-          className="thema-kachel-link"
-          href={`/module/${WEG}/${geber.id}`}
-          onClick={(e) => {
-            e.preventDefault();
-            wechseln("module", `${WEG}/${geber.id}`);
-          }}
-        >
-          {geber.name}
-        </a>
-      </h2>
-      {geber.beschreibung && <p className="thema-kachel-text">{geber.beschreibung}</p>}
-      {programme.length > 0 && (
-        <ul className="fd-kachelantraege">
-          {programme.map((p) => (
-            <li key={p.id}>
-              <span className="fd-kachelantrag-titel">{p.name}</span>
-              {p.max_foerderung && <span className="zahl fd-nummer">bis {alsEuro(p.max_foerderung)}</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="thema-kachel-fuss">
-        <span className="fd-kartenfuss zahl">
-          {programme.length} {programme.length === 1 ? "Programm" : "Programme"}
-        </span>
-        <Zeichen name="zeiger" klasse="thema-kachel-zeiger" />
-      </div>
-    </article>
+    <a
+      className="fd-geberkachel"
+      href={`/module/${WEG}/${geber.id}`}
+      onClick={(e) => {
+        e.preventDefault();
+        wechseln("module", `${WEG}/${geber.id}`);
+      }}
+    >
+      <b>{geber.kurz || geber.name}</b>
+      {geber.kurz && <span className="fd-gebername">{ohneKuerzel(geber)}</span>}
+      <span className="fd-geberzahl zahl">
+        {programme.length} {programme.length === 1 ? "Programm" : "Programme"}
+        {antraege > 0 && ` · ${antraege} ${antraege === 1 ? "Antrag" : "Anträge"}`}
+      </span>
+      <Zeichen name="zeiger" klasse="fd-geberzeiger" />
+    </a>
   );
 }
 

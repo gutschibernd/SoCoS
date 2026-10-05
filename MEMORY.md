@@ -53,6 +53,11 @@ Kundendatum. FFG, aws und KWF mit ihren Programmen kommen aus
 wie die Seiten der Fördergeber am 2026-10-05 lauteten; die Zeile „Stand:"
 darin sagt das, denn die Bedingungen ändern sich jedes Jahr.
 
+**Die oberste Ebene sind kleine Kacheln ohne Programmliste** (Rückmeldung
+Bernd, am selben Tag): das Kürzel groß (AWS, FFG, KWF, Pflege NÖ), der Name
+klein, die Zahl der Programme. Geordnet nach Kürzel. Das Kürzel des Landes NÖ
+heißt „Pflege NÖ", weil darunter das Pflegeinnovationsprogramm steht.
+
 **Die langen Antragstexte stehen nicht im Änderungsprotokoll**
 (`protokoll_ohne`), aus demselben Grund wie die Mitschrift eines Meetings: Sie
 speichern sich beim Tippen. `Entwurfsfeld` ist dafür aus `Meetings.tsx` nach
