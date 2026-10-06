@@ -199,6 +199,17 @@ export function telefonatQuelle(datum: string, mitWem: string): string {
 }
 
 /**
+ * Die neue Antwort kommt **unter** das, was schon an der Frage stand.
+ *
+ * Zu einer offenen Frage steht oft schon ein halber Satz — meist der Verweis
+ * auf die Richtlinie. Überschrieben wäre er weg, und das Telefonat ersetzt
+ * ihn nicht, es ergänzt ihn. Die Quelle davor sagt, woher der neue Teil kommt.
+ */
+export function antwortErgaenzen(bisher: string, neu: string, quelle: string): string {
+  return bisher.trim() ? `${bisher.trim()}\n\n${quelle}: ${neu.trim()}` : neu.trim();
+}
+
+/**
  * Der Text des Verlaufseintrags: jede beantwortete Frage mit ihrer Antwort,
  * darunter, was offen geblieben ist.
  *

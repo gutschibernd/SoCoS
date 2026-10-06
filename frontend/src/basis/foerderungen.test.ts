@@ -4,6 +4,7 @@ import type { Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderpr
 import {
   alsProzent,
   alsStunden,
+  antwortErgaenzen,
   ausCent,
   bedarfDazu,
   bedarfUmschalten,
@@ -135,6 +136,13 @@ describe("das Telefonat mit der Förderstelle", () => {
       "F1\n→ Ja, bis 2027\n\nOffen geblieben:\n– F2\n– F3",
     );
     expect(telefonatText(fragen.slice(0, 1), { 1: "Nein" })).toBe("F1\n→ Nein");
+  });
+
+  it("hängt die Antwort an, statt zu überschreiben", () => {
+    expect(antwortErgaenzen("Laut Richtlinie: 2 Jahre. ", " Start 2027 geht ", "Telefonat 06.10.2026")).toBe(
+      "Laut Richtlinie: 2 Jahre.\n\nTelefonat 06.10.2026: Start 2027 geht",
+    );
+    expect(antwortErgaenzen("  ", "Ja", "Telefonat 06.10.2026")).toBe("Ja");
   });
 
   it("nennt Datum und Person als Quelle", () => {

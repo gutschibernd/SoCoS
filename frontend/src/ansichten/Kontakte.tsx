@@ -28,7 +28,7 @@ import {
   type Kontakt,
   type Organisation,
 } from "../basis/daten";
-import { offeneFragenDerOrganisation, telefonatQuelle, telefonatText } from "../basis/foerderungen";
+import { antwortErgaenzen, offeneFragenDerOrganisation, telefonatQuelle, telefonatText } from "../basis/foerderungen";
 import { eventsDerPerson, eventsZumVerbinden, standBeimVerbinden, type Eventbezug } from "../basis/events";
 import {
   ANREDEN,
@@ -833,7 +833,8 @@ function Organisationsseite({
  *
  * Während des Gesprächs tippt man die Antworten in die Felder; ein Knopf
  * danach erledigt beides auf einmal: Die Antworten gehen an die Fragen im
- * Modul Förderungen (abgehakt, Quelle „Telefonat …"), und das Gespräch steht
+ * Modul Förderungen (abgehakt, Quelle „Telefonat …", angehängt an das, was
+ * dort schon stand), und das Gespräch steht
  * mit Fragen und Antworten im Verlauf.
  *
  * **Warum ein Knopf und nicht zwei Wege:** Wer nach dem Telefonat erst die
@@ -881,7 +882,11 @@ function Foerderfragenkarte({
       for (const f of beantwortet) {
         await hole(`/foerderfragen/${f.id}/`, {
           method: "PATCH",
-          body: JSON.stringify({ antwort: antworten[f.id].trim(), beantwortet: true, quelle }),
+          body: JSON.stringify({
+            antwort: antwortErgaenzen(f.antwort, antworten[f.id], quelle),
+            beantwortet: true,
+            quelle,
+          }),
         });
       }
       await hole("/verlauf/", {
