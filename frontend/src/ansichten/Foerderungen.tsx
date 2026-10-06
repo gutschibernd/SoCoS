@@ -36,12 +36,16 @@ import {
   type Foerderfrage,
   type Foerdergeber,
   type Foerderpaket,
+  type Foerderposten,
   type Foerderprogramm,
+  type Foerderstunden,
   type Ich,
 } from "../basis/daten";
 import {
   PROJEKTTEILE,
   STAENDE,
+  alsProzent,
+  alsStunden,
   antragsstandText,
   bedarfDazu,
   bedarfUmschalten,
@@ -50,10 +54,12 @@ import {
   fragenStand,
   geldlage,
   gezogen,
+  istAufgeschluesselt,
   istOffen,
   monatsanzahl,
   monatsname,
   neuePaketmonate,
+  paketsumme,
   projektinhalt,
   reifezahl,
   spanne,
@@ -1024,6 +1030,7 @@ function Antrag({
         </section>
 
         <Zeitplan antrag={antrag} programm={programm} darf={darf} darfLoeschen={ich.darf.loeschen} />
+        <Kalkulation antrag={antrag} darf={darf} darfLoeschen={ich.darf.loeschen} />
 
         <section className="karte fd-abschnitt" id="fd-beschreibung">
           <h2>Beschreibung des Vorhabens</h2>
@@ -1135,6 +1142,11 @@ function Geldkarte({ antrag, programm }: { antrag: Foerderantrag; programm: Foer
     <section className="karte fd-geld" data-ueber={geld.ueber || undefined}>
       <span className="beschriftung-klein">Beantragte Fördersumme</span>
       <b className="zahl fd-summe">{alsEuro(antrag.summe)}</b>
+      {antrag.foerderquote && (
+        <span className="fd-geldtext">
+          {alsProzent(antrag.foerderquote)} von <b className="zahl">{alsEuro(antrag.kosten.gesamt)}</b> Gesamtkosten
+        </span>
+      )}
       {programm.max_foerderung && (
         <>
           <Geldbalken anteil={geld.anteil} ueber={geld.ueber} />
@@ -1365,7 +1377,7 @@ function Zeitplan({
               </span>
             ))}
           </div>
-          <span className="fd-betragkopf">Betrag</span>
+          <span className="fd-betragkopf">Kosten</span>
         </div>
 
         {antrag.pakete.map((p, i) => {
@@ -1411,12 +1423,19 @@ function Zeitplan({
                     {darf && <i data-griff="ende" />}
                   </div>
                 </div>
-                <Betragsfeld
-                  betrag={p.betrag}
-                  aendern={darf}
-                  leer="—"
-                  speichern={(betrag) => speichern(`/foerderpakete/${p.id}/`, { betrag })}
-                />
+                {istAufgeschluesselt(p) ? (
+                  <span className="zahl fd-betrag fd-paketkosten">
+                    {alsEuro(p.kosten.gesamt)}
+                    {p.stunden.length > 0 && <em>{alsStunden(p.kosten.stunden)}</em>}
+                  </span>
+                ) : (
+                  <Betragsfeld
+                    betrag={p.betrag}
+                    aendern={darf}
+                    leer="—"
+                    speichern={(betrag) => speichern(`/foerderpakete/${p.id}/`, { betrag })}
+                  />
+                )}
               </div>
               {offen && (
                 <Paketdetail
@@ -1440,9 +1459,14 @@ function Zeitplan({
           <span />
           <span className="beschriftung-klein">Summe</span>
           <span className="fd-leise zahl">
-            {antrag.laufzeit > 0 ? `${antrag.laufzeit} Monate` : ""}
+            {[
+              antrag.laufzeit > 0 ? `${antrag.laufzeit} Monate` : "",
+              Number(antrag.kosten.stunden) > 0 ? alsStunden(antrag.kosten.stunden) : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
-          <b className="zahl fd-betrag">{alsEuro(antrag.summe)}</b>
+          <b className="zahl fd-betrag">{alsEuro(paketsumme(antrag.pakete))}</b>
         </div>
       </div>
 
@@ -1546,6 +1570,18 @@ function Paketdetail({
           speichern={(ergebnis) => speichern(pfad, { ergebnis })}
         />
       </label>
+      <Paketstunden paket={paket} darf={darf} darfLoeschen={darfLoeschen} />
+      {istAufgeschluesselt(paket) && (
+        <label className="profilfeld fd-breit">
+          <span className="beschriftung-klein">Pauschalbetrag zusätzlich</span>
+          <Betragsfeld
+            betrag={paket.betrag}
+            aendern={darf}
+            leer="—"
+            speichern={(betrag) => speichern(pfad, { betrag })}
+          />
+        </label>
+      )}
       <label className="profilfeld">
         <span className="beschriftung-klein">Von</span>
         <select
@@ -1623,6 +1659,260 @@ function Paketdetail({
   );
 }
 
+/**
+ * Die Stunden eines Pakets je Person — „BG 270 h, FD 140 h". Eine Zeile je
+ * Person; eine neue mit Name und Stunden, Enter.
+ */
+function Paketstunden({ paket, darf, darfLoeschen }: { paket: Foerderpaket; darf: boolean; darfLoeschen: boolean }) {
+  const speichern = useAendern();
+  const neuLaden = useNeuLaden();
+  const [person, setPerson] = useState("");
+  const [stunden, setStunden] = useState("");
+  const [entfernen, setEntfernen] = useState<Foerderstunden | null>(null);
+
+  async function dazu() {
+    const zahl = betragAusEingabe(stunden);
+    if (!person.trim() || !zahl) {
+      melden("fehler", "Name und Stunden, bitte.");
+      return;
+    }
+    await speichern("/foerderstunden/", { paket: paket.id, person: person.trim(), stunden: zahl }, "POST");
+    setPerson("");
+    setStunden("");
+  }
+
+  if (!darf && paket.stunden.length === 0) return null;
+  return (
+    <div className="profilfeld fd-breit fd-stunden">
+      <span className="beschriftung-klein">Stunden</span>
+      {paket.stunden.map((s) => (
+        <div key={s.id} className="fd-stundenzeile">
+          <Feldtext wert={s.person} aendern={darf} speichern={(p) => speichern(`/foerderstunden/${s.id}/`, { person: p })} />
+          <Betragsfeld
+            betrag={s.stunden}
+            aendern={darf}
+            leer="—"
+            anzeigen={alsStunden}
+            beschriftung={`Stunden ${s.person}`}
+            speichern={(h) => speichern(`/foerderstunden/${s.id}/`, { stunden: h ?? "0" })}
+          />
+          {darfLoeschen && (
+            <button type="button" className="knopf-still fd-klein" aria-label={`${s.person} entfernen`} onClick={() => setEntfernen(s)}>
+              <Zeichen name="korb" />
+            </button>
+          )}
+        </div>
+      ))}
+      {darf && (
+        <form
+          className="fd-stundenzeile fd-neu"
+          onSubmit={(e) => {
+            e.preventDefault();
+            dazu();
+          }}
+        >
+          <input className="feld" value={person} placeholder="Person, z. B. BG" aria-label="Person" onChange={(e) => setPerson(e.target.value)} />
+          <input
+            className="feld zahl fd-betragfeld"
+            inputMode="decimal"
+            value={stunden}
+            placeholder="Stunden"
+            aria-label="Stunden"
+            onChange={(e) => setStunden(e.target.value)}
+          />
+          <button type="submit" className="knopf-still" disabled={!person.trim() || !stunden.trim()}>
+            <Zeichen name="plus" />
+            Stunden
+          </button>
+        </form>
+      )}
+      {entfernen && (
+        <Loeschdialog
+          name={`${entfernen.person} · ${alsStunden(entfernen.stunden)}`}
+          was="Die Stunden dieser Person im Paket"
+          milder={{ text: "Auf 0 Stunden setzen", tun: async () => {
+            setEntfernen(null);
+            await speichern(`/foerderstunden/${entfernen.id}/`, { stunden: "0" });
+          } }}
+          abbrechen={() => setEntfernen(null)}
+          loeschen={async () => {
+            await hole(`/foerderstunden/${entfernen.id}/`, { method: "DELETE" }).catch(() => undefined);
+            setEntfernen(null);
+            neuLaden();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Die Kalkulation, wie ein Kostenplan sie aufstellt: Satz, Pauschale, Quote,
+ * die Sachposten, und darunter die Rechnung bis zum Zuschuss. Gerechnet wird
+ * am Server — hier steht nur, was von dort kommt.
+ */
+function Kalkulation({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; darf: boolean; darfLoeschen: boolean }) {
+  const speichern = useAendern();
+  const neuLaden = useNeuLaden();
+  const pfad = `/foerderantraege/${antrag.id}/`;
+  const k = antrag.kosten;
+  const [bezeichnung, setBezeichnung] = useState("");
+  const [betrag, setBetrag] = useState("");
+  const [entfernen, setEntfernen] = useState<Foerderposten | null>(null);
+  const nummer = (id: number | null) => antrag.pakete.findIndex((p) => p.id === id) + 1;
+
+  async function dazu() {
+    const zahl = betragAusEingabe(betrag);
+    if (!bezeichnung.trim() || !zahl) {
+      melden("fehler", "Bezeichnung und Betrag, bitte.");
+      return;
+    }
+    const reihenfolge = Math.max(0, ...antrag.posten.map((p) => p.reihenfolge)) + 1;
+    await speichern("/foerderposten/", { antrag: antrag.id, bezeichnung: bezeichnung.trim(), betrag: zahl, reihenfolge }, "POST");
+    setBezeichnung("");
+    setBetrag("");
+  }
+
+  const zeilen: [string, string, string | null][] = [
+    ["Personal", `${alsStunden(k.stunden)} × ${antrag.stundensatz ? alsEuro(antrag.stundensatz) : "—"}`, k.personal],
+    ["Sach- und Materialkosten", `${antrag.posten.length} Posten`, k.sach],
+    ...(Number(k.pauschal) > 0 ? [["Pauschalbeträge der Pakete", "", k.pauschal] as [string, string, string]] : []),
+    ["Direkte Kosten", "", null],
+    ["Gemeinkosten", antrag.gemeinkosten ? alsProzent(antrag.gemeinkosten) : "—", k.gemeinkosten],
+    ["Gesamtkosten", "", null],
+    ["Zuschuss", antrag.foerderquote ? alsProzent(antrag.foerderquote) : "ganze Summe", k.zuschuss],
+    ["Eigenmittel", "", k.eigenmittel],
+  ];
+  const summen: Record<string, string> = { "Direkte Kosten": k.direkt, Gesamtkosten: k.gesamt };
+
+  return (
+    <section className="karte fd-abschnitt" id="fd-kalkulation">
+      <h2>Kalkulation</h2>
+      <div className="fd-kalkwerte">
+        <label className="profilfeld">
+          <span className="beschriftung-klein">Stundensatz</span>
+          <Betragsfeld
+            betrag={antrag.stundensatz}
+            aendern={darf}
+            leer="—"
+            beschriftung="Stundensatz in Euro"
+            speichern={(stundensatz) => speichern(pfad, { stundensatz })}
+          />
+        </label>
+        <label className="profilfeld">
+          <span className="beschriftung-klein">Gemeinkosten</span>
+          <Betragsfeld
+            betrag={antrag.gemeinkosten}
+            aendern={darf}
+            leer="—"
+            anzeigen={alsProzent}
+            beschriftung="Gemeinkosten in Prozent"
+            speichern={(gemeinkosten) => speichern(pfad, { gemeinkosten })}
+          />
+        </label>
+        <label className="profilfeld">
+          <span className="beschriftung-klein">Förderquote</span>
+          <Betragsfeld
+            betrag={antrag.foerderquote}
+            aendern={darf}
+            leer="—"
+            anzeigen={alsProzent}
+            beschriftung="Förderquote in Prozent"
+            speichern={(foerderquote) => speichern(pfad, { foerderquote })}
+          />
+        </label>
+      </div>
+
+      <h3 className="fd-kalktitel">Sach- und Materialkosten</h3>
+      {antrag.posten.length === 0 && !darf && (
+        <Leerstelle was="Keine Sachposten" satz="Hier stünden Material, Geräte und Zukäufe des Antrags." />
+      )}
+      {antrag.posten.map((p) => (
+        <div key={p.id} className="fd-postenzeile">
+          <Feldtext wert={p.bezeichnung} aendern={darf} speichern={(b) => speichern(`/foerderposten/${p.id}/`, { bezeichnung: b })} />
+          <select
+            className="feld"
+            value={p.paket ?? ""}
+            disabled={!darf}
+            aria-label={`Arbeitspaket für ${p.bezeichnung}`}
+            onChange={(e) => speichern(`/foerderposten/${p.id}/`, { paket: e.target.value ? Number(e.target.value) : null })}
+          >
+            <option value="">ohne Paket</option>
+            {antrag.pakete.map((ap, i) => (
+              <option key={ap.id} value={ap.id}>
+                AP{i + 1} · {ap.titel}
+              </option>
+            ))}
+          </select>
+          <Betragsfeld
+            betrag={p.betrag}
+            aendern={darf}
+            leer="—"
+            speichern={(b) => speichern(`/foerderposten/${p.id}/`, { betrag: b ?? "0" })}
+          />
+          {darfLoeschen && (
+            <button type="button" className="knopf-still fd-klein" aria-label={`${p.bezeichnung} entfernen`} onClick={() => setEntfernen(p)}>
+              <Zeichen name="korb" />
+            </button>
+          )}
+        </div>
+      ))}
+      {darf && (
+        <form
+          className="fd-postenzeile fd-neu"
+          onSubmit={(e) => {
+            e.preventDefault();
+            dazu();
+          }}
+        >
+          <input
+            className="feld"
+            value={bezeichnung}
+            placeholder="Neuer Posten, z. B. Sensorik"
+            aria-label="Bezeichnung des Postens"
+            onChange={(e) => setBezeichnung(e.target.value)}
+          />
+          <input
+            className="feld zahl fd-betragfeld"
+            inputMode="decimal"
+            value={betrag}
+            placeholder="Betrag"
+            aria-label="Betrag des Postens"
+            onChange={(e) => setBetrag(e.target.value)}
+          />
+          <button type="submit" className="knopf-still" disabled={!bezeichnung.trim() || !betrag.trim()}>
+            <Zeichen name="plus" />
+            Posten
+          </button>
+        </form>
+      )}
+
+      <dl className="fd-rechnung">
+        {zeilen.map(([was, wie, wert]) => (
+          <div key={was} data-summe={was in summen || undefined}>
+            <dt>{was}</dt>
+            <dd className="fd-leise zahl">{wie}</dd>
+            <dd className="zahl">{alsEuro(wert ?? summen[was])}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {entfernen && (
+        <Loeschdialog
+          name={entfernen.bezeichnung}
+          was={nummer(entfernen.paket) ? `Der Posten aus AP${nummer(entfernen.paket)}` : "Der Posten"}
+          abbrechen={() => setEntfernen(null)}
+          loeschen={async () => {
+            await hole(`/foerderposten/${entfernen.id}/`, { method: "DELETE" }).catch(() => undefined);
+            setEntfernen(null);
+            neuLaden();
+          }}
+        />
+      )}
+    </section>
+  );
+}
+
 /* --- Kleine Felder ---------------------------------------------------------- */
 
 /**
@@ -1634,11 +1924,16 @@ function Betragsfeld({
   aendern,
   leer,
   speichern,
+  anzeigen = alsEuro,
+  beschriftung = "Betrag in Euro",
 }: {
   betrag: string | null;
   aendern: boolean;
   leer: string;
   speichern: (betrag: string | null) => Promise<unknown>;
+  /** Wie der Wert dasteht — Euro, wenn nichts anderes gesagt ist. Auch für Stunden und Prozent. */
+  anzeigen?: (wert: string) => string;
+  beschriftung?: string;
 }) {
   const [offen, setOffen] = useState(false);
   const [text, setText] = useState(betragZumBearbeiten(betrag));
@@ -1649,11 +1944,11 @@ function Betragsfeld({
     if (offen) feld.current?.select();
   }, [offen]);
 
-  const anzeige = betrag === null ? <span className="fd-leise">{leer}</span> : alsEuro(betrag);
+  const anzeige = betrag === null ? <span className="fd-leise">{leer}</span> : anzeigen(betrag);
   if (!aendern) return <span className="zahl fd-betrag">{anzeige}</span>;
   if (!offen)
     return (
-      <button type="button" className="zahl fd-betrag inline-aendern" onClick={() => setOffen(true)} title="Betrag ändern">
+      <button type="button" className="zahl fd-betrag inline-aendern" onClick={() => setOffen(true)} title={`${beschriftung} ändern`}>
         {anzeige}
       </button>
     );
@@ -1661,7 +1956,7 @@ function Betragsfeld({
   async function fertig() {
     const neu = betragAusEingabe(text);
     if (neu === undefined) {
-      melden("fehler", `„${text}“ ist kein Betrag.`);
+      melden("fehler", `„${text}“ ist keine Zahl.`);
       return;
     }
     setOffen(false);
@@ -1679,7 +1974,7 @@ function Betragsfeld({
       className="feld zahl fd-betragfeld"
       inputMode="decimal"
       value={text}
-      aria-label="Betrag in Euro"
+      aria-label={beschriftung}
       onChange={(e) => setText(e.target.value)}
       onBlur={fertig}
       onKeyDown={(e) => {

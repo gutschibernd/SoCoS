@@ -2245,6 +2245,14 @@ class Foerderantrag(Basismodell):
     datenbedarf = models.TextField(
         "Was wir noch brauchen", blank=True, help_text="Eine Zeile je Punkt; „✓ “ davor heißt: ist da."
     )
+    # Die Kalkulation, wie Programme mit Kostenleitfaden (KWF, FFG) sie
+    # verlangen. Leer heißt: nicht gefragt — dann ist die Fördersumme die
+    # Summe der Paketbeträge, wie beim Land NÖ.
+    stundensatz = models.DecimalField("Stundensatz", max_digits=8, decimal_places=2, null=True, blank=True)
+    gemeinkosten = models.DecimalField(
+        "Gemeinkostenpauschale in %", max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    foerderquote = models.DecimalField("Förderquote in %", max_digits=5, decimal_places=2, null=True, blank=True)
 
     class Meta(Basismodell.Meta):
         verbose_name = "Förderantrag"
@@ -2257,9 +2265,13 @@ class Foerderantrag(Basismodell):
 
 class Foerderpaket(Basismodell):
     """
-    Ein Arbeitspaket eines Antrags. Ein Betrag je Paket, nicht Personal und
-    Sachkosten getrennt (Entscheidung 2026-10-05): Für den Antrag reicht die
-    Summe; die Aufschlüsselung steht im Finanzierungskonzept.
+    Ein Arbeitspaket eines Antrags.
+
+    `betrag` ist der Pauschalbetrag eines Pakets — für Programme, die nur eine
+    Summe je Paket wollen (Land NÖ, Entscheidung 2026-10-05). Wo ein
+    Kostenleitfaden Stunden und Sachkosten verlangt (KWF, 2026-10-06), stehen
+    die als `Foerderstunden` und `Foerderposten` daneben, und der Betrag
+    bleibt leer. Gezählt wird beides — ein Paket hat dann eben beides.
     """
 
     antrag = models.ForeignKey(
@@ -2283,3 +2295,62 @@ class Foerderpaket(Basismodell):
 
     def __str__(self):
         return self.titel
+
+
+class Foerderstunden(Basismodell):
+    """
+    Wie viele Stunden eine Person in einem Paket eines Antrags plant — „AP02:
+    BG 270 h, FD 140 h".
+
+    **Die Person ist ein Name, kein Nutzer** — anders als beim `Pensum` eines
+    Projekts. Gegen diese Stunden wird nichts gebucht (die Pakete eines
+    Antrags sind keine Projektpakete), und in einem Antrag steht auch, wer
+    erst eingestellt werden soll („N. N.").
+    """
+
+    paket = models.ForeignKey(
+        Foerderpaket, verbose_name="Arbeitspaket", on_delete=models.CASCADE, related_name="stunden"
+    )
+    person = models.CharField("Person", max_length=80)
+    stunden = models.DecimalField("Stunden", max_digits=7, decimal_places=2)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Stunden in einem Antragspaket"
+        verbose_name_plural = "Stunden in Antragspaketen"
+        ordering = ["paket", "person", "id"]
+
+    def __str__(self):
+        return f"{self.paket.titel} · {self.person}: {self.stunden} h"
+
+
+class Foerderposten(Basismodell):
+    """
+    Eine Sach- oder Materialposition eines Antrags — „3D-Druck: Filament und
+    Zubehör, 900 €".
+
+    **Am Antrag, nicht am Paket**, weil ein Kostenplan Posten führt, die
+    keinem Paket gehören. Die Zuordnung zu einem Paket ist freiwillig.
+    """
+
+    antrag = models.ForeignKey(
+        Foerderantrag, verbose_name="Antrag", on_delete=models.CASCADE, related_name="posten"
+    )
+    paket = models.ForeignKey(
+        Foerderpaket,
+        verbose_name="Arbeitspaket",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="posten",
+    )
+    bezeichnung = models.CharField("Bezeichnung", max_length=250)
+    betrag = models.DecimalField("Betrag", max_digits=12, decimal_places=2)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Kostenposten eines Antrags"
+        verbose_name_plural = "Kostenposten eines Antrags"
+        ordering = ["reihenfolge", "id"]
+
+    def __str__(self):
+        return self.bezeichnung

@@ -3341,6 +3341,29 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 }
 .fd-paketdetail .profilfeld { margin-bottom: 10px; }
 .fd-breit { grid-column: 1 / -1; }
+.fd-paketkosten { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.fd-paketkosten > em { font-style: normal; font-size: 11.5px; color: var(--text-sehr-leise); }
+
+/* Stunden je Person und Sachposten: Name, Zahl, Entfernen — eine Zeile. */
+.fd-stundenzeile, .fd-postenzeile {
+  display: grid; grid-template-columns: minmax(0, 1fr) 120px 44px; align-items: center; gap: 0 12px;
+  min-height: var(--griff); border-top: 1px solid var(--rand);
+}
+.fd-postenzeile { grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) 120px 44px; }
+.fd-stundenzeile.fd-neu, .fd-postenzeile.fd-neu { grid-template-columns: minmax(0, 1fr) 120px auto; border-top: 0; padding-top: 8px; margin-top: 0; }
+.fd-postenzeile.fd-neu { grid-template-columns: minmax(0, 3.2fr) 120px auto; }
+.fd-stunden > .beschriftung-klein { margin-bottom: 2px; }
+.fd-kalkwerte { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 16px; }
+.fd-kalkwerte .fd-betrag { justify-self: start; text-align: left; font-size: 15px; }
+.fd-kalktitel { margin: 8px 0 4px; font-size: 13.5px; font-weight: 600; }
+.fd-rechnung { margin: 16px 0 0; border-top: 1px solid var(--rand-stark); }
+.fd-rechnung > div {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 120px; gap: 12px; align-items: baseline;
+  padding: 7px 0; border-bottom: 1px solid var(--rand);
+}
+.fd-rechnung dt { font-size: 13.5px; }
+.fd-rechnung dd { margin: 0; text-align: right; }
+.fd-rechnung > div[data-summe] dt, .fd-rechnung > div[data-summe] dd:last-child { font-weight: 600; }
 
 @media (max-width: 960px) {
   .fd-antragsseite, .fd-unten { grid-template-columns: minmax(0, 1fr); }
@@ -3371,6 +3394,20 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .fd-summenzeile > :nth-child(3) { display: none; }
   .fd-paket[data-offen] { margin: 0 -18px; padding: 0 18px; }
   .fd-paketdetail { padding-left: 0; }
+  .fd-kalkwerte { grid-template-columns: minmax(0, 1fr); }
+  .fd-postenzeile { grid-template-columns: minmax(0, 1fr) 110px 44px; grid-template-areas: "name betrag weg" "paket paket paket"; padding-bottom: 8px; }
+  .fd-postenzeile > :nth-child(1) { grid-area: name; }
+  .fd-postenzeile > :nth-child(2) { grid-area: paket; }
+  .fd-postenzeile > :nth-child(3) { grid-area: betrag; }
+  .fd-postenzeile > :nth-child(4) { grid-area: weg; }
+  .fd-postenzeile.fd-neu { grid-template-columns: minmax(0, 1fr) 110px; grid-template-areas: "name betrag" "knopf knopf"; }
+  .fd-postenzeile.fd-neu > :nth-child(1) { grid-area: name; }
+  .fd-postenzeile.fd-neu > :nth-child(2) { grid-area: betrag; }
+  .fd-postenzeile.fd-neu > :nth-child(3) { grid-area: knopf; justify-self: start; }
+  .fd-stundenzeile { grid-template-columns: minmax(0, 1fr) 100px 44px; }
+  .fd-stundenzeile.fd-neu { grid-template-columns: minmax(0, 1fr) 100px; }
+  .fd-stundenzeile.fd-neu > button { grid-column: 1 / -1; justify-self: start; }
+  .fd-rechnung > div { grid-template-columns: minmax(0, 1fr) auto 100px; }
   .fd-steckbrief > div { grid-template-columns: minmax(0, 1fr); }
   .fd-steckbrief dd { grid-column: 1; }
   .fd-frage-innen, .fd-antwort-kurz { margin-left: 0; padding-left: 0; }

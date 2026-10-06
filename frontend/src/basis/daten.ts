@@ -575,9 +575,38 @@ export type Foerderpaket = {
   ergebnis: string;
   von: number;
   bis: number;
-  /** Geld als Zeichenkette, z. B. "12000.00" — oder noch keiner. */
+  /** Pauschalbetrag als Zeichenkette, z. B. "12000.00" — oder keiner. */
   betrag: string | null;
   reihenfolge: number;
+  stunden: Foerderstunden[];
+  /** Gerechnet in socos/services/foerderung.py: Stunden mal Satz, Posten, Pauschale. */
+  kosten: { stunden: string; personal: string; sach: string; gesamt: string };
+};
+
+/** Wie viele Stunden eine Person in einem Paket plant. Die Person ist ein Name. */
+export type Foerderstunden = { id: number; paket: number; person: string; stunden: string };
+
+/** Eine Sachposition eines Antrags — einem Paket zugeordnet oder nicht. */
+export type Foerderposten = {
+  id: number;
+  antrag: number;
+  paket: number | null;
+  bezeichnung: string;
+  betrag: string;
+  reihenfolge: number;
+};
+
+/** Die Kalkulation eines Antrags, alles Geld als Zeichenkette. */
+export type Antragskosten = {
+  stunden: string;
+  personal: string;
+  sach: string;
+  pauschal: string;
+  direkt: string;
+  gemeinkosten: string;
+  gesamt: string;
+  zuschuss: string;
+  eigenmittel: string;
 };
 
 /** Ein Punkt der Antragsreife — gerechnet in socos/services/foerderung.py. */
@@ -599,7 +628,13 @@ export type Foerderantrag = {
   regelbetrieb: string;
   /** Eine Zeile je Punkt; „✓ " davor heißt: ist da. */
   datenbedarf: string;
+  /** Leer heißt: nicht gefragt (siehe socos/services/foerderung.py). */
+  stundensatz: string | null;
+  gemeinkosten: string | null;
+  foerderquote: string | null;
   pakete: Foerderpaket[];
+  posten: Foerderposten[];
+  kosten: Antragskosten;
   summe: string;
   laufzeit: number;
   reife: Reifepunkt[];

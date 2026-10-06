@@ -58,7 +58,9 @@ from socos.models import (
     Foerdergeber,
     Foerderfrage,
     Foerderpaket,
+    Foerderposten,
     Foerderprogramm,
+    Foerderstunden,
     Projekt,
     Projektphase,
     Protokolleintrag,
@@ -1369,7 +1371,9 @@ class FoerdergeberViewSet(SocosViewSet):
 
 class FoerderprogrammViewSet(SocosViewSet):
     serializer_class = ser.FoerderprogrammSerializer
-    queryset = Foerderprogramm.objects.prefetch_related("fragen", "antraege", "antraege__pakete")
+    queryset = Foerderprogramm.objects.prefetch_related(
+        "fragen", "antraege", "antraege__pakete", "antraege__pakete__stunden", "antraege__posten"
+    )
 
 
 class FoerderfrageViewSet(SocosViewSet):
@@ -1379,7 +1383,7 @@ class FoerderfrageViewSet(SocosViewSet):
 
 class FoerderantragViewSet(SocosViewSet):
     serializer_class = ser.FoerderantragSerializer
-    queryset = Foerderantrag.objects.select_related("programm").prefetch_related("pakete")
+    queryset = Foerderantrag.objects.select_related("programm").prefetch_related("pakete", "pakete__stunden", "posten")
 
     @transaction.atomic
     def perform_destroy(self, antrag):
@@ -1387,11 +1391,38 @@ class FoerderantragViewSet(SocosViewSet):
         Die Pakete gehen mit. Über `on_delete=CASCADE` geschähe das nur beim
         harten Löschen; weich gelöscht blieben sie als Waisen stehen.
         """
+        for posten in Foerderposten.objects.filter(antrag=antrag):
+            posten.delete()
         for paket in Foerderpaket.objects.filter(antrag=antrag):
+            for stunden in Foerderstunden.objects.filter(paket=paket):
+                stunden.delete()
             paket.delete()
         antrag.delete()
 
 
 class FoerderpaketViewSet(SocosViewSet):
     serializer_class = ser.FoerderpaketSerializer
-    queryset = Foerderpaket.objects.all()
+    queryset = Foerderpaket.objects.select_related("antrag").prefetch_related("stunden", "antrag__posten")
+
+    @transaction.atomic
+    def perform_destroy(self, paket):
+        """
+        Die Stunden gehen mit dem Paket. Seine Posten bleiben am Antrag und
+        verlieren nur die Zuordnung — das Geld ist ja nicht weg.
+        """
+        for stunden in Foerderstunden.objects.filter(paket=paket):
+            stunden.delete()
+        for posten in Foerderposten.objects.filter(paket=paket):
+            posten.paket = None
+            posten.save()
+        paket.delete()
+
+
+class FoerderstundenViewSet(SocosViewSet):
+    serializer_class = ser.FoerderstundenSerializer
+    queryset = Foerderstunden.objects.all()
+
+
+class FoerderpostenViewSet(SocosViewSet):
+    serializer_class = ser.FoerderpostenSerializer
+    queryset = Foerderposten.objects.all()

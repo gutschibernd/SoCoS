@@ -7,6 +7,36 @@ betrifft.
 
 ---
 
+## 2026-10-06 — Stunden und Kalkulation in Förderanträgen (Migration 0042)
+
+Für den eingereichten KWF-Antrag (Umsetzung.F&E&I): Der Kostenplan dort hat
+Stunden je Person und Paket, einen Stundensatz, Sachposten, eine
+Gemeinkostenpauschale und eine Förderquote. **Das löst „ein Betrag je Paket"
+vom 05.10. nicht ab, es steht daneben** (Auftrag Bernd: das Programm so
+erweitern, dass der Antrag abgebildet werden kann).
+
+- `Foerderstunden(paket, person, stunden)` — **die Person ist ein Name, kein
+  Nutzer**, anders als beim `Pensum`. Gegen Antragsstunden wird nicht gebucht,
+  und ein Antrag nennt auch „N. N.".
+- `Foerderposten(antrag, paket?, bezeichnung, betrag)` — **am Antrag**, weil
+  ein Kostenplan Posten ohne Paket führt (6.000 € eigener Bedarf im KWF-Antrag).
+  Wird ein Paket entfernt, verlieren seine Posten nur die Zuordnung; seine
+  Stunden gehen mit.
+- `Foerderantrag.stundensatz`, `gemeinkosten`, `foerderquote` (Prozent), alle
+  nullbar.
+
+**Rechnung** (`services/foerderung.kosten`): Stunden × Satz + Posten +
+Pauschalbeträge der Pakete = direkt; + Gemeinkosten = gesamt; × Quote =
+Zuschuss, auf Cent kaufmännisch gerundet. **Ohne Quote ist der Zuschuss die
+ganze Summe** — damit rechnen die NÖ-Anträge, deren Paketbeträge schon die
+Fördersumme sind, genau wie vorher. `summe` ist jetzt der Zuschuss.
+
+In der Zeitleiste steht bei einem aufgeschlüsselten Paket (Stunden oder Posten)
+die gerechnete Summe mit Stunden statt des Betragsfelds; der Pauschalbetrag ist
+dann im aufgeklappten Paket.
+
+---
+
 ## 2026-10-06 — Fördergeber zeigt auf eine Organisation (Migration 0041)
 
 `Foerdergeber.organisation` (nullbar, PROTECT) verbindet den Fördergeber mit

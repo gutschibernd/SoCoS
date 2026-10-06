@@ -14,7 +14,16 @@ import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from socos.models import Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderprogramm, Organisation
+from socos.models import (
+    Foerderantrag,
+    Foerderfrage,
+    Foerdergeber,
+    Foerderpaket,
+    Foerderposten,
+    Foerderprogramm,
+    Foerderstunden,
+    Organisation,
+)
 from socos.services import foerderung
 
 
@@ -65,6 +74,70 @@ class TestRechnung:
     def test_ohne_pakete(self, antrag):
         assert foerderung.summe(antrag) == Decimal("0.00")
         assert foerderung.laufzeit(antrag) == 0
+
+
+class TestKalkulation:
+    """Der Kostenplan des KWF-Antrags vom August 2026 — die Zahlen müssen genau aufgehen."""
+
+    def _kwf(self, antrag):
+        antrag.stundensatz = Decimal("50")
+        antrag.gemeinkosten = Decimal("20")
+        antrag.foerderquote = Decimal("50")
+        antrag.save()
+        plan = [("AP01", 40, 90), ("AP02", 270, 140), ("AP03", 150, 100), ("AP04", 140, 150),
+                ("AP05", 0, 30), ("AP06", 40, 130), ("AP07", 112, 112)]
+        pakete = {}
+        for titel, bg, fd in plan:
+            pakete[titel] = _paket(antrag, titel, 1, 5, None)
+            for person, h in (("BG", bg), ("FD", fd)):
+                if h:
+                    Foerderstunden.objects.create(paket=pakete[titel], person=person, stunden=Decimal(h))
+        Foerderposten.objects.create(antrag=antrag, paket=pakete["AP05"], bezeichnung="Kamera", betrag=Decimal("1000"))
+        Foerderposten.objects.create(antrag=antrag, bezeichnung="Elektronik und Rest", betrag=Decimal("6000"))
+        antrag.refresh_from_db()
+        return pakete
+
+    def test_kostenplan_geht_auf(self, antrag):
+        self._kwf(antrag)
+        k = foerderung.kosten(antrag)
+        assert k["stunden"] == Decimal("1504")
+        assert k["personal"] == Decimal("75200.00")
+        assert k["sach"] == Decimal("7000.00")
+        assert k["direkt"] == Decimal("82200.00")
+        assert k["gemeinkosten"] == Decimal("16440.00")
+        assert k["gesamt"] == Decimal("98640.00")
+        assert k["zuschuss"] == Decimal("49320.00")
+        assert k["eigenmittel"] == Decimal("49320.00")
+        assert foerderung.summe(antrag) == Decimal("49320.00")
+
+    def test_paket_kostet_stunden_und_seine_posten(self, antrag):
+        pakete = self._kwf(antrag)
+        ap05 = foerderung.paketkosten(pakete["AP05"], antrag)
+        assert (ap05["stunden"], ap05["personal"], ap05["sach"], ap05["gesamt"]) == (
+            Decimal("30"), Decimal("1500.00"), Decimal("1000.00"), Decimal("2500.00"),
+        )
+
+    def test_ohne_quote_ist_der_zuschuss_die_summe(self, antrag):
+        _paket(antrag, "Bau", 1, 2, "1000")
+        assert foerderung.kosten(antrag)["zuschuss"] == Decimal("1000.00")
+
+    def test_entfernte_stunden_zaehlen_nicht(self, antrag):
+        pakete = self._kwf(antrag)
+        pakete["AP05"].stunden.get().delete()
+        antrag.refresh_from_db()
+        assert foerderung.kosten(antrag)["stunden"] == Decimal("1474")
+
+    def test_stunden_ohne_satz(self, antrag):
+        paket = _paket(antrag, "Bau", 1, 2, None)
+        Foerderstunden.objects.create(paket=paket, person="BG", stunden=Decimal("10"))
+        reife = _reife(antrag)
+        assert not reife["pakete"]["erfuellt"]
+        assert reife["pakete"]["hinweis"] == "Stunden ohne Stundensatz."
+
+    def test_reife_mit_stunden_statt_betrag(self, antrag):
+        self._kwf(antrag)
+        reife = _reife(antrag)
+        assert reife["pakete"]["erfuellt"] and reife["summe"]["erfuellt"]
 
 
 class TestReife:
@@ -163,6 +236,49 @@ class TestSchnittstelle:
         assert client.delete(f"/api/foerderantraege/{antrag.pk}/").status_code == 204
         assert not Foerderpaket.objects.filter(pk=paket.pk).exists()
         assert Foerderpaket.alle_objekte.filter(pk=paket.pk).exists()  # weich
+
+    def test_stunden_und_posten_ueber_die_schnittstelle(self, client, bearbeiter, antrag):
+        paket = _paket(antrag, "Bau", 1, 2, None)
+        client.force_login(bearbeiter)
+        assert client.patch(
+            f"/api/foerderantraege/{antrag.pk}/", {"stundensatz": "50.00", "foerderquote": "50"},
+            content_type="application/json",
+        ).status_code == 200
+        assert client.post(
+            "/api/foerderstunden/", {"paket": paket.pk, "person": "BG", "stunden": "10"},
+            content_type="application/json",
+        ).status_code == 201
+        assert client.post(
+            "/api/foerderposten/", {"antrag": antrag.pk, "paket": paket.pk, "bezeichnung": "Teile", "betrag": "100"},
+            content_type="application/json",
+        ).status_code == 201
+
+        geholt = client.get(f"/api/foerderantraege/{antrag.pk}/").json()
+        assert geholt["kosten"]["gesamt"] == "600.00"
+        assert geholt["summe"] == "300.00"
+        assert geholt["pakete"][0]["stunden"][0]["person"] == "BG"
+        assert geholt["pakete"][0]["kosten"]["gesamt"] == "600.00"
+        assert geholt["posten"][0]["bezeichnung"] == "Teile"
+
+    def test_posten_nicht_an_fremdes_paket(self, client, bearbeiter, programm, antrag):
+        fremd = _paket(Foerderantrag.objects.create(programm=programm, titel="Anderer"), "X", 1, 1, None)
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/foerderposten/", {"antrag": antrag.pk, "paket": fremd.pk, "bezeichnung": "Teile", "betrag": "1"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 400
+        assert "paket" in antwort.json()
+
+    def test_paket_entfernen_laesst_seine_posten_stehen(self, client, admin_nutzer, antrag):
+        paket = _paket(antrag, "Bau", 1, 2, None)
+        stunden = Foerderstunden.objects.create(paket=paket, person="BG", stunden=Decimal("5"))
+        posten = Foerderposten.objects.create(antrag=antrag, paket=paket, bezeichnung="Teile", betrag=Decimal("9"))
+        client.force_login(admin_nutzer)
+        assert client.delete(f"/api/foerderpakete/{paket.pk}/").status_code == 204
+        assert not Foerderstunden.objects.filter(pk=stunden.pk).exists()
+        posten.refresh_from_db()
+        assert posten.paket is None and posten.geloescht_am is None
 
     def test_frage_abhaken_ohne_antworttext(self, client, bearbeiter, programm):
         frage = Foerderfrage.objects.create(programm=programm, frage="Wie lang?")
@@ -271,9 +387,15 @@ def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
     Foerderfrage.objects.create(programm=programm, frage="Wie lang?", antwort="2 Jahre")
     antrag = Foerderantrag.objects.create(programm=programm, titel="Befüllsystem", wirkung="DGKP-Zeit")
     _paket(antrag, "Bau", 2, 9, "12345.67")
+    antrag.stundensatz = Decimal("50")
+    antrag.save()
+    Foerderstunden.objects.create(paket=antrag.pakete.get(), person="BG", stunden=Decimal("270"))
+    Foerderposten.objects.create(antrag=antrag, paket=antrag.pakete.get(), bezeichnung="Kamera", betrag=Decimal("1000"))
 
     archiv = tmp_path / "archiv.tar.gz"
     call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    Foerderstunden.objects.all().hart_loeschen()
+    Foerderposten.objects.all().hart_loeschen()
     Foerderpaket.objects.all().hart_loeschen()
     Foerderantrag.objects.all().hart_loeschen()
     call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
@@ -283,4 +405,7 @@ def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
     assert paket.antrag.wirkung == "DGKP-Zeit"
     assert Foerderfrage.objects.get().antwort == "2 Jahre"
     assert paket.antrag.programm.geber.link == "https://www.ffg.at"
+    assert paket.antrag.stundensatz == Decimal("50.00")
+    assert (paket.stunden.get().person, paket.stunden.get().stunden) == ("BG", Decimal("270.00"))
+    assert (paket.posten.get().bezeichnung, paket.posten.get().betrag) == ("Kamera", Decimal("1000.00"))
     assert paket.antrag.programm.geber.organisation.name == "Österreichische Forschungsförderungsgesellschaft"

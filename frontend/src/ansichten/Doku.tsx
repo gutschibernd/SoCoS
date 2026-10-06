@@ -945,7 +945,8 @@ function ModuleDoku() {
           ]}
         />
         <Merke>
-          Die Fördersumme ist die Summe der Pakete. Liegt sie über der Grenze des Programms oder
+          Die Fördersumme ist die Summe der Pakete — oder, wenn unter Kalkulation eine Förderquote
+          steht, dieser Anteil der Gesamtkosten. Liegt sie über der Grenze des Programms oder
           läuft ein Paket länger als erlaubt, wird es rot, und die Antragsreife sagt, um wie viel.
         </Merke>
         <Begriffe
@@ -953,6 +954,10 @@ function ModuleDoku() {
             {
               begriff: "Projektmonate",
               text: "Die Zeitleiste zählt M1, M2 … ab dem Projektbeginn, denn der hängt an der Förderzusage. Trägst du oben einen geplanten Beginn ein, stehen dort die Kalendermonate.",
+            },
+            {
+              begriff: "Stunden und Kalkulation",
+              text: "Programme mit Kostenleitfaden (KWF, FFG) wollen Stunden je Person und Paket statt eines Betrags. Im aufgeklappten Paket trägst du unter „Stunden“ Person und Stunden ein, unter Kalkulation den Stundensatz, die Gemeinkostenpauschale und die Förderquote, dazu die Sach- und Materialposten — mit oder ohne Paket. Die Rechnung darunter geht wie im Kostenplan: Personal plus Sachkosten sind die direkten Kosten, darauf die Pauschale, davon die Quote ist der Zuschuss. Ohne Quote bleibt es wie beim Land NÖ: Die Beträge der Pakete sind schon die Fördersumme.",
             },
             {
               begriff: "Antragsreife",
@@ -976,7 +981,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Projektinhalt kopieren",
-              text: "Der Knopf oben im Antrag legt den ganzen Antrag als gegliederten Text in die Zwischenablage: Eckdaten, Richtlinie in Kürze, alle Texte, die Arbeitspakete mit Monaten und Betrag, den Zeitplan als Raster, Antragsreife, Bedarf und Fragen. Den fügst du in ein Sprachmodell ein, um daran weiterzuschreiben. Leere Felder stehen dort als „noch leer“, damit das Modell nachfragt, statt etwas zu erfinden.",
+              text: "Der Knopf oben im Antrag legt den ganzen Antrag als gegliederten Text in die Zwischenablage: Eckdaten, Richtlinie in Kürze, alle Texte, die Kalkulation, die Arbeitspakete mit Monaten, Stunden und Kosten, den Zeitplan als Raster, Antragsreife, Bedarf und Fragen. Den fügst du in ein Sprachmodell ein, um daran weiterzuschreiben. Leere Felder stehen dort als „noch leer“, damit das Modell nachfragt, statt etwas zu erfinden.",
             },
             {
               begriff: "Kein SoCoS-Projekt",

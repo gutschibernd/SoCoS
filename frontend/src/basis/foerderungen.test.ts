@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderprogramm } from "./daten";
 import {
+  alsProzent,
+  alsStunden,
   ausCent,
   bedarfDazu,
   bedarfUmschalten,
@@ -11,17 +13,19 @@ import {
   geldlage,
   gezogen,
   inCent,
+  istAufgeschluesselt,
   monatsanzahl,
   monatsname,
   neuePaketmonate,
   offeneFragenDerOrganisation,
+  paketsumme,
   projektinhalt,
   spanne,
   steckbriefpunkte,
   telefonatQuelle,
   telefonatText,
 } from "./foerderungen";
-import { foerderungAusWeg, themaAusWeg } from "./module";
+import { alsEuro, foerderungAusWeg, themaAusWeg } from "./module";
 
 const antrag = (teil: Partial<Foerderantrag> = {}) => ({ laufzeit: 0, ...teil }) as Foerderantrag;
 const programm = (teil: Partial<Foerderprogramm> = {}) => ({ max_monate: 24, ...teil }) as Foerderprogramm;
@@ -153,7 +157,10 @@ describe("der Weg zu einem Antrag", () => {
 
 describe("der Projektinhalt zum Kopieren", () => {
   const paket = (id: number, teil: Partial<Foerderpaket>) =>
-    ({ id, titel: `P${id}`, ziel: "", ergebnis: "", betrag: null, reihenfolge: id, von: 1, bis: 1, ...teil }) as Foerderpaket;
+    ({
+      id, titel: `P${id}`, ziel: "", ergebnis: "", betrag: null, reihenfolge: id, von: 1, bis: 1,
+      stunden: [], kosten: { stunden: "0.00", personal: "0.00", sach: "0.00", gesamt: "0.00" }, ...teil,
+    }) as Foerderpaket;
   const voll = antrag({
     titel: "Dosetten digital",
     nummer: 2,
@@ -168,11 +175,18 @@ describe("der Projektinhalt zum Kopieren", () => {
     datenbedarf: "✓ Muster\nPersonalkosten",
     laufzeit: 4,
     summe: "30000.00",
+    stundensatz: null,
+    gemeinkosten: null,
+    foerderquote: null,
+    posten: [],
     zeichen: { titel: 100, beschreibung: 1000 },
     reife: [{ schluessel: "x", text: "Titel gesetzt", erfuellt: true, hinweis: "" }],
     // Absichtlich verkehrt herum — die Reihenfolge entscheidet, nicht die Liste.
     pakete: [
-      paket(2, { titel: "Pilot", von: 3, bis: 4, betrag: "30000.00", reihenfolge: 2 }),
+      paket(2, {
+        titel: "Pilot", von: 3, bis: 4, betrag: "30000.00", reihenfolge: 2,
+        kosten: { stunden: "0.00", personal: "0.00", sach: "0.00", gesamt: "30000.00" },
+      }),
       paket(1, { titel: "Konzept", von: 1, bis: 2, ziel: "Plan steht", reihenfolge: 1 }),
     ],
   });
@@ -201,7 +215,9 @@ describe("der Projektinhalt zum Kopieren", () => {
     expect(text.indexOf("### AP1 · Konzept")).toBeLessThan(text.indexOf("### AP2 · Pilot"));
     expect(text).toContain("- **Zeitraum:** M3–M4 (Mär 27 – Apr 27)");
     expect(text).toContain("- **Ziel:** Plan steht");
-    expect(text).toContain("- **Betrag:** noch offen");
+    expect(text).toContain("- **Kosten:** noch offen");
+    expect(text).toContain(`- **Kosten:** ${alsEuro("30000.00")}`);
+    expect(text).not.toContain("## Kalkulation");
     expect(text).toContain("```\n      M1 M2 M3 M4\nAP1   ██ ██ ·· ··\nAP2   ·· ·· ██ ██\n```");
   });
 
@@ -216,5 +232,27 @@ describe("der Projektinhalt zum Kopieren", () => {
     expect(knapp).not.toContain("Fördergeber");
     expect(knapp).toContain("## Arbeitspakete\n\n_(noch leer)_");
     expect(knapp).not.toContain("## Zeitplan");
+  });
+});
+
+describe("Stunden und Kosten", () => {
+  const nichts = { stunden: "0.00", personal: "0.00", sach: "0.00", gesamt: "0.00" };
+  const paket = (teil: Partial<Foerderpaket>) => ({ stunden: [], kosten: nichts, ...teil }) as Foerderpaket;
+
+  it("schreibt Stunden und Prozent österreichisch", () => {
+    expect(alsStunden("1504.00")).toBe(`${(1504).toLocaleString("de-AT")} h`); // wie alsEuro
+    expect(alsStunden("12.50")).toBe("12,5 h");
+    expect(alsProzent("20.00")).toBe("20 %");
+  });
+
+  it("erkennt ein aufgeschlüsseltes Paket an Stunden oder Posten", () => {
+    expect(istAufgeschluesselt(paket({}))).toBe(false);
+    expect(istAufgeschluesselt(paket({ stunden: [{ id: 1, paket: 1, person: "BG", stunden: "1.00" }] }))).toBe(true);
+    expect(istAufgeschluesselt(paket({ kosten: { ...nichts, sach: "1000.00" } }))).toBe(true);
+  });
+
+  it("summiert die Pakete in Cent", () => {
+    const pakete = [paket({ kosten: { ...nichts, gesamt: "0.10" } }), paket({ kosten: { ...nichts, gesamt: "0.20" } })];
+    expect(paketsumme(pakete)).toBe("0.30");
   });
 });

@@ -6,7 +6,7 @@
  * (socos/services/foerderung.py). Hier wird nur gezeichnet, was von dort kommt.
  */
 
-import type { Foerderantrag, Foerderfrage, Foerdergeber, Foerderprogramm } from "./daten";
+import type { Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderprogramm } from "./daten";
 import { alsEuro } from "./module";
 
 /* --- Geld ------------------------------------------------------------------ */
@@ -41,6 +41,26 @@ export function geldlage(summe: string, grenze: string | null): Geldlage {
   const s = inCent(summe);
   const g = inCent(grenze);
   return { anteil: Math.min(100, Math.round((s / g) * 100)), frei: ausCent(g - s), ueber: s > g };
+}
+
+/** "1504.00" → „1.504 h", "12.50" → „12,5 h". */
+export function alsStunden(stunden: string): string {
+  return `${Number(stunden).toLocaleString("de-AT", { maximumFractionDigits: 2 })} h`;
+}
+
+/** "20.00" → „20 %". */
+export function alsProzent(prozent: string): string {
+  return `${Number(prozent).toLocaleString("de-AT", { maximumFractionDigits: 2 })} %`;
+}
+
+/** Ob ein Paket aufgeschlüsselt ist — dann steht seine Summe gerechnet da, nicht als Betrag zum Eintippen. */
+export function istAufgeschluesselt(paket: Foerderpaket): boolean {
+  return paket.stunden.length > 0 || inCent(paket.kosten.sach) > 0;
+}
+
+/** Die Summe der Paketkosten, in Cent gerechnet. */
+export function paketsumme(pakete: Foerderpaket[]): string {
+  return ausCent(pakete.reduce((s, p) => s + inCent(p.kosten.gesamt), 0));
 }
 
 /* --- Die Zeitleiste -------------------------------------------------------- */
@@ -260,7 +280,7 @@ export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, 
     `- **Laufzeit:** ${antrag.laufzeit} Monate` + (programm.max_monate ? ` (höchstens ${programm.max_monate})` : ""),
   );
   z.push(
-    `- **Summe der Arbeitspakete:** ${alsEuro(antrag.summe)}` +
+    `- **Beantragte Fördersumme:** ${alsEuro(antrag.summe)}` +
       (programm.max_foerderung ? ` (Höchstförderung ${alsEuro(programm.max_foerderung)})` : ""),
   );
   z.push(
@@ -278,6 +298,20 @@ export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, 
   for (const [feld, titel] of PROJEKTTEILE) z.push("", `### ${titel}`, "", oderLeer(antrag[feld]));
   z.push("", "## Kostenprognose Regelbetrieb", "", oderLeer(antrag.regelbetrieb));
 
+  if (antrag.stundensatz || antrag.foerderquote || antrag.posten.length) {
+    const k = antrag.kosten;
+    z.push("", "## Kalkulation", "");
+    z.push(`- **Personal:** ${alsStunden(k.stunden)} × ${antrag.stundensatz ? alsEuro(antrag.stundensatz) : "noch offen"} = ${alsEuro(k.personal)}`);
+    z.push(`- **Sach- und Materialkosten:** ${alsEuro(k.sach)}`);
+    for (const posten of antrag.posten) z.push(`  - ${posten.bezeichnung}: ${alsEuro(posten.betrag)}`);
+    if (inCent(k.pauschal) > 0) z.push(`- **Pauschalbeträge der Pakete:** ${alsEuro(k.pauschal)}`);
+    z.push(`- **Direkte Kosten:** ${alsEuro(k.direkt)}`);
+    if (antrag.gemeinkosten) z.push(`- **Gemeinkosten ${alsProzent(antrag.gemeinkosten)}:** ${alsEuro(k.gemeinkosten)}`);
+    z.push(`- **Gesamtkosten:** ${alsEuro(k.gesamt)}`);
+    if (antrag.foerderquote) z.push(`- **Zuschuss ${alsProzent(antrag.foerderquote)}:** ${alsEuro(k.zuschuss)}`);
+    if (inCent(k.eigenmittel) > 0) z.push(`- **Eigenmittel:** ${alsEuro(k.eigenmittel)}`);
+  }
+
   z.push("", "## Arbeitspakete", "");
   if (pakete.length === 0) z.push(LEER);
   pakete.forEach((p, i) => {
@@ -285,7 +319,9 @@ export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, 
     const monate = spanne(p.von, p.bis, null);
     z.push(`- **Zeitraum:** ${monate}${antrag.beginn ? ` (${spanne(p.von, p.bis, antrag.beginn)})` : ""}`);
     z.push(`- **Dauer:** ${p.bis - p.von + 1} Monate`);
-    z.push(`- **Betrag:** ${p.betrag ? alsEuro(p.betrag) : "noch offen"}`);
+    if (p.stunden.length)
+      z.push(`- **Stunden:** ${p.stunden.map((s) => `${s.person} ${alsStunden(s.stunden)}`).join(", ")}`);
+    z.push(`- **Kosten:** ${inCent(p.kosten.gesamt) > 0 ? alsEuro(p.kosten.gesamt) : "noch offen"}`);
     z.push(`- **Ziel:** ${p.ziel.trim() || "noch leer"}`);
     z.push(`- **Ergebnis:** ${p.ergebnis.trim() || "noch leer"}`, "");
   });

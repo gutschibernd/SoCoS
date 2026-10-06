@@ -51,6 +51,8 @@ MODELLE_IM_ARCHIV = [
     "socos.Foerderfrage",
     "socos.Foerderantrag",
     "socos.Foerderpaket",
+    "socos.Foerderstunden",
+    "socos.Foerderposten",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
@@ -84,7 +86,9 @@ LOESCHREIHENFOLGE = [
     "socos.Projekt",
     # Paket vor Antrag, Frage und Antrag vor ihrem Programm, das Programm vor
     # seinem Fördergeber — und alles vor der Organisation, auf die der
-    # Fördergeber zeigt.
+    # Fördergeber zeigt. Stunden und Posten vor dem Paket, an dem sie hängen.
+    "socos.Foerderstunden",
+    "socos.Foerderposten",
     "socos.Foerderpaket",
     "socos.Foerderantrag",
     "socos.Foerderfrage",

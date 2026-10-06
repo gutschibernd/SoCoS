@@ -25,7 +25,9 @@ from socos.models import (
     Foerdergeber,
     Foerderfrage,
     Foerderpaket,
+    Foerderposten,
     Foerderprogramm,
+    Foerderstunden,
     Kontakt,
     Kontostand,
     Meeting,
@@ -903,10 +905,54 @@ class LageverbindungSerializer(serializers.ModelSerializer):
 # --- Module: Förderungen ----------------------------------------------------
 
 
+def _geld(werte: dict) -> dict:
+    """Decimal als Zeichenkette, wie alles Geld in der Schnittstelle."""
+    return {k: str(v) for k, v in werte.items()}
+
+
+class FoerderstundenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Foerderstunden
+        fields = ["id", "paket", "person", "stunden"]
+
+    def validate_stunden(self, wert):
+        if wert < 0:
+            raise serializers.ValidationError("Stunden sind nicht negativ.")
+        return wert
+
+
+class FoerderpostenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Foerderposten
+        fields = ["id", "antrag", "paket", "bezeichnung", "betrag", "reihenfolge"]
+
+    def validate(self, daten):
+        antrag = daten.get("antrag", self.instance.antrag if self.instance else None)
+        paket = daten.get("paket", self.instance.paket if self.instance else None)
+        if paket is not None and paket.antrag_id != antrag.id:
+            raise serializers.ValidationError({"paket": "Das Paket gehört zu einem anderen Antrag."})
+        if daten.get("betrag") is not None and daten["betrag"] < 0:
+            raise serializers.ValidationError({"betrag": "Ein Betrag ist nicht negativ."})
+        return daten
+
+
 class FoerderpaketSerializer(serializers.ModelSerializer):
+    stunden = serializers.SerializerMethodField()
+    kosten = serializers.SerializerMethodField()
+
     class Meta:
         model = Foerderpaket
-        fields = ["id", "antrag", "titel", "ziel", "ergebnis", "von", "bis", "betrag", "reihenfolge"]
+        fields = ["id", "antrag", "titel", "ziel", "ergebnis", "von", "bis", "betrag", "reihenfolge", "stunden", "kosten"]
+
+    def get_stunden(self, paket):
+        stunden = sorted(foerderung.lebende_stunden(paket), key=lambda s: (s.person, s.id))
+        return FoerderstundenSerializer(stunden, many=True).data
+
+    def get_kosten(self, paket):
+        # Der Antrag kommt aus dem Kontext, wenn das Paket mit ihm geholt
+        # wird — sonst zöge jedes Paket ihn einzeln nach.
+        antrag = self.context.get("antrag") or paket.antrag
+        return _geld(foerderung.paketkosten(paket, antrag))
 
     def validate(self, daten):
         # Hier und nicht erst in der Datenbank: Deren Einschränkung käme als
@@ -928,6 +974,8 @@ class FoerderantragSerializer(serializers.ModelSerializer):
     """
 
     pakete = serializers.SerializerMethodField()
+    posten = serializers.SerializerMethodField()
+    kosten = serializers.SerializerMethodField()
     summe = serializers.SerializerMethodField()
     laufzeit = serializers.SerializerMethodField()
     reife = serializers.SerializerMethodField()
@@ -938,13 +986,29 @@ class FoerderantragSerializer(serializers.ModelSerializer):
         fields = [
             "id", "programm", "nummer", "titel", "stand", "foerderwerber", "beginn",
             "beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb", "datenbedarf",
-            "pakete", "summe", "laufzeit", "reife", "zeichen", "geaendert_am",
+            "stundensatz", "gemeinkosten", "foerderquote",
+            "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "geaendert_am",
         ]
         read_only_fields = ["geaendert_am"]
 
     def get_pakete(self, antrag):
         pakete = sorted(foerderung.lebende_pakete(antrag), key=lambda p: (p.reihenfolge, p.id))
-        return FoerderpaketSerializer(pakete, many=True).data
+        return FoerderpaketSerializer(pakete, many=True, context={**self.context, "antrag": antrag}).data
+
+    def get_posten(self, antrag):
+        posten = sorted(foerderung.lebende_posten(antrag), key=lambda p: (p.reihenfolge, p.id))
+        return FoerderpostenSerializer(posten, many=True).data
+
+    def get_kosten(self, antrag):
+        return _geld(foerderung.kosten(antrag))
+
+    def validate(self, daten):
+        for feld in ("stundensatz", "gemeinkosten", "foerderquote"):
+            if daten.get(feld) is not None and daten[feld] < 0:
+                raise serializers.ValidationError({feld: "Der Wert ist nicht negativ."})
+        if daten.get("foerderquote") is not None and daten["foerderquote"] > 100:
+            raise serializers.ValidationError({"foerderquote": "Mehr als 100 % gibt es nicht."})
+        return daten
 
     def get_summe(self, antrag):
         return str(foerderung.summe(antrag))

@@ -65,6 +65,8 @@ NAMEN = {
     "socos.Foerderfrage": ("f", "Frage an die Förderstelle", "Fragen an die Förderstelle"),
     "socos.Foerderantrag": ("m", "Förderantrag", "Förderanträge"),
     "socos.Foerderpaket": ("n", "Arbeitspaket eines Antrags", "Arbeitspakete eines Antrags"),
+    "socos.Foerderstunden": ("m", "Stundeneintrag eines Antrags", "Stundeneinträge eines Antrags"),
+    "socos.Foerderposten": ("m", "Kostenposten eines Antrags", "Kostenposten eines Antrags"),
 }
 UNBEKANNT = ("m", "Eintrag", "Einträge")
 
