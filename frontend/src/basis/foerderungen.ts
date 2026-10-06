@@ -71,14 +71,19 @@ export function paketsumme(pakete: Foerderpaket[]): string {
  * schon belegt. Ohne Grenze ein Jahr oder die Laufzeit.
  */
 export function monatsanzahl(antrag: Foerderantrag, programm: Foerderprogramm): number {
+  const { kuerzeste, laengste } = achsengrenzen(antrag, programm);
   // Die eingestellte Achse ist ein Wunsch, keine Schere: Reichen die Pakete
   // weiter, wächst sie mit — sonst verschwände ein Balken stillschweigend.
-  return Math.max(antrag.zeitachse ?? programm.max_monate ?? 12, antrag.laufzeit, 1);
+  return Math.min(Math.max(antrag.zeitachse ?? laengste, kuerzeste), Math.max(laengste, kuerzeste));
 }
 
-/** Was der Zeitplan zur Wahl stellt: die üblichen Längen, ab der Laufzeit der Pakete. */
-export function achsenlaengen(laufzeit: number): number[] {
-  return [6, 12, 18, 24, 30, 36, 48, 60].filter((m) => m >= laufzeit);
+/**
+ * Wie kurz und wie lang der Zeitplan sein darf: vom Ende des letzten Pakets
+ * bis zur Höchstlaufzeit des Programms. Länger als das Programm braucht es
+ * nicht — dort läge nur, was ohnehin nicht gefördert wird.
+ */
+export function achsengrenzen(antrag: Foerderantrag, programm: Foerderprogramm): { kuerzeste: number; laengste: number } {
+  return { kuerzeste: Math.max(antrag.laufzeit, 1), laengste: programm.max_monate ?? 12 };
 }
 
 const MONATE = ["Jän", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];

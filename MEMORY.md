@@ -10,8 +10,11 @@ betrifft.
 ## 2026-10-06 — Länge der Zeitleiste im Antrag (Migration 0043)
 
 `Foerderantrag.zeitachse` (nullbar): wie viele Monate der Zeitplan zeigt
-(Wunsch Bernd). Leer heißt wie bisher: die Höchstlaufzeit des Programms, ohne
-Programmgrenze 12. **Die Einstellung ist ein Wunsch, keine Schere** —
+(Wunsch Bernd). Eingestellt mit einem Regler **vom Ende des letzten Pakets
+bis zur Höchstlaufzeit des Programms** — länger als das Programm braucht es
+nicht (Bernd, nach einer ersten Fassung mit Auswahlliste bis 60 Monate).
+Ganz rechts wird als **leer** gespeichert, damit die Achse einer geänderten
+Programmgrenze folgt. **Die Einstellung ist ein Wunsch, keine Schere** —
 `monatsanzahl()` nimmt nie weniger als die Laufzeit der Pakete, sonst
 verschwände ein Balken still über den Rand. Gespeichert statt nur im Browser
 gemerkt, weil auch die Kachel am Programm und der kopierte Antragstext

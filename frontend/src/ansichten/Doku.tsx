@@ -957,7 +957,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Länge der Zeitleiste",
-              text: "Die Auswahl rechts über der Zeitleiste stellt ein, wie viele Monate sie zeigt. „wie Programm“ nimmt die Höchstlaufzeit des Programms. Kürzer als die Pakete wird sie nie: Reicht ein Paket weiter, wächst die Leiste mit.",
+              text: "Der Regler rechts über der Zeitleiste stellt ein, wie viele Monate sie zeigt — von „Paketende“ (wo das letzte Paket aufhört) bis „wie Programm“ (die Höchstlaufzeit). Länger als das Programm geht nicht, kürzer als die Pakete auch nicht: Reicht ein Paket weiter, wächst die Leiste mit. Füllen die Pakete das Programm schon aus, gibt es nichts einzustellen, und der Regler fehlt.",
             },
             {
               begriff: "Stunden und Kalkulation",

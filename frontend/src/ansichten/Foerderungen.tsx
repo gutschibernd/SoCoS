@@ -57,7 +57,7 @@ import {
   istAufgeschluesselt,
   istOffen,
   monatsanzahl,
-  achsenlaengen,
+  achsengrenzen,
   monatsname,
   neuePaketmonate,
   paketsumme,
@@ -1293,7 +1293,10 @@ function Zeitplan({
   darfLoeschen: boolean;
 }) {
   const speichern = useAendern();
-  const anzahl = monatsanzahl(antrag, programm);
+  // Solange der Regler gezogen wird, zeichnet die Achse schon mit.
+  const [achse, setAchse] = useState<number | null>(null);
+  const anzahl = achse ?? monatsanzahl(antrag, programm);
+  useEffect(() => setAchse(null), [antrag.zeitachse]);
   const [aufgeklappt, setAufgeklappt] = useState<number | null>(null);
   const [zug, setZug] = useState<Zug | null>(null);
   const [vorschau, setVorschau] = useState<{ id: number; von: number; bis: number } | null>(null);
@@ -1361,7 +1364,7 @@ function Zeitplan({
         <span className="fd-leise">
           {darf ? "Balken ziehen verschiebt, Ränder ziehen verlängert" : `${antrag.pakete.length} Pakete`}
         </span>
-        {darf && <Achsenwahl antrag={antrag} programm={programm} anzahl={anzahl} />}
+        {darf && <Achsenregler antrag={antrag} programm={programm} anzahl={anzahl} ziehen={setAchse} />}
       </div>
 
       <div className="fd-zeilen" role="list">
@@ -1498,31 +1501,66 @@ function Zeitplan({
 }
 
 /**
- * Wie viele Monate der Zeitplan zeigt. „wie Programm" nimmt die Höchstlaufzeit;
- * eine Länge unter der Laufzeit der Pakete steht nicht zur Wahl.
+ * Wie viele Monate der Zeitplan zeigt — ein Regler vom Ende des letzten
+ * Pakets bis zur Höchstlaufzeit des Programms. Gespeichert wird beim
+ * Loslassen (das native `change`), sonst wäre jeder Monat dazwischen ein
+ * Protokolleintrag. Ganz rechts heißt „wie Programm" und wird als leer
+ * gespeichert, damit die Achse einer geänderten Programmgrenze folgt.
  */
-function Achsenwahl({ antrag, programm, anzahl }: { antrag: Foerderantrag; programm: Foerderprogramm; anzahl: number }) {
+function Achsenregler({
+  antrag,
+  programm,
+  anzahl,
+  ziehen,
+}: {
+  antrag: Foerderantrag;
+  programm: Foerderprogramm;
+  anzahl: number;
+  ziehen: (monate: number | null) => void;
+}) {
   const speichern = useAendern();
-  const laengen = achsenlaengen(antrag.laufzeit);
-  // Was gerade gilt, steht immer in der Liste — auch eine krumme Zahl.
-  if (antrag.zeitachse !== null && !laengen.includes(anzahl)) laengen.push(anzahl);
-  laengen.sort((a, b) => a - b);
-  return (
-    <select
-      className="feld fd-achsenwahl"
-      aria-label="Monate im Zeitplan"
-      value={antrag.zeitachse === null ? "" : String(anzahl)}
-      onChange={(e) =>
-        speichern(`/foerderantraege/${antrag.id}/`, { zeitachse: e.target.value ? Number(e.target.value) : null })
+  const regler = useRef<HTMLInputElement>(null);
+  const { kuerzeste, laengste } = achsengrenzen(antrag, programm);
+
+  useEffect(() => {
+    const feld = regler.current;
+    if (!feld) return;
+    async function los() {
+      const monate = Number(feld!.value);
+      const zeitachse = monate >= laengste ? null : monate;
+      // Die Vorschau bleibt stehen, bis der neue Wert vom Server zurück ist
+      // (siehe Zeitplan) — sonst spränge die Achse kurz auf den alten zurück.
+      if (zeitachse === antrag.zeitachse) return ziehen(null);
+      try {
+        await speichern(`/foerderantraege/${antrag.id}/`, { zeitachse });
+      } catch {
+        ziehen(null);
       }
-    >
-      <option value="">wie Programm · {Math.max(programm.max_monate ?? 12, antrag.laufzeit, 1)} Monate</option>
-      {laengen.map((m) => (
-        <option key={m} value={m}>
-          {m} Monate
-        </option>
-      ))}
-    </select>
+    }
+    feld.addEventListener("change", los);
+    return () => feld.removeEventListener("change", los);
+  }, [antrag.id, antrag.zeitachse, kuerzeste, laengste, speichern, ziehen]);
+
+  // Nichts zu wählen: Die Pakete füllen das Programm schon aus.
+  if (kuerzeste >= laengste) return null;
+  return (
+    <div className="fd-achsenregler">
+      <input
+        ref={regler}
+        type="range"
+        min={kuerzeste}
+        max={laengste}
+        step={1}
+        value={anzahl}
+        aria-label="Monate im Zeitplan"
+        aria-valuetext={`${anzahl} Monate`}
+        onChange={(e) => ziehen(Number(e.target.value))}
+      />
+      <span className="fd-achsenmarken" aria-hidden="true">
+        <span>Paketende · {monatsname(kuerzeste, antrag.beginn)}</span>
+        <span>wie Programm · {monatsname(laengste, antrag.beginn)}</span>
+      </span>
+    </div>
   );
 }
 

@@ -16,7 +16,7 @@ import {
   inCent,
   istAufgeschluesselt,
   monatsanzahl,
-  achsenlaengen,
+  achsengrenzen,
   monatsname,
   neuePaketmonate,
   offeneFragenDerOrganisation,
@@ -58,11 +58,12 @@ describe("die Zeitleiste", () => {
     expect(monatsanzahl(antrag(), programm({ max_monate: null }))).toBe(12);
   });
 
-  it("nimmt die eingestellte Achse, schneidet aber keinen Balken ab", () => {
-    expect(monatsanzahl(antrag({ zeitachse: 36, laufzeit: 18 }), programm())).toBe(36);
-    expect(monatsanzahl(antrag({ zeitachse: 12, laufzeit: 6 }), programm())).toBe(12);
+  it("nimmt die eingestellte Achse zwischen Paketende und Programm", () => {
+    expect(monatsanzahl(antrag({ zeitachse: 20, laufzeit: 18 }), programm())).toBe(20);
+    expect(monatsanzahl(antrag({ zeitachse: 36, laufzeit: 18 }), programm())).toBe(24);
     expect(monatsanzahl(antrag({ zeitachse: 12, laufzeit: 20 }), programm())).toBe(20);
-    expect(achsenlaengen(20)).toEqual([24, 30, 36, 48, 60]);
+    expect(monatsanzahl(antrag({ zeitachse: 12, laufzeit: 30 }), programm())).toBe(30);
+    expect(achsengrenzen(antrag({ laufzeit: 0 }), programm())).toEqual({ kuerzeste: 1, laengste: 24 });
   });
 
   it("nennt Projektmonate, mit Beginn Kalendermonate", () => {
