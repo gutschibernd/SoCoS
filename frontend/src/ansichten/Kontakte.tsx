@@ -54,6 +54,7 @@ import {
   type Verlaufszeile,
 } from "../basis/kontakte";
 import type { Seite } from "../basis/router";
+import { melden } from "../basis/meldungen";
 import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Feldtext } from "../bausteine/Feldtext";
@@ -906,6 +907,15 @@ function Personenkarte({
   );
 }
 
+async function telefonKopieren(telefon: string) {
+  try {
+    await navigator.clipboard.writeText(telefon);
+    melden("gut", "Telefonnummer kopiert.");
+  } catch {
+    melden("fehler", "Kopieren ging nicht — der Browser hat die Zwischenablage nicht freigegeben.");
+  }
+}
+
 function Personenkachel({
   kontakt,
   organisationen,
@@ -1002,6 +1012,19 @@ function Personenkachel({
               aendern={ich.darf.bearbeiten}
               speichern={(telefon) => speichern({ telefon })}
             />
+          )}
+          {/* Am Handy ist die Nummer sonst kaum zu greifen: Wer bearbeiten
+              darf, öffnet mit dem Tippen das Feld, und `tel:` wählt gleich —
+              markieren und kopieren geht in beiden Fällen nicht. */}
+          {kontakt.telefon && (
+            <button
+              type="button"
+              className="mini draht-kopie"
+              aria-label={`Telefonnummer von ${kontakt.name} kopieren`}
+              onClick={() => telefonKopieren(kontakt.telefon)}
+            >
+              <Zeichen name="kopie" />
+            </button>
           )}
         </span>
       </div>

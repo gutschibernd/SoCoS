@@ -1177,6 +1177,9 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .draht-zeile > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .draht-verweis { color: var(--text-leise); text-decoration: none; }
 .draht-verweis:hover { text-decoration: underline; }
+/* Der Kopierknopf hängt rechts an der Nummer und wird nie abgeschnitten —
+   die Regel darüber würde ihn sonst wie die Adresse kürzen. */
+.draht-zeile > .draht-kopie { flex: 0 0 auto; overflow: visible; margin-left: auto; padding: 0 8px; min-height: 26px; }
 
 /* Woher die Person kommt — leise, weil es eine Herkunftsangabe ist und kein
    Vorgang. Sie steht über dem Fuß und nicht in ihm: Im Fuß stünde sie neben
@@ -2939,6 +2942,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .untermenue a { flex: 0 0 auto; }
 
   .mini { min-height: var(--griff); }
+  .draht-zeile > .draht-kopie { min-height: var(--griff); min-width: var(--griff); }
   .tabelle td.zeilen-aktionen { justify-content: flex-end; }
   .tabelle td.zeilen-aktionen::before { content: "Aktionen"; }
 
