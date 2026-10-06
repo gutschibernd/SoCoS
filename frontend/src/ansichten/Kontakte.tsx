@@ -328,6 +328,7 @@ function Uebersicht({
   const [suche, setSuche] = useState("");
   const [ball, setBall] = useState<Ballfilter>("alle");
   const [neue, setNeue] = useState({ name: "", typ: "" });
+  const [anlegenOffen, setAnlegenOffen] = useState(false);
   const [fehler, setFehler] = useState("");
   // Nach Namen, wie die Liste vom Server kommt. Die Sortierung steht im
   // Zustand der Ansicht und nicht im Weg: Sie ist eine Blickrichtung auf
@@ -348,6 +349,7 @@ function Uebersicht({
       body: JSON.stringify({ name: neue.name.trim(), typ: neue.typ.trim() }),
     });
     setNeue({ name: "", typ: "" });
+    setAnlegenOffen(false);
     neuLaden();
     // Gleich hinein: Wer eine Organisation anlegt, will als Nächstes die
     // Personen und den ersten Verlaufseintrag eintragen.
@@ -368,7 +370,14 @@ function Uebersicht({
     return (
       <>
         {ich.darf.bearbeiten && (
-          <NeueOrganisation neue={neue} setNeue={setNeue} anlegen={anlegen} fehler={fehler} />
+          <NeueOrganisation
+            neue={neue}
+            setNeue={setNeue}
+            anlegen={anlegen}
+            fehler={fehler}
+            organisationen={organisationen}
+            oeffnen={oeffnen}
+          />
         )}
         <div className="karte">
           <Leerstelle
@@ -390,17 +399,36 @@ function Uebersicht({
 
   return (
     <>
-      {ich.darf.bearbeiten && <NeueOrganisation neue={neue} setNeue={setNeue} anlegen={anlegen} fehler={fehler} />}
-
+      {/*
+        Suchen und Anlegen sind zwei Karten, die sich nicht ähnlich sehen
+        (Rückmeldung Bernd, 2026-10-06): Vorher standen zwei gleiche Felder
+        übereinander, und wer im oberen nach einem Namen suchte und Enter
+        drückte, hatte eine neue Organisation angelegt. Jetzt steht die Suche
+        oben, das Anlegen liegt hinter einem Knopf und ist als Handlung
+        abgesetzt — man kommt nicht mehr aus Versehen hinein.
+      */}
       <div className="karte">
+        <div className="ko-suchkopf">
+          <h2>Suchen</h2>
+          {ich.darf.bearbeiten && !anlegenOffen && (
+            <button type="button" className="knopf-still" onClick={() => setAnlegenOffen(true)}>
+              <Zeichen name="plus" />
+              Neue Organisation
+            </button>
+          )}
+        </div>
         <div className="feld-reihe">
-          <input
-            className="feld"
-            placeholder="Suchen — Organisation, Person, offener Punkt …"
-            value={suche}
-            onChange={(e) => setSuche(e.target.value)}
-            aria-label="Suchen"
-          />
+          <label className="ko-suche">
+            <Zeichen name="lupe" />
+            <input
+              className="feld"
+              type="search"
+              placeholder="Organisation, Person, offener Punkt …"
+              value={suche}
+              onChange={(e) => setSuche(e.target.value)}
+              aria-label="Suchen"
+            />
+          </label>
           <select
             className="feld"
             style={{ flex: "0 1 210px" }}
@@ -436,6 +464,22 @@ function Uebersicht({
           </select>
         </div>
       </div>
+
+      {ich.darf.bearbeiten && anlegenOffen && (
+        <NeueOrganisation
+          neue={neue}
+          setNeue={setNeue}
+          anlegen={anlegen}
+          fehler={fehler}
+          organisationen={organisationen}
+          oeffnen={oeffnen}
+          abbrechen={() => {
+            setAnlegenOffen(false);
+            setNeue({ name: "", typ: "" });
+            setFehler("");
+          }}
+        />
+      )}
 
       <div className="karte">
         <h2>Organisationen</h2>
@@ -545,22 +589,37 @@ function NeueOrganisation({
   setNeue,
   anlegen,
   fehler,
+  organisationen,
+  oeffnen,
+  abbrechen,
 }: {
   neue: { name: string; typ: string };
   setNeue: (n: { name: string; typ: string }) => void;
   anlegen: () => void;
   fehler: string;
+  organisationen: Organisation[];
+  oeffnen: (ziel: string) => void;
+  /** Fehlt im leeren Fall: Dort ist Anlegen das Einzige, was es zu tun gibt. */
+  abbrechen?: () => void;
 }) {
+  // Wer hier einen Namen tippt, den es schon gibt, wollte wahrscheinlich
+  // suchen. Die Zeile darunter sagt es, bevor ein Doppel entsteht.
+  const name = neue.name.trim().toLowerCase();
+  const gibtEs =
+    name.length >= 3 ? organisationen.filter((o) => o.name.toLowerCase().includes(name)).slice(0, 3) : [];
+
   return (
-    <div className="karte">
-      <h2>Neue Organisation</h2>
+    <div className="karte ko-neu">
+      <h2>Neue Organisation anlegen</h2>
       <div className="feld-reihe">
         <input
           className="feld"
-          placeholder="Name"
+          placeholder="Name der neuen Organisation"
           value={neue.name}
+          autoFocus={Boolean(abbrechen)}
           onChange={(e) => setNeue({ ...neue, name: e.target.value })}
           onKeyDown={(e) => e.key === "Enter" && anlegen()}
+          aria-label="Name der neuen Organisation"
         />
         <input
           className="feld"
@@ -573,7 +632,31 @@ function NeueOrganisation({
           <Zeichen name="plus" />
           Anlegen
         </button>
+        {abbrechen && (
+          <button type="button" className="knopf-still" onClick={abbrechen}>
+            Abbrechen
+          </button>
+        )}
       </div>
+      {gibtEs.length > 0 && (
+        <p className="ko-gibtes">
+          Gibt es schon:{" "}
+          {gibtEs.map((o, i) => (
+            <span key={o.id}>
+              {i > 0 && ", "}
+              <a
+                href={`/kontakte/${o.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  oeffnen(String(o.id));
+                }}
+              >
+                {o.name}
+              </a>
+            </span>
+          ))}
+        </p>
+      )}
       <Fehlerzeile text={fehler} />
     </div>
   );

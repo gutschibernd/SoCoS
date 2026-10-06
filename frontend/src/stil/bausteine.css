@@ -197,6 +197,7 @@
  * Seitenleiste (ab Etappe 2). Zwei Wörter, nie Fließtext.
  */
 .karte > h2,
+.ko-suchkopf > h2,
 .kennzahl .beschriftung,
 .tabelle th,
 .sicherung-teil h3,
@@ -235,6 +236,21 @@
  */
 .karte-achtung { border-left: 3px solid var(--warnung); background: var(--warnung-hell); }
 .karte-achtung > h2 { color: var(--text); }
+
+/* Kontakte: Suchen und Anlegen dürfen sich nicht ähnlich sehen. Die Suche
+   trägt eine Lupe im Feld, das Anlegen die Kupferkante der Handlung. */
+.ko-suchkopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.ko-suchkopf > h2 { margin: 0; }
+.ko-suche { position: relative; display: block; }
+.ko-suche > .zeichen {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; color: var(--text-leise); pointer-events: none;
+}
+.ko-suche > .feld { padding-left: 40px; }
+.ko-neu { border-left: 3px solid var(--akzent); background: var(--akzent-hell); }
+.ko-neu > h2 { color: var(--text); }
+.ko-gibtes { margin: 10px 0 0; font-size: 13px; color: var(--text); }
+.ko-gibtes a { color: var(--marke); font-weight: 600; }
 
 .raster { display: grid; gap: 16px; }
 .raster-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
