@@ -957,7 +957,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Länge der Zeitleiste",
-              text: "Der Regler rechts über der Zeitleiste stellt ein, wie viele Monate sie zeigt — von „Paketende“ (wo das letzte Paket aufhört) bis „wie Programm“ (die Höchstlaufzeit). Länger als das Programm geht nicht, kürzer als die Pakete auch nicht: Reicht ein Paket weiter, wächst die Leiste mit. Füllen die Pakete das Programm schon aus, gibt es nichts einzustellen, und der Regler fehlt.",
+              text: "Der Knopf mit der Monatszahl rechts über der Zeitleiste klappt einen Regler auf. Er stellt ein, wie viele Monate sie zeigt — von „Paketende“ (wo das letzte Paket aufhört) bis „wie Programm“ (die Höchstlaufzeit). Länger als das Programm geht nicht, kürzer als die Pakete auch nicht: Reicht ein Paket weiter, wächst die Leiste mit. Füllen die Pakete das Programm schon aus, gibt es nichts einzustellen, und der Knopf fehlt.",
             },
             {
               begriff: "Stunden und Kalkulation",

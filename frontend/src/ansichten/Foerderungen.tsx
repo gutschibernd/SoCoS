@@ -1502,7 +1502,8 @@ function Zeitplan({
 
 /**
  * Wie viele Monate der Zeitplan zeigt — ein Regler vom Ende des letzten
- * Pakets bis zur Höchstlaufzeit des Programms. Gespeichert wird beim
+ * Pakets bis zur Höchstlaufzeit des Programms, eingeklappt hinter einem
+ * Knopf mit der Monatszahl: eingestellt wird selten. Gespeichert wird beim
  * Loslassen (das native `change`), sonst wäre jeder Monat dazwischen ein
  * Protokolleintrag. Ganz rechts heißt „wie Programm" und wird als leer
  * gespeichert, damit die Achse einer geänderten Programmgrenze folgt.
@@ -1520,6 +1521,7 @@ function Achsenregler({
 }) {
   const speichern = useAendern();
   const regler = useRef<HTMLInputElement>(null);
+  const [offen, setOffen] = useState(false);
   const { kuerzeste, laengste } = achsengrenzen(antrag, programm);
 
   useEffect(() => {
@@ -1539,28 +1541,42 @@ function Achsenregler({
     }
     feld.addEventListener("change", los);
     return () => feld.removeEventListener("change", los);
-  }, [antrag.id, antrag.zeitachse, kuerzeste, laengste, speichern, ziehen]);
+  }, [antrag.id, antrag.zeitachse, kuerzeste, laengste, speichern, ziehen, offen]);
 
   // Nichts zu wählen: Die Pakete füllen das Programm schon aus.
   if (kuerzeste >= laengste) return null;
   return (
-    <div className="fd-achsenregler">
-      <input
-        ref={regler}
-        type="range"
-        min={kuerzeste}
-        max={laengste}
-        step={1}
-        value={anzahl}
-        aria-label="Monate im Zeitplan"
-        aria-valuetext={`${anzahl} Monate`}
-        onChange={(e) => ziehen(Number(e.target.value))}
-      />
-      <span className="fd-achsenmarken" aria-hidden="true">
-        <span>Paketende · {monatsname(kuerzeste, antrag.beginn)}</span>
-        <span>wie Programm · {monatsname(laengste, antrag.beginn)}</span>
-      </span>
-    </div>
+    <>
+      <button
+        type="button"
+        className="knopf-still fd-achsenknopf"
+        aria-expanded={offen}
+        aria-label={`Monate im Zeitplan: ${anzahl}`}
+        onClick={() => setOffen((o) => !o)}
+      >
+        <span className="zahl">{anzahl} Monate</span>
+        <Zeichen name="zeiger" klasse="zeiger-klapp" />
+      </button>
+      {offen && (
+        <div className="fd-achsenregler">
+          <input
+            ref={regler}
+            type="range"
+            min={kuerzeste}
+            max={laengste}
+            step={1}
+            value={anzahl}
+            aria-label="Monate im Zeitplan"
+            aria-valuetext={`${anzahl} Monate`}
+            onChange={(e) => ziehen(Number(e.target.value))}
+          />
+          <span className="fd-achsenmarken" aria-hidden="true">
+            <span>Paketende · {monatsname(kuerzeste, antrag.beginn)}</span>
+            <span>wie Programm · {monatsname(laengste, antrag.beginn)}</span>
+          </span>
+        </div>
+      )}
+    </>
   );
 }
 
