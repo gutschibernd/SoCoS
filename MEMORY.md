@@ -7,6 +7,17 @@ betrifft.
 
 ---
 
+## 2026-10-06 — Länge der Zeitleiste im Antrag (Migration 0043)
+
+`Foerderantrag.zeitachse` (nullbar): wie viele Monate der Zeitplan zeigt
+(Wunsch Bernd). Leer heißt wie bisher: die Höchstlaufzeit des Programms, ohne
+Programmgrenze 12. **Die Einstellung ist ein Wunsch, keine Schere** —
+`monatsanzahl()` nimmt nie weniger als die Laufzeit der Pakete, sonst
+verschwände ein Balken still über den Rand. Gespeichert statt nur im Browser
+gemerkt, weil auch die Kachel am Programm und der kopierte Antragstext
+(`projektinhalt`) dieselbe Achse zeichnen. Nur die Länge, kein eigener
+Anfang: Monat 1 ist der Projektbeginn, früher liegt kein Paket.
+
 ## 2026-10-06 — Stunden und Kalkulation in Förderanträgen (Migration 0042)
 
 Für den eingereichten KWF-Antrag (Umsetzung.F&E&I): Der Kostenplan dort hat

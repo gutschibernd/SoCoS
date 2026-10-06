@@ -621,6 +621,8 @@ export type Foerderantrag = {
   foerderwerber: string;
   /** Geplanter Beginn — rechnet Projektmonate in Kalendermonate um. */
   beginn: string | null;
+  /** Monate im Zeitplan; leer heißt: wie das Programm (siehe monatsanzahl). */
+  zeitachse: number | null;
   beschreibung: string;
   nutzen: string;
   mehrwert: string;

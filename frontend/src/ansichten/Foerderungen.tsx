@@ -57,6 +57,7 @@ import {
   istAufgeschluesselt,
   istOffen,
   monatsanzahl,
+  achsenlaengen,
   monatsname,
   neuePaketmonate,
   paketsumme,
@@ -1360,6 +1361,7 @@ function Zeitplan({
         <span className="fd-leise">
           {darf ? "Balken ziehen verschiebt, Ränder ziehen verlängert" : `${antrag.pakete.length} Pakete`}
         </span>
+        {darf && <Achsenwahl antrag={antrag} programm={programm} anzahl={anzahl} />}
       </div>
 
       <div className="fd-zeilen" role="list">
@@ -1492,6 +1494,35 @@ function Zeitplan({
         </form>
       )}
     </section>
+  );
+}
+
+/**
+ * Wie viele Monate der Zeitplan zeigt. „wie Programm" nimmt die Höchstlaufzeit;
+ * eine Länge unter der Laufzeit der Pakete steht nicht zur Wahl.
+ */
+function Achsenwahl({ antrag, programm, anzahl }: { antrag: Foerderantrag; programm: Foerderprogramm; anzahl: number }) {
+  const speichern = useAendern();
+  const laengen = achsenlaengen(antrag.laufzeit);
+  // Was gerade gilt, steht immer in der Liste — auch eine krumme Zahl.
+  if (antrag.zeitachse !== null && !laengen.includes(anzahl)) laengen.push(anzahl);
+  laengen.sort((a, b) => a - b);
+  return (
+    <select
+      className="feld fd-achsenwahl"
+      aria-label="Monate im Zeitplan"
+      value={antrag.zeitachse === null ? "" : String(anzahl)}
+      onChange={(e) =>
+        speichern(`/foerderantraege/${antrag.id}/`, { zeitachse: e.target.value ? Number(e.target.value) : null })
+      }
+    >
+      <option value="">wie Programm · {Math.max(programm.max_monate ?? 12, antrag.laufzeit, 1)} Monate</option>
+      {laengen.map((m) => (
+        <option key={m} value={m}>
+          {m} Monate
+        </option>
+      ))}
+    </select>
   );
 }
 

@@ -237,6 +237,14 @@ class TestSchnittstelle:
         assert not Foerderpaket.objects.filter(pk=paket.pk).exists()
         assert Foerderpaket.alle_objekte.filter(pk=paket.pk).exists()  # weich
 
+    def test_zeitachse_einstellen(self, client, bearbeiter, antrag):
+        client.force_login(bearbeiter)
+        pfad = f"/api/foerderantraege/{antrag.pk}/"
+        assert client.patch(pfad, {"zeitachse": 36}, content_type="application/json").json()["zeitachse"] == 36
+        assert client.patch(pfad, {"zeitachse": 0}, content_type="application/json").status_code == 400
+        assert client.patch(pfad, {"zeitachse": 121}, content_type="application/json").status_code == 400
+        assert client.patch(pfad, {"zeitachse": None}, content_type="application/json").json()["zeitachse"] is None
+
     def test_stunden_und_posten_ueber_die_schnittstelle(self, client, bearbeiter, antrag):
         paket = _paket(antrag, "Bau", 1, 2, None)
         client.force_login(bearbeiter)

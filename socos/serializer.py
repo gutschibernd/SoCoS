@@ -984,7 +984,7 @@ class FoerderantragSerializer(serializers.ModelSerializer):
     class Meta:
         model = Foerderantrag
         fields = [
-            "id", "programm", "nummer", "titel", "stand", "foerderwerber", "beginn",
+            "id", "programm", "nummer", "titel", "stand", "foerderwerber", "beginn", "zeitachse",
             "beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb", "datenbedarf",
             "stundensatz", "gemeinkosten", "foerderquote",
             "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "geaendert_am",
@@ -1008,6 +1008,8 @@ class FoerderantragSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({feld: "Der Wert ist nicht negativ."})
         if daten.get("foerderquote") is not None and daten["foerderquote"] > 100:
             raise serializers.ValidationError({"foerderquote": "Mehr als 100 % gibt es nicht."})
+        if daten.get("zeitachse") is not None and not 1 <= daten["zeitachse"] <= 120:
+            raise serializers.ValidationError({"zeitachse": "Der Zeitplan zeigt 1 bis 120 Monate."})
         return daten
 
     def get_summe(self, antrag):

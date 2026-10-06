@@ -3040,8 +3040,9 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-neu { margin-top: 12px; }
 .fd-knopfzeile { margin-top: 8px; }
 .fd-rechts { margin-left: auto; }
-.fd-kartenkopf { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.fd-kartenkopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
 .fd-kartenkopf > h2 { margin: 0; flex: 1 1 auto; font-size: 12.5px; font-weight: 600; color: var(--text-leise); }
+.fd-achsenwahl { width: auto; flex: 0 0 auto; margin-left: auto; }
 
 .fd-eckdaten {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));

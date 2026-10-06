@@ -956,6 +956,10 @@ function ModuleDoku() {
               text: "Die Zeitleiste zählt M1, M2 … ab dem Projektbeginn, denn der hängt an der Förderzusage. Trägst du oben einen geplanten Beginn ein, stehen dort die Kalendermonate.",
             },
             {
+              begriff: "Länge der Zeitleiste",
+              text: "Die Auswahl rechts über der Zeitleiste stellt ein, wie viele Monate sie zeigt. „wie Programm“ nimmt die Höchstlaufzeit des Programms. Kürzer als die Pakete wird sie nie: Reicht ein Paket weiter, wächst die Leiste mit.",
+            },
+            {
               begriff: "Stunden und Kalkulation",
               text: "Programme mit Kostenleitfaden (KWF, FFG) wollen Stunden je Person und Paket statt eines Betrags. Im aufgeklappten Paket trägst du unter „Stunden“ Person und Stunden ein, unter Kalkulation den Stundensatz, die Gemeinkostenpauschale und die Förderquote, dazu die Sach- und Materialposten — mit oder ohne Paket. Die Rechnung darunter geht wie im Kostenplan: Personal plus Sachkosten sind die direkten Kosten, darauf die Pauschale, davon die Quote ist der Zuschuss. Ohne Quote bleibt es wie beim Land NÖ: Die Beträge der Pakete sind schon die Fördersumme.",
             },

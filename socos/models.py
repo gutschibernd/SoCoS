@@ -2235,6 +2235,10 @@ class Foerderantrag(Basismodell):
     stand = models.CharField("Stand", max_length=12, choices=Stand.choices, default=Stand.ENTWURF)
     foerderwerber = models.CharField("Förderwerber", max_length=200, blank=True)
     beginn = models.DateField("Geplanter Beginn", null=True, blank=True)
+    # Wie viele Monate der Zeitplan zeigt. Leer heißt: so viele, wie das
+    # Programm höchstens erlaubt. Kürzer als die Pakete wird die Achse nie —
+    # das rechnet die Seite, damit kein Balken über den Rand fällt.
+    zeitachse = models.PositiveSmallIntegerField("Monate im Zeitplan", null=True, blank=True)
     # Das Formular nimmt 500 Zeichen. **Nicht** hart begrenzt: Beim Schreiben
     # ist ein Satz zu viel normal; die Seite zählt mit und sagt es.
     beschreibung = models.TextField("Beschreibung des Vorhabens", blank=True)
