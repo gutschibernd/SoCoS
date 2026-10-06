@@ -6,7 +6,8 @@
  * (socos/services/foerderung.py). Hier wird nur gezeichnet, was von dort kommt.
  */
 
-import type { Foerderantrag, Foerderfrage, Foerderprogramm } from "./daten";
+import type { Foerderantrag, Foerderfrage, Foerdergeber, Foerderprogramm } from "./daten";
+import { alsEuro } from "./module";
 
 /* --- Geld ------------------------------------------------------------------ */
 
@@ -174,4 +175,117 @@ export const antragsstandText = (stand: Foerderantrag["stand"]) => STAENDE.find(
 /** Wie viele Punkte der Reife erfüllt sind. */
 export function reifezahl(antrag: Foerderantrag): { erfuellt: number; von: number } {
   return { erfuellt: antrag.reife.filter((p) => p.erfuellt).length, von: antrag.reife.length };
+}
+
+/**
+ * Die drei Teile der Projektbeschreibung, Richtlinie V.4 a–c. Seite und
+ * Projektinhalt lesen beide von hier — sonst heißt ein Teil im kopierten Text
+ * bald anders als am Bildschirm.
+ */
+export const PROJEKTTEILE = [
+  ["nutzen", "a · Nutzen für Pflege und Betreuung", "Was die Technologie in der täglichen Pflege- und Betreuungsarbeit leistet."],
+  ["mehrwert", "b · Mehrwert gegenüber Bestehendem", "Was es heute gibt, und warum das nicht reicht."],
+  ["wirkung", "c · Wirkungsziele und Kennzahlen", "Woran man den Erfolg misst — mit Zahl, Ausgangswert und Ziel."],
+] as const;
+
+/* --- Der Projektinhalt zum Mitnehmen --------------------------------------- */
+
+const LEER = "_(noch leer)_";
+const oderLeer = (text: string) => text.trim() || LEER;
+
+/**
+ * Der ganze Antrag als Markdown, um ihn einem Sprachmodell zu geben:
+ * Eckdaten, Texte, Arbeitspakete, Zeitplan, Reife, Bedarf, Fragen.
+ *
+ * **Leere Felder stehen ausdrücklich als „noch leer" da**, statt wegzufallen —
+ * sonst erfindet das Modell den fehlenden Abschnitt, statt nach ihm zu fragen.
+ * Der Zeitplan steht zweimal: als Liste mit Monaten (lesbar) und als Raster
+ * in einem Codeblock (damit Überschneidungen sichtbar sind).
+ */
+export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, geber: Foerdergeber | null): string {
+  const pakete = [...antrag.pakete].sort((a, b) => a.reihenfolge - b.reihenfolge || a.id - b.id);
+  const anzahl = monatsanzahl(antrag, programm);
+  const z: string[] = [];
+
+  z.push(`# Förderantrag: ${antrag.titel || "(ohne Titel)"}`, "");
+  z.push("## Eckdaten", "");
+  if (geber) z.push(`- **Fördergeber:** ${geber.kurz ? `${geber.name} (${geber.kurz})` : geber.name}`);
+  z.push(`- **Programm:** ${programm.name}`);
+  if (programm.stelle) z.push(`- **Förderstelle:** ${programm.stelle}`);
+  if (programm.link) z.push(`- **Richtlinie / Link:** ${programm.link}`);
+  z.push(`- **Antrag:** Nr. ${antrag.nummer} · Stand: ${antragsstandText(antrag.stand)}`);
+  z.push(`- **Förderwerber:** ${antrag.foerderwerber || "noch offen"}`);
+  z.push(`- **Geplanter Beginn:** ${antrag.beginn ?? "noch offen"}`);
+  z.push(
+    `- **Laufzeit:** ${antrag.laufzeit} Monate` + (programm.max_monate ? ` (höchstens ${programm.max_monate})` : ""),
+  );
+  z.push(
+    `- **Summe der Arbeitspakete:** ${alsEuro(antrag.summe)}` +
+      (programm.max_foerderung ? ` (Höchstförderung ${alsEuro(programm.max_foerderung)})` : ""),
+  );
+  z.push(
+    `- **Zeichengrenzen im Online-Formular:** Kurzbezeichnung ${antrag.zeichen.titel}, Beschreibung ${antrag.zeichen.beschreibung}`,
+  );
+
+  const steckbrief = steckbriefpunkte(programm.steckbrief);
+  if (steckbrief.length) {
+    z.push("", "## Richtlinie in Kürze", "");
+    for (const p of steckbrief) z.push(p.begriff ? `- **${p.begriff}:** ${p.text}` : `- ${p.text}`);
+  }
+
+  z.push("", "## Beschreibung des Vorhabens", "", oderLeer(antrag.beschreibung));
+  z.push("", "## Projektbeschreibung");
+  for (const [feld, titel] of PROJEKTTEILE) z.push("", `### ${titel}`, "", oderLeer(antrag[feld]));
+  z.push("", "## Kostenprognose Regelbetrieb", "", oderLeer(antrag.regelbetrieb));
+
+  z.push("", "## Arbeitspakete", "");
+  if (pakete.length === 0) z.push(LEER);
+  pakete.forEach((p, i) => {
+    z.push(`### AP${i + 1} · ${p.titel || "(ohne Titel)"}`, "");
+    const monate = spanne(p.von, p.bis, null);
+    z.push(`- **Zeitraum:** ${monate}${antrag.beginn ? ` (${spanne(p.von, p.bis, antrag.beginn)})` : ""}`);
+    z.push(`- **Dauer:** ${p.bis - p.von + 1} Monate`);
+    z.push(`- **Betrag:** ${p.betrag ? alsEuro(p.betrag) : "noch offen"}`);
+    z.push(`- **Ziel:** ${p.ziel.trim() || "noch leer"}`);
+    z.push(`- **Ergebnis:** ${p.ergebnis.trim() || "noch leer"}`, "");
+  });
+
+  if (pakete.length) {
+    z.push("## Zeitplan", "", "```");
+    const breite = String(anzahl).length + 1;
+    const kopf = Array.from({ length: anzahl }, (_, i) => `M${i + 1}`.padStart(breite)).join(" ");
+    z.push(`${"".padEnd(5)} ${kopf}`);
+    pakete.forEach((p, i) => {
+      const zellen = Array.from({ length: anzahl }, (_, m) =>
+        (m + 1 >= p.von && m + 1 <= p.bis ? "█" : "·").repeat(breite),
+      ).join(" ");
+      z.push(`${`AP${i + 1}`.padEnd(5)} ${zellen}`);
+    });
+    z.push("```", "");
+  }
+
+  if (antrag.reife.length) {
+    const { erfuellt, von } = reifezahl(antrag);
+    z.push(`## Antragsreife (${erfuellt} von ${von})`, "");
+    for (const p of antrag.reife) z.push(`- [${p.erfuellt ? "x" : " "}] ${p.text}${p.hinweis ? ` — ${p.hinweis}` : ""}`);
+    z.push("");
+  }
+
+  const bedarf = bedarfspunkte(antrag.datenbedarf);
+  if (bedarf.length) {
+    z.push("## Was wir noch brauchen", "");
+    for (const p of bedarf) z.push(`- [${p.da ? "x" : " "}] ${p.text}`);
+    z.push("");
+  }
+
+  if (programm.fragen.length) {
+    z.push(`## Fragen an die Förderstelle (${fragenStand(programm.fragen)})`, "");
+    for (const f of fragenSortiert(programm.fragen)) {
+      z.push(`- [${f.beantwortet ? "x" : " "}] ${f.frage}`);
+      if (f.antwort.trim()) z.push(`  - Antwort: ${f.antwort.trim().replace(/\r?\n/g, " ")}`);
+    }
+    z.push("");
+  }
+
+  return z.join("\n").trimEnd() + "\n";
 }

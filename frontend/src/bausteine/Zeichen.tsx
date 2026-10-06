@@ -50,7 +50,8 @@ export type ZeichenName =
   | "akademie"
   | "mappe"
   | "thoughts"
-  | "foerderung";
+  | "foerderung"
+  | "kopie";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -142,6 +143,8 @@ const PFADE: Record<ZeichenName, string> = {
   // Sternkarte im Kleinen. Drei und nicht vier: Symmetrisch wird daraus bei
   // 18 px ein Kreuz, und ein Kreuz heißt „schließen".
   thoughts: "M10 10h4v4h-4zM4 4h4v4H4zM16 4h4v4h-4zM4 16h4v4H4zM8 8l2 2M16 8l-2 2M8 16l2-2",
+  // Zwei Blätter versetzt — das vordere ganz, vom hinteren nur die Ecke.
+  kopie: "M8.5 8.5h11v11h-11zM15.5 8.5V4.5h-11v11h4",
   // Drei Münzen übereinander — Geld, das zu einem Vorhaben dazukommt.
   foerderung:
     "M4 7c0-1.4 3.6-2.5 8-2.5s8 1.1 8 2.5-3.6 2.5-8 2.5S4 8.4 4 7zM4 7v5c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5V7M4 12v5c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5v-5",

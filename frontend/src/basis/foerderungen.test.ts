@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Foerderantrag, Foerderfrage, Foerderprogramm } from "./daten";
+import type { Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderprogramm } from "./daten";
 import {
   ausCent,
   bedarfDazu,
@@ -14,6 +14,7 @@ import {
   monatsanzahl,
   monatsname,
   neuePaketmonate,
+  projektinhalt,
   spanne,
   steckbriefpunkte,
 } from "./foerderungen";
@@ -114,5 +115,73 @@ describe("der Weg zu einem Antrag", () => {
     expect(foerderungAusWeg("foerderungen/2/4/12/1")).toBeNull();
     expect(themaAusWeg("foerderungen/12")).toBeNull();
     expect(foerderungAusWeg("foerderungen")).toBeNull();
+  });
+});
+
+describe("der Projektinhalt zum Kopieren", () => {
+  const paket = (id: number, teil: Partial<Foerderpaket>) =>
+    ({ id, titel: `P${id}`, ziel: "", ergebnis: "", betrag: null, reihenfolge: id, von: 1, bis: 1, ...teil }) as Foerderpaket;
+  const voll = antrag({
+    titel: "Dosetten digital",
+    nummer: 2,
+    stand: "entwurf",
+    foerderwerber: "Sopharmis",
+    beginn: "2027-01-01",
+    beschreibung: "Worum es geht.",
+    nutzen: "",
+    mehrwert: "",
+    wirkung: "",
+    regelbetrieb: "",
+    datenbedarf: "✓ Muster\nPersonalkosten",
+    laufzeit: 4,
+    summe: "30000.00",
+    zeichen: { titel: 100, beschreibung: 1000 },
+    reife: [{ schluessel: "x", text: "Titel gesetzt", erfuellt: true, hinweis: "" }],
+    // Absichtlich verkehrt herum — die Reihenfolge entscheidet, nicht die Liste.
+    pakete: [
+      paket(2, { titel: "Pilot", von: 3, bis: 4, betrag: "30000.00", reihenfolge: 2 }),
+      paket(1, { titel: "Konzept", von: 1, bis: 2, ziel: "Plan steht", reihenfolge: 1 }),
+    ],
+  });
+  const prog = programm({
+    name: "Pflegeinnovation",
+    stelle: "",
+    link: "",
+    max_monate: 4,
+    max_foerderung: "50000.00",
+    steckbrief: "Höhe: höchstens 50.000 €",
+    fragen: [frage(1, true), frage(2, false)],
+  });
+  const geber = { id: 1, name: "Land Niederösterreich", kurz: "NÖ" } as Foerdergeber;
+  const text = projektinhalt(voll, prog, geber);
+
+  it("nennt Eckdaten, Richtlinie und Texte — leere ausdrücklich", () => {
+    expect(text).toMatch(/^# Förderantrag: Dosetten digital\n/);
+    expect(text).toContain("- **Fördergeber:** Land Niederösterreich (NÖ)");
+    expect(text).toContain("- **Antrag:** Nr. 2 · Stand: Entwurf");
+    expect(text).toContain("- **Höhe:** höchstens 50.000 €");
+    expect(text).toContain("## Beschreibung des Vorhabens\n\nWorum es geht.");
+    expect(text).toContain("### a · Nutzen für Pflege und Betreuung\n\n_(noch leer)_");
+  });
+
+  it("stellt die Arbeitspakete in ihrer Reihenfolge mit Monaten dar", () => {
+    expect(text.indexOf("### AP1 · Konzept")).toBeLessThan(text.indexOf("### AP2 · Pilot"));
+    expect(text).toContain("- **Zeitraum:** M3–M4 (Mär 27 – Apr 27)");
+    expect(text).toContain("- **Ziel:** Plan steht");
+    expect(text).toContain("- **Betrag:** noch offen");
+    expect(text).toContain("```\n      M1 M2 M3 M4\nAP1   ██ ██ ·· ··\nAP2   ·· ·· ██ ██\n```");
+  });
+
+  it("hakt Reife, Bedarf und Fragen ab, offene Fragen zuerst", () => {
+    expect(text).toContain("## Antragsreife (1 von 1)\n\n- [x] Titel gesetzt");
+    expect(text).toContain("- [x] Muster\n- [ ] Personalkosten");
+    expect(text).toContain("## Fragen an die Förderstelle (1 offen)\n\n- [ ] F2\n- [x] F1");
+  });
+
+  it("kommt ohne Fördergeber und ohne Pakete aus", () => {
+    const knapp = projektinhalt(antrag({ ...voll, pakete: [] }), { ...prog, fragen: [] }, null);
+    expect(knapp).not.toContain("Fördergeber");
+    expect(knapp).toContain("## Arbeitspakete\n\n_(noch leer)_");
+    expect(knapp).not.toContain("## Zeitplan");
   });
 });

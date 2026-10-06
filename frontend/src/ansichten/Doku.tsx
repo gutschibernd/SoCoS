@@ -971,6 +971,10 @@ function ModuleDoku() {
               text: "Die Liste rechts im Antrag: Daten und Unterlagen, die von anderen kommen. Abhaken, sobald sie da sind.",
             },
             {
+              begriff: "Projektinhalt kopieren",
+              text: "Der Knopf oben im Antrag legt den ganzen Antrag als gegliederten Text in die Zwischenablage: Eckdaten, Richtlinie in Kürze, alle Texte, die Arbeitspakete mit Monaten und Betrag, den Zeitplan als Raster, Antragsreife, Bedarf und Fragen. Den fügst du in ein Sprachmodell ein, um daran weiterzuschreiben. Leere Felder stehen dort als „noch leer“, damit das Modell nachfragt, statt etwas zu erfinden.",
+            },
+            {
               begriff: "Kein SoCoS-Projekt",
               text: "Die Arbeitspakete eines Antrags sind keine Projektpakete, auf sie wird keine Zeit gebucht. Wird ein Antrag bewilligt, legst du das Projekt unter Projekt an.",
             },

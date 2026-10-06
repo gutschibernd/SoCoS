@@ -39,6 +39,7 @@ import {
   type Ich,
 } from "../basis/daten";
 import {
+  PROJEKTTEILE,
   STAENDE,
   antragsstandText,
   bedarfDazu,
@@ -52,6 +53,7 @@ import {
   monatsanzahl,
   monatsname,
   neuePaketmonate,
+  projektinhalt,
   reifezahl,
   spanne,
   steckbriefpunkte,
@@ -847,6 +849,7 @@ function Richtlinienkarte({ programm, darf }: { programm: Foerderprogramm; darf:
 
 export function Antragsseite({ ich, id, wechseln }: { ich: Ich; id: number; wechseln: Wechseln }) {
   const programme = useFoerderungen();
+  const geber = useFoerdergeber();
   if (!programme.data) return <Zustand abfrage={programme} erneut={() => programme.refetch()} />;
 
   const programm = programme.data.find((p) => p.antraege.some((a) => a.id === id));
@@ -862,17 +865,38 @@ export function Antragsseite({ ich, id, wechseln }: { ich: Ich; id: number; wech
       </div>
     );
 
-  return <Antrag key={antrag.id} antrag={antrag} programm={programm} ich={ich} wechseln={wechseln} />;
+  // Der Fördergeber ist nur für den kopierten Projektinhalt da — fehlt er noch,
+  // wird die Seite deshalb nicht zurückgehalten.
+  const seinGeber = geber.data?.find((g) => g.id === programm.geber) ?? null;
+  return (
+    <Antrag key={antrag.id} antrag={antrag} programm={programm} geber={seinGeber} ich={ich} wechseln={wechseln} />
+  );
+}
+
+/**
+ * Den ganzen Antrag als Markdown in die Zwischenablage — zum Einfügen in ein
+ * Sprachmodell. Der Text kommt aus `projektinhalt` und damit aus dem, was die
+ * Seite gerade zeigt; ein Entwurf, der noch nicht gespeichert ist, fehlt.
+ */
+async function projektinhaltKopieren(antrag: Foerderantrag, programm: Foerderprogramm, geber: Foerdergeber | null) {
+  try {
+    await navigator.clipboard.writeText(projektinhalt(antrag, programm, geber));
+    melden("gut", "Projektinhalt kopiert.");
+  } catch {
+    melden("fehler", "Kopieren ging nicht — der Browser hat die Zwischenablage nicht freigegeben.");
+  }
 }
 
 function Antrag({
   antrag,
   programm,
+  geber,
   ich,
   wechseln,
 }: {
   antrag: Foerderantrag;
   programm: Foerderprogramm;
+  geber: Foerdergeber | null;
   ich: Ich;
   wechseln: Wechseln;
 }) {
@@ -905,7 +929,17 @@ function Antrag({
             >
               {programm.name}
             </a>
-            <span className="zahl fd-nummer">Antrag {antrag.nummer}</span>
+            <span className="fd-antragskopf-rechts">
+              <span className="zahl fd-nummer">Antrag {antrag.nummer}</span>
+              <button
+                type="button"
+                className="knopf-still"
+                onClick={() => projektinhaltKopieren(antrag, programm, geber)}
+              >
+                <Zeichen name="kopie" />
+                Projektinhalt kopieren
+              </button>
+            </span>
           </div>
           <Feldtext
             wert={antrag.titel}
@@ -973,13 +1007,7 @@ function Antrag({
         <section className="karte fd-abschnitt">
           <h2>Projektbeschreibung</h2>
           <p className="fd-wozu">Beilage „inhaltliche Projektbeschreibung“, Richtlinie V.4 a–c.</p>
-          {(
-            [
-              ["nutzen", "a · Nutzen für Pflege und Betreuung", "Was die Technologie in der täglichen Pflege- und Betreuungsarbeit leistet."],
-              ["mehrwert", "b · Mehrwert gegenüber Bestehendem", "Was es heute gibt, und warum das nicht reicht."],
-              ["wirkung", "c · Wirkungsziele und Kennzahlen", "Woran man den Erfolg misst — mit Zahl, Ausgangswert und Ziel."],
-            ] as const
-          ).map(([feld, titel, platzhalter]) => (
+          {PROJEKTTEILE.map(([feld, titel, platzhalter]) => (
             <div key={feld} className="fd-teil" id={`fd-${feld}`}>
               <h3>{titel}</h3>
               <Entwurfsfeld
