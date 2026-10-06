@@ -969,7 +969,7 @@ class FoerderfrageSerializer(serializers.ModelSerializer):
 class FoerdergeberSerializer(serializers.ModelSerializer):
     class Meta:
         model = Foerdergeber
-        fields = ["id", "name", "kurz", "link", "beschreibung"]
+        fields = ["id", "name", "kurz", "link", "beschreibung", "organisation"]
 
 
 class FoerderprogrammSerializer(serializers.ModelSerializer):

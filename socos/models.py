@@ -2120,6 +2120,20 @@ class Foerdergeber(Basismodell):
     kurz = models.CharField("Kürzel", max_length=12, blank=True)
     link = models.URLField("Link", blank=True)
     beschreibung = models.TextField("Beschreibung", blank=True)
+    # Dasselbe Haus unter Kontakte — dort stehen die Personen und der Verlauf.
+    #
+    # **Warum ein Verweis und kein zweites Adressbuch:** Wer bei der
+    # Förderstelle anruft, ist ein Kontakt wie jeder andere. Personen am
+    # Fördergeber zu führen hieße, dass dasselbe Telefonat an zwei Stellen
+    # steht — oder an einer davon fehlt.
+    organisation = models.ForeignKey(
+        Organisation,
+        verbose_name="Organisation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="foerdergeber",
+    )
 
     class Meta(Basismodell.Meta):
         verbose_name = "Fördergeber"

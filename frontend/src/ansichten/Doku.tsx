@@ -967,6 +967,10 @@ function ModuleDoku() {
               text: "Offene Fragen stehen oben. Das Kästchen davor hakt eine Frage ab, dann rutscht sie nach unten; ein zweiter Tipp öffnet sie wieder. Ein Tipp auf den Text klappt sie auf, dort trägst du Antwort und Quelle ein — auch schon, solange sie noch offen ist.",
             },
             {
+              begriff: "Telefonat mit der Förderstelle",
+              text: "Auf der Seite eines Fördergebers wählst du oben, welche Organisation unter Kontakte dazugehört. Deren Seite zeigt dann alle offenen Fragen an diesen Fördergeber. Während des Gesprächs tippst du die Antworten in die Felder, danach „Als Telefonat eintragen“: Die beantworteten Fragen werden abgehakt, mit Datum und Person als Quelle, und das Gespräch steht mit allen Fragen und Antworten im Verlauf. Was leer bleibt, bleibt offen.",
+            },
+            {
               begriff: "Was wir noch brauchen",
               text: "Die Liste rechts im Antrag: Daten und Unterlagen, die von anderen kommen. Abhaken, sobald sie da sind.",
             },

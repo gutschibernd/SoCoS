@@ -154,6 +154,46 @@ export function fragenSortiert(fragen: Foerderfrage[]): Foerderfrage[] {
   );
 }
 
+/* --- Das Telefonat mit der Förderstelle ------------------------------------ */
+
+/**
+ * Die offenen Fragen aller Programme der Fördergeber, die an dieser
+ * Organisation hängen — das ist die Liste, die man beim Anruf vor sich hat.
+ */
+export function offeneFragenDerOrganisation(
+  organisation: number,
+  geber: Foerdergeber[],
+  programme: Foerderprogramm[],
+): { programm: Foerderprogramm; fragen: Foerderfrage[] }[] {
+  const ihre = new Set(geber.filter((g) => g.organisation === organisation).map((g) => g.id));
+  return programme
+    .filter((p) => ihre.has(p.geber))
+    .map((programm) => ({ programm, fragen: fragenSortiert(programm.fragen).filter(istOffen) }))
+    .filter((g) => g.fragen.length > 0);
+}
+
+/** „Telefonat 06.10.2026 · Anna Muster" — die Quelle, die an der Antwort steht. */
+export function telefonatQuelle(datum: string, mitWem: string): string {
+  const [j, m, t] = datum.split("-");
+  return [`Telefonat ${t}.${m}.${j}`, mitWem].filter(Boolean).join(" · ");
+}
+
+/**
+ * Der Text des Verlaufseintrags: jede beantwortete Frage mit ihrer Antwort,
+ * darunter, was offen geblieben ist.
+ *
+ * **Warum die offenen mit drinstehen:** In einem halben Jahr liest man den
+ * Eintrag und fragt sich, ob man danach überhaupt gefragt hat. Die Antwort
+ * steht dann da: ja, und es blieb offen.
+ */
+export function telefonatText(fragen: Foerderfrage[], antworten: Record<number, string>): string {
+  const beantwortet = fragen.filter((f) => antworten[f.id]?.trim());
+  const offen = fragen.filter((f) => !antworten[f.id]?.trim());
+  const teile = beantwortet.map((f) => `${f.frage}\n→ ${antworten[f.id].trim()}`);
+  if (offen.length) teile.push(["Offen geblieben:", ...offen.map((f) => `– ${f.frage}`)].join("\n"));
+  return teile.join("\n\n");
+}
+
 /** „3 offen", „alle beantwortet", „noch keine". */
 export function fragenStand(fragen: Foerderfrage[]): string {
   if (fragen.length === 0) return "noch keine";

@@ -14,7 +14,7 @@ import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from socos.models import Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderprogramm
+from socos.models import Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderprogramm, Organisation
 from socos.services import foerderung
 
 
@@ -261,7 +261,12 @@ def medien(tmp_path, settings):
 
 @pytest.mark.django_db(transaction=True)
 def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
-    geber = Foerdergeber.objects.create(name="FFG", kurz="FFG", link="https://www.ffg.at")
+    """
+    Der Fördergeber zeigt auf eine Organisation. Er muss deshalb **vor** ihr
+    geleert werden, sonst hält PROTECT beim Einspielen dagegen.
+    """
+    haus = Organisation.objects.create(name="Österreichische Forschungsförderungsgesellschaft")
+    geber = Foerdergeber.objects.create(name="FFG", kurz="FFG", link="https://www.ffg.at", organisation=haus)
     programm = Foerderprogramm.objects.create(geber=geber, name="Pflegeinnovation NÖ", max_foerderung=Decimal("50000"))
     Foerderfrage.objects.create(programm=programm, frage="Wie lang?", antwort="2 Jahre")
     antrag = Foerderantrag.objects.create(programm=programm, titel="Befüllsystem", wirkung="DGKP-Zeit")
@@ -278,3 +283,4 @@ def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
     assert paket.antrag.wirkung == "DGKP-Zeit"
     assert Foerderfrage.objects.get().antwort == "2 Jahre"
     assert paket.antrag.programm.geber.link == "https://www.ffg.at"
+    assert paket.antrag.programm.geber.organisation.name == "Österreichische Forschungsförderungsgesellschaft"

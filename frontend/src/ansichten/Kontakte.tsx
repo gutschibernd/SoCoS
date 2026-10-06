@@ -18,6 +18,8 @@ import { useState } from "react";
 import { hole } from "../basis/api";
 import {
   useEvents,
+  useFoerdergeber,
+  useFoerderungen,
   useKontakte,
   useNeuLaden,
   useOrganisationen,
@@ -26,6 +28,7 @@ import {
   type Kontakt,
   type Organisation,
 } from "../basis/daten";
+import { offeneFragenDerOrganisation, telefonatQuelle, telefonatText } from "../basis/foerderungen";
 import { eventsDerPerson, eventsZumVerbinden, standBeimVerbinden, type Eventbezug } from "../basis/events";
 import {
   ANREDEN,
@@ -248,6 +251,7 @@ export function Kontakte({
           zumLoeschen={setLoeschen}
           zumMeeting={(id) => wechseln("meetings", String(id))}
           zumEvent={(id) => wechseln("events", String(id))}
+          zurFoerderung={(weg) => wechseln("module", weg)}
         />
       ) : unter === LOSE ? (
         <LoseSeite
@@ -604,6 +608,7 @@ function Organisationsseite({
   zumLoeschen,
   zumMeeting,
   zumEvent,
+  zurFoerderung,
 }: {
   org: Organisation;
   organisationen: Organisation[];
@@ -614,6 +619,7 @@ function Organisationsseite({
   zumLoeschen: (auftrag: Loeschauftrag) => void;
   zumMeeting: (id: number) => void;
   zumEvent: (id: number) => void;
+  zurFoerderung: (weg: string) => void;
 }) {
   return (
     <>
@@ -722,6 +728,8 @@ function Organisationsseite({
         zumEvent={zumEvent}
       />
 
+      <Foerderfragenkarte org={org} ich={ich} neuLaden={neuLaden} zurFoerderung={zurFoerderung} />
+
       <Verlaufskarte
         zeilen={verlaufDerOrganisation(org)}
         kontakte={org.kontakte}
@@ -731,6 +739,162 @@ function Organisationsseite({
         zumMeeting={zumMeeting}
       />
     </>
+  );
+}
+
+/* --- Das Telefonat mit der Förderstelle ---------------------------------- */
+
+/**
+ * Die offenen Fragen an die Förderstelle — dort, wo man beim Anruf ohnehin
+ * steht: bei der Organisation, neben Telefonnummer und Verlauf.
+ *
+ * Während des Gesprächs tippt man die Antworten in die Felder; ein Knopf
+ * danach erledigt beides auf einmal: Die Antworten gehen an die Fragen im
+ * Modul Förderungen (abgehakt, Quelle „Telefonat …"), und das Gespräch steht
+ * mit Fragen und Antworten im Verlauf.
+ *
+ * **Warum ein Knopf und nicht zwei Wege:** Wer nach dem Telefonat erst die
+ * Fragen abhakt und dann den Verlauf schreibt, schreibt dasselbe zweimal —
+ * und beim zweiten Mal nur noch die Hälfte.
+ *
+ * Ohne verbundenen Fördergeber oder ohne offene Frage steht hier nichts.
+ */
+function Foerderfragenkarte({
+  org,
+  ich,
+  neuLaden,
+  zurFoerderung,
+}: {
+  org: Organisation;
+  ich: Ich;
+  neuLaden: () => void;
+  zurFoerderung: (weg: string) => void;
+}) {
+  const geber = useFoerdergeber();
+  const programme = useFoerderungen();
+  const [antworten, setAntworten] = useState<Record<number, string>>({});
+  const [mitWem, setMitWem] = useState(() => String(org.kontakte[0]?.id ?? "haus"));
+  const [datum, setDatum] = useState(heuteAlsDatum);
+  const [laeuft, setLaeuft] = useState(false);
+  const [fehler, setFehler] = useState("");
+
+  // Kein Zustand-Helfer: Die Karte ist eine Beigabe zur Seite. Fehlen die
+  // Daten, steht sie einfach (noch) nicht da.
+  if (!geber.data || !programme.data) return null;
+  const gruppen = offeneFragenDerOrganisation(org.id, geber.data, programme.data);
+  if (gruppen.length === 0) return null;
+  const fragen = gruppen.flatMap((g) => g.fragen);
+  const darf = ich.darf.bearbeiten;
+
+  async function eintragen() {
+    const beantwortet = fragen.filter((f) => antworten[f.id]?.trim());
+    if (beantwortet.length === 0)
+      return setFehler("Trag mindestens eine Antwort ein. Unbeantwortete Fragen bleiben offen.");
+    setFehler("");
+    setLaeuft(true);
+    try {
+      const person = org.kontakte.find((k) => String(k.id) === mitWem);
+      const quelle = telefonatQuelle(datum, person?.name ?? "");
+      for (const f of beantwortet) {
+        await hole(`/foerderfragen/${f.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({ antwort: antworten[f.id].trim(), beantwortet: true, quelle }),
+        });
+      }
+      await hole("/verlauf/", {
+        method: "POST",
+        body: JSON.stringify({
+          organisation: person ? null : org.id,
+          kontakt: person ? person.id : null,
+          art: "call",
+          datum,
+          titel: "Fragen zur Förderung",
+          text: telefonatText(fragen, antworten),
+        }),
+      });
+      setAntworten({});
+      melden("gut", `${beantwortet.length} ${beantwortet.length === 1 ? "Antwort" : "Antworten"} eingetragen`);
+      neuLaden();
+    } finally {
+      setLaeuft(false);
+    }
+  }
+
+  return (
+    <div className="karte ff-karte">
+      <div className="ff-kopf">
+        <h2>Offene Fragen zur Förderung</h2>
+        <span className="zahl ff-leise">{fragen.length} offen</span>
+      </div>
+
+      {gruppen.map(({ programm, fragen }) => (
+        <section key={programm.id} className="ff-gruppe">
+          <a
+            className="ff-programm"
+            href={`/module/foerderungen/${programm.geber}/${programm.id}`}
+            onClick={(e) => {
+              e.preventDefault();
+              zurFoerderung(`foerderungen/${programm.geber}/${programm.id}`);
+            }}
+          >
+            {programm.name}
+            <Zeichen name="zeiger" />
+          </a>
+          <ol className="ff-liste">
+            {fragen.map((f) => (
+              <li key={f.id}>
+                <label htmlFor={`ff-${f.id}`} className="ff-frage">
+                  {f.frage}
+                </label>
+                {f.antwort && <p className="ff-bisher">Bisher: {f.antwort}</p>}
+                {darf && (
+                  <textarea
+                    id={`ff-${f.id}`}
+                    className="feld"
+                    rows={2}
+                    placeholder="Antwort — leer lassen, wenn es offen bleibt"
+                    value={antworten[f.id] ?? ""}
+                    onChange={(e) => setAntworten({ ...antworten, [f.id]: e.target.value })}
+                  />
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+
+      {darf && (
+        <>
+          <div className="feld-reihe ff-abschluss">
+            <select
+              className="feld"
+              value={mitWem}
+              onChange={(e) => setMitWem(e.target.value)}
+              aria-label="Mit wem telefoniert"
+            >
+              {org.kontakte.map((k) => (
+                <option key={k.id} value={String(k.id)}>
+                  {k.name}
+                </option>
+              ))}
+              <option value="haus">An die Organisation</option>
+            </select>
+            <input
+              type="date"
+              className="feld"
+              value={datum}
+              onChange={(e) => setDatum(e.target.value)}
+              aria-label="Datum des Telefonats"
+            />
+            <button type="button" className="knopf" onClick={eintragen} disabled={laeuft}>
+              <Zeichen name="plus" />
+              Als Telefonat eintragen
+            </button>
+          </div>
+          <Fehlerzeile text={fehler} />
+        </>
+      )}
+    </div>
   );
 }
 

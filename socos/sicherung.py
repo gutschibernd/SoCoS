@@ -82,6 +82,14 @@ LOESCHREIHENFOLGE = [
     "socos.Arbeitspaket",
     "socos.Projektphase",
     "socos.Projekt",
+    # Paket vor Antrag, Frage und Antrag vor ihrem Programm, das Programm vor
+    # seinem Fördergeber — und alles vor der Organisation, auf die der
+    # Fördergeber zeigt.
+    "socos.Foerderpaket",
+    "socos.Foerderantrag",
+    "socos.Foerderfrage",
+    "socos.Foerderprogramm",
+    "socos.Foerdergeber",
     "socos.Organisation",
     "socos.Kontostand",
     "socos.Fixkosten",
@@ -98,13 +106,6 @@ LOESCHREIHENFOLGE = [
     "socos.Lageverbindung",
     "socos.Lageschritt",
     "socos.Lagethema",
-    # Paket vor Antrag, Frage und Antrag vor ihrem Programm, das Programm vor
-    # seinem Fördergeber.
-    "socos.Foerderpaket",
-    "socos.Foerderantrag",
-    "socos.Foerderfrage",
-    "socos.Foerderprogramm",
-    "socos.Foerdergeber",
     "socos.Protokolleintrag",
     "socos.Nutzer",
     "auth.Group",

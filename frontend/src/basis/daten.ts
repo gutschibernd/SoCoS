@@ -621,7 +621,15 @@ export type Foerderfrage = {
 };
 
 /** Wer fördert — FFG, aws, KWF, ein Land. */
-export type Foerdergeber = { id: number; name: string; kurz: string; link: string; beschreibung: string };
+export type Foerdergeber = {
+  id: number;
+  name: string;
+  kurz: string;
+  link: string;
+  beschreibung: string;
+  /** Dasselbe Haus unter Kontakte — dort stehen Personen und Verlauf. */
+  organisation: number | null;
+};
 
 export type Foerderprogramm = {
   id: number;

@@ -31,6 +31,7 @@ import {
   useFoerdergeber,
   useFoerderungen,
   useNeuLaden,
+  useOrganisationen,
   type Foerderantrag,
   type Foerderfrage,
   type Foerdergeber,
@@ -266,6 +267,7 @@ function ProgrammAnlegen({ geber, wechseln, autoFokus }: { geber: number; wechse
 export function Geberseite({ ich, id, wechseln }: { ich: Ich; id: number; wechseln: Wechseln }) {
   const alle = useFoerdergeber();
   const programme = useFoerderungen();
+  const organisationen = useOrganisationen();
   const speichern = useAendern();
   if (!alle.data) return <Zustand abfrage={alle} erneut={() => alle.refetch()} />;
   if (!programme.data) return <Zustand abfrage={programme} erneut={() => programme.refetch()} />;
@@ -303,14 +305,46 @@ export function Geberseite({ ich, id, wechseln }: { ich: Ich; id: number; wechse
             speichern={(beschreibung) => speichern(pfad, { beschreibung })}
           />
         </div>
-        {geber.link && (
-          <div className="vorhaben-aktionen">
+        <div className="vorhaben-aktionen">
+          {/* Die Personen und Telefonate stehen unter Kontakte, nicht hier —
+              dort hängen auch die offenen Fragen zum Abarbeiten am Telefon. */}
+          {darf && organisationen.data && (
+            <select
+              className="feld fd-geberhaus"
+              value={geber.organisation ?? ""}
+              aria-label="Organisation unter Kontakte"
+              onChange={(e) =>
+                speichern(pfad, { organisation: e.target.value ? Number(e.target.value) : null })
+              }
+            >
+              <option value="">Nicht mit Kontakten verbunden</option>
+              {organisationen.data.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {geber.organisation !== null && (
+            <a
+              className="knopf-still"
+              href={`/kontakte/${geber.organisation}`}
+              onClick={(e) => {
+                e.preventDefault();
+                wechseln("kontakte", String(geber.organisation));
+              }}
+            >
+              <Zeichen name="kontakte" />
+              Kontakte
+            </a>
+          )}
+          {geber.link && (
             <a className="knopf-still" href={geber.link} target="_blank" rel="noreferrer noopener">
               Zur Seite
               <Zeichen name="zeiger" />
             </a>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {seine.length === 0 && !darf ? (

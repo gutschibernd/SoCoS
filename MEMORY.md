@@ -7,6 +7,26 @@ betrifft.
 
 ---
 
+## 2026-10-06 — Fördergeber zeigt auf eine Organisation (Migration 0041)
+
+`Foerdergeber.organisation` (nullbar, PROTECT) verbindet den Fördergeber mit
+demselben Haus unter Kontakte. **Personen und Telefonate stehen dort, nicht am
+Fördergeber** — ein zweites Adressbuch hieße, dass dasselbe Gespräch an zwei
+Stellen steht oder an einer fehlt.
+
+Auf der Seite der Organisation stehen die offenen Fragen aller Programme ihrer
+Fördergeber (Wunsch Bernd: am Telefon die Fragen abarbeiten). Ein Knopf
+„Als Telefonat eintragen" hakt die beantworteten Fragen ab (Quelle „Telefonat
+TT.MM.JJJJ · Person") **und** legt einen Call im Verlauf an, mit Fragen,
+Antworten und dem, was offen blieb. Kein eigenes Modell dafür: Die Antwort
+gehört an die Frage, das Gespräch in den Verlauf — beides gibt es schon.
+
+**Löschreihenfolge:** Die Förder-Modelle stehen jetzt **vor** der Organisation,
+sonst hält PROTECT beim Einspielen dagegen. Der Rundlauftest in
+`test_foerderungen.py` fällt, wenn das jemand zurückdreht.
+
+---
+
 ## 2026-10-05 — Förderungen, ein viertes Modul (Migration 0038)
 
 Für zwei Anträge beim NÖ Pflegeinnovationsprogramm: Programm → Antrag →

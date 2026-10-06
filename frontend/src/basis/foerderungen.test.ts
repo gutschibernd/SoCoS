@@ -14,9 +14,12 @@ import {
   monatsanzahl,
   monatsname,
   neuePaketmonate,
+  offeneFragenDerOrganisation,
   projektinhalt,
   spanne,
   steckbriefpunkte,
+  telefonatQuelle,
+  telefonatText,
 } from "./foerderungen";
 import { foerderungAusWeg, themaAusWeg } from "./module";
 
@@ -103,6 +106,36 @@ describe("Fragen an die Förderstelle", () => {
     expect(fragenStand(fragen)).toBe("2 offen");
     expect(fragenStand([frage(1, true)])).toBe("alle beantwortet");
     expect(fragenStand([])).toBe("noch keine");
+  });
+});
+
+describe("das Telefonat mit der Förderstelle", () => {
+  it("sammelt die offenen Fragen der Programme, deren Geber an der Organisation hängt", () => {
+    const geber = [
+      { id: 1, organisation: 7 },
+      { id: 2, organisation: null },
+    ] as Foerdergeber[];
+    const programme = [
+      { id: 10, geber: 1, fragen: [frage(1, true), frage(2, false)] },
+      { id: 11, geber: 1, fragen: [frage(3, true)] },
+      { id: 12, geber: 2, fragen: [frage(4, false)] },
+    ] as Foerderprogramm[];
+    const gruppen = offeneFragenDerOrganisation(7, geber, programme);
+    expect(gruppen.map((g) => [g.programm.id, g.fragen.map((f) => f.id)])).toEqual([[10, [2]]]);
+    expect(offeneFragenDerOrganisation(8, geber, programme)).toEqual([]);
+  });
+
+  it("schreibt Antworten und das offen Gebliebene in den Verlauf", () => {
+    const fragen = [frage(1, false), frage(2, false), frage(3, false)];
+    expect(telefonatText(fragen, { 1: " Ja, bis 2027 ", 2: "  " })).toBe(
+      "F1\n→ Ja, bis 2027\n\nOffen geblieben:\n– F2\n– F3",
+    );
+    expect(telefonatText(fragen.slice(0, 1), { 1: "Nein" })).toBe("F1\n→ Nein");
+  });
+
+  it("nennt Datum und Person als Quelle", () => {
+    expect(telefonatQuelle("2026-10-06", "Anna Muster")).toBe("Telefonat 06.10.2026 · Anna Muster");
+    expect(telefonatQuelle("2026-10-06", "")).toBe("Telefonat 06.10.2026");
   });
 });
 
