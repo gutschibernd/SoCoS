@@ -1373,7 +1373,7 @@ class FoerdergeberViewSet(SocosViewSet):
 class FoerderprogrammViewSet(SocosViewSet):
     serializer_class = ser.FoerderprogrammSerializer
     queryset = Foerderprogramm.objects.prefetch_related(
-        "fragen", "antraege", "antraege__pakete", "antraege__pakete__stunden", "antraege__posten",
+        "fragen", "antraege", "antraege__pakete", "antraege__pakete__stunden__nutzer", "antraege__posten",
         "antraege__abschnitte",
     )
 
@@ -1386,7 +1386,7 @@ class FoerderfrageViewSet(SocosViewSet):
 class FoerderantragViewSet(SocosViewSet):
     serializer_class = ser.FoerderantragSerializer
     queryset = Foerderantrag.objects.select_related("programm").prefetch_related(
-        "pakete", "pakete__stunden", "posten", "abschnitte"
+        "pakete", "pakete__stunden__nutzer", "posten", "abschnitte"
     )
 
     @transaction.atomic
@@ -1409,7 +1409,7 @@ class FoerderantragViewSet(SocosViewSet):
 
 class FoerderpaketViewSet(SocosViewSet):
     serializer_class = ser.FoerderpaketSerializer
-    queryset = Foerderpaket.objects.select_related("antrag").prefetch_related("stunden", "antrag__posten")
+    queryset = Foerderpaket.objects.select_related("antrag").prefetch_related("stunden__nutzer", "antrag__posten")
 
     @transaction.atomic
     def perform_destroy(self, paket):
@@ -1427,7 +1427,7 @@ class FoerderpaketViewSet(SocosViewSet):
 
 class FoerderstundenViewSet(SocosViewSet):
     serializer_class = ser.FoerderstundenSerializer
-    queryset = Foerderstunden.objects.all()
+    queryset = Foerderstunden.objects.select_related("nutzer")
 
 
 class FoerderpostenViewSet(SocosViewSet):

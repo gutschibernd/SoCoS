@@ -7,6 +7,46 @@ betrifft.
 
 ---
 
+## 2026-10-07 — Grundlagen der Förderauslastung (Migrationen 0045, 0046)
+
+Vorbereitung einer Seite, die alle eingereichten und bewilligten Anträge mit
+ihren Paketen und Stunden auf einer Zeitachse übereinanderlegt (Auslastung je
+Person und Monat). Drei Schemaänderungen, alle mit Bernd abgestimmt:
+
+- **`Foerderantrag.rolle`** (*Förderwerber* | *Drittleister*). Beim
+  Drittleister fördert das Programm einen anderen, wir liefern zu (Land NÖ,
+  Förderwerber Gut umsorgt GmbH). Seine Stunden sind **unser geschätzter
+  Aufwand**: Sie zählen in der Auslastung, aber nie als Geld (`personal`
+  bleibt 0, auch mit Satz) und nie in der Reife — sonst stünde jeder
+  NÖ-Antrag mit Aufwand auf „Stunden ohne Stundensatz“
+  (`services/foerderung.stunden_kosten_geld`). Ein Paket mit Aufwand, aber
+  ohne Betrag, fehlt trotzdem. **Ein Feld, kein Vergleich mit dem
+  Förderwerber-Namen:** Die Migration hat den Namen genau einmal gelesen
+  (anderer Förderwerber als Sopharmis ⇒ Drittleister), danach gilt das Feld.
+  *Partner* gibt es nicht, solange kein solcher Antrag existiert.
+- **`Foerderstunden.nutzer`** (nullbar, PROTECT) — **entweder Nutzer oder
+  Name**, als Prüfregel in der Datenbank. Mit Freitext wären „BG“ und „B. G.“
+  in der Auslastung zwei Leute. Der Name bleibt für „N. N.“. Die API liefert
+  `name` (Initialen oder Name), damit das Frontend nicht selbst entscheidet;
+  wer `nutzer` schickt, löscht den Namen und umgekehrt. Die Migration ordnete
+  einen Namen nur zu, wenn er **genau einen** Nutzer über Initialen oder
+  vollen Namen traf (Punkte und Leerzeichen egal); der Rest blieb Text.
+- **`Foerderkapazitaet(nutzer, stunden_je_monat)`**, höchstens eine je Person.
+  **Nicht am Nutzer** (Wunsch Bernd): eingestellt wird sie hinter einem
+  Zahnrad auf der Auslastungsseite, und am Nutzer sähe sie wie eine
+  Arbeitszeit aus. Ohne Zeile zeigt die Seite nur den Bedarf.
+
+**Falle beim Migrieren:** Die Prüfregel an `Foerderstunden` steht in einer
+eigenen Migration (0046). PostgreSQL verweigert ein `ALTER TABLE`, solange in
+derselben Transaktion Fremdschlüssel-Prüfungen für eben geänderte Zeilen
+ausstehen — und genau das tut die Datenmigration in 0045.
+
+`foerderungen_einspielen` nimmt `"rolle": "drittleister"` je Antrag; ohne
+Angabe Förderwerber. Kapazität und Nutzerverweis wandern mit der Sicherung
+(steht vor `Nutzer` in der Löschreihenfolge).
+
+---
+
 ## 2026-10-07 — Textabschnitte je Antrag statt fester Felder (Migration 0044)
 
 `Foerderantrag.nutzen`, `mehrwert`, `wirkung`, `regelbetrieb` sind weg. An

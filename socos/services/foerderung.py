@@ -34,6 +34,23 @@ def lebende_posten(antrag):
     return [p for p in antrag.posten.all() if p.geloescht_am is None]
 
 
+def stunden_kosten_geld(antrag) -> bool:
+    """
+    Ob die Stunden eines Antrags in die Kalkulation gehen.
+
+    Beim Drittleister nicht: Dort sind sie unser geschätzter Aufwand für die
+    Förderauslastung. Der Antrag eines anderen rechnet mit Paketbeträgen, und
+    die Stunden darin würden sonst als „ohne Stundensatz" in der Reife stehen.
+    """
+    return antrag.rolle == antrag.Rolle.FOERDERWERBER
+
+
+def _personal(stunden: Decimal, antrag) -> Decimal:
+    if antrag.stundensatz is None or not stunden_kosten_geld(antrag):
+        return Decimal("0.00")
+    return _cent(stunden * antrag.stundensatz)
+
+
 def _cent(wert: Decimal) -> Decimal:
     return wert.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
@@ -46,10 +63,10 @@ def paketkosten(paket, antrag) -> dict:
     """
     Was ein Paket kostet: Stunden mal Satz, die ihm zugeordneten Posten und
     sein Pauschalbetrag. Ohne Satz zählen die Stunden nicht als Geld — die
-    Reife sagt dann, dass er fehlt.
+    Reife sagt dann, dass er fehlt. Beim Drittleister zählen sie nie.
     """
     stunden = sum((s.stunden for s in lebende_stunden(paket)), Decimal("0.00"))
-    personal = _cent(stunden * antrag.stundensatz) if antrag.stundensatz is not None else Decimal("0.00")
+    personal = _personal(stunden, antrag)
     sach = sum((p.betrag for p in lebende_posten(antrag) if p.paket_id == paket.id), Decimal("0.00"))
     pauschal = paket.betrag if paket.betrag is not None else Decimal("0.00")
     return {"stunden": stunden, "personal": personal, "sach": sach, "gesamt": personal + sach + pauschal}
@@ -67,7 +84,7 @@ def kosten(antrag) -> dict:
     """
     pakete = lebende_pakete(antrag)
     stunden = sum((s.stunden for p in pakete for s in lebende_stunden(p)), Decimal("0.00"))
-    personal = _cent(stunden * antrag.stundensatz) if antrag.stundensatz is not None else Decimal("0.00")
+    personal = _personal(stunden, antrag)
     # Posten an einem entfernten Paket zählen weiter: Das Geld ist ja nicht
     # weg, nur seine Zuordnung.
     sach = sum((p.betrag for p in lebende_posten(antrag)), Decimal("0.00"))
@@ -123,8 +140,11 @@ def reife(antrag) -> list[dict]:
     def punkt(schluessel, text, erfuellt, hinweis):
         return {"schluessel": schluessel, "text": text, "erfuellt": erfuellt, "hinweis": "" if erfuellt else hinweis}
 
-    ohne_betrag = [p for p in pakete if paketkosten(p, antrag)["gesamt"] <= 0 and not lebende_stunden(p)]
-    ohne_satz = antrag.stundensatz is None and any(lebende_stunden(p) for p in pakete)
+    geld = stunden_kosten_geld(antrag)
+    ohne_betrag = [
+        p for p in pakete if paketkosten(p, antrag)["gesamt"] <= 0 and not (geld and lebende_stunden(p))
+    ]
+    ohne_satz = geld and antrag.stundensatz is None and any(lebende_stunden(p) for p in pakete)
     if not pakete:
         pakete_hinweis = "Noch kein Arbeitspaket."
     elif ohne_satz:

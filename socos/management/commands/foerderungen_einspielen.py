@@ -14,6 +14,9 @@ ein Pflegeheim, und Zahlen aus dessen Betrieb. Das gehört nach `daten/` (in
 Die langen Texte eines Antrags stehen als `"abschnitte": [{"titel": …,
 "text": …}]` — so viele und so benannt, wie das Programm sie verlangt.
 
+Ein Antrag, in dem wir nur zuliefern, trägt `"rolle": "drittleister"` — ohne
+die Angabe gilt er als unserer.
+
 Gibt es ein Programm mit demselben Namen schon, weigert sich der Befehl;
 `--ersetzen` entfernt es zuerst — weich, wie alles, samt allem darunter.
 """
@@ -39,6 +42,7 @@ from socos.models import (
 
 STANDARDDATEI = Path("daten/foerderungen.json")
 STAENDE = {wert for wert, _ in Foerderantrag.Stand.choices}
+ROLLEN = {wert for wert, _ in Foerderantrag.Rolle.choices}
 OHNE_GEBER = {"name": "Land Niederösterreich", "kurz": "NÖ"}
 # Bis 2026-10-07 hatte der Antrag diese Texte als feste Felder. Eine alte
 # Datei würde sonst ohne ein Wort ohne sie eingespielt.
@@ -124,6 +128,8 @@ class Command(BaseCommand):
                     raise CommandError(f"Antrag {i}, Abschnitt {j}: ohne Überschrift.")
             if a.get("stand", "entwurf") not in STAENDE:
                 raise CommandError(f"Antrag {i}: Stand {a['stand']} gibt es nicht.")
+            if a.get("rolle", "foerderwerber") not in ROLLEN:
+                raise CommandError(f"Antrag {i}: Rolle {a['rolle']} gibt es nicht.")
             if a.get("beginn"):
                 try:
                     date.fromisoformat(a["beginn"])
@@ -196,6 +202,7 @@ class Command(BaseCommand):
                 titel=a["titel"].strip(),
                 stand=a.get("stand", "entwurf"),
                 foerderwerber=a.get("foerderwerber", ""),
+                rolle=a.get("rolle", "foerderwerber"),
                 beginn=a.get("beginn") or None,
                 beschreibung=_text(a.get("beschreibung")),
                 datenbedarf=_text(a.get("datenbedarf")),

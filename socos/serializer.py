@@ -912,14 +912,35 @@ def _geld(werte: dict) -> dict:
 
 
 class FoerderstundenSerializer(serializers.ModelSerializer):
+    # Initialen des Nutzers oder der Name — damit die Seite nicht selbst
+    # entscheidet, welches von beiden gilt.
+    name = serializers.CharField(read_only=True)
+
     class Meta:
         model = Foerderstunden
-        fields = ["id", "paket", "person", "stunden"]
+        fields = ["id", "paket", "nutzer", "person", "name", "stunden"]
+        # Sonst prüfte DRF den Namen als Pflichtfeld, bevor `validate` sagen
+        # kann, dass ein Nutzer genügt.
+        extra_kwargs = {"person": {"required": False}}
 
     def validate_stunden(self, wert):
         if wert < 0:
             raise serializers.ValidationError("Stunden sind nicht negativ.")
         return wert
+
+    def validate(self, daten):
+        nutzer = daten.get("nutzer", self.instance.nutzer if self.instance else None)
+        person = daten.get("person", self.instance.person if self.instance else "").strip()
+        # Wer einen Nutzer wählt, löscht damit den Namen — und umgekehrt. Sonst
+        # müsste die Seite beim Umstellen immer beide Felder mitschicken.
+        if "nutzer" in daten and nutzer is not None:
+            person = ""
+        elif "person" in daten and person:
+            nutzer = None
+        if (nutzer is None) == (not person):
+            raise serializers.ValidationError({"person": "Entweder ein Nutzer oder ein Name."})
+        daten["nutzer"], daten["person"] = nutzer, person
+        return daten
 
 
 class FoerderpostenSerializer(serializers.ModelSerializer):
@@ -952,7 +973,7 @@ class FoerderpaketSerializer(serializers.ModelSerializer):
         fields = ["id", "antrag", "titel", "ziel", "ergebnis", "von", "bis", "betrag", "reihenfolge", "stunden", "kosten"]
 
     def get_stunden(self, paket):
-        stunden = sorted(foerderung.lebende_stunden(paket), key=lambda s: (s.person, s.id))
+        stunden = sorted(foerderung.lebende_stunden(paket), key=lambda s: (s.name, s.id))
         return FoerderstundenSerializer(stunden, many=True).data
 
     def get_kosten(self, paket):
@@ -992,7 +1013,7 @@ class FoerderantragSerializer(serializers.ModelSerializer):
     class Meta:
         model = Foerderantrag
         fields = [
-            "id", "programm", "nummer", "titel", "stand", "foerderwerber", "beginn", "zeitachse",
+            "id", "programm", "nummer", "titel", "stand", "foerderwerber", "rolle", "beginn", "zeitachse",
             "beschreibung", "datenbedarf",
             "stundensatz", "gemeinkosten", "foerderquote",
             "abschnitte", "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "geaendert_am",

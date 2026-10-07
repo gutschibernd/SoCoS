@@ -19,10 +19,12 @@ from socos.models import (
     Foerderantrag,
     Foerderfrage,
     Foerdergeber,
+    Foerderkapazitaet,
     Foerderpaket,
     Foerderposten,
     Foerderprogramm,
     Foerderstunden,
+    Nutzer,
     Organisation,
 )
 from socos.services import foerderung
@@ -139,6 +141,47 @@ class TestKalkulation:
         self._kwf(antrag)
         reife = _reife(antrag)
         assert reife["pakete"]["erfuellt"] and reife["summe"]["erfuellt"]
+
+
+class TestDrittleister:
+    """
+    Beim Drittleister sind die Stunden unser geschätzter Aufwand: Sie zählen
+    nie als Geld und lassen die Reife in Ruhe — der Antrag rechnet mit den
+    Paketbeträgen dessen, der fördern lässt.
+    """
+
+    def _drittleister(self, antrag):
+        antrag.rolle = Foerderantrag.Rolle.DRITTLEISTER
+        antrag.save()
+        return antrag
+
+    def test_stunden_sind_kein_geld_auch_mit_satz(self, antrag):
+        self._drittleister(antrag)
+        antrag.stundensatz = Decimal("50")
+        antrag.save()
+        paket = _paket(antrag, "Bau", 1, 2, "1000")
+        Foerderstunden.objects.create(paket=paket, person="BG", stunden=Decimal("10"))
+        antrag.refresh_from_db()
+        kosten = foerderung.kosten(antrag)
+        assert (kosten["stunden"], kosten["personal"], kosten["zuschuss"]) == (
+            Decimal("10.00"), Decimal("0.00"), Decimal("1000.00")
+        )
+        assert foerderung.paketkosten(paket, antrag)["gesamt"] == Decimal("1000.00")
+
+    def test_reife_fragt_nicht_nach_dem_satz(self, antrag):
+        self._drittleister(antrag)
+        paket = _paket(antrag, "Bau", 1, 2, "1000")
+        Foerderstunden.objects.create(paket=paket, person="BG", stunden=Decimal("10"))
+        assert _reife(antrag)["pakete"]["erfuellt"]
+
+    def test_stunden_ersetzen_keinen_betrag(self, antrag):
+        """Ein Paket mit Aufwand, aber ohne Betrag, fehlt im Antrag des anderen trotzdem."""
+        self._drittleister(antrag)
+        paket = _paket(antrag, "Bau", 1, 2, None)
+        Foerderstunden.objects.create(paket=paket, person="BG", stunden=Decimal("10"))
+        reife = _reife(antrag)
+        assert not reife["pakete"]["erfuellt"]
+        assert reife["pakete"]["hinweis"] == "1 Paket ohne Betrag."
 
 
 class TestReife:
@@ -303,6 +346,38 @@ class TestSchnittstelle:
         assert geholt["pakete"][0]["kosten"]["gesamt"] == "600.00"
         assert geholt["posten"][0]["bezeichnung"] == "Teile"
 
+    def test_stunden_mit_nutzer_oder_name(self, client, bearbeiter, antrag):
+        paket = _paket(antrag, "Bau", 1, 2, None)
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/foerderstunden/", {"paket": paket.pk, "nutzer": bearbeiter.pk, "stunden": "10"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201
+        assert (antwort.json()["person"], antwort.json()["name"]) == ("", bearbeiter.initialen)
+        pfad = f"/api/foerderstunden/{antwort.json()['id']}/"
+
+        # Umstellen auf einen Namen nimmt den Nutzer weg — und zurück.
+        umgestellt = client.patch(pfad, {"person": "N. N."}, content_type="application/json").json()
+        assert (umgestellt["nutzer"], umgestellt["name"]) == (None, "N. N.")
+        zurueck = client.patch(pfad, {"nutzer": bearbeiter.pk}, content_type="application/json").json()
+        assert (zurueck["nutzer"], zurueck["person"]) == (bearbeiter.pk, "")
+
+        assert client.post(
+            "/api/foerderstunden/", {"paket": paket.pk, "stunden": "10"}, content_type="application/json"
+        ).status_code == 400
+        assert client.post(
+            "/api/foerderstunden/", {"paket": paket.pk, "person": "  ", "stunden": "10"},
+            content_type="application/json",
+        ).status_code == 400
+
+    def test_rolle_einstellen(self, client, bearbeiter, antrag):
+        client.force_login(bearbeiter)
+        pfad = f"/api/foerderantraege/{antrag.pk}/"
+        assert client.get(pfad).json()["rolle"] == "foerderwerber"
+        assert client.patch(pfad, {"rolle": "drittleister"}, content_type="application/json").json()["rolle"] == "drittleister"
+        assert client.patch(pfad, {"rolle": "partner"}, content_type="application/json").status_code == 400
+
     def test_posten_nicht_an_fremdes_paket(self, client, bearbeiter, programm, antrag):
         fremd = _paket(Foerderantrag.objects.create(programm=programm, titel="Anderer"), "X", 1, 1, None)
         client.force_login(bearbeiter)
@@ -411,6 +486,16 @@ class TestEinspielen:
             call_command("foerderungen_einspielen", datei=self._datei(tmp_path, daten), verbosity=0)
         assert not Foerderprogramm.objects.exists()
 
+    def test_rolle_aus_der_datei(self, db, tmp_path):
+        daten = json.loads(json.dumps(self.DATEN))
+        daten["antraege"].append({"titel": "Pilottest", "rolle": "drittleister"})
+        call_command("foerderungen_einspielen", datei=self._datei(tmp_path, daten), verbosity=0)
+        assert [a.rolle for a in Foerderantrag.objects.order_by("nummer")] == ["foerderwerber", "drittleister"]
+
+        daten["antraege"][1]["rolle"] = "partner"
+        with pytest.raises(CommandError, match="Rolle"):
+            call_command("foerderungen_einspielen", datei=self._datei(tmp_path, daten), ersetzen=True, verbosity=0)
+
     def test_weist_unsinnige_monate_ab(self, db, tmp_path):
         daten = json.loads(json.dumps(self.DATEN))
         daten["antraege"][0]["pakete"][0]["bis"] = 0
@@ -430,23 +515,30 @@ def medien(tmp_path, settings):
 def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
     """
     Der Fördergeber zeigt auf eine Organisation. Er muss deshalb **vor** ihr
-    geleert werden, sonst hält PROTECT beim Einspielen dagegen.
+    geleert werden, sonst hält PROTECT beim Einspielen dagegen. Stunden und
+    Kapazität zeigen auf den Nutzer und stehen deshalb vor ihm.
     """
     haus = Organisation.objects.create(name="Österreichische Forschungsförderungsgesellschaft")
     geber = Foerdergeber.objects.create(name="FFG", kurz="FFG", link="https://www.ffg.at", organisation=haus)
     programm = Foerderprogramm.objects.create(geber=geber, name="Pflegeinnovation NÖ", max_foerderung=Decimal("50000"))
     Foerderfrage.objects.create(programm=programm, frage="Wie lang?", antwort="2 Jahre")
-    antrag = Foerderantrag.objects.create(programm=programm, titel="Befüllsystem")
+    antrag = Foerderantrag.objects.create(
+        programm=programm, titel="Befüllsystem", rolle=Foerderantrag.Rolle.DRITTLEISTER
+    )
     Foerderabschnitt.objects.create(antrag=antrag, titel="Wirkungsziele", text="DGKP-Zeit")
     _paket(antrag, "Bau", 2, 9, "12345.67")
     antrag.stundensatz = Decimal("50")
     antrag.save()
     Foerderstunden.objects.create(paket=antrag.pakete.get(), person="BG", stunden=Decimal("270"))
+    fd = Nutzer.objects.create_user(email="fd@example.invalid", name="Fritz Dorn")
+    Foerderstunden.objects.create(paket=antrag.pakete.get(), nutzer=fd, stunden=Decimal("140"))
+    Foerderkapazitaet.objects.create(nutzer=fd, stunden_je_monat=Decimal("60.5"))
     Foerderposten.objects.create(antrag=antrag, paket=antrag.pakete.get(), bezeichnung="Kamera", betrag=Decimal("1000"))
 
     archiv = tmp_path / "archiv.tar.gz"
     call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
     Foerderstunden.objects.all().hart_loeschen()
+    Foerderkapazitaet.objects.all().hart_loeschen()
     Foerderposten.objects.all().hart_loeschen()
     Foerderabschnitt.objects.all().hart_loeschen()
     Foerderpaket.objects.all().hart_loeschen()
@@ -459,6 +551,54 @@ def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
     assert Foerderfrage.objects.get().antwort == "2 Jahre"
     assert paket.antrag.programm.geber.link == "https://www.ffg.at"
     assert paket.antrag.stundensatz == Decimal("50.00")
-    assert (paket.stunden.get().person, paket.stunden.get().stunden) == ("BG", Decimal("270.00"))
+    assert paket.antrag.rolle == Foerderantrag.Rolle.DRITTLEISTER
+    assert sorted((s.person, s.nutzer and s.nutzer.email, s.stunden) for s in paket.stunden.all()) == [
+        ("", "fd@example.invalid", Decimal("140.00")),
+        ("BG", None, Decimal("270.00")),
+    ]
+    kapazitaet = Foerderkapazitaet.objects.get()
+    assert (kapazitaet.nutzer.email, kapazitaet.stunden_je_monat) == ("fd@example.invalid", Decimal("60.50"))
     assert (paket.posten.get().bezeichnung, paket.posten.get().betrag) == ("Kamera", Decimal("1000.00"))
     assert paket.antrag.programm.geber.organisation.name == "Österreichische Forschungsförderungsgesellschaft"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_migration_ordnet_personen_und_rollen_zu():
+    """
+    0045 liest den Förderwerber und die Namen an den Stunden genau einmal.
+    Ein Name wird nur zugeordnet, wenn er genau einen Nutzer trifft — „F. D."
+    zu Fritz Dorn, aber „MM" nicht, solange zwei so heißen.
+    """
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+
+    vorher, nachher = [("socos", "0044_foerderabschnitte")], [("socos", "0046_foerderstunden_nutzer_oder_name")]
+    ausfuehrer = MigrationExecutor(connection)
+    try:
+        ausfuehrer.migrate(vorher)
+        alt = ausfuehrer.loader.project_state(vorher).apps
+        Nutzer_alt = alt.get_model("socos", "Nutzer")
+        fd = Nutzer_alt.objects.create(email="fd@example.invalid", name="Fritz Dorn", initialen="FD")
+        for nummer in (1, 2):
+            Nutzer_alt.objects.create(email=f"mm{nummer}@example.invalid", name=f"Max Muster {nummer}", initialen="MM")
+        geber = alt.get_model("socos", "Foerdergeber").objects.create(name="Land NÖ")
+        programm = alt.get_model("socos", "Foerderprogramm").objects.create(geber=geber, name="Pflege")
+        Antrag = alt.get_model("socos", "Foerderantrag")
+        fremd = Antrag.objects.create(programm=programm, titel="A", foerderwerber="Gut umsorgt GmbH")
+        Antrag.objects.create(programm=programm, titel="B", foerderwerber="SOPHARMIS GmbH")
+        Antrag.objects.create(programm=programm, titel="C")
+        paket = alt.get_model("socos", "Foerderpaket").objects.create(antrag=fremd, titel="Bau")
+        Stunden = alt.get_model("socos", "Foerderstunden")
+        for name in ("F. D.", "MM", "N. N."):
+            Stunden.objects.create(paket=paket, person=name, stunden=Decimal("1"))
+
+        ausfuehrer = MigrationExecutor(connection)
+        ausfuehrer.migrate(nachher)
+        neu = ausfuehrer.loader.project_state(nachher).apps
+        rollen = dict(neu.get_model("socos", "Foerderantrag").objects.values_list("titel", "rolle"))
+        assert rollen == {"A": "drittleister", "B": "foerderwerber", "C": "foerderwerber"}
+        zeilen = sorted(neu.get_model("socos", "Foerderstunden").objects.values_list("person", "nutzer_id"))
+        assert zeilen == [("", fd.pk), ("MM", None), ("N. N.", None)]
+    finally:
+        ausfuehrer = MigrationExecutor(connection)
+        ausfuehrer.migrate(ausfuehrer.loader.graph.leaf_nodes())

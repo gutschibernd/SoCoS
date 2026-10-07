@@ -54,6 +54,7 @@ MODELLE_IM_ARCHIV = [
     "socos.Foerderstunden",
     "socos.Foerderposten",
     "socos.Foerderabschnitt",
+    "socos.Foerderkapazitaet",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
@@ -96,6 +97,8 @@ LOESCHREIHENFOLGE = [
     "socos.Foerderfrage",
     "socos.Foerderprogramm",
     "socos.Foerdergeber",
+    # Zeigt auf den Nutzer, sonst auf nichts.
+    "socos.Foerderkapazitaet",
     "socos.Organisation",
     "socos.Kontostand",
     "socos.Fixkosten",
