@@ -18,7 +18,7 @@ from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.http import content_disposition_header
 from rest_framework import viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
@@ -60,6 +60,7 @@ from socos.models import (
     Foerderpaket,
     Foerderposten,
     Foerderabschnitt,
+    Foerderkapazitaet,
     Foerderprogramm,
     Foerderstunden,
     Projekt,
@@ -73,7 +74,7 @@ from socos.models import (
     Zeitbuchung,
     auffangpaket,
 )
-from socos.services import aktivitaet, auswertung, finanzen
+from socos.services import aktivitaet, auswertung, finanzen, foerderung
 from socos.services import zeit as zeitdienst
 
 logger = logging.getLogger(__name__)
@@ -1438,3 +1439,33 @@ class FoerderpostenViewSet(SocosViewSet):
 class FoerderabschnittViewSet(SocosViewSet):
     serializer_class = ser.FoerderabschnittSerializer
     queryset = Foerderabschnitt.objects.all()
+
+
+class FoerderkapazitaetViewSet(SocosViewSet):
+    """
+    Die Kapazität je Person für die Förderauslastung. Leeren heißt entfernen —
+    und das darf, wie jedes Entfernen, nur der Admin.
+    """
+
+    serializer_class = ser.FoerderkapazitaetSerializer
+    queryset = Foerderkapazitaet.objects.select_related("nutzer")
+
+
+@api_view(["GET"])
+@permission_classes([berechtigung.SocosBerechtigung])
+def foerderauslastung(request):
+    """
+    Alle Anträge in den gewählten Ständen auf einer Kalenderachse, mit den
+    Stunden je Monat, Antrag und Person (`services/foerderung.auslastung`).
+
+    `?stand=bewilligt,eingereicht`. **Ohne Angabe alle Stände** — es gibt keine
+    stille Vorauswahl, auch keine naheliegende: Wer nur die sicheren Anträge
+    sehen will, sagt das.
+    """
+    erlaubt = [wert for wert, _ in Foerderantrag.Stand.choices]
+    roh = request.query_params.get("stand")
+    staende = [s.strip() for s in roh.split(",") if s.strip()] if roh else erlaubt
+    unbekannt = [s for s in staende if s not in erlaubt]
+    if unbekannt:
+        raise ValidationError({"stand": f"Diesen Stand gibt es nicht: {', '.join(unbekannt)}."})
+    return Response(foerderung.auslastung(staende))

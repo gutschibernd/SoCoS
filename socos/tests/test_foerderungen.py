@@ -417,6 +417,135 @@ class TestSchnittstelle:
         assert client.delete(f"/api/foerdergeber/{programm.geber_id}/").status_code == 409
 
 
+class TestAuslastung:
+    """
+    Die Förderauslastung: Stunden gleichmäßig auf die Monate eines Pakets,
+    auf die Viertelstunde, der Rest im letzten Monat — und die Summe bleibt
+    genau die eingetragene.
+    """
+
+    def test_verteilen_geht_auf(self):
+        assert foerderung.verteilen(Decimal("100"), 3) == [Decimal("33.25"), Decimal("33.25"), Decimal("33.50")]
+        assert foerderung.verteilen(Decimal("10"), 1) == [Decimal("10")]
+        krumm = foerderung.verteilen(Decimal("10.10"), 4)
+        assert krumm == [Decimal("2.50"), Decimal("2.50"), Decimal("2.50"), Decimal("2.60")]
+        assert sum(krumm) == Decimal("10.10")
+        with pytest.raises(ValueError):
+            foerderung.verteilen(Decimal("1"), 0)
+
+    def test_kalendermonat_ueber_den_jahreswechsel(self):
+        from datetime import date
+
+        assert foerderung.kalendermonat(date(2027, 11, 15), 1) == "2027-11"
+        assert foerderung.kalendermonat(date(2027, 11, 15), 3) == "2028-01"
+
+    @pytest.fixture
+    def lage(self, programm):
+        from datetime import date
+
+        bg = Nutzer.objects.create_user(email="bg@example.invalid", name="Bernd Gutschi")
+        frei = Nutzer.objects.create_user(email="aw@example.invalid", name="Anna Weiß")
+        Foerderkapazitaet.objects.create(nutzer=bg, stunden_je_monat=Decimal("60"))
+        Foerderkapazitaet.objects.create(nutzer=frei, stunden_je_monat=Decimal("40"))
+
+        a = Foerderantrag.objects.create(programm=programm, titel="A", stand="eingereicht", beginn=date(2027, 1, 10))
+        ap1 = _paket(a, "AP1", 1, 3, None)
+        Foerderstunden.objects.create(paket=ap1, nutzer=bg, stunden=Decimal("100"))
+        Foerderstunden.objects.create(paket=ap1, person="N. N.", stunden=Decimal("30"))
+        Foerderstunden.objects.create(paket=ap1, nutzer=bg, stunden=Decimal("999")).delete()
+        ap2 = _paket(a, "AP2", 3, 3, None)
+        Foerderstunden.objects.create(paket=ap2, nutzer=bg, stunden=Decimal("10"))
+
+        b = Foerderantrag.objects.create(
+            programm=programm, titel="B", stand="bewilligt", beginn=date(2027, 2, 1),
+            rolle=Foerderantrag.Rolle.DRITTLEISTER,
+        )
+        Foerderstunden.objects.create(paket=_paket(b, "Lieferung", 1, 2, "5000"), nutzer=bg, stunden=Decimal("20"))
+
+        c = Foerderantrag.objects.create(programm=programm, titel="C", stand="eingereicht")
+        Foerderstunden.objects.create(paket=_paket(c, "Irgendwann", 1, 5, None), nutzer=bg, stunden=Decimal("50"))
+
+        d = Foerderantrag.objects.create(programm=programm, titel="D", stand="entwurf", beginn=date(2026, 1, 1))
+        Foerderstunden.objects.create(paket=_paket(d, "Entwurf", 1, 1, None), nutzer=bg, stunden=Decimal("7"))
+        return {"bg": bg, "frei": frei, "a": a, "b": b, "c": c}
+
+    def test_monate_summen_und_personen(self, lage):
+        ergebnis = foerderung.auslastung(["eingereicht", "bewilligt"])
+
+        assert ergebnis["monate"] == ["2027-01", "2027-02", "2027-03"]
+        assert [a["titel"] for a in ergebnis["antraege"]] == ["A", "B"]
+        assert ergebnis["je_monat"] == {
+            "2027-01": Decimal("43.25"), "2027-02": Decimal("53.25"), "2027-03": Decimal("63.50"),
+        }
+        # Nichts geht verloren: 100 + 30 + 10 + 20, der gelöschte Eintrag nicht.
+        assert sum(ergebnis["je_monat"].values()) == Decimal("160")
+        assert ergebnis["kapazitaet"] == Decimal("100")
+
+        a = ergebnis["antraege"][0]
+        assert [(p["titel"], p["von"], p["bis"], p["stunden"]) for p in a["pakete"]] == [
+            ("AP1", "2027-01", "2027-03", Decimal("130")),
+            ("AP2", "2027-03", "2027-03", Decimal("10")),
+        ]
+        assert ergebnis["antraege"][1]["je_monat"] == {"2027-02": Decimal("10"), "2027-03": Decimal("10")}
+
+        personen = {p["schluessel"]: p for p in ergebnis["personen"]}
+        assert [p["name"] for p in ergebnis["personen"]] == ["AW", "BG", "N. N."]
+        bg = personen[f"n{lage['bg'].pk}"]
+        assert bg["stunden"] == Decimal("130")
+        assert bg["je_monat"]["2027-03"] == {"stunden": Decimal("53.50"), "anteil": Decimal("89")}
+        assert personen["p:N. N."]["je_monat"]["2027-01"] == {"stunden": Decimal("10"), "anteil": None}
+        # Mit Kapazität, aber ohne Stunden: steht da, mit nichts.
+        frei = personen[f"n{lage['frei'].pk}"]
+        assert (frei["stunden"], frei["je_monat"], frei["kapazitaet"]) == (Decimal("0.00"), {}, Decimal("40.00"))
+
+    def test_ohne_beginn_zaehlt_nicht(self, lage):
+        ergebnis = foerderung.auslastung(["eingereicht"])
+        assert [(a["titel"], a["laufzeit"], a["stunden"]) for a in ergebnis["ohne_termin"]] == [("C", 5, Decimal("50"))]
+        assert [a["titel"] for a in ergebnis["antraege"]] == ["A"]
+        assert sum(ergebnis["je_monat"].values()) == Decimal("140")
+
+    def test_feinste_ebene_summiert_sich_zu_allem(self, lage):
+        ergebnis = foerderung.auslastung(["eingereicht", "bewilligt"])
+        zeilen = ergebnis["verteilung"]
+        assert sum(z["stunden"] for z in zeilen) == sum(ergebnis["je_monat"].values())
+        assert {z["paket"] for z in zeilen if z["antrag"] == lage["b"].id} == {lage["b"].pakete.get().id}
+
+    def test_nichts_gewaehlt(self, lage):
+        ergebnis = foerderung.auslastung([])
+        assert (ergebnis["monate"], ergebnis["antraege"], ergebnis["je_monat"]) == ([], [], {})
+
+    def test_schnittstelle(self, client, leser, lage):
+        client.force_login(leser)
+        antwort = client.get("/api/foerderauslastung/?stand=eingereicht,bewilligt")
+        assert antwort.status_code == 200
+        daten = antwort.json()
+        assert daten["je_monat"]["2027-03"] == "63.50"  # Zeichenkette, wie alles Gezählte
+        assert daten["staende"] == ["eingereicht", "bewilligt"]
+        # Ohne Angabe alle Stände — auch der Entwurf von 2026.
+        assert client.get("/api/foerderauslastung/").json()["monate"][0] == "2026-01"
+        assert client.get("/api/foerderauslastung/?stand=quatsch").status_code == 400
+
+    def test_kapazitaet_ueber_die_schnittstelle(self, client, bearbeiter, admin_nutzer):
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/foerderkapazitaeten/", {"nutzer": bearbeiter.pk, "stunden_je_monat": "60"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201
+        pfad = f"/api/foerderkapazitaeten/{antwort.json()['id']}/"
+        assert client.patch(pfad, {"stunden_je_monat": "72.5"}, content_type="application/json").status_code == 200
+        assert client.post(
+            "/api/foerderkapazitaeten/", {"nutzer": bearbeiter.pk, "stunden_je_monat": "10"},
+            content_type="application/json",
+        ).status_code == 400
+        assert client.patch(pfad, {"stunden_je_monat": "-1"}, content_type="application/json").status_code == 400
+        # Leeren ist Entfernen, und das darf nur der Admin.
+        assert client.delete(pfad).status_code == 403
+        client.force_login(admin_nutzer)
+        assert client.delete(pfad).status_code == 204
+        assert not Foerderkapazitaet.objects.exists()
+
+
 class TestEinspielen:
     DATEN = {
         "name": "Pflegeinnovation NÖ",

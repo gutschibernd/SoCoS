@@ -36,6 +36,7 @@ router.register("foerderpakete", api.FoerderpaketViewSet, basename="foerderpaket
 router.register("foerderstunden", api.FoerderstundenViewSet, basename="foerderstunden")
 router.register("foerderposten", api.FoerderpostenViewSet, basename="foerderposten")
 router.register("foerderabschnitte", api.FoerderabschnittViewSet, basename="foerderabschnitte")
+router.register("foerderkapazitaeten", api.FoerderkapazitaetViewSet, basename="foerderkapazitaet")
 router.register("lagethemen", api.LagethemaViewSet, basename="lagethema")
 router.register("lageschritte", api.LageschrittViewSet, basename="lageschritt")
 router.register("lageverbindungen", api.LageverbindungViewSet, basename="lageverbindung")
@@ -51,6 +52,7 @@ urlpatterns = [
     path("kalender/", api.kalenderlink, name="kalenderlink"),
     path("kalender/neu/", api.kalenderlink_neu, name="kalenderlink-neu"),
     path("zeitnachweis/", api.zeitnachweis, name="zeitnachweis"),
+    path("foerderauslastung/", api.foerderauslastung, name="foerderauslastung"),
     # Zwei Pfade und nicht ein GET/POST-Paar: Das Einspielen ersetzt den
     # gesamten Bestand. Dass es einen eigenen, aussprechbaren Pfad hat, ist an
     # dieser Stelle mehr wert als die kürzere Tabelle.

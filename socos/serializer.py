@@ -28,6 +28,7 @@ from socos.models import (
     Foerderposten,
     Foerderabschnitt,
     Foerderprogramm,
+    Foerderkapazitaet,
     Foerderstunden,
     Kontakt,
     Kontostand,
@@ -941,6 +942,27 @@ class FoerderstundenSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"person": "Entweder ein Nutzer oder ein Name."})
         daten["nutzer"], daten["person"] = nutzer, person
         return daten
+
+
+class FoerderkapazitaetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Foerderkapazitaet
+        fields = ["id", "nutzer", "stunden_je_monat"]
+
+    def validate_stunden_je_monat(self, wert):
+        if wert < 0:
+            raise serializers.ValidationError("Stunden sind nicht negativ.")
+        return wert
+
+    def validate_nutzer(self, nutzer):
+        # Hier und nicht erst in der Datenbank: Deren Einschränkung käme als
+        # 500 zurück, nicht als Satz.
+        andere = Foerderkapazitaet.objects.filter(nutzer=nutzer)
+        if self.instance is not None:
+            andere = andere.exclude(pk=self.instance.pk)
+        if andere.exists():
+            raise serializers.ValidationError(f"Für {nutzer.name} steht schon eine Kapazität.")
+        return nutzer
 
 
 class FoerderpostenSerializer(serializers.ModelSerializer):

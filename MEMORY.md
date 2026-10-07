@@ -7,6 +7,36 @@ betrifft.
 
 ---
 
+## 2026-10-07 — Rechnung der Förderauslastung (`services/foerderung.auslastung`)
+
+`GET /api/foerderauslastung/?stand=eingereicht,bewilligt` legt alle lebenden
+Anträge der Stände auf eine Kalenderachse. **Ohne `stand` kommen alle Stände**
+— keine stille Vorauswahl, auch nicht die naheliegende (CLAUDE.md).
+
+- **Verteilung:** Die Stunden einer Person in einem Paket liegen gleichmäßig
+  auf dessen Monaten, je Monat auf die Viertelstunde abgerundet, der Rest im
+  letzten Monat (100 h / 3 = 33,25 · 33,25 · 33,50). Geteilt mit zwei
+  Nachkommastellen gingen über ein Jahr Stunden verloren, die keinem Antrag
+  mehr zuzuordnen sind. Dass gleichmäßig verteilt wird, ist eine **Annahme**
+  — ein Antrag sagt nicht, wann im Paket gearbeitet wird; sie steht in der Doku.
+- **M1 ist der Monat von `beginn`**, der Tag zählt nicht.
+- **Ohne Beginn kein Platz auf der Achse:** Solche Anträge stehen unter
+  `ohne_termin` und zählen in keiner Monatssumme. Den vermuteten Beginn trägt
+  man ein (Wunsch Bernd), eine Regel wie „Einreichung + 4 Monate“ gibt es nicht.
+- **Alle Summen kommen vom Server**: je Monat, je Antrag und Monat, je Person
+  und Monat samt Anteil an der Kapazität (ganze Prozent). `verteilung` ist die
+  feinste Ebene (Monat · Antrag · Paket · Person) für das Aufschlüsseln eines
+  Monats; die Seite summiert nichts selbst.
+- **Personen:** Nutzer über `n<id>`, Namen ohne Konto über ihren Text
+  (`p:N. N.`) — zweimal „N. N.“ ist eine Person. Wer eine Kapazität hat, steht
+  auch ohne Stunden da (freie Zeit ist eine Antwort); Stillgelegte nur mit
+  Stunden.
+- `/api/foerderkapazitaeten/` ist ein gewöhnliches ViewSet. **Leeren heißt
+  entfernen**, und das darf nach `berechtigung.py` nur der Admin — keine
+  Sonderregel für einen Einstellwert.
+
+---
+
 ## 2026-10-07 — Grundlagen der Förderauslastung (Migrationen 0045, 0046)
 
 Vorbereitung einer Seite, die alle eingereichten und bewilligten Anträge mit
