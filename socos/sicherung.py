@@ -53,6 +53,7 @@ MODELLE_IM_ARCHIV = [
     "socos.Foerderpaket",
     "socos.Foerderstunden",
     "socos.Foerderposten",
+    "socos.Foerderabschnitt",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
@@ -89,6 +90,7 @@ LOESCHREIHENFOLGE = [
     # Fördergeber zeigt. Stunden und Posten vor dem Paket, an dem sie hängen.
     "socos.Foerderstunden",
     "socos.Foerderposten",
+    "socos.Foerderabschnitt",
     "socos.Foerderpaket",
     "socos.Foerderantrag",
     "socos.Foerderfrage",

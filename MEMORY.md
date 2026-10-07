@@ -7,6 +7,32 @@ betrifft.
 
 ---
 
+## 2026-10-07 — Textabschnitte je Antrag statt fester Felder (Migration 0044)
+
+`Foerderantrag.nutzen`, `mehrwert`, `wirkung`, `regelbetrieb` sind weg. An
+ihrer Stelle steht `Foerderabschnitt(antrag, titel, text, reihenfolge)`, frei
+je Antrag. **Warum:** Die vier Felder waren die Pflichtinhalte der
+NÖ-Richtlinie (V.4 a–e). Sie standen auch im KWF-Antrag und dort in der Reife
+als „fehlt“, obwohl das KWF sie nicht verlangt (Rückmeldung Bernd: jeder
+Antrag hat eigene Beschreibungen). Verworfen wurden ein Schalter am Programm
+(das KWF bekäme dann keine eigenen Abschnitte) und das bloße Ausblenden leerer
+Felder (ein neuer NÖ-Antrag hätte sie dann nie).
+
+- **Am Antrag, nicht am Programm**, wie gewünscht — zwei Anträge im selben
+  Programm legen dieselben Abschnitte eben zweimal an.
+- **Reife:** Jeder lebende Abschnitt ist ein Punkt (`abschnitt-<id>`), offen
+  solange sein Text leer ist. Was ein Antrag nicht hat, fehlt ihm auch nicht.
+- **Umzug:** Anträge, in denen wenigstens eines der vier Felder Text hatte,
+  bekamen alle vier als Abschnitte (auch leere, als offene Punkte). Anträge
+  ohne jeden Text (KWF) bekamen keine. Die Migration geht auch zurück.
+- `beschreibung` bleibt ein Feld: Die 500 Zeichen des Online-Formulars werden
+  gezählt.
+- `foerderungen_einspielen` nimmt `"abschnitte": [{"titel", "text"}]` und
+  weist die alten Schlüssel mit einer Meldung ab, statt sie still zu
+  verlieren.
+
+---
+
 ## 2026-10-06 — Länge der Zeitleiste im Antrag (Migration 0043)
 
 `Foerderantrag.zeitachse` (nullbar): wie viele Monate der Zeitplan zeigt

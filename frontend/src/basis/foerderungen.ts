@@ -260,17 +260,6 @@ export function reifezahl(antrag: Foerderantrag): { erfuellt: number; von: numbe
   return { erfuellt: antrag.reife.filter((p) => p.erfuellt).length, von: antrag.reife.length };
 }
 
-/**
- * Die drei Teile der Projektbeschreibung, Richtlinie V.4 a–c. Seite und
- * Projektinhalt lesen beide von hier — sonst heißt ein Teil im kopierten Text
- * bald anders als am Bildschirm.
- */
-export const PROJEKTTEILE = [
-  ["nutzen", "a · Nutzen für Pflege und Betreuung", "Was die Technologie in der täglichen Pflege- und Betreuungsarbeit leistet."],
-  ["mehrwert", "b · Mehrwert gegenüber Bestehendem", "Was es heute gibt, und warum das nicht reicht."],
-  ["wirkung", "c · Wirkungsziele und Kennzahlen", "Woran man den Erfolg misst — mit Zahl, Ausgangswert und Ziel."],
-] as const;
-
 /* --- Der Projektinhalt zum Mitnehmen --------------------------------------- */
 
 const LEER = "_(noch leer)_";
@@ -317,9 +306,7 @@ export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, 
   }
 
   z.push("", "## Beschreibung des Vorhabens", "", oderLeer(antrag.beschreibung));
-  z.push("", "## Projektbeschreibung");
-  for (const [feld, titel] of PROJEKTTEILE) z.push("", `### ${titel}`, "", oderLeer(antrag[feld]));
-  z.push("", "## Kostenprognose Regelbetrieb", "", oderLeer(antrag.regelbetrieb));
+  for (const a of antrag.abschnitte) z.push("", `## ${a.titel}`, "", oderLeer(a.text));
 
   if (antrag.stundensatz || antrag.foerderquote || antrag.posten.length) {
     const k = antrag.kosten;

@@ -185,10 +185,10 @@ describe("der Projektinhalt zum Kopieren", () => {
     foerderwerber: "Sopharmis",
     beginn: "2027-01-01",
     beschreibung: "Worum es geht.",
-    nutzen: "",
-    mehrwert: "",
-    wirkung: "",
-    regelbetrieb: "",
+    abschnitte: [
+      { id: 7, antrag: 1, titel: "Nutzen für Pflege und Betreuung", text: "", reihenfolge: 0 },
+      { id: 8, antrag: 1, titel: "Kostenprognose Regelbetrieb", text: "Trägt sich.", reihenfolge: 1 },
+    ],
     datenbedarf: "✓ Muster\nPersonalkosten",
     laufzeit: 4,
     summe: "30000.00",
@@ -225,7 +225,8 @@ describe("der Projektinhalt zum Kopieren", () => {
     expect(text).toContain("- **Antrag:** Nr. 2 · Stand: Entwurf");
     expect(text).toContain("- **Höhe:** höchstens 50.000 €");
     expect(text).toContain("## Beschreibung des Vorhabens\n\nWorum es geht.");
-    expect(text).toContain("### a · Nutzen für Pflege und Betreuung\n\n_(noch leer)_");
+    expect(text).toContain("## Nutzen für Pflege und Betreuung\n\n_(noch leer)_");
+    expect(text).toContain("## Kostenprognose Regelbetrieb\n\nTrägt sich.");
   });
 
   it("stellt die Arbeitspakete in ihrer Reihenfolge mit Monaten dar", () => {

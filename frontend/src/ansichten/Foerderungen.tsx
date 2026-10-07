@@ -15,8 +15,9 @@
  *
  * **Die Antragsseite ist nach dem Antrag gebaut, nicht nach der Datenbank.**
  * Oben die Arbeitspakete als Zeitleiste — sie sind der Kern und das, woran
- * am meisten geschoben wird. Darunter die Felder in der Reihenfolge, in der
- * Formular und Richtlinie sie verlangen. Rechts steht immer, was noch fehlt
+ * am meisten geschoben wird. Darunter die Beschreibung fürs Formular und die
+ * Textabschnitte, die der Antrag selbst führt — jedes Programm verlangt
+ * andere, also legt man sie je Antrag an. Rechts steht immer, was noch fehlt
  * und wie viel Geld belegt ist; jeder Punkt springt an seine Stelle.
  *
  * Bearbeitet wird an Ort und Stelle: ein Klick auf einen Text, einen Betrag,
@@ -32,6 +33,7 @@ import {
   useFoerderungen,
   useNeuLaden,
   useOrganisationen,
+  type Foerderabschnitt,
   type Foerderantrag,
   type Foerderfrage,
   type Foerdergeber,
@@ -42,7 +44,6 @@ import {
   type Ich,
 } from "../basis/daten";
 import {
-  PROJEKTTEILE,
   STAENDE,
   alsProzent,
   alsStunden,
@@ -1046,34 +1047,7 @@ function Antrag({
           />
         </section>
 
-        <section className="karte fd-abschnitt">
-          <h2>Projektbeschreibung</h2>
-          <p className="fd-wozu">Beilage „inhaltliche Projektbeschreibung“, Richtlinie V.4 a–c.</p>
-          {PROJEKTTEILE.map(([feld, titel, platzhalter]) => (
-            <div key={feld} className="fd-teil" id={`fd-${feld}`}>
-              <h3>{titel}</h3>
-              <Entwurfsfeld
-                wert={antrag[feld]}
-                zeilen={6}
-                aendern={darf}
-                platzhalter={platzhalter}
-                speichern={textSpeichern(feld)}
-              />
-            </div>
-          ))}
-        </section>
-
-        <section className="karte fd-abschnitt" id="fd-regelbetrieb">
-          <h2>Kostenprognose Regelbetrieb</h2>
-          <p className="fd-wozu">Beilage „Finanzierungskonzept langfristig“, Richtlinie V.4.e.</p>
-          <Entwurfsfeld
-            wert={antrag.regelbetrieb}
-            zeilen={5}
-            aendern={darf}
-            platzhalter="Was der dauernde Gebrauch kostet, und warum sich das ein Träger leisten kann."
-            speichern={textSpeichern("regelbetrieb")}
-          />
-        </section>
+        <Abschnitte antrag={antrag} darf={darf} darfLoeschen={ich.darf.loeschen} />
 
         {ich.darf.loeschen && (
           <div className="fd-fussknopf">
@@ -1135,6 +1109,128 @@ function Antrag({
   );
 }
 
+/**
+ * Die Texte, die der Antrag verlangt — je einer eine Karte. Welche es gibt,
+ * legt man am Antrag fest: Das Land NÖ will Nutzen, Mehrwert, Wirkung und
+ * Regelbetrieb, das KWF nichts davon. Jeder Abschnitt steht rechts in der
+ * Reife, bis er geschrieben ist.
+ */
+function Abschnitte({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; darf: boolean; darfLoeschen: boolean }) {
+  const speichern = useAendern();
+  const neuLaden = useNeuLaden();
+  const [titel, setTitel] = useState("");
+  const [entfernen, setEntfernen] = useState<Foerderabschnitt | null>(null);
+  const reihe = antrag.abschnitte;
+
+  async function dazu() {
+    if (!titel.trim()) return;
+    const reihenfolge = Math.max(0, ...reihe.map((a) => a.reihenfolge)) + 1;
+    await speichern("/foerderabschnitte/", { antrag: antrag.id, titel: titel.trim(), reihenfolge }, "POST");
+    setTitel("");
+  }
+
+  /** Wie bei den Paketen: tauschen, dann die ganze Reihe neu durchzählen. */
+  async function tauschen(abschnitt: Foerderabschnitt, richtung: -1 | 1) {
+    const i = reihe.findIndex((a) => a.id === abschnitt.id);
+    const neu = [...reihe];
+    [neu[i], neu[i + richtung]] = [neu[i + richtung], neu[i]];
+    for (const [stelle, a] of neu.entries())
+      if (a.reihenfolge !== stelle)
+        await hole(`/foerderabschnitte/${a.id}/`, { method: "PATCH", body: JSON.stringify({ reihenfolge: stelle }) });
+    neuLaden();
+  }
+
+  return (
+    <>
+      {reihe.map((a, i) => (
+        <section key={a.id} className="karte fd-abschnitt" id={`fd-abschnitt-${a.id}`}>
+          <div className="fd-kartenkopf fd-abschnittskopf">
+            <h2>
+              <Feldtext wert={a.titel} aendern={darf} speichern={(t) => speichern(`/foerderabschnitte/${a.id}/`, { titel: t })} />
+            </h2>
+            {darf && (
+              <span className="fd-abschnittsknoepfe">
+                <button type="button" className="knopf-still" aria-label={`${a.titel} nach oben`} disabled={i === 0} onClick={() => tauschen(a, -1)}>
+                  <Zeichen name="hoch" />
+                </button>
+                <button
+                  type="button"
+                  className="knopf-still"
+                  aria-label={`${a.titel} nach unten`}
+                  disabled={i === reihe.length - 1}
+                  onClick={() => tauschen(a, 1)}
+                >
+                  <Zeichen name="runter" />
+                </button>
+                {darfLoeschen && (
+                  <button type="button" className="knopf-still" aria-label={`${a.titel} entfernen`} onClick={() => setEntfernen(a)}>
+                    <Zeichen name="korb" />
+                  </button>
+                )}
+              </span>
+            )}
+          </div>
+          <Entwurfsfeld
+            wert={a.text}
+            zeilen={6}
+            aendern={darf}
+            platzhalter="Noch nichts geschrieben."
+            speichern={async (text) => {
+              await hole(`/foerderabschnitte/${a.id}/`, { method: "PATCH", body: JSON.stringify({ text }) });
+              neuLaden();
+            }}
+          />
+        </section>
+      ))}
+
+      {(darf || reihe.length === 0) && (
+        <section className="karte fd-abschnitt">
+          {reihe.length === 0 && (
+            <Leerstelle
+              was="Keine Textabschnitte"
+              satz="Was das Programm an Texten verlangt — Projektbeschreibung, Kostenprognose —, kommt je als eigener Abschnitt dazu."
+            />
+          )}
+          {darf && (
+            <form
+              className="fd-abschnitt-neu"
+              onSubmit={(e) => {
+                e.preventDefault();
+                dazu();
+              }}
+            >
+              <input
+                className="feld"
+                value={titel}
+                placeholder="Neuer Abschnitt, z. B. Kostenprognose Regelbetrieb"
+                aria-label="Überschrift des neuen Abschnitts"
+                onChange={(e) => setTitel(e.target.value)}
+              />
+              <button type="submit" className="knopf-still" disabled={!titel.trim()}>
+                <Zeichen name="plus" />
+                Abschnitt
+              </button>
+            </form>
+          )}
+        </section>
+      )}
+
+      {entfernen && (
+        <Loeschdialog
+          name={entfernen.titel}
+          was="Der Abschnitt samt seinem Text"
+          abbrechen={() => setEntfernen(null)}
+          loeschen={async () => {
+            await hole(`/foerderabschnitte/${entfernen.id}/`, { method: "DELETE" }).catch(() => undefined);
+            setEntfernen(null);
+            neuLaden();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 /* --- Rechts: Geld, Reife, Bedarf -------------------------------------------- */
 
 function Geldkarte({ antrag, programm }: { antrag: Foerderantrag; programm: Foerderprogramm }) {
@@ -1172,13 +1268,9 @@ function Reifekarte({ antrag }: { antrag: Foerderantrag }) {
   const ziel: Record<string, string> = {
     titel: "fd-oben",
     beschreibung: "fd-beschreibung",
-    nutzen: "fd-nutzen",
-    mehrwert: "fd-mehrwert",
-    wirkung: "fd-wirkung",
     pakete: "fd-zeitplan",
     summe: "fd-zeitplan",
     laufzeit: "fd-zeitplan",
-    regelbetrieb: "fd-regelbetrieb",
   };
   return (
     <section className="karte fd-reife">
@@ -1194,7 +1286,8 @@ function Reifekarte({ antrag }: { antrag: Foerderantrag }) {
             <button
               type="button"
               onClick={() => {
-                const stelle = ziel[p.schluessel];
+                // Ein Abschnitt heißt in der Reife `abschnitt-<id>`, seine Karte `fd-abschnitt-<id>`.
+                const stelle = ziel[p.schluessel] ?? `fd-${p.schluessel}`;
                 const el = stelle === "fd-oben" ? null : document.getElementById(stelle);
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
                 else window.scrollTo({ top: 0, behavior: "smooth" });

@@ -2,9 +2,9 @@
 Förderungen: was aus einem Antrag gerechnet wird — Summe, Laufzeit, Reife.
 
 **Die Antragsreife steht hier und nicht in der Oberfläche.** Sie ist die Liste
-dessen, was die Richtlinie (V.4 a–e) und das Online-Formular verlangen. Stünde
-sie im Frontend, gäbe es eine zweite Stelle, die weiß, was ein Antrag braucht —
-und die liefe beim nächsten Formularfeld auseinander.
+dessen, was das Formular verlangt, und dazu je ein Punkt für jeden Abschnitt,
+den der Antrag führt. Stünde sie im Frontend, gäbe es eine zweite Stelle, die
+weiß, was ein Antrag braucht — und die liefe beim nächsten Feld auseinander.
 """
 
 from decimal import ROUND_HALF_UP, Decimal
@@ -18,6 +18,12 @@ ZEICHEN = {"titel": 200, "beschreibung": 500}
 def lebende_pakete(antrag):
     """Über die Beziehung sähe Django auch weich gelöschte Pakete."""
     return [p for p in antrag.pakete.all() if p.geloescht_am is None]
+
+
+def lebende_abschnitte(antrag):
+    return sorted(
+        (a for a in antrag.abschnitte.all() if a.geloescht_am is None), key=lambda a: (a.reihenfolge, a.id)
+    )
 
 
 def lebende_stunden(paket):
@@ -104,6 +110,9 @@ def reife(antrag) -> list[dict]:
     Was ein Antrag braucht, je Punkt erfüllt oder nicht — in der Reihenfolge,
     in der man ihn schreibt. `hinweis` sagt, was fehlt; bei einem erfüllten
     Punkt ist er leer.
+
+    Die Abschnitte stehen je mit ihrer Überschrift darin, unter dem Schlüssel
+    `abschnitt-<id>` — die Seite springt damit an die richtige Stelle.
     """
     programm = antrag.programm
     pakete = lebende_pakete(antrag)
@@ -144,11 +153,11 @@ def reife(antrag) -> list[dict]:
             0 < zeichen <= ZEICHEN["beschreibung"],
             "Fehlt." if zeichen == 0 else f"{zeichen - ZEICHEN['beschreibung']} Zeichen zu lang.",
         ),
-        punkt("nutzen", "Nutzen für Pflege und Betreuung", bool(antrag.nutzen.strip()), "Fehlt."),
-        punkt("mehrwert", "Mehrwert gegenüber Bestehendem", bool(antrag.mehrwert.strip()), "Fehlt."),
-        punkt("wirkung", "Wirkungsziele und Kennzahlen", bool(antrag.wirkung.strip()), "Fehlt."),
+        *(
+            punkt(f"abschnitt-{a.id}", a.titel, bool(a.text.strip()), "Noch leer.")
+            for a in lebende_abschnitte(antrag)
+        ),
         punkt("pakete", "Arbeitspakete mit Beträgen", bool(pakete) and not ohne_betrag and not ohne_satz, pakete_hinweis),
         punkt("summe", "Fördersumme in der Grenze", summe_ok, summe_hinweis),
         punkt("laufzeit", "Laufzeit in der Grenze", laufzeit_ok, laufzeit_hinweis),
-        punkt("regelbetrieb", "Kostenprognose Regelbetrieb", bool(antrag.regelbetrieb.strip()), "Fehlt."),
     ]

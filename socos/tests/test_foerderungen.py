@@ -15,6 +15,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 
 from socos.models import (
+    Foerderabschnitt,
     Foerderantrag,
     Foerderfrage,
     Foerdergeber,
@@ -147,12 +148,28 @@ class TestReife:
         assert reife["pakete"]["hinweis"] == "Noch kein Arbeitspaket."
 
     def test_ein_vollstaendiger_antrag(self, antrag):
-        for feld in ("beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb"):
-            setattr(antrag, feld, "Text")
+        antrag.beschreibung = "Text"
         antrag.save()
+        Foerderabschnitt.objects.create(antrag=antrag, titel="Kostenprognose Regelbetrieb", text="Text")
         _paket(antrag, "Bau", 1, 18, "49000")
 
         assert all(p["erfuellt"] for p in _reife(antrag).values())
+
+    def test_jeder_abschnitt_ist_ein_punkt(self, antrag):
+        """Ein Antrag ohne Abschnitte (KWF) fragt nach keinem; ein leerer ist offen."""
+        assert not [k for k in _reife(antrag) if k.startswith("abschnitt-")]
+
+        leer = Foerderabschnitt.objects.create(antrag=antrag, titel="Mehrwert", reihenfolge=1)
+        voll = Foerderabschnitt.objects.create(antrag=antrag, titel="Nutzen", text="Text", reihenfolge=0)
+        weg = Foerderabschnitt.objects.create(antrag=antrag, titel="Alt", reihenfolge=2)
+        weg.delete()
+
+        reife = _reife(antrag)
+        assert [k for k in reife if k.startswith("abschnitt-")] == [f"abschnitt-{voll.pk}", f"abschnitt-{leer.pk}"]
+        assert reife[f"abschnitt-{voll.pk}"]["erfuellt"]
+        assert reife[f"abschnitt-{leer.pk}"] == {
+            "schluessel": f"abschnitt-{leer.pk}", "text": "Mehrwert", "erfuellt": False, "hinweis": "Noch leer.",
+        }
 
     def test_ueber_der_grenze_ist_nicht_fertig(self, antrag):
         _paket(antrag, "Bau", 1, 18, "50000.01")
@@ -206,7 +223,7 @@ class TestSchnittstelle:
         assert geholt["pakete"][0]["betrag"] == "1234.50"
         assert geholt["laufzeit"] == 3
         assert geholt["zeichen"] == {"titel": 200, "beschreibung": 500}
-        assert len(geholt["reife"]) == 9
+        assert len(geholt["reife"]) == 5
 
     def test_leser_schreibt_nicht(self, client, leser, antrag):
         client.force_login(leser)
@@ -232,10 +249,28 @@ class TestSchnittstelle:
 
     def test_antrag_entfernen_nimmt_die_pakete_mit(self, client, admin_nutzer, antrag):
         paket = _paket(antrag, "Bau", 1, 2, "10")
+        abschnitt = Foerderabschnitt.objects.create(antrag=antrag, titel="Nutzen")
         client.force_login(admin_nutzer)
         assert client.delete(f"/api/foerderantraege/{antrag.pk}/").status_code == 204
         assert not Foerderpaket.objects.filter(pk=paket.pk).exists()
         assert Foerderpaket.alle_objekte.filter(pk=paket.pk).exists()  # weich
+        assert not Foerderabschnitt.objects.filter(pk=abschnitt.pk).exists()
+
+    def test_abschnitte_ueber_die_schnittstelle(self, client, bearbeiter, antrag):
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/foerderabschnitte/", {"antrag": antrag.pk, "titel": "Nutzen", "reihenfolge": 0},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201
+        pfad = f"/api/foerderabschnitte/{antwort.json()['id']}/"
+        assert client.patch(pfad, {"text": "Spart Zeit."}, content_type="application/json").status_code == 200
+        # Wie alles im Modul: anlegen ja, entfernen nur der Admin.
+        assert client.delete(pfad).status_code == 403
+
+        geholt = client.get(f"/api/foerderantraege/{antrag.pk}/").json()
+        assert [(a["titel"], a["text"]) for a in geholt["abschnitte"]] == [("Nutzen", "Spart Zeit.")]
+        assert geholt["reife"][2]["text"] == "Nutzen" and geholt["reife"][2]["erfuellt"]
 
     def test_zeitachse_einstellen(self, client, bearbeiter, antrag):
         client.force_login(bearbeiter)
@@ -319,7 +354,7 @@ class TestEinspielen:
         "antraege": [
             {
                 "titel": "Befüllsystem",
-                "nutzen": ["Zeile eins", "Zeile zwei"],
+                "abschnitte": [{"titel": "Nutzen", "text": ["Zeile eins", "Zeile zwei"]}, {"titel": "Mehrwert"}],
                 "pakete": [{"titel": "Bau", "von": 1, "bis": 6, "betrag": "1000"}, {"titel": "Test", "von": 6}],
             }
         ],
@@ -337,7 +372,7 @@ class TestEinspielen:
         assert programm.geber.name == "Land Niederösterreich"  # ohne Angabe
         assert programm.steckbrief == "Höhe: 50.000 €\nLaufzeit: 2 Jahre"
         antrag = Foerderantrag.objects.get()
-        assert antrag.nutzen == "Zeile eins\nZeile zwei"
+        assert [(a.titel, a.text) for a in antrag.abschnitte.all()] == [("Nutzen", "Zeile eins\nZeile zwei"), ("Mehrwert", "")]
         assert [(p.titel, p.von, p.bis) for p in Foerderpaket.objects.all()] == [("Bau", 1, 6), ("Test", 6, 6)]
         # Ohne Haken in der Datei: beantwortet, wenn eine Antwort dasteht.
         assert [f.beantwortet for f in Foerderfrage.objects.all()] == [False, True, False]
@@ -368,6 +403,14 @@ class TestEinspielen:
         assert (ffg.kurz, ffg.link) == ("FFG", "https://www.ffg.at")
         assert Foerdergeber.objects.count() == 2
 
+    def test_weist_alte_textfelder_ab(self, db, tmp_path):
+        """Bis 2026-10-07 waren die Texte Felder — eine alte Datei verlöre sie sonst still."""
+        daten = json.loads(json.dumps(self.DATEN))
+        daten["antraege"][0]["regelbetrieb"] = "Kostet wenig."
+        with pytest.raises(CommandError, match="regelbetrieb"):
+            call_command("foerderungen_einspielen", datei=self._datei(tmp_path, daten), verbosity=0)
+        assert not Foerderprogramm.objects.exists()
+
     def test_weist_unsinnige_monate_ab(self, db, tmp_path):
         daten = json.loads(json.dumps(self.DATEN))
         daten["antraege"][0]["pakete"][0]["bis"] = 0
@@ -393,7 +436,8 @@ def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
     geber = Foerdergeber.objects.create(name="FFG", kurz="FFG", link="https://www.ffg.at", organisation=haus)
     programm = Foerderprogramm.objects.create(geber=geber, name="Pflegeinnovation NÖ", max_foerderung=Decimal("50000"))
     Foerderfrage.objects.create(programm=programm, frage="Wie lang?", antwort="2 Jahre")
-    antrag = Foerderantrag.objects.create(programm=programm, titel="Befüllsystem", wirkung="DGKP-Zeit")
+    antrag = Foerderantrag.objects.create(programm=programm, titel="Befüllsystem")
+    Foerderabschnitt.objects.create(antrag=antrag, titel="Wirkungsziele", text="DGKP-Zeit")
     _paket(antrag, "Bau", 2, 9, "12345.67")
     antrag.stundensatz = Decimal("50")
     antrag.save()
@@ -404,13 +448,14 @@ def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
     call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
     Foerderstunden.objects.all().hart_loeschen()
     Foerderposten.objects.all().hart_loeschen()
+    Foerderabschnitt.objects.all().hart_loeschen()
     Foerderpaket.objects.all().hart_loeschen()
     Foerderantrag.objects.all().hart_loeschen()
     call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
 
     paket = Foerderpaket.objects.get()
     assert (paket.von, paket.bis, paket.betrag) == (2, 9, Decimal("12345.67"))
-    assert paket.antrag.wirkung == "DGKP-Zeit"
+    assert [(a.titel, a.text) for a in paket.antrag.abschnitte.all()] == [("Wirkungsziele", "DGKP-Zeit")]
     assert Foerderfrage.objects.get().antwort == "2 Jahre"
     assert paket.antrag.programm.geber.link == "https://www.ffg.at"
     assert paket.antrag.stundensatz == Decimal("50.00")

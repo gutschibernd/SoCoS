@@ -2209,9 +2209,10 @@ class Foerderantrag(Basismodell):
     """
     Ein Antrag in einem Programm.
 
-    Die Textfelder folgen den Pflichtinhalten der Richtlinie (V.4 a–e) und den
-    Feldern des Online-Formulars — damit die Antragsreife sagen kann, was noch
-    fehlt, ohne dass jemand eine eigene Gliederung pflegt.
+    Die langen Texte stehen als `Foerderabschnitt` daneben, nicht als Felder:
+    Jedes Programm verlangt andere (Land NÖ: Nutzen, Mehrwert, Wirkung,
+    Regelbetrieb; KWF: nichts davon). Hier bleibt nur, was jedes Formular
+    fragt — Kurzbezeichnung und Beschreibung.
     """
 
     class Stand(models.TextChoices):
@@ -2224,7 +2225,7 @@ class Foerderantrag(Basismodell):
     # eines Meetings). Jede Schreibpause schriebe sonst einen Eintrag mit dem
     # ganzen alten und dem ganzen neuen Text, und das Protokoll des Antrags
     # bestünde nach einer Stunde Schreiben nur noch aus Absätzen.
-    protokoll_ohne = ("beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb")
+    protokoll_ohne = ("beschreibung",)
 
     programm = models.ForeignKey(
         Foerderprogramm, verbose_name="Programm", on_delete=models.PROTECT, related_name="antraege"
@@ -2242,10 +2243,6 @@ class Foerderantrag(Basismodell):
     # Das Formular nimmt 500 Zeichen. **Nicht** hart begrenzt: Beim Schreiben
     # ist ein Satz zu viel normal; die Seite zählt mit und sagt es.
     beschreibung = models.TextField("Beschreibung des Vorhabens", blank=True)
-    nutzen = models.TextField("Projektbeschreibung und Nutzen (V.4.a)", blank=True)
-    mehrwert = models.TextField("Mehrwert gegenüber Bestehendem (V.4.b)", blank=True)
-    wirkung = models.TextField("Wirkungsziele und Kennzahlen (V.4.c)", blank=True)
-    regelbetrieb = models.TextField("Kostenprognose Regelbetrieb (V.4.e)", blank=True)
     datenbedarf = models.TextField(
         "Was wir noch brauchen", blank=True, help_text="Eine Zeile je Punkt; „✓ “ davor heißt: ist da."
     )
@@ -2262,6 +2259,37 @@ class Foerderantrag(Basismodell):
         verbose_name = "Förderantrag"
         verbose_name_plural = "Förderanträge"
         ordering = ["programm", "nummer", "id"]
+
+    def __str__(self):
+        return self.titel
+
+
+class Foerderabschnitt(Basismodell):
+    """
+    Ein Textabschnitt eines Antrags — „Kostenprognose Regelbetrieb",
+    „Mehrwert gegenüber Bestehendem".
+
+    **Je Antrag frei, nicht als Felder am Antrag** (Rückmeldung Bernd,
+    2026-10-07): Die vier festen Texte der NÖ-Richtlinie standen auch im
+    KWF-Antrag und dort in der Reife als „fehlt", obwohl das KWF sie nicht
+    verlangt. Ein Abschnitt zählt in der Reife, sobald es ihn gibt — leer
+    heißt dann: noch zu schreiben.
+    """
+
+    # Der Text speichert sich beim Tippen selbst — siehe Foerderantrag.
+    protokoll_ohne = ("text",)
+
+    antrag = models.ForeignKey(
+        Foerderantrag, verbose_name="Antrag", on_delete=models.CASCADE, related_name="abschnitte"
+    )
+    titel = models.CharField("Überschrift", max_length=200)
+    text = models.TextField("Text", blank=True)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Textabschnitt eines Antrags"
+        verbose_name_plural = "Textabschnitte eines Antrags"
+        ordering = ["reihenfolge", "id"]
 
     def __str__(self):
         return self.titel

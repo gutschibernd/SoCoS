@@ -3222,8 +3222,14 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 
 .fd-abschnitt > h2 { margin-bottom: 2px; }
 .fd-wozu { margin: 0 0 12px; font-size: 12.5px; color: var(--text-sehr-leise); }
-.fd-teil + .fd-teil { margin-top: 18px; }
-.fd-teil > h3 { margin: 0 0 6px; font-size: 13.5px; font-weight: 600; }
+/* Die Überschrift eines Abschnitts ist zugleich sein Name — zum Anklicken. */
+.fd-abschnittskopf { align-items: center; margin-bottom: 8px; }
+.fd-abschnittskopf > h2 { min-width: 0; }
+.fd-abschnittsknoepfe { display: flex; gap: 4px; flex: 0 0 auto; margin-left: auto; }
+.fd-abschnittsknoepfe .knopf-still { min-width: var(--griff); justify-content: center; padding-inline: 8px; }
+.fd-abschnitt-neu { display: flex; gap: 8px; }
+.fd-abschnitt-neu > .feld { flex: 1 1 auto; min-width: 0; }
+.fd-abschnitt .leerstelle + .fd-abschnitt-neu { margin-top: 12px; }
 .fd-fussknopf { display: flex; justify-content: flex-end; }
 
 /* Rechts: Geld, Reife, Bedarf. */

@@ -59,6 +59,7 @@ from socos.models import (
     Foerderfrage,
     Foerderpaket,
     Foerderposten,
+    Foerderabschnitt,
     Foerderprogramm,
     Foerderstunden,
     Projekt,
@@ -1372,7 +1373,8 @@ class FoerdergeberViewSet(SocosViewSet):
 class FoerderprogrammViewSet(SocosViewSet):
     serializer_class = ser.FoerderprogrammSerializer
     queryset = Foerderprogramm.objects.prefetch_related(
-        "fragen", "antraege", "antraege__pakete", "antraege__pakete__stunden", "antraege__posten"
+        "fragen", "antraege", "antraege__pakete", "antraege__pakete__stunden", "antraege__posten",
+        "antraege__abschnitte",
     )
 
 
@@ -1383,14 +1385,19 @@ class FoerderfrageViewSet(SocosViewSet):
 
 class FoerderantragViewSet(SocosViewSet):
     serializer_class = ser.FoerderantragSerializer
-    queryset = Foerderantrag.objects.select_related("programm").prefetch_related("pakete", "pakete__stunden", "posten")
+    queryset = Foerderantrag.objects.select_related("programm").prefetch_related(
+        "pakete", "pakete__stunden", "posten", "abschnitte"
+    )
 
     @transaction.atomic
     def perform_destroy(self, antrag):
         """
-        Die Pakete gehen mit. Über `on_delete=CASCADE` geschähe das nur beim
-        harten Löschen; weich gelöscht blieben sie als Waisen stehen.
+        Pakete, Posten und Abschnitte gehen mit. Über `on_delete=CASCADE`
+        geschähe das nur beim harten Löschen; weich gelöscht blieben sie als
+        Waisen stehen.
         """
+        for abschnitt in Foerderabschnitt.objects.filter(antrag=antrag):
+            abschnitt.delete()
         for posten in Foerderposten.objects.filter(antrag=antrag):
             posten.delete()
         for paket in Foerderpaket.objects.filter(antrag=antrag):
@@ -1426,3 +1433,8 @@ class FoerderstundenViewSet(SocosViewSet):
 class FoerderpostenViewSet(SocosViewSet):
     serializer_class = ser.FoerderpostenSerializer
     queryset = Foerderposten.objects.all()
+
+
+class FoerderabschnittViewSet(SocosViewSet):
+    serializer_class = ser.FoerderabschnittSerializer
+    queryset = Foerderabschnitt.objects.all()

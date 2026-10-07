@@ -11,6 +11,9 @@ kommt es unter das Land Niederösterreich — so war es, bevor es Fördergeber g
 ein Pflegeheim, und Zahlen aus dessen Betrieb. Das gehört nach `daten/` (in
 `.gitignore`) — eine Datenmigration stünde für immer in der Versionsgeschichte.
 
+Die langen Texte eines Antrags stehen als `"abschnitte": [{"titel": …,
+"text": …}]` — so viele und so benannt, wie das Programm sie verlangt.
+
 Gibt es ein Programm mit demselben Namen schon, weigert sich der Befehl;
 `--ersetzen` entfernt es zuerst — weich, wie alles, samt allem darunter.
 """
@@ -23,11 +26,28 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from socos.models import Foerderantrag, Foerderfrage, Foerdergeber, Foerderpaket, Foerderprogramm
+from socos.models import (
+    Foerderabschnitt,
+    Foerderantrag,
+    Foerderfrage,
+    Foerdergeber,
+    Foerderpaket,
+    Foerderposten,
+    Foerderprogramm,
+    Foerderstunden,
+)
 
 STANDARDDATEI = Path("daten/foerderungen.json")
 STAENDE = {wert for wert, _ in Foerderantrag.Stand.choices}
 OHNE_GEBER = {"name": "Land Niederösterreich", "kurz": "NÖ"}
+# Bis 2026-10-07 hatte der Antrag diese Texte als feste Felder. Eine alte
+# Datei würde sonst ohne ein Wort ohne sie eingespielt.
+ALTE_TEXTE = ("nutzen", "mehrwert", "wirkung", "regelbetrieb")
+
+
+def _text(wert):
+    """Ein langer Text darf in der Datei als Liste von Zeilen stehen."""
+    return "\n".join(wert) if isinstance(wert, list) else (wert or "")
 
 
 def _betrag(wert, wo):
@@ -93,6 +113,15 @@ class Command(BaseCommand):
                 raise CommandError(f"Antrag {i}: ohne Titel.")
             if len(a["titel"]) > 200:
                 raise CommandError(f"Antrag {i}: Die Kurzbezeichnung ist länger als 200 Zeichen.")
+            alt = [k for k in ALTE_TEXTE if k in a]
+            if alt:
+                raise CommandError(
+                    f"Antrag {i}: {', '.join(alt)} gibt es nicht mehr als Feld — "
+                    'bitte als "abschnitte": [{"titel": …, "text": …}] angeben.'
+                )
+            for j, ab in enumerate(a.get("abschnitte", []), start=1):
+                if not str(ab.get("titel", "")).strip():
+                    raise CommandError(f"Antrag {i}, Abschnitt {j}: ohne Überschrift.")
             if a.get("stand", "entwurf") not in STAENDE:
                 raise CommandError(f"Antrag {i}: Stand {a['stand']} gibt es nicht.")
             if a.get("beginn"):
@@ -112,7 +141,13 @@ class Command(BaseCommand):
     def _entfernen(self, programm):
         """Weich und einzeln, damit das Protokoll jedes Stück nennt."""
         for antrag in Foerderantrag.objects.filter(programm=programm):
+            for abschnitt in Foerderabschnitt.objects.filter(antrag=antrag):
+                abschnitt.delete()
+            for posten in Foerderposten.objects.filter(antrag=antrag):
+                posten.delete()
             for paket in Foerderpaket.objects.filter(antrag=antrag):
+                for stunden in Foerderstunden.objects.filter(paket=paket):
+                    stunden.delete()
                 paket.delete()
             antrag.delete()
         for frage in Foerderfrage.objects.filter(programm=programm):
@@ -162,9 +197,13 @@ class Command(BaseCommand):
                 stand=a.get("stand", "entwurf"),
                 foerderwerber=a.get("foerderwerber", ""),
                 beginn=a.get("beginn") or None,
-                **{feld: "\n".join(a[feld]) if isinstance(a.get(feld), list) else a.get(feld, "")
-                   for feld in ("beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb", "datenbedarf")},
+                beschreibung=_text(a.get("beschreibung")),
+                datenbedarf=_text(a.get("datenbedarf")),
             )
+            for i, ab in enumerate(a.get("abschnitte", [])):
+                Foerderabschnitt.objects.create(
+                    antrag=antrag, titel=ab["titel"].strip(), text=_text(ab.get("text")), reihenfolge=i
+                )
             for i, p in enumerate(a.get("pakete", [])):
                 Foerderpaket.objects.create(
                     antrag=antrag,

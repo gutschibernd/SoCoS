@@ -932,7 +932,7 @@ function ModuleDoku() {
       <Abschnitt
         zeichen="foerderung"
         titel="Förderungen: vom Fördergeber zum Antrag"
-        vorspann="Oben die Fördergeber — FFG, aws, KWF, Land Niederösterreich —, darunter ihre Programme mit der Richtlinie in Kürze und den Fragen an die Förderstelle, darin die Anträge. Jeder Antrag hat seine Arbeitspakete auf einer Zeitleiste, die Texte, die Formular und Richtlinie verlangen, und rechts, was noch fehlt."
+        vorspann="Oben die Fördergeber — FFG, aws, KWF, Land Niederösterreich —, darunter ihre Programme mit der Richtlinie in Kürze und den Fragen an die Förderstelle, darin die Anträge. Jeder Antrag hat seine Arbeitspakete auf einer Zeitleiste, die Texte, die sein Programm verlangt, und rechts, was noch fehlt."
       >
         <Schritte
           schritte={[
@@ -940,7 +940,7 @@ function ModuleDoku() {
             "Auf der Seite des Programms steht je Antrag eine Kachel: wie viel Geld er belegt, wie seine Pakete in der Zeit liegen und wie viele Punkte der Antragsreife erfüllt sind. Ein Klick öffnet den Antrag.",
             "Oben im Antrag stehen die Arbeitspakete als Zeitleiste. Einen Balken ziehst du in der Mitte, um ihn zu verschieben, an einem Rand, um ihn zu verlängern. Mit der Tastatur geht es mit ← und →, mit Umschalt verschiebst du nur das Ende.",
             "Ein Klick auf den Titel eines Pakets klappt es auf: Ziel und Inhalt, Ergebnis, Monate, Reihenfolge. Ein Klick auf den Betrag ändert ihn. Ein neues Paket ist die Zeile unter der Leiste: tippen, Enter.",
-            "Darunter stehen die Texte in der Reihenfolge, die der Antrag verlangt: die Beschreibung für das Online-Formular, die Projektbeschreibung (Nutzen, Mehrwert, Wirkungsziele) und die Kostenprognose für den Regelbetrieb. Sie speichern sich beim Tippen.",
+            "Darunter stehen die Texte: zuerst die Beschreibung für das Online-Formular, dann die Abschnitte, die der Antrag selbst führt. Welche das sind, legst du je Antrag an — „Abschnitt“ ganz unten, Überschrift tippen, Enter. Ein Klick auf die Überschrift ändert sie, die Pfeile daneben schieben den Abschnitt nach oben oder unten. Die Texte speichern sich beim Tippen.",
             "Rechts steht, was noch fehlt. Ein Klick auf einen Punkt springt an die Stelle, an der du ihn erledigst.",
           ]}
         />
@@ -965,7 +965,11 @@ function ModuleDoku() {
             },
             {
               begriff: "Antragsreife",
-              text: "Neun Punkte aus der Richtlinie (V.4 a–e) und dem Online-Formular: Kurzbezeichnung, Beschreibung, Nutzen, Mehrwert, Wirkungsziele, Pakete mit Beträgen, Summe und Laufzeit in der Grenze, Kostenprognose. Sie wird gerechnet, abhaken muss man nichts.",
+              text: "Kurzbezeichnung, Beschreibung, Pakete mit Beträgen, Summe und Laufzeit in der Grenze — und dazu jeder Abschnitt des Antrags, bis etwas darin steht. Ein Antrag fürs Land NÖ hat so Nutzen, Mehrwert, Wirkungsziele und Kostenprognose als Punkte, einer fürs KWF nur, was du dort anlegst. Sie wird gerechnet, abhaken muss man nichts.",
+            },
+            {
+              begriff: "Abschnitte",
+              text: "Jedes Programm verlangt andere Texte: das Land NÖ eine Projektbeschreibung in drei Teilen und eine Kostenprognose für den Regelbetrieb, das KWF nichts davon. Deshalb hat ein Antrag keine festen Textfelder außer der Beschreibung, sondern so viele Abschnitte, wie du anlegst. „Projektinhalt kopieren“ nimmt sie mit ihren Überschriften mit.",
             },
             {
               begriff: "Zeichen zählen",

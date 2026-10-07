@@ -35,6 +35,7 @@ router.register("foerderantraege", api.FoerderantragViewSet, basename="foerderan
 router.register("foerderpakete", api.FoerderpaketViewSet, basename="foerderpaket")
 router.register("foerderstunden", api.FoerderstundenViewSet, basename="foerderstunden")
 router.register("foerderposten", api.FoerderpostenViewSet, basename="foerderposten")
+router.register("foerderabschnitte", api.FoerderabschnittViewSet, basename="foerderabschnitte")
 router.register("lagethemen", api.LagethemaViewSet, basename="lagethema")
 router.register("lageschritte", api.LageschrittViewSet, basename="lageschritt")
 router.register("lageverbindungen", api.LageverbindungViewSet, basename="lageverbindung")

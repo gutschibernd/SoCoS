@@ -26,6 +26,7 @@ from socos.models import (
     Foerderfrage,
     Foerderpaket,
     Foerderposten,
+    Foerderabschnitt,
     Foerderprogramm,
     Foerderstunden,
     Kontakt,
@@ -936,6 +937,12 @@ class FoerderpostenSerializer(serializers.ModelSerializer):
         return daten
 
 
+class FoerderabschnittSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Foerderabschnitt
+        fields = ["id", "antrag", "titel", "text", "reihenfolge"]
+
+
 class FoerderpaketSerializer(serializers.ModelSerializer):
     stunden = serializers.SerializerMethodField()
     kosten = serializers.SerializerMethodField()
@@ -973,6 +980,7 @@ class FoerderantragSerializer(serializers.ModelSerializer):
     damit die Zahl nur in `services/foerderung.py` steht.
     """
 
+    abschnitte = serializers.SerializerMethodField()
     pakete = serializers.SerializerMethodField()
     posten = serializers.SerializerMethodField()
     kosten = serializers.SerializerMethodField()
@@ -985,11 +993,14 @@ class FoerderantragSerializer(serializers.ModelSerializer):
         model = Foerderantrag
         fields = [
             "id", "programm", "nummer", "titel", "stand", "foerderwerber", "beginn", "zeitachse",
-            "beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb", "datenbedarf",
+            "beschreibung", "datenbedarf",
             "stundensatz", "gemeinkosten", "foerderquote",
-            "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "geaendert_am",
+            "abschnitte", "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "geaendert_am",
         ]
         read_only_fields = ["geaendert_am"]
+
+    def get_abschnitte(self, antrag):
+        return FoerderabschnittSerializer(foerderung.lebende_abschnitte(antrag), many=True).data
 
     def get_pakete(self, antrag):
         pakete = sorted(foerderung.lebende_pakete(antrag), key=lambda p: (p.reihenfolge, p.id))

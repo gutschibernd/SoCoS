@@ -596,6 +596,9 @@ export type Foerderposten = {
   reihenfolge: number;
 };
 
+/** Ein Textabschnitt eines Antrags — „Kostenprognose Regelbetrieb". */
+export type Foerderabschnitt = { id: number; antrag: number; titel: string; text: string; reihenfolge: number };
+
 /** Die Kalkulation eines Antrags, alles Geld als Zeichenkette. */
 export type Antragskosten = {
   stunden: string;
@@ -624,10 +627,8 @@ export type Foerderantrag = {
   /** Monate im Zeitplan; leer heißt: wie das Programm (siehe monatsanzahl). */
   zeitachse: number | null;
   beschreibung: string;
-  nutzen: string;
-  mehrwert: string;
-  wirkung: string;
-  regelbetrieb: string;
+  /** Die Texte, die das Programm verlangt — je Antrag frei angelegt, in ihrer Reihenfolge. */
+  abschnitte: Foerderabschnitt[];
   /** Eine Zeile je Punkt; „✓ " davor heißt: ist da. */
   datenbedarf: string;
   /** Leer heißt: nicht gefragt (siehe socos/services/foerderung.py). */
