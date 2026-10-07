@@ -7,6 +7,46 @@ betrifft.
 
 ---
 
+## 2026-10-07 — Thoughts: „Neu anordnen" und Pfeile aus der Seitenmitte
+
+**Rückmeldung Bernd:** Die Pfeile sahen nicht gut aus, auch von Hand
+hingelegt nicht; Abhängigkeiten sollen **mittig** hinausgehen und dafür alle
+vier Seiten nehmen dürfen. Und ein Knopf, der die Sternkarte einmal sauber
+und symmetrisch neu anordnet.
+
+**Pfeile setzen jetzt in der Mitte einer Seite an** — das ersetzt die Regel
+vom 2026-09-28 (mehrere Pfeile über eine Seite verteilt, 24 px Abstand,
+Überlauf auf die Nachbarseite). Die alte Regel hatte den Fehler, dass zwei
+Kacheln auf einer Linie trotzdem einen Pfeil mit Versatz bekamen, sobald an
+derselben Seite noch ein zweiter hing. Jetzt wird je Pfeil zwischen vier
+Wegen abgewogen (`wege` in `basis/lagekarte.ts`): gegenüber (gerade oder mit
+zwei Knicken), über Eck mit einem Knick in beide Richtungen, und als letzte
+Wahl ein Bogen außen herum. Es zählen Knicke, ob eine Kachel im Weg liegt,
+und ob die Seite schon belegt ist. **Zwei Pfeile, die beide hinausgehen (oder
+beide hereinkommen), dürfen sich eine Seite teilen** und laufen dann aus
+einem Punkt, bis sie sich verzweigen — der Wegsucher lässt „Verwandte" auf
+derselben Spur laufen, Fremde weiter nur quer. Geht an einer Seite einer
+hinaus und einer herein, bekommen sie zwei Stellen: Ein gemeinsamer Punkt
+läse sich wie ein Durchgang.
+
+**„Neu anordnen" (`anordnen`) schreibt die Lage fest**, statt eine dritte
+Ansicht zu sein: Danach lässt sich von Hand weiterschieben, und die Stränge
+gibt es für das rein Gerechnete schon. Die Themen stehen links und rechts der
+Mitte, die Schritte laufen nach außen, eine Spalte je Abhängigkeit (auch über
+Themen, aber nur auf derselben Seite). Welche Themen auf welche Seite kommen,
+wird unter allen Teilungen ihrer Reihenfolge im Uhrzeigersinn gesucht —
+gleich hoch, wenig Pfeile über die Mitte, wenig Seitenwechsel. Das Thema steht
+auf Höhe seiner ersten Zeile, damit der Pfeil zur Kette gerade läuft. Lose
+Gedanken stehen in Reihen **unter allem**; unter der Mitte selbst hätten die
+Pfeile zu den unteren Themen durch sie hindurch gemusst.
+
+Gespeichert werden nur Kacheln, die sich bewegt haben, je eine PATCH-Anfrage
+wie beim Ziehen — mit einer Änderung: **Neu geladen wird erst, wenn alle
+zurück sind.** Sonst käme zwischendurch ein halb geschriebener Stand, und die
+Kacheln sprängen hin und her.
+
+---
+
 ## 2026-10-06 — Länge der Zeitleiste im Antrag (Migration 0043)
 
 `Foerderantrag.zeitachse` (nullbar): wie viele Monate der Zeitplan zeigt

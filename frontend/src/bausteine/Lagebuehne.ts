@@ -24,7 +24,9 @@ import { fristText } from "../basis/aufgaben";
 import type { Karte, Lageschritt, Lagethema, Lageverbindung } from "../basis/daten";
 import {
   MITTE,
+  ORDNUNG,
   alsSchritt,
+  anordnen,
   alsThema,
   aufRaster,
   belegt,
@@ -346,6 +348,36 @@ export class Lagebuehne {
     this.aktualisiere();
     if (this.stufe !== "lage") this.insBild(k);
     window.setTimeout(() => this.bearbeite(k), 60);
+  }
+
+  /**
+   * Räumt die Sternkarte auf (`anordnen` in basis/lagekarte.ts) und
+   * speichert, was sich dabei bewegt hat. Der Zeilenabstand richtet sich nach
+   * der höchsten Kachel, wie sie gerade gezeichnet ist — in den Details mit
+   * Notizen also weiter als auf der Karte.
+   */
+  ordne() {
+    if (!this.darf.bearbeiten || this.ansicht !== "stern") return;
+    this.verwirfEntwurf();
+    const hoch = Math.max(0, ...this.D.schritte.map((s) => this.groesse[alsSchritt(s.id)]?.h ?? 0));
+    const neu = anordnen(this.g, Math.max(ORDNUNG.zeile, Math.ceil((hoch + 48) / 24) * 24));
+    const bewegt = <T extends { x: number; y: number }>(o: T | undefined, p: { x: number; y: number }) => {
+      if (!o || (o.x === p.x && o.y === p.y)) return false;
+      o.x = p.x;
+      o.y = p.y;
+      return true;
+    };
+    const lageNeu = {
+      themen: neu.themen.filter((t) => bewegt(this.g.thema(t.id), t)),
+      schritte: neu.schritte.filter((s) => bewegt(this.g.schritt(s.id), s)),
+    };
+    if (!lageNeu.themen.length && !lageNeu.schritte.length) return this.melde("Ist schon aufgeräumt");
+    this.e.verschieben(lageNeu);
+    // Die Kacheln gleiten an ihren neuen Platz; die Kamera nimmt alles ins Bild.
+    if (this.stufe === "lage") this.zurLage();
+    else this.blende(this.alleIds(), 0.62, 1, 60);
+    this.dirty = true;
+    this.melde("Neu angeordnet");
   }
 
   /** Der Titel direkt an der Kachel — wie Doppelklick oder Enter. */

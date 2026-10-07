@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { Karte, Lageschritt, Lagethema, Lageverbindung } from "./daten";
 import {
-  ANDOCK_ABSTAND,
-  ANDOCK_RAND,
+  ORDNUNG,
+  RASTER,
   alsSchritt,
   alsThema,
+  anordnen,
   belegt,
   erreichbar,
   fang,
@@ -154,21 +155,60 @@ describe("Pfeilführung", () => {
   const kachel = (x: number, y: number): Rechteck => ({ x, y, w: 100, h: 24 });
   const rechtwinklig = (pts: P[]) =>
     pts.slice(1).every((q, i) => Math.abs(q.x - pts[i].x) < 0.01 || Math.abs(q.y - pts[i].y) < 0.01);
+  /** Ob zwei verschiedene Wege einander rechtwinklig kreuzen — Endpunkte zählen nicht. */
+  const kreuzen = (wege: P[][]) => {
+    const strecken = wege.flatMap((pts, i) => pts.slice(1).map((q, k) => ({ i, a: pts[k], b: q })));
+    const zwischen = (w: number, p: number, q: number) => w > Math.min(p, q) + 0.5 && w < Math.max(p, q) - 0.5;
+    return strecken.some((s) =>
+      strecken.some((t) => {
+        if (s.i === t.i) return false;
+        const [h, v] = Math.abs(s.a.y - s.b.y) < 0.01 ? [s, t] : [t, s];
+        if (Math.abs(h.a.y - h.b.y) > 0.01 || Math.abs(v.a.x - v.b.x) > 0.01) return false;
+        return zwischen(v.a.x, h.a.x, h.b.x) && zwischen(h.a.y, v.a.y, v.b.y);
+      }),
+    );
+  };
+  /** Die Mitte welcher Seite von `r` der Punkt ist — oder `null`, wenn keiner. */
+  const seitenmitte = (q: P, r: Rechteck) => {
+    const nah = (a: number, b: number) => Math.abs(a - b) < 0.01;
+    if (nah(q.y, r.y) && nah(q.x, r.x + r.w + 4)) return "r";
+    if (nah(q.y, r.y) && nah(q.x, r.x - r.w - 4)) return "l";
+    if (nah(q.x, r.x) && nah(q.y, r.y + r.h + 4)) return "u";
+    if (nah(q.x, r.x) && nah(q.y, r.y - r.h - 4)) return "o";
+    return null;
+  };
 
-  it("läuft rechtwinklig von Kante zu Kante", () => {
-    const [pts] = fuehre([{ a: "a", b: "b" }], { a: kachel(0, 0), b: kachel(400, 96) });
-    expect(pts).not.toBeNull();
-    expect(rechtwinklig(pts!)).toBe(true);
-    expect(pts![0].x).toBe(104); // rechte Kante von a, 4 px davor
-    expect(pts![pts!.length - 1].x).toBe(296); // linke Kante von b
+  it("liegen zwei Kacheln auf einer Linie, läuft der Pfeil gerade", () => {
+    const kacheln = { a: kachel(0, 0), b: kachel(400, 0) };
+    for (const fein of [false, true])
+      expect(fuehre([{ a: "a", b: "b" }], kacheln, fein, Object.values(kacheln))).toEqual([[{ x: 104, y: 0 }, { x: 296, y: 0 }]]);
   });
 
-  it("zwei Pfeile an derselben Seite docken an verschiedenen Punkten an", () => {
-    const kacheln = { a: kachel(0, 0), b: kachel(400, -120), c: kachel(400, 120) };
-    const [p1, p2] = fuehre([{ a: "a", b: "b" }, { a: "a", b: "c" }], kacheln);
-    expect(p1![0].y).not.toBe(p2![0].y);
-    // Sortiert nach der Lage des anderen Endes: der nach oben dockt oben an.
-    expect(p1![0].y).toBeLessThan(p2![0].y);
+  it("über Eck: mittig hinaus, mittig hinein, ein Knick", () => {
+    const kacheln = { a: kachel(0, 0), b: kachel(400, 96) };
+    for (const fein of [false, true]) {
+      const [pts] = fuehre([{ a: "a", b: "b" }], kacheln, fein, Object.values(kacheln));
+      expect(rechtwinklig(pts!)).toBe(true);
+      expect(pts).toHaveLength(3);
+      expect(seitenmitte(pts![0], kacheln.a)).toBe("u");
+      expect(seitenmitte(pts![2], kacheln.b)).toBe("l");
+    }
+  });
+
+  it("eine Verzweigung nimmt eine freie Seite, statt sich neben den geraden Pfeil zu drängen", () => {
+    // a → b gerade, a → c eine Zeile tiefer; d sammelt b und c wieder ein.
+    const kacheln = { a: kachel(0, 0), b: kachel(312, 0), c: kachel(312, 120), d: kachel(624, 0) };
+    const pfeile = [{ a: "a", b: "b" }, { a: "a", b: "c" }, { a: "b", b: "d" }, { a: "c", b: "d" }];
+    for (const fein of [false, true]) {
+      const wege = fuehre(pfeile, kacheln, fein, Object.values(kacheln)).map((pts) => pts!);
+      expect(wege[0]).toHaveLength(2);
+      expect(seitenmitte(wege[1][0], kacheln.a)).toBe("u");
+      expect(seitenmitte(wege[1][wege[1].length - 1], kacheln.c)).toBe("l");
+      expect(wege[2]).toHaveLength(2);
+      expect(seitenmitte(wege[3][0], kacheln.c)).toBe("r");
+      expect(seitenmitte(wege[3][wege[3].length - 1], kacheln.d)).toBe("u");
+      expect(kreuzen(wege)).toBe(false);
+    }
   });
 
   it("der Wegsucher geht um eine Kachel dazwischen herum", () => {
@@ -182,7 +222,7 @@ describe("Pfeilführung", () => {
     expect(pts!.length).toBeGreaterThan(2);
   });
 
-  it("kein Pfeil setzt an einer Ecke an, und an einer Seite halten sie Abstand", () => {
+  it("jeder Pfeil setzt mittig an einer Seite an, und keine zwei kreuzen sich", () => {
     const gross: Rechteck = { x: 0, y: 0, w: 110, h: 45 };
     const kacheln: Record<string, Rechteck> = { a: gross };
     const pfeile = [-360, -240, -120, 0, 120, 240, 360].map((y, i) => {
@@ -190,29 +230,15 @@ describe("Pfeilführung", () => {
       return { a: "a", b: `z${i}` };
     });
     for (const fein of [false, true]) {
-      const starts = fuehre(pfeile, kacheln, fein, Object.values(kacheln)).map((pts) => pts![0]);
-      for (const q of starts) {
-        const rechts = Math.abs(q.x - (gross.x + gross.w + 4)) < 0.01;
-        const kante = rechts || Math.abs(Math.abs(q.y) - (gross.h + 4)) < 0.01;
-        expect(kante).toBe(true);
-        // Entlang der Seite mindestens ANDOCK_RAND von der Ecke entfernt.
-        if (rechts) expect(Math.abs(q.y)).toBeLessThanOrEqual(gross.h - ANDOCK_RAND);
-        else expect(Math.abs(q.x)).toBeLessThanOrEqual(gross.w - ANDOCK_RAND);
-      }
-      // Je Seite: Nachbarn mindestens ANDOCK_ABSTAND auseinander.
-      const seiten = new Map<string, number[]>();
-      for (const q of starts) {
-        const k = Math.abs(q.x - (gross.x + gross.w + 4)) < 0.01 ? "r" : q.y < 0 ? "o" : "u";
-        seiten.set(k, [...(seiten.get(k) ?? []), k === "r" ? q.y : q.x]);
-      }
-      for (const werte of seiten.values()) {
-        werte.sort((p, q) => p - q);
-        werte.slice(1).forEach((v, i) => expect(v - werte[i]).toBeGreaterThanOrEqual(ANDOCK_ABSTAND - 0.01));
-      }
+      const wege = fuehre(pfeile, kacheln, fein, Object.values(kacheln)).map((pts) => pts!);
+      for (const pts of wege) expect(seitenmitte(pts[0], gross)).not.toBeNull();
+      // Der auf derselben Linie geht gerade rechts hinaus.
+      expect(wege[3]).toEqual([{ x: 114, y: 0 }, { x: 396, y: 0 }]);
+      expect(kreuzen(wege)).toBe(false);
     }
   });
 
-  it("ein Fächer geht rechts hinaus, symmetrisch und ohne Kreuzung", () => {
+  it("ein Fächer ist symmetrisch um die Mitte und ohne Kreuzung", () => {
     const mitte: Rechteck = { x: -420, y: 0, w: 170, h: 64 };
     const kacheln: Record<string, Rechteck> = { m: mitte };
     const ys = [-444, -222, 0, 222, 444];
@@ -220,20 +246,28 @@ describe("Pfeilführung", () => {
     const pfeile = ys.map((_, i) => ({ a: "m", b: `t${i}` }));
     for (const fein of [false, true]) {
       const wege = fuehre(pfeile, kacheln, fein, Object.values(kacheln)).map((pts) => pts!);
-      // Alle an der rechten Seite, gespiegelt um die Mitte.
       const starts = wege.map((pts) => pts[0]);
-      starts.forEach((q) => expect(q.x).toBeCloseTo(mitte.x + mitte.w + 4));
-      starts.forEach((q, i) => expect(q.y).toBeCloseTo(-starts[starts.length - 1 - i].y));
-      // Keine zwei Wege kreuzen sich.
-      const strecken = wege.flatMap((pts, i) => pts.slice(1).map((q, k) => ({ i, a: pts[k], b: q })));
-      for (const s of strecken)
-        for (const t of strecken) {
-          if (s.i === t.i) continue;
-          const [h, v] = Math.abs(s.a.y - s.b.y) < 0.01 ? [s, t] : [t, s];
-          if (Math.abs(h.a.y - h.b.y) > 0.01 || Math.abs(v.a.x - v.b.x) > 0.01) continue;
-          const zwischen = (w: number, p: number, q: number) => w > Math.min(p, q) + 0.5 && w < Math.max(p, q) - 0.5;
-          expect(zwischen(v.a.x, h.a.x, h.b.x) && zwischen(h.a.y, v.a.y, v.b.y)).toBe(false);
-        }
+      starts.forEach((q) => expect(seitenmitte(q, mitte)).not.toBeNull());
+      // Gespiegelt um die Mitte: oben wie unten.
+      starts.forEach((q, i) => {
+        expect(q.x).toBeCloseTo(starts[starts.length - 1 - i].x);
+        expect(q.y).toBeCloseTo(-starts[starts.length - 1 - i].y);
+      });
+      expect(kreuzen(wege)).toBe(false);
+    }
+  });
+
+  it("liegt eine Kachel genau dazwischen, geht der Pfeil im Bogen außen herum", () => {
+    const kacheln = { a: kachel(0, -200), mitte: kachel(0, 0), b: kachel(0, 200) };
+    for (const fein of [false, true]) {
+      const [pts] = fuehre([{ a: "a", b: "b" }], kacheln, fein, Object.values(kacheln));
+      expect(rechtwinklig(pts!)).toBe(true);
+      const m = kacheln.mitte;
+      for (let i = 1; i < pts!.length; i++) {
+        const [p, q] = [pts![i - 1], pts![i]];
+        const durch = Math.max(p.x, q.x) > m.x - m.w && Math.min(p.x, q.x) < m.x + m.w && Math.max(p.y, q.y) > m.y - m.h && Math.min(p.y, q.y) < m.y + m.h;
+        expect(durch).toBe(false);
+      }
     }
   });
 
@@ -247,6 +281,80 @@ describe("Pfeilführung", () => {
         { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 10, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 10 },
       ]),
     ).toEqual([{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 10 }]);
+  });
+});
+
+describe("Neu anordnen", () => {
+  const O = ORDNUNG;
+  const lage = (k: Karte) => {
+    const a = anordnen(graph(k));
+    return {
+      a,
+      t: new Map(a.themen.map((x) => [x.id, x])),
+      s: new Map(a.schritte.map((x) => [x.id, x])),
+    };
+  };
+
+  it("eine Kette läuft in einer Zeile vom Thema nach außen, eine Verzweigung beginnt darunter", () => {
+    const { t, s } = lage({
+      themen: [thema(1, "Gründung", 300, 0)],
+      schritte: [1, 2, 3, 4].map((id) => schritt(id, `S${id}`, { thema: 1 })),
+      verbindungen: [pfeil(1, 2), pfeil(2, 3), pfeil(1, 4)],
+    });
+    expect(t.get(1)!).toEqual({ id: 1, x: O.nabe, y: 0 }); // das einzige Thema auf Höhe der Mitte …
+    expect(s.get(1)!.y).toBe(0); // … und mit seiner Kette auf einer Linie
+    expect([1, 2, 3].map((id) => s.get(id)!.y)).toEqual([s.get(1)!.y, s.get(1)!.y, s.get(1)!.y]);
+    expect([1, 2, 3].map((id) => s.get(id)!.x)).toEqual([O.erste, O.erste + O.spalte, O.erste + 2 * O.spalte]);
+    expect(s.get(4)!).toEqual({ id: 4, x: O.erste + O.spalte, y: s.get(1)!.y + O.zeile });
+  });
+
+  it("die Themen stehen links und rechts gleich verteilt und gespiegelt", () => {
+    const { t, s } = lage({
+      themen: [thema(1, "Oben", 0, -400), thema(2, "Rechts", 400, 0), thema(3, "Unten", 0, 400), thema(4, "Links", -400, 0)],
+      schritte: [1, 2, 3, 4].map((id) => schritt(id, `S${id}`, { thema: id })),
+      verbindungen: [],
+    });
+    const rechts = [...t.values()].filter((x) => x.x > 0).map((x) => x.y);
+    const links = [...t.values()].filter((x) => x.x < 0).map((x) => x.y);
+    expect(rechts).toHaveLength(2);
+    expect(rechts.sort()).toEqual(links.sort());
+    // Jeder Schritt auf der Seite seines Themas, nach außen.
+    for (const id of [1, 2, 3, 4]) expect(Math.sign(s.get(id)!.x)).toBe(Math.sign(t.get(id)!.x));
+  });
+
+  it("alles liegt auf dem Raster", () => {
+    const { a } = lage(beispiel());
+    for (const p of [...a.themen, ...a.schritte]) {
+      expect(Math.abs(p.x % RASTER)).toBe(0);
+      expect(Math.abs(p.y % RASTER)).toBe(0);
+    }
+  });
+
+  it("eine Abhängigkeit über Themen derselben Seite rückt eine Spalte weiter", () => {
+    const { t, s } = lage(beispiel());
+    // „Bewerbung FFG" hängt an „Unterzeichnung Bank" (Spalte 2) — wenn beide Themen auf einer Seite stehen.
+    if (Math.sign(t.get(1)!.x) === Math.sign(t.get(2)!.x)) expect(Math.abs(s.get(5)!.x)).toBe(O.erste + 3 * O.spalte);
+    else expect(Math.abs(s.get(5)!.x)).toBe(O.erste + O.spalte);
+  });
+
+  it("lose Gedanken stehen unter allem, um die Mitte zentriert", () => {
+    const k = beispiel();
+    k.schritte.push(schritt(7, "Lose A"), schritt(8, "Lose B"));
+    const { a, s } = lage(k);
+    const tiefster = Math.max(...a.themen.map((x) => x.y), ...a.schritte.filter((x) => x.id < 7).map((x) => x.y));
+    expect(s.get(7)!.y).toBeGreaterThan(tiefster);
+    expect(s.get(7)!.y).toBe(s.get(8)!.y);
+    expect(s.get(7)!.x + s.get(8)!.x).toBe(0);
+  });
+
+  it("danach laufen die Pfeile einer Kette gerade", () => {
+    const k = beispiel();
+    const { t, s } = lage(k);
+    const kacheln: Record<string, Rechteck> = {};
+    for (const [id, p] of t) kacheln[alsThema(id)] = { x: p.x, y: p.y, w: 110, h: 30 };
+    for (const [id, p] of s) kacheln[alsSchritt(id)] = { x: p.x, y: p.y, w: 100, h: 30 };
+    const kette = [pfeil(1, 2), pfeil(2, 3), pfeil(5, 6)].map((v) => ({ a: alsSchritt(v.von), b: alsSchritt(v.nach) }));
+    for (const pts of fuehre(kette, kacheln, true, Object.values(kacheln))) expect(pts).toHaveLength(2);
   });
 });
 

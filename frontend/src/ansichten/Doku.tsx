@@ -891,7 +891,7 @@ function ModuleDoku() {
           paare={[
             {
               begriff: "Sternkarte und Stränge",
-              text: "Oben links umzuschalten. Auf der Sternkarte legst du die Kacheln selbst hin, wo sie hingehören; sie bleiben dort. In den Strängen ordnet SoCoS: eine Zeile je Thema, von links nach rechts in der Reihenfolge, in der die Schritte aneinander hängen — auch über Themen hinweg. Eine Lücke in einem Strang heißt: Hier wird auf ein anderes Thema gewartet.",
+              text: "Oben links umzuschalten. Auf der Sternkarte legst du die Kacheln selbst hin, wo sie hingehören; sie bleiben dort. „Neu anordnen“ oben räumt sie einmal auf: die Themen links und rechts der Mitte untereinander, ihre Schritte nach außen in Zeilen, sodass eine Kette als gerade Linie läuft. Danach kannst du wieder von Hand schieben. In den Strängen ordnet SoCoS: eine Zeile je Thema, von links nach rechts in der Reihenfolge, in der die Schritte aneinander hängen — auch über Themen hinweg. Eine Lücke in einem Strang heißt: Hier wird auf ein anderes Thema gewartet.",
             },
             {
               begriff: "Lage, Karte, Details",

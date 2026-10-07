@@ -57,15 +57,25 @@ function useKartenSchreiben() {
   const speicher = useQueryClient();
   const setze = (f: (k: Karte) => Karte) => speicher.setQueryData<Karte>(["lagekarte"], (alt) => (alt ? f(alt) : alt));
 
-  async function schreibe<T>(pfad: string, methode: "POST" | "PATCH" | "DELETE", daten?: unknown, vorab?: (k: Karte) => Karte) {
+  const neuLaden = () => {
+    speicher.invalidateQueries({ queryKey: ["lagekarte"] });
+    speicher.invalidateQueries({ queryKey: ["protokoll"] });
+  };
+
+  async function schreibe<T>(
+    pfad: string,
+    methode: "POST" | "PATCH" | "DELETE",
+    daten?: unknown,
+    vorab?: (k: Karte) => Karte,
+    danach: (() => void) | null = neuLaden,
+  ) {
     if (vorab) setze(vorab);
     try {
       return await hole<T>(pfad, { method: methode, body: daten === undefined ? undefined : JSON.stringify(daten) });
     } catch {
       return null; // `hole` hat es schon gemeldet
     } finally {
-      speicher.invalidateQueries({ queryKey: ["lagekarte"] });
-      speicher.invalidateQueries({ queryKey: ["protokoll"] });
+      danach?.();
     }
   }
 
@@ -135,10 +145,13 @@ function useKartenSchreiben() {
         themen: k.themen.map((t) => (th.has(t.id) ? { ...t, x: th.get(t.id)!.x, y: th.get(t.id)!.y } : t)),
         schritte: k.schritte.map((s) => (sc.has(s.id) ? { ...s, x: sc.get(s.id)!.x, y: sc.get(s.id)!.y } : s)),
       }));
+      // Neu geladen wird erst, wenn alle zurück sind. Lüde jede Antwort für
+      // sich neu, käme beim Neu-Anordnen ein halb geschriebener Stand vom
+      // Server, und die Kacheln sprängen hin und her, bis der letzte da ist.
       return Promise.all([
-        ...lageNeu.themen.map((t) => schreibe(`/lagethemen/${t.id}/`, "PATCH", { x: t.x, y: t.y })),
-        ...lageNeu.schritte.map((s) => schreibe(`/lageschritte/${s.id}/`, "PATCH", { x: s.x, y: s.y })),
-      ]);
+        ...lageNeu.themen.map((t) => schreibe(`/lagethemen/${t.id}/`, "PATCH", { x: t.x, y: t.y }, undefined, null)),
+        ...lageNeu.schritte.map((s) => schreibe(`/lageschritte/${s.id}/`, "PATCH", { x: s.x, y: s.y }, undefined, null)),
+      ]).finally(neuLaden);
     },
   };
 }
@@ -279,6 +292,11 @@ function Kartenseite({ ich, daten, wechseln }: { ich: Ich; daten: Karte; wechsel
               <button type="button" onClick={() => bRef.current?.neuesThema()}>
                 + Thema
               </button>
+              {ansicht === "stern" && (
+                <button type="button" title="Themen und Schritte sauber auf ein Raster legen" onClick={() => bRef.current?.ordne()}>
+                  Neu anordnen
+                </button>
+              )}
             </div>
           )}
         </div>

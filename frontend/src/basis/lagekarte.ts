@@ -4,8 +4,8 @@
  * Gespeichert ist nur, was jemand hingestellt hat — Themen, Schritte, wer an
  * wem hängt, und wo eine Kachel auf der Sternkarte liegt. **Alles hier ist
  * abgeleitet**: ob ein Schritt wartet oder als Nächstes frei ist, wie die
- * Stränge angeordnet sind, wie ein Pfeil läuft, wo ein neuer Gedanke Platz
- * findet. Ein gespeichertes „wartet" wäre nach dem ersten Abhaken eines
+ * Stränge angeordnet sind, wie „Neu anordnen" die Sternkarte aufräumt, wie
+ * ein Pfeil läuft, wo ein neuer Gedanke Platz findet. Ein gespeichertes „wartet" wäre nach dem ersten Abhaken eines
  * Vorgängers falsch, und niemand würde es merken.
  *
  * Die Zeichenfläche selbst steht in `bausteine/Lagebuehne.ts`; hier steht nur,
@@ -247,6 +247,192 @@ export function straenge(g: Graph): { pos: Record<Schluessel, P>; lage: Record<S
   return { pos, lage: lageP, baender };
 }
 
+/* --- Neu anordnen --------------------------------------------------------- */
+
+/**
+ * Die Maße der aufgeräumten Sternkarte. Alles fällt auf das Raster, damit
+ * zwei Kacheln derselben Zeile genau dieselbe Mitte haben — nur dann läuft
+ * der Pfeil zwischen ihnen gerade.
+ *
+ * `block` ist die Mindesthöhe eines Themas: In der Lage wachsen die Themen
+ * schneller als ihre Abstände (siehe `lageG` in der Bühne), und zwei
+ * einzeilige Themen mit nur `zeile` Abstand lägen dort aufeinander.
+ */
+export const ORDNUNG = {
+  nabe: 480,
+  erste: 840,
+  spalte: 312,
+  zeile: 120,
+  block: 192,
+  luft: 48,
+  loseJeReihe: 5,
+};
+
+export type Anordnung = {
+  themen: { id: number; x: number; y: number }[];
+  schritte: { id: number; x: number; y: number }[];
+};
+
+/** Der längste Weg zu jedem Schritt — nur über die Kanten, die `zaehlt` gelten lässt. */
+function tiefen(g: Graph, ids: number[], zaehlt: (von: number, nach: number) => boolean): Map<number, number> {
+  const tiefe = new Map<number, number>();
+  const t = (id: number): number => {
+    const bekannt = tiefe.get(id);
+    if (bekannt !== undefined) return bekannt;
+    tiefe.set(id, 0); // Wächter, falls doch ein Kreis hereinkommt
+    const v = g.vor(id).filter((x) => zaehlt(x, id));
+    const d = v.length ? Math.max(...v.map((x) => t(x) + 1)) : 0;
+    tiefe.set(id, d);
+    return d;
+  };
+  ids.forEach(t);
+  return tiefe;
+}
+
+const nachLage = (a: Lageschritt, b: Lageschritt) => a.y - b.y || a.x - b.x || a.id - b.id;
+
+/**
+ * Die Zeilen eines Themas. Der erste Nachfolger bleibt in der Zeile seines
+ * Vorgängers, damit eine Kette als gerade Linie durchläuft; jeder weitere
+ * beginnt darunter eine neue. Die Reihenfolge kommt aus der bisherigen Lage —
+ * was oben lag, bleibt oben.
+ */
+function zeilenVon(g: Graph, ns: Lageschritt[], spalte: Map<number, number>) {
+  const imThema = new Set(ns.map((s) => s.id));
+  const zeile = new Map<number, number>();
+  const besetzt = new Set<string>();
+  let n = 0;
+  const lege = (s: Lageschritt, wunsch: number) => {
+    if (zeile.has(s.id)) return;
+    const sp = spalte.get(s.id) ?? 0;
+    let z = wunsch;
+    while (besetzt.has(`${sp}:${z}`)) z++;
+    zeile.set(s.id, z);
+    besetzt.add(`${sp}:${z}`);
+    n = Math.max(n, z + 1);
+    g.nach(s.id)
+      .filter((id) => imThema.has(id))
+      .map((id) => g.schritt(id)!)
+      .sort(nachLage)
+      .forEach((k, i) => lege(k, i === 0 ? z : n));
+  };
+  const wurzeln = ns.filter((s) => !g.vor(s.id).some((v) => imThema.has(v))).sort(nachLage);
+  // Danach alle übrigen — falls doch ein Kreis hereinkommt, hätte er keine Wurzel.
+  for (const s of [...wurzeln, ...[...ns].sort(nachLage)]) lege(s, n);
+  return { zeile, n };
+}
+
+/**
+ * Welche Themen rechts und welche links der Mitte stehen. Gesucht wird unter
+ * allen Teilungen der Themen, wie sie im Uhrzeigersinn um die Mitte liegen —
+ * so bleiben Nachbarn Nachbarn. Es zählen: beide Seiten gleich hoch, möglichst
+ * kein Pfeil quer über die Mitte, und möglichst wenige Themen wechseln die Seite.
+ */
+function seitenWahl(g: Graph, hoeheVon: Map<number, number>, zeile: number) {
+  const { themen } = g.karte;
+  const winkel = (t: Lagethema) => {
+    const w = Math.atan2(t.x, -t.y); // 0 oben, im Uhrzeigersinn
+    return w < 0 ? w + 2 * Math.PI : w;
+  };
+  const reihum = [...themen].sort((a, b) => winkel(a) - winkel(b) || a.id - b.id);
+  const quer: [number, number][] = [];
+  for (const v of g.karte.verbindungen) {
+    const a = g.schritt(v.von)?.thema;
+    const b = g.schritt(v.nach)?.thema;
+    if (a != null && b != null && a !== b) quer.push([a, b]);
+  }
+  const hoehe = (l: Lagethema[]) =>
+    l.reduce((s, t) => s + hoeheVon.get(t.id)!, 0) + ORDNUNG.luft * Math.max(0, l.length - 1);
+  let best = { preis: Infinity, rechts: [] as Lagethema[], links: [] as Lagethema[] };
+  for (let r = 0; r < Math.max(1, reihum.length); r++)
+    for (let k = 0; k <= reihum.length; k++) {
+      const kreis = [...reihum.slice(r), ...reihum.slice(0, r)];
+      const rechts = kreis.slice(0, k);
+      // Im Uhrzeigersinn läuft die linke Seite von unten nach oben.
+      const links = kreis.slice(k).reverse();
+      const re = new Set(rechts.map((t) => t.id));
+      const preis =
+        Math.abs(hoehe(rechts) - hoehe(links)) / zeile +
+        3 * quer.filter(([a, b]) => re.has(a) !== re.has(b)).length +
+        themen.filter((t) => t.x >= 0 !== re.has(t.id)).length;
+      if (preis < best.preis - 1e-9) best = { preis, rechts, links };
+    }
+  return best;
+}
+
+/**
+ * Die aufgeräumte Sternkarte: die Themen untereinander links und rechts der
+ * Mitte, gespiegelt und um die Mitte zentriert; die Schritte eines Themas
+ * laufen von ihm nach außen, eine Spalte je Abhängigkeit — wie in den
+ * Strängen, nur auf beiden Seiten. Lose Gedanken stehen in Reihen unter
+ * allem, damit kein Pfeil von der Mitte durch sie hindurch muss.
+ *
+ * Die Spalte zählt Abhängigkeiten auch über Themengrenzen, aber nur auf
+ * derselben Seite: Ein Pfeil von rechts nach links läuft ohnehin über die
+ * Mitte, und eine Lücke deswegen hülfe niemandem.
+ *
+ * `zeile` misst die Bühne an den höchsten Kacheln; ohne Angabe gilt das
+ * Grundmaß.
+ */
+export function anordnen(g: Graph, zeile = ORDNUNG.zeile): Anordnung {
+  const O = ORDNUNG;
+  const { themen, schritte } = g.karte;
+  const vonThema = new Map<number, Lageschritt[]>(themen.map((t) => [t.id, []]));
+  for (const s of schritte) if (s.thema !== null) vonThema.get(s.thema)?.push(s);
+  const themaVon = (id: number) => g.schritt(id)?.thema ?? null;
+  const ids = schritte.map((s) => s.id);
+  const hoehe = (zeilen: number) => Math.max(O.block, Math.max(1, zeilen) * zeile);
+
+  // Für die Wahl der Seiten genügt die Höhe mit Spalten nur innerhalb des Themas.
+  const innen = tiefen(g, ids, (v, n) => themaVon(v) === themaVon(n));
+  const hoeheVon = new Map(themen.map((t) => [t.id, hoehe(zeilenVon(g, vonThema.get(t.id)!, innen).n)]));
+  const { rechts, links } = seitenWahl(g, hoeheVon, zeile);
+  const seite = new Map<number, number>([...rechts.map((t) => [t.id, 1] as const), ...links.map((t) => [t.id, -1] as const)]);
+  const spalte = tiefen(g, ids, (v, n) => {
+    const a = themaVon(v);
+    const b = themaVon(n);
+    return a !== null && b !== null && seite.get(a) === seite.get(b);
+  });
+
+  const erg: Anordnung = { themen: [], schritte: [] };
+  let unten = 0;
+  for (const [liste, v] of [[rechts, 1], [links, -1]] as const) {
+    const bloecke = liste.map((t) => ({ t, ...zeilenVon(g, vonThema.get(t.id)!, spalte) }));
+    const H = bloecke.reduce((n, b) => n + hoehe(b.n), 0) + O.luft * Math.max(0, bloecke.length - 1);
+    // Das Thema steht auf der Höhe seiner ersten Zeile, nicht in der Mitte
+    // seines Blocks: Dann läuft der Pfeil zur Kette gerade hinaus. Bei einer
+    // ungeraden Zahl Themen rückt die Seite so, dass das mittlere genau auf
+    // Höhe der Mitte steht — sonst bekäme ausgerechnet dieser Pfeil einen
+    // Versatz von ein paar Pixeln.
+    const naben: number[] = [];
+    let y = aufRaster(-H / 2);
+    for (const b of bloecke) {
+      naben.push(y + (hoehe(b.n) - Math.max(1, b.n) * zeile) / 2 + zeile / 2);
+      y += hoehe(b.n) + O.luft;
+    }
+    const ruck = naben.length % 2 ? -naben[(naben.length - 1) / 2] : 0;
+    bloecke.forEach((b, i) => {
+      const z0 = naben[i] + ruck;
+      erg.themen.push({ id: b.t.id, x: v * O.nabe, y: z0 });
+      for (const s of vonThema.get(b.t.id)!)
+        erg.schritte.push({ id: s.id, x: v * (O.erste + spalte.get(s.id)! * O.spalte), y: z0 + b.zeile.get(s.id)! * zeile });
+    });
+    if (bloecke.length) unten = Math.max(unten, y - O.luft + ruck);
+  }
+
+  const loseTiefe = tiefen(g, ids, (v, n) => themaVon(v) === null && themaVon(n) === null);
+  const lose = schritte
+    .filter((s) => s.thema === null)
+    .sort((a, b) => loseTiefe.get(a.id)! - loseTiefe.get(b.id)! || nachLage(a, b));
+  const y0 = aufRaster(unten + zeile);
+  lose.forEach((s, i) => {
+    const reihe = Math.floor(i / O.loseJeReihe);
+    const breit = Math.min(O.loseJeReihe, lose.length - reihe * O.loseJeReihe);
+    erg.schritte.push({ id: s.id, x: ((i % O.loseJeReihe) - (breit - 1) / 2) * O.spalte, y: y0 + reihe * zeile });
+  });
+  return erg;
+}
+
 /* --- Pfeilführung --------------------------------------------------------- */
 
 /** Ein Rechteck um seine Mitte, mit halber Breite und Höhe. */
@@ -256,9 +442,15 @@ type Seite = "r" | "l" | "u" | "o";
 type Lauf = {
   A: Rechteck;
   Z: Rechteck;
-  h: boolean;
   sa: Seite;
   sz: Seite;
+  /**
+   * Die Andockstellen an beiden Enden, als `Kachel|Seite`. Zwei Pfeile mit
+   * derselben Stelle am Anfang (oder am Ende) dürfen ein Stück gemeinsam
+   * laufen und sich dann verzweigen — alle anderen nie übereinander.
+   */
+  fa: string;
+  fz: string;
   p1: P;
   p2: P;
 };
@@ -282,7 +474,7 @@ const quer = (s: Seite) => s === "l" || s === "r";
  *
  * Zwei Stufen: `fein = false` ist die schnelle Führung über eine Mittelspur,
  * für die Zeit, in der sich etwas bewegt. `fein = true` sucht auf dem Raster
- * einen Weg um alle `hindernisse` herum, der keine belegte Spur entlangläuft —
+ * einen Weg um alle `hindernisse` herum, der keine fremde Spur entlangläuft —
  * kreuzen ja, übereinander nie. Findet er keinen, bleibt die schnelle.
  *
  * Zurück kommt je Pfeil die Punktfolge, oder `null`, wenn die beiden Kacheln
@@ -304,11 +496,10 @@ export function fuehre(
 export type Pfeilenden = { a: string; b: string };
 
 /**
- * Ein Pfeil setzt nie an der Ecke einer Kachel an, sondern mindestens
- * `ANDOCK_RAND` davon entfernt — an der Ecke liest man nicht mehr, zu welcher
- * Seite er gehört, und er klebt am Pfeil der Nachbarseite. Zwei Pfeile an
- * derselben Seite liegen mindestens `ANDOCK_ABSTAND` auseinander (zwei
- * Rasterlinien), sonst sehen sie aus wie einer.
+ * Müssen an einer Seite doch zwei Stellen sein — ein Pfeil kommt an, einer
+ * geht —, setzen sie nie an der Ecke an, sondern mindestens `ANDOCK_RAND`
+ * davon entfernt, und liegen mindestens `ANDOCK_ABSTAND` (zwei Rasterlinien)
+ * auseinander, sonst sehen sie aus wie einer.
  */
 export const ANDOCK_RAND = 12;
 export const ANDOCK_ABSTAND = 2 * RASTER;
@@ -320,14 +511,8 @@ const andockLinien = (mitte: number, halb: number) => {
   return { j0, j1, l: j1 - j0 + 1 };
 };
 
-/** Wie viele Pfeile an eine Seite passen — einer immer, notfalls in die Mitte. */
-export function platzAnSeite(mitte: number, halb: number): number {
-  const { l } = andockLinien(mitte, halb);
-  return Math.max(1, Math.floor((l - 1) / (ANDOCK_ABSTAND / RASTER)) + 1);
-}
-
 /**
- * Wo der `i`-te von `n` Pfeilen an einer Seite ansetzt: um die Mitte, mit
+ * Wo die `i`-te von `n` Andockstellen an einer Seite liegt: um die Mitte, mit
  * Luft zwischen ihnen, aber nie näher als `ANDOCK_RAND` an der Ecke.
  */
 export function andockStelle(mitte: number, halb: number, i: number, n: number, amRaster: boolean): number {
@@ -354,11 +539,9 @@ export function andockStelle(mitte: number, halb: number, i: number, n: number, 
 }
 
 /**
- * Wonach die Pfeile an einer Seite sortiert werden: nach dem Winkel zum
- * anderen Ende, von der Seite aus gesehen — nicht nach dessen Lage allein.
- * Zwei Ziele gleich weit rechts unter einer Kachel hatten sonst dieselbe
- * Zahl, die Reihenfolge war Zufall, und der nähere Pfeil kreuzte den ferneren.
- * So biegt der äußere zuerst ab und der innere läuft innen vorbei.
+ * Wonach die Andockstellen an einer Seite sortiert werden: nach dem Winkel zum
+ * anderen Ende, von der Seite aus gesehen — so kreuzen sich die Pfeile an der
+ * Kachel nicht.
  */
 function gegenUeber(s: Seite, von: Rechteck, zu: Rechteck): number {
   const dx = zu.x - von.x;
@@ -366,115 +549,225 @@ function gegenUeber(s: Seite, von: Rechteck, zu: Rechteck): number {
   return s === "r" ? Math.atan2(dy, dx) : s === "l" ? Math.atan2(dy, -dx) : s === "u" ? Math.atan2(dx, dy) : Math.atan2(dx, -dy);
 }
 
+/** Die Mitte einer Seite, `ab` davor. */
+function seitenMitte(r: Rechteck, s: Seite, ab = 4): P {
+  return s === "r"
+    ? { x: r.x + r.w + ab, y: r.y }
+    : s === "l"
+      ? { x: r.x - r.w - ab, y: r.y }
+      : s === "u"
+        ? { x: r.x, y: r.y + r.h + ab }
+        : { x: r.x, y: r.y - r.h - ab };
+}
+
+type Wahl = { sa: Seite; sz: Seite; knicke: number; aufschlag: number };
+
+/**
+ * Die Wege, die ein Pfeil von A nach Z nehmen kann: einander gegenüber
+ * (gerade, oder mit zwei Knicken über eine Mittelspur) oder über Eck — an
+ * einer Seite hinaus, an einer quer dazu hinein, mit einem einzigen Knick.
+ *
+ * Über Eck nur, wenn beide Schenkel lang genug sind; sonst entstünde ein
+ * Haken von ein paar Pixeln. Senkrecht gegenüber kostet einen kleinen
+ * Aufschlag: Bei einem Fächer ging sonst die Hälfte oben und unten hinaus.
+ * Von oben oder unten **hinein** kostet ebenfalls: Ein Thema, das man von
+ * der Seite liest, soll seinen Pfeil auch von der Seite bekommen — nur wo
+ * diese Seite schon belegt ist (ein Zusammenlauf), lohnt sich der Weg unten herein.
+ */
+function wege(A: Rechteck, Z: Rechteck): Wahl[] {
+  const dx = Z.x - A.x;
+  const dy = Z.y - A.y;
+  const h: Seite = dx > 0 ? "r" : "l";
+  const hz: Seite = dx > 0 ? "l" : "r";
+  const v: Seite = dy > 0 ? "u" : "o";
+  const vz: Seite = dy > 0 ? "o" : "u";
+  const schenkel = 2 * RASTER;
+  const w: Wahl[] = [];
+  if (Math.abs(dx) - A.w - Z.w >= 16) w.push({ sa: h, sz: hz, knicke: Math.abs(dy) < 0.5 ? 0 : 2, aufschlag: 0 });
+  if (Math.abs(dy) - A.h - Z.h >= 16) w.push({ sa: v, sz: vz, knicke: Math.abs(dx) < 0.5 ? 0 : 2, aufschlag: 0.3 });
+  if (Math.abs(dy) - A.h >= schenkel && Math.abs(dx) - Z.w >= schenkel) w.push({ sa: v, sz: hz, knicke: 1, aufschlag: 0 });
+  if (Math.abs(dx) - A.w >= schenkel && Math.abs(dy) - Z.h >= schenkel) w.push({ sa: h, sz: vz, knicke: 1, aufschlag: 0.6 });
+  // Als Letztes ein Bogen: an derselben Seite hinaus und wieder hinein. Nur
+  // für den Fall, dass alles andere durch eine Kachel liefe — etwa drei
+  // Themen übereinander, und der Pfeil geht vom obersten zum untersten.
+  if (w.length) for (const s of ["r", "l", "u", "o"] as const) w.push({ sa: s, sz: s, knicke: 2, aufschlag: 1.5 });
+  return w;
+}
+
+/** Wo ein Bogen außen an beiden Kacheln vorbeiläuft. */
+function bogenSpur(A: Rechteck, Z: Rechteck, s: Seite): number {
+  const luft = 2 * RASTER;
+  return s === "r"
+    ? aufRaster(Math.max(A.x + A.w, Z.x + Z.w) + luft)
+    : s === "l"
+      ? aufRaster(Math.min(A.x - A.w, Z.x - Z.w) - luft)
+      : s === "u"
+        ? aufRaster(Math.max(A.y + A.h, Z.y + Z.h) + luft)
+        : aufRaster(Math.min(A.y - A.h, Z.y - Z.h) - luft);
+}
+
+/** Der Weg eines Pfeils ohne Rücksicht auf andere — zum Abwägen, ob er durch eine Kachel liefe. */
+function skizze(A: Rechteck, Z: Rechteck, sa: Seite, sz: Seite): P[] {
+  const p1 = seitenMitte(A, sa);
+  const p2 = seitenMitte(Z, sz);
+  if (quer(sa) !== quer(sz)) return [p1, quer(sa) ? { x: p2.x, y: p1.y } : { x: p1.x, y: p2.y }, p2];
+  if (sa === sz) {
+    const c = bogenSpur(A, Z, sa);
+    return quer(sa) ? [p1, { x: c, y: p1.y }, { x: c, y: p2.y }, p2] : [p1, { x: p1.x, y: c }, { x: p2.x, y: c }, p2];
+  }
+  if (quer(sa)) {
+    const c = (p1.x + p2.x) / 2;
+    return [p1, { x: c, y: p1.y }, { x: c, y: p2.y }, p2];
+  }
+  const c = (p1.y + p2.y) / 2;
+  return [p1, { x: p1.x, y: c }, { x: p2.x, y: c }, p2];
+}
+
+/** Ob eine rechtwinklige Punktfolge durch ein Rechteck läuft. */
+function trifft(pts: P[], r: Rechteck): boolean {
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    if (
+      Math.max(a.x, b.x) > r.x - r.w &&
+      Math.min(a.x, b.x) < r.x + r.w &&
+      Math.max(a.y, b.y) > r.y - r.h &&
+      Math.min(a.y, b.y) < r.y + r.h
+    )
+      return true;
+  }
+  return false;
+}
+
+/**
+ * Welche Seite jeder Pfeil nimmt, und wo genau er dort ansetzt.
+ *
+ * **Ein Pfeil setzt in der Mitte einer Seite an**, und dafür stehen alle vier
+ * Seiten zur Wahl. Früher verteilten sich mehrere Pfeile über eine Seite —
+ * dann lief keiner von ihnen mittig, und zwei Kacheln auf einer Linie bekamen
+ * trotzdem einen Pfeil mit Versatz. Jetzt wird je Pfeil abgewogen: wenige
+ * Knicke, keine Kachel im Weg, und eine Seite möglichst für sich. Teilen
+ * zwei Pfeile, die beide hinausgehen (oder beide hereinkommen), eine Seite,
+ * laufen sie aus einem Punkt und verzweigen sich — wie ein Stammbaum. Nur
+ * wenn an einer Seite einer hinaus- und einer hereingeht, bekommen sie zwei
+ * Stellen; ein gemeinsamer Punkt läse sich wie ein Durchgang.
+ *
+ * Gerade Pfeile wählen zuerst, dann die über Eck, zuletzt die mit zwei
+ * Knicken: Wer am wenigsten Auswahl hat, soll sie nicht verlieren.
+ */
 function andocken(pfeile: Pfeilenden[], kacheln: Record<string, Rechteck>, amRaster: boolean): (Lauf | null)[] {
   const ab = 4;
   const seiten = new Map<string, Andock[]>();
-  const laeufe = pfeile.map(({ a, b }) => {
+  const alle = Object.entries(kacheln);
+  const kandidaten = pfeile.map(({ a, b }) => {
     const A = kacheln[a];
     const Z = kacheln[b];
     if (!A || !Z) return null;
-    const dx = Z.x - A.x;
-    const dy = Z.y - A.y;
-    const lueckeX = Math.abs(dx) - A.w - Z.w;
-    const lueckeY = Math.abs(dy) - A.h - Z.h;
-    if (lueckeX < 16 && lueckeY < 16) return null; // liegen (noch) aufeinander, etwa beim Einklappen
-    // Waagrecht, sobald daneben Platz für einen Knick ist; senkrecht nur, wenn
-    // die Kacheln übereinander stehen. Früher gewann die Richtung mit mehr
-    // Platz — dann ging bei einem Fächer die Hälfte oben und unten hinaus, je
-    // nach Höhe der Zielkachel ungleich, und lief im Spalt zwischen zwei
-    // übereinanderstehenden Themen entlang.
-    const h = lueckeX >= 2 * RASTER || lueckeX >= lueckeY;
+    // Liegen (noch) aufeinander, etwa beim Einklappen.
+    if (Math.abs(Z.x - A.x) - A.w - Z.w < 16 && Math.abs(Z.y - A.y) - A.h - Z.h < 16) return null;
+    const w = wege(A, Z);
+    return w.length ? { a, b, A, Z, w, min: Math.min(...w.map((x) => x.knicke)), weit: Math.hypot(Z.x - A.x, Z.y - A.y) } : null;
+  });
+  const reihe = kandidaten
+    .map((k, i) => ({ k, i }))
+    .filter((x): x is { k: NonNullable<(typeof kandidaten)[number]>; i: number } => !!x.k)
+    .sort((p, q) => p.k.min - q.k.min || p.k.weit - q.k.weit);
+
+  const laeufe: (Lauf | null)[] = pfeile.map(() => null);
+  for (const { k, i } of reihe) {
+    // Was an einer Seite schon hängt: in derselben Richtung ein wenig — einmal,
+    // nicht je Pfeil, denn ein Stamm wird vom dritten Ast nicht voller —,
+    // entgegen viel.
+    const preis = (kachel: string, s: Seite, ende: "a" | "z") => {
+      const da = seiten.get(`${kachel}|${s}`) ?? [];
+      return (da.some((p) => p.ende === ende) ? 0.5 : 0) + 6 * da.filter((p) => p.ende !== ende).length;
+    };
+    let wahl = k.w[0];
+    let bester = Infinity;
+    for (const w of k.w) {
+      const sk = skizze(k.A, k.Z, w.sa, w.sz);
+      const im = alle.filter(([key, r]) => key !== k.a && key !== k.b && trifft(sk, r)).length;
+      const p = w.knicke + w.aufschlag + preis(k.a, w.sa, "a") + preis(k.b, w.sz, "z") + 4 * im;
+      if (p < bester) {
+        bester = p;
+        wahl = w;
+      }
+    }
     const lauf: Lauf = {
-      A,
-      Z,
-      h,
-      sa: h ? (dx > 0 ? "r" : "l") : dy > 0 ? "u" : "o",
-      sz: h ? (dx > 0 ? "l" : "r") : dy > 0 ? "o" : "u",
+      A: k.A,
+      Z: k.Z,
+      sa: wahl.sa,
+      sz: wahl.sz,
+      fa: `${k.a}|${wahl.sa}`,
+      fz: `${k.b}|${wahl.sz}`,
       p1: { x: 0, y: 0 },
       p2: { x: 0, y: 0 },
     };
-    const seite = (k: string, s: Seite, ende: "a" | "z", gegen: number) =>
-      (seiten.get(`${k}|${s}`) ?? seiten.set(`${k}|${s}`, []).get(`${k}|${s}`)!).push({ lauf, ende, s, gegen });
-    seite(a, lauf.sa, "a", gegenUeber(lauf.sa, A, Z));
-    seite(b, lauf.sz, "z", gegenUeber(lauf.sz, Z, A));
-    return lauf;
-  });
+    const seite = (key: string, s: Seite, ende: "a" | "z", gegen: number) =>
+      (seiten.get(`${key}|${s}`) ?? seiten.set(`${key}|${s}`, []).get(`${key}|${s}`)!).push({ lauf, ende, s, gegen });
+    seite(k.a, lauf.sa, "a", gegenUeber(lauf.sa, k.A, k.Z));
+    seite(k.b, lauf.sz, "z", gegenUeber(lauf.sz, k.Z, k.A));
+    laeufe[i] = lauf;
+  }
 
-  // Immer, nicht nur für den Wegsucher: Sonst spränge ein Pfeil beim
-  // Loslassen auf eine andere Seite, als er beim Ziehen hatte.
-  ueberlauf(seiten);
-  // Andockpunkte: über die Seite verteilt, sortiert nach der Lage des anderen
-  // Endes — so kreuzen sich die Pfeile an der Kachel nicht. Für den Wegsucher
-  // liegen sie auf Rasterlinien, sonst begänne jeder Weg mit einem Versatz.
+  // Für den Wegsucher liegen die Stellen auf Rasterlinien, sonst begänne
+  // jeder Weg mit einem Versatz.
   for (const liste of seiten.values()) {
-    liste.sort((p, q) => p.gegen - q.gegen);
-    const n = liste.length;
-    liste.forEach((p, i) => {
-      const r = p.ende === "a" ? p.lauf.A : p.lauf.Z;
-      const mitte = quer(p.s) ? r.y : r.x;
-      const halb = quer(p.s) ? r.h : r.w;
-      const versatz = andockStelle(mitte, halb, i, n, amRaster);
-      const q =
-        p.s === "r"
-          ? { x: r.x + r.w + ab, y: versatz }
-          : p.s === "l"
-            ? { x: r.x - r.w - ab, y: versatz }
-            : p.s === "u"
-              ? { x: versatz, y: r.y + r.h + ab }
-              : { x: versatz, y: r.y - r.h - ab };
-      if (p.ende === "a") p.lauf.p1 = q;
-      else p.lauf.p2 = q;
-    });
+    const mittel = (g: Andock[]) => g.reduce((n, p) => n + p.gegen, 0) / g.length;
+    const gruppen = (["a", "z"] as const)
+      .map((e) => liste.filter((p) => p.ende === e))
+      .filter((g) => g.length)
+      .sort((p, q) => mittel(p) - mittel(q));
+    gruppen.forEach((g, gi) =>
+      g.forEach((p) => {
+        const r = p.ende === "a" ? p.lauf.A : p.lauf.Z;
+        const versatz = andockStelle(quer(p.s) ? r.y : r.x, quer(p.s) ? r.h : r.w, gi, gruppen.length, amRaster);
+        const q =
+          p.s === "r"
+            ? { x: r.x + r.w + ab, y: versatz }
+            : p.s === "l"
+              ? { x: r.x - r.w - ab, y: versatz }
+              : p.s === "u"
+                ? { x: versatz, y: r.y + r.h + ab }
+                : { x: versatz, y: r.y - r.h - ab };
+        if (p.ende === "a") p.lauf.p1 = q;
+        else p.lauf.p2 = q;
+      }),
+    );
   }
   return laeufe;
 }
 
-/**
- * Hat eine Seite mehr Pfeile, als mit `ANDOCK_ABSTAND` darauf passen, rückten
- * sie zusammen oder teilten sich eine Spur. Dann weichen die äußersten auf die
- * Nachbarseite aus: wer nach oben will, auf die Oberseite, wer nach unten
- * will, auf die Unterseite.
- */
-function ueberlauf(seiten: Map<string, Andock[]>) {
-  const platz = (p: Andock, s: Seite) => {
-    const r = p.ende === "a" ? p.lauf.A : p.lauf.Z;
-    return platzAnSeite(quer(s) ? r.y : r.x, quer(s) ? r.h : r.w);
-  };
-  for (const [k, liste] of [...seiten]) {
-    if (!liste.length) continue;
-    const kachel = k.slice(0, k.lastIndexOf("|") + 1); // „s:12|"
-    const s = liste[0].s;
-    liste.sort((p, q) => p.gegen - q.gegen);
-    let vorn = true;
-    while (liste.length > platz(liste[0], s)) {
-      const p = vorn ? liste.shift()! : liste.pop()!;
-      const neu: Seite = quer(s) ? (vorn ? "o" : "u") : vorn ? "l" : "r";
-      const anderes = p.ende === "a" ? p.lauf.Z : p.lauf.A;
-      p.s = neu;
-      p.gegen = gegenUeber(neu, p.ende === "a" ? p.lauf.A : p.lauf.Z, anderes);
-      if (p.ende === "a") p.lauf.sa = neu;
-      else p.lauf.sz = neu;
-      (seiten.get(kachel + neu) ?? seiten.set(kachel + neu, []).get(kachel + neu)!).push(p);
-      vorn = !vorn;
-    }
-  }
-}
+const verwandt = (p: { fa: string; fz: string }, q: { fa: string; fz: string }) => p.fa === q.fa || p.fz === q.fz;
 
 function grob(pfeile: Pfeilenden[], kacheln: Record<string, Rechteck>): (P[] | null)[] {
   const laeufe = andocken(pfeile, kacheln, false);
-  const belegt: { h: boolean; c: number; von: number; bis: number }[] = [];
+  const belegt: { h: boolean; c: number; von: number; bis: number; fa: string; fz: string }[] = [];
+  // Die Spur, die eine Andockstelle schon hat: Verwandte nehmen dieselbe, dann
+  // verzweigen sie sich an einer Stelle, statt sich gegenseitig zu kreuzen.
+  const kanal = new Map<string, number>();
   // Die weiteste Strecke quer zuerst: Sie bekommt die Mittelspur, und wer
   // danach kommt, weicht zum Ziel hin aus — also innen an ihr vorbei. In der
   // Reihenfolge der Liste bekam die kurze die Mitte, die lange wich nach
   // außen aus und kreuzte sie.
-  const weite = (L: Lauf) => (L.h ? Math.abs(L.p1.y - L.p2.y) : Math.abs(L.p1.x - L.p2.x));
+  const weite = (L: Lauf) => (quer(L.sa) ? Math.abs(L.p1.y - L.p2.y) : Math.abs(L.p1.x - L.p2.x));
   const reihe = laeufe
     .map((L, i) => ({ L, i }))
     .filter((x): x is { L: Lauf; i: number } => !!x.L)
     .sort((a, b) => weite(b.L) - weite(a.L));
   const ergebnis: (P[] | null)[] = laeufe.map(() => null);
   for (const { L, i } of reihe) {
-    const { h, p1, p2 } = L;
+    const { p1, p2 } = L;
+    if (quer(L.sa) !== quer(L.sz)) {
+      ergebnis[i] = [p1, quer(L.sa) ? { x: p2.x, y: p1.y } : { x: p1.x, y: p2.y }, p2];
+      continue;
+    }
+    const h = quer(L.sa);
+    if (L.sa === L.sz) {
+      const c = bogenSpur(L.A, L.Z, L.sa);
+      ergebnis[i] = h ? [p1, { x: c, y: p1.y }, { x: c, y: p2.y }, p2] : [p1, { x: p1.x, y: c }, { x: p2.x, y: c }, p2];
+      continue;
+    }
     const q = h ? [p1.y, p2.y] : [p1.x, p2.x];
     const l = h ? [p1.x, p2.x] : [p1.y, p2.y];
     if (Math.abs(q[0] - q[1]) < 0.5) {
@@ -487,17 +780,22 @@ function grob(pfeile: Pfeilenden[], kacheln: Record<string, Rechteck>): (P[] | n
     const bis = Math.max(...q);
     const zumZiel = l[1] >= l[0] ? 1 : -1;
     const c0 = hi > lo ? klemme(aufRaster((l[0] + l[1]) / 2), lo, hi) : (l[0] + l[1]) / 2;
-    let c = c0;
-    // Die Mittelspur, und wenn dort schon einer läuft, die nächste daneben.
-    for (const n of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]) {
-      const v = c0 + n * zumZiel * RASTER;
-      if (hi > lo && (v < lo || v > hi)) continue;
-      if (!belegt.some((s) => s.h === h && Math.abs(s.c - v) < RASTER - 1 && s.von < bis + 6 && von < s.bis + 6)) {
-        c = v;
-        break;
+    const passt = (v: number | undefined): v is number => v !== undefined && (hi <= lo || (v >= lo && v <= hi));
+    const geteilt = [kanal.get(`${h}${L.fa}`), kanal.get(`${h}${L.fz}`)].find(passt);
+    let c = geteilt ?? c0;
+    // Die Mittelspur, und wenn dort schon ein Fremder läuft, die nächste daneben.
+    if (geteilt === undefined)
+      for (const n of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]) {
+        const v = c0 + n * zumZiel * RASTER;
+        if (hi > lo && (v < lo || v > hi)) continue;
+        if (!belegt.some((s) => s.h === h && !verwandt(s, L) && Math.abs(s.c - v) < RASTER - 1 && s.von < bis + 6 && von < s.bis + 6)) {
+          c = v;
+          break;
+        }
       }
-    }
-    belegt.push({ h, c, von, bis });
+    belegt.push({ h, c, von, bis, fa: L.fa, fz: L.fz });
+    if (!kanal.has(`${h}${L.fa}`)) kanal.set(`${h}${L.fa}`, c);
+    if (!kanal.has(`${h}${L.fz}`)) kanal.set(`${h}${L.fz}`, c);
     ergebnis[i] = h
       ? [p1, { x: c, y: p1.y }, { x: c, y: p2.y }, p2]
       : [p1, { x: p1.x, y: c }, { x: p2.x, y: c }, p2];
@@ -514,8 +812,12 @@ function feinSuche(pfeile: Pfeilenden[], kacheln: Record<string, Rechteck>, hind
     for (let i = Math.ceil((r.x - r.w - G / 2) / G); i <= Math.floor((r.x + r.w + G / 2) / G); i++)
       for (let j = Math.ceil((r.y - r.h - G / 2) / G); j <= Math.floor((r.y + r.h + G / 2) / G); j++)
         gesperrtZ.add(zk(i, j));
-  const belegt = new Map<number, number>(); // Zelle → Bits: 1 waagrecht, 2 senkrecht
-  const freiZ = (k: number, bits: number) => !((belegt.get(k) ?? 0) & bits);
+  // Je Zelle, wer dort entlangläuft (Bits: 1 waagrecht, 2 senkrecht). Verwandte
+  // dürfen auf derselben Spur laufen, Fremde nur quer darüber.
+  type Spur = { bits: number; fa: string; fz: string };
+  const belegt = new Map<number, Spur[]>();
+  const freiZ = (k: number, bits: number, L: Lauf) => (belegt.get(k) ?? []).every((e) => !(e.bits & bits) || verwandt(e, L));
+  const fremd = (k: number, L: Lauf) => (belegt.get(k) ?? []).some((e) => !verwandt(e, L));
   // Die Rasterzelle direkt vor dem Andockpunkt, schon außerhalb der Sperrzone.
   const vorplatz = (q: P, s: Seite): [number, number] =>
     s === "r"
@@ -535,7 +837,7 @@ function feinSuche(pfeile: Pfeilenden[], kacheln: Record<string, Rechteck>, hind
   const ergebnis: (P[] | null)[] = laeufe.map(() => null);
 
   // A* über (Zelle, Richtung). Ein Knick kostet, damit der Weg ruhig bleibt.
-  const suche = (si: number, sj: number, dS: number, ei: number, ej: number, dE: number, rand: number) => {
+  const suche = (L: Lauf, si: number, sj: number, dS: number, ei: number, ej: number, dE: number, rand: number) => {
     const i0 = Math.min(si, ei) - rand;
     const i1 = Math.max(si, ei) + rand;
     const j0 = Math.min(sj, ej) - rand;
@@ -576,14 +878,14 @@ function feinSuche(pfeile: Pfeilenden[], kacheln: Record<string, Rechteck>, hind
       return oben;
     };
     const hdist = (i: number, j: number) => Math.abs(i - ei) + Math.abs(j - ej);
-    if (!freiZ(zk(si, sj), achse(dS))) return null;
+    if (!freiZ(zk(si, sj), achse(dS), L)) return null;
     kosten[idx(si, sj, dS)] = 0;
     hinein([hdist(si, sj), 0, si, sj, dS]);
     while (haufen.length) {
       const [, g, i, j, d] = heraus();
       if (g > kosten[idx(i, j, d)]) continue;
       if (i === ei && j === ej) {
-        if (!freiZ(zk(i, j), achse(d) | achse(dE))) continue;
+        if (!freiZ(zk(i, j), achse(d) | achse(dE), L)) continue;
         const weg: [number, number, number, number][] = [];
         let k = idx(i, j, d);
         let naechst = dE;
@@ -598,16 +900,16 @@ function feinSuche(pfeile: Pfeilenden[], kacheln: Record<string, Rechteck>, hind
       }
       for (let d2 = 0; d2 < 4; d2++) {
         if (d2 === (d ^ 1)) continue; // keine Kehrtwende
-        if (!freiZ(zk(i, j), achse(d) | achse(d2))) continue;
+        if (!freiZ(zk(i, j), achse(d) | achse(d2), L)) continue;
         const ni = i + RICHTUNG[d2][0];
         const nj = j + RICHTUNG[d2][1];
         if (ni < i0 || ni > i1 || nj < j0 || nj > j1) continue;
         const nk = zk(ni, nj);
         if (gesperrtZ.has(nk) && !(ni === ei && nj === ej)) continue;
-        if (!freiZ(nk, achse(d2))) continue;
+        if (!freiZ(nk, achse(d2), L)) continue;
         // Kreuzen darf er, aber es kostet: Sonst nimmt er bei gleicher Länge
         // die Spur jenseits eines anderen Pfeils so gern wie die diesseits.
-        const g2 = g + 1 + (d2 !== d ? 4 : 0) + (belegt.get(nk) ? 6 : 0);
+        const g2 = g + 1 + (d2 !== d ? 4 : 0) + (fremd(nk, L) ? 6 : 0);
         const k2 = idx(ni, nj, d2);
         if (g2 < kosten[k2]) {
           kosten[k2] = g2;
@@ -626,13 +928,13 @@ function feinSuche(pfeile: Pfeilenden[], kacheln: Record<string, Rechteck>, hind
     const dE = NORMALE[L.sz] ^ 1; // hinein = entgegen der Normalen
     let weg = null;
     for (const rand of [10, 40]) {
-      weg = suche(si, sj, dS, ei, ej, dE, rand);
+      weg = suche(L, si, sj, dS, ei, ej, dE, rand);
       if (weg) break;
     }
     if (!weg) continue; // bleibt bei der schnellen Führung
     for (const [wi, wj, rein, raus] of weg) {
       const k = zk(wi, wj);
-      belegt.set(k, (belegt.get(k) ?? 0) | achse(rein) | achse(raus));
+      (belegt.get(k) ?? belegt.set(k, []).get(k)!).push({ bits: achse(rein) | achse(raus), fa: L.fa, fz: L.fz });
     }
     const pts: P[] = [L.p1];
     const erst = { x: si * G, y: sj * G };
