@@ -22,6 +22,42 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-10-07",
+        "titel": "Förderauslastung",
+        "punkte": [
+            {
+                "titel": "Alle Anträge übereinander",
+                "text": (
+                    "Unter Förderungen führt der Knopf „Auslastung“ auf eine Seite, die "
+                    "bewilligte und eingereichte Anträge auf einer Zeitachse übereinanderlegt: "
+                    "wann welches Paket läuft und wer in welchem Monat wie viele Stunden hat. "
+                    "Ein Klick auf einen Monat schlüsselt ihn auf."
+                ),
+                "wo": "module/foerderungen/auslastung",
+            },
+            {
+                "titel": "Entwürfe rundherum planen",
+                "text": (
+                    "Schalte oben „Entwurf“ dazu, und der Antrag, an dem du schreibst, liegt "
+                    "mit drin. Mit ‹ › schiebst du seinen Beginn um einen Monat und siehst "
+                    "sofort, wo noch Luft ist. Hinter dem Zahnrad trägst du ein, wie viele "
+                    "Stunden jemand im Monat für Förderprojekte hat."
+                ),
+                "wo": "module/foerderungen/auslastung",
+            },
+            {
+                "titel": "Drittleister und Personen aus dem Team",
+                "text": (
+                    "Im Antrag steht jetzt, ob wir Förderwerber oder Drittleister sind. Beim "
+                    "Drittleister sind die Stunden unser geschätzter Aufwand und kein Geld. "
+                    "Die Person bei den Stunden wählst du aus dem Team, damit die Auslastung "
+                    "sie aus allen Anträgen zusammenzählt."
+                ),
+                "wo": "module/foerderungen",
+            },
+        ],
+    },
+    {
         "version": "2026-10-05",
         "titel": "Förderungen, ein neues Modul",
         "punkte": [

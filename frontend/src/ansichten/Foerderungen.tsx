@@ -72,7 +72,7 @@ import {
   type Griff,
 } from "../basis/foerderungen";
 import { melden } from "../basis/meldungen";
-import { alsEuro, betragAusEingabe, betragZumBearbeiten } from "../basis/module";
+import { AUSLASTUNGSWEG, alsEuro, betragAusEingabe, betragZumBearbeiten } from "../basis/module";
 import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Entwurfsfeld } from "../bausteine/Entwurfsfeld";
@@ -89,10 +89,14 @@ const WEG = "foerderungen";
 const programmweg = (p: Foerderprogramm) => `${WEG}/${p.geber}/${p.id}`;
 
 /** Speichern und danach alles neu holen (`neuLaden`) — die Summen und die Reife rechnet der Server. */
-function useAendern() {
+export function useAendern() {
   const neuLaden = useNeuLaden();
-  return async (pfad: string, daten: Record<string, unknown>, methode: "PATCH" | "POST" = "PATCH"): Promise<void> => {
-    await hole(pfad, { method: methode, body: JSON.stringify(daten) });
+  return async (
+    pfad: string,
+    daten: Record<string, unknown> | null,
+    methode: "PATCH" | "POST" | "DELETE" = "PATCH",
+  ): Promise<void> => {
+    await hole(pfad, { method: methode, body: daten === null ? undefined : JSON.stringify(daten) });
     neuLaden();
   };
 }
@@ -127,21 +131,36 @@ export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }
   );
 
   return (
-    <div className="fd-geberraster">
-      {geordnet.map((g) => (
-        <Geberkachel
-          key={g.id}
-          geber={g}
-          programme={programme.data.filter((p) => p.geber === g.id)}
-          wechseln={wechseln}
-        />
-      ))}
-      {ich.darf.bearbeiten && (
-        <Dazu text="Fördergeber" titel="Neuer Fördergeber">
-          <GeberAnlegen wechseln={wechseln} autoFokus />
-        </Dazu>
-      )}
-    </div>
+    <>
+      <div className="fd-uebersichtskopf">
+        <a
+          className="knopf fd-auslastungsknopf"
+          href={`/module/${AUSLASTUNGSWEG}`}
+          onClick={(e) => {
+            e.preventDefault();
+            wechseln("module", AUSLASTUNGSWEG);
+          }}
+        >
+          <Zeichen name="saeulen" />
+          Auslastung
+        </a>
+      </div>
+      <div className="fd-geberraster">
+        {geordnet.map((g) => (
+          <Geberkachel
+            key={g.id}
+            geber={g}
+            programme={programme.data.filter((p) => p.geber === g.id)}
+            wechseln={wechseln}
+          />
+        ))}
+        {ich.darf.bearbeiten && (
+          <Dazu text="Fördergeber" titel="Neuer Fördergeber">
+            <GeberAnlegen wechseln={wechseln} autoFokus />
+          </Dazu>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -2203,7 +2222,7 @@ function Kalkulation({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; da
  * Ein Betrag, den man antippt und ändert. Steht formatiert da („12.000 €"),
  * wird beim Antippen zur Zahl, gespeichert beim Verlassen oder mit Enter.
  */
-function Betragsfeld({
+export function Betragsfeld({
   betrag,
   aendern,
   leer,

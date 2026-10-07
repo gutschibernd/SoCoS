@@ -3433,3 +3433,208 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .fd-steckbrief dd { grid-column: 1; }
   .fd-frage-innen, .fd-antwort-kurz { margin-left: 0; padding-left: 0; }
 }
+
+/* --- Förderauslastung ------------------------------------------------------ */
+/*
+ * Ein Raster für alles: Monate als Spalten, links die Namen. Jede Zeile hat
+ * dieselben Spalten, damit ein Monat im Balken, in der Spur und in der
+ * Wärmekarte an derselben Stelle steht. Werden es mehr Monate, als in die Karte
+ * passen, rollt das Raster in ihr; die Namen bleiben stehen.
+ *
+ * Die drei Stände haben je ein Muster, überall dasselbe — im Balken, an den
+ * Paketen und als Legende im Schalter: bewilligt voll, eingereicht hell mit
+ * Rand, Entwurf nur gestrichelt umrandet. Eine Schraffur für „eingereicht"
+ * war vorgesehen und ist verworfen: Auf ihr ist die Beschriftung eines Pakets
+ * nicht mehr zu lesen.
+ *
+ * Die Farbe je Antrag ist einer der acht Thementöne aus farben.css (--t, --f),
+ * dort gegen jeden Untergrund gerechnet: --auf-ton auf --t ≥ 6,10, --text auf
+ * --f ≥ 13,11.
+ */
+.fd-uebersichtskopf { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+
+/* `minmax(0, 1fr)`, nicht `1fr`: Sonst wächst die Spalte auf die Breite der
+   Achse, und statt der Achse in ihrer Karte rollt die ganze Seite. */
+.fa-seite { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.fa-kopfzeile { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.fa-standwahl button { min-height: var(--griff); display: inline-flex; align-items: center; gap: 8px; }
+.fa-zahnrad[aria-expanded="true"] { border-color: var(--akzent); color: var(--akzent); }
+.fa-leise { color: var(--text-leise); }
+
+.fa-ton-1 { --t: var(--t1); --f: var(--f1); }
+.fa-ton-2 { --t: var(--t2); --f: var(--f2); }
+.fa-ton-3 { --t: var(--t3); --f: var(--f3); }
+.fa-ton-4 { --t: var(--t4); --f: var(--f4); }
+.fa-ton-5 { --t: var(--t5); --f: var(--f5); }
+.fa-ton-6 { --t: var(--t6); --f: var(--f6); }
+.fa-ton-7 { --t: var(--t7); --f: var(--f7); }
+.fa-ton-8 { --t: var(--t8); --f: var(--f8); }
+
+/* Das Muster eines Stands als kleines Feld — in der Farbe dessen, was es umgibt. */
+.fa-muster {
+  display: inline-block; flex: none; width: 14px; height: 10px; border-radius: 1px;
+  border: 1px solid currentColor; vertical-align: -1px;
+}
+.fa-muster[data-stand="bewilligt"] { background: currentColor; }
+.fa-muster[data-stand="eingereicht"] { background: color-mix(in srgb, currentColor 25%, transparent); }
+.fa-muster[data-stand="entwurf"] { border-style: dashed; }
+.fa-merkmale .fa-muster, .fa-monatsdetail li .fa-muster { color: var(--t); }
+
+.fa-achse { padding: 14px 0 10px; }
+.fa-rollbar { overflow-x: auto; overscroll-behavior-x: contain; }
+.fa-raster {
+  --etikett: 232px; --spalte: 40px;
+  min-width: calc(var(--etikett) + var(--n) * var(--spalte));
+  padding-right: 20px;
+}
+.fa-zeile, .fa-spur {
+  display: grid; grid-template-columns: var(--etikett) repeat(var(--n), minmax(var(--spalte), 1fr));
+  align-items: stretch;
+}
+.fa-etikett {
+  position: sticky; left: 0; z-index: 1; background: var(--flaeche);
+  padding: 0 12px 0 20px; display: flex; flex-direction: column; justify-content: center; min-width: 0;
+}
+.fa-zeile > [data-jahr] { border-left: 1px solid var(--rand-stark); }
+
+.fa-monat {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  min-height: var(--griff); border: 0; background: none; color: var(--text-leise);
+  font: inherit; font-size: 12px; cursor: pointer;
+}
+.fa-monat small { font-size: 10.5px; color: var(--text-sehr-leise); min-height: 1em; }
+/* Der laufende Monat: Hier ist jetzt — alles links davon ist schon gewesen. */
+.fa-monat[aria-current="date"] { color: var(--akzent); font-weight: 600; border-bottom: 2px solid var(--akzent); }
+.fa-monat[aria-pressed="true"], .fa-saeule[aria-pressed="true"] { background: var(--flaeche-leise); color: var(--akzent); }
+
+.fa-saeule {
+  position: relative; height: 150px; padding: 0 4px;
+  display: flex; flex-direction: column-reverse; border: 0; background: none; cursor: pointer;
+}
+.fa-teil { display: block; flex: none; height: var(--h); margin-top: 1px; border-radius: 1px; border: 1px solid var(--t); }
+.fa-teil[data-stand="bewilligt"] { background: var(--t); }
+.fa-teil[data-stand="eingereicht"] { background: var(--f); }
+.fa-teil[data-stand="entwurf"] { border-style: dashed; }
+.fa-kapazitaetslinie {
+  position: absolute; left: 0; right: 0; bottom: var(--h);
+  border-top: 1px solid var(--text); pointer-events: none;
+}
+.fa-kapazitaet-legende { font-size: 12px; }
+
+.fa-summenzeile > span:not(.fa-etikett) {
+  text-align: center; font-size: 12px; color: var(--text-leise); padding: 4px 0 8px;
+}
+.fa-summenzeile [data-ueber] { color: var(--akzent); font-weight: 600; }
+
+/* Die Linie reicht über das ganze Raster, der Text bleibt beim Rollen links
+   stehen. Ein Element, das so breit ist wie das Raster, klebt nicht — deshalb
+   steckt der Text in einem eigenen. */
+.fa-zwischentitel { padding: 14px 0 6px; border-top: 1px solid var(--rand); margin-top: 4px; }
+.fa-zwischentitel > span, .fa-ohne-personen > span { position: sticky; left: 0; display: inline-block; padding-left: 20px; }
+
+/* Die Spur: Monatslinien als Hintergrund, nicht als Elemente — sonst wären es
+   Pakete mal Monate leere Kästchen. */
+.fa-spur {
+  grid-auto-rows: minmax(26px, auto); row-gap: 3px; padding: 6px 0; border-top: 1px solid var(--flaeche-leise);
+  background-image: linear-gradient(to right, var(--flaeche-leise) 1px, transparent 1px);
+  background-size: calc((100% - var(--etikett) - 20px) / var(--n)) 100%;
+  background-position: var(--etikett) 0;
+}
+.fa-antragsetikett { justify-content: flex-start; gap: 3px; padding-top: 2px; padding-bottom: 4px; }
+.fa-antragsetikett a { display: flex; flex-direction: column; color: inherit; text-decoration: none; min-width: 0; }
+.fa-antragsetikett a .fa-leise { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-antragsetikett a b {
+  font-size: 13px; font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.fa-antragsetikett a:hover b { color: var(--akzent); }
+.fa-merkmale { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--text-leise); }
+.fa-schieben { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-leise); }
+.fa-schieben > .zahl { white-space: nowrap; }
+.fa-schieben .knopf-still { min-height: 32px; min-width: 32px; padding: 0; }
+.fa-schieben .knopf-still svg { width: 14px; height: 14px; }
+
+.fa-paket {
+  position: relative; display: flex; align-items: center; min-width: 0; margin: 0 1px;
+  padding: 0 8px; border: 1px solid var(--t); border-radius: var(--kante);
+  font-size: 12px; color: var(--text);
+}
+.fa-paket > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-spur[data-stand="bewilligt"] .fa-paket { background: var(--t); color: var(--auf-ton); }
+.fa-spur[data-stand="eingereicht"] .fa-paket { background: var(--f); }
+.fa-spur[data-stand="entwurf"] .fa-paket { border-style: dashed; background: var(--flaeche); }
+/* Am Paketende des Drittleisters: hier wird geliefert. */
+.fa-lieferung {
+  position: absolute; right: -5px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px;
+  transform: rotate(45deg); background: var(--t); border: 1.5px solid var(--flaeche);
+}
+.fa-ohne-pakete { display: flex; align-items: center; font-size: 12px; padding-left: 8px; }
+
+/* Die Wärmekarte. Jeder Textton gegen seine Stufe gerechnet, hell / dunkel:
+   1 --text-leise auf --flaeche-leise 6,10 / 6,73 · 2 --text auf --marke-hell
+   14,83 / 12,02 · 3 --text auf --marke-rand 7,95 / 5,74 · 4 --auf-marke auf
+   --akzent 5,42 / 6,36. */
+.fa-personzeile { min-height: 36px; border-top: 1px solid var(--flaeche-leise); }
+.fa-personzeile .fa-etikett { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+.fa-personzeile .fa-etikett b { font-size: 13px; font-weight: 600; }
+.fa-personzeile .fa-etikett .fa-leise { font-size: 12px; }
+.fa-zelle {
+  margin: 2px 1px; border: 0; border-radius: 1px; background: none;
+  font-size: 12px; color: var(--text); cursor: pointer;
+}
+.fa-zelle[data-stufe="1"] { background: var(--flaeche-leise); color: var(--text-leise); }
+.fa-zelle[data-stufe="2"] { background: var(--marke-hell); }
+.fa-zelle[data-stufe="3"] { background: var(--marke-rand); }
+.fa-zelle[data-stufe="4"] { background: var(--akzent); color: var(--auf-marke); font-weight: 600; }
+.fa-zelle[aria-pressed="true"] { outline: 2px solid var(--akzent); outline-offset: -2px; }
+.fa-zelle[data-stufe="4"][aria-pressed="true"] { outline-color: var(--text); }
+.fa-ohne-personen { margin: 4px 0 8px; font-size: 13px; }
+.fa-ohne-personen > span { max-width: min(560px, 80vw); }
+
+.fa-monatsdetail { display: grid; gap: 12px; }
+.fa-detailkopf { display: flex; align-items: center; gap: 12px; }
+.fa-detailkopf h2 { margin: 0; }
+.fa-detailkopf .zahl { margin-left: auto; }
+.fa-klein { min-height: 32px; min-width: 32px; padding: 0; }
+.fa-detailperson { border-top: 1px solid var(--rand); padding-top: 10px; }
+.fa-detailzeile { display: flex; justify-content: space-between; gap: 12px; }
+.fa-detailzeile [data-ueber] { color: var(--akzent); font-weight: 600; }
+.fa-detailperson ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.fa-detailperson li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 8px; font-size: 13px; }
+
+.fa-ohnetermin { display: grid; gap: 0; }
+.fa-ohnezeile {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 200px; align-items: center; gap: 4px 16px;
+  padding: 10px 0; border-top: 1px solid var(--rand);
+}
+.fa-ohnezeile > a { display: flex; flex-direction: column; color: inherit; text-decoration: none; min-width: 0; }
+.fa-ohnezeile > a .fa-leise { font-size: 12px; }
+.fa-ohnezeile > a:hover b { color: var(--akzent); }
+.fa-ohnezeile > .fa-leise { font-size: 13px; }
+.fa-beginnfeld { display: flex; flex-direction: column; gap: 4px; }
+
+.fa-kapazitaeten { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--rand); display: grid; gap: 0; max-width: 520px; }
+.fa-kapazitaeten > .beschriftung-klein { margin-bottom: 4px; }
+.fa-kapzeile {
+  display: grid; grid-template-columns: minmax(0, 1fr) 140px; align-items: center; gap: 12px;
+  min-height: var(--griff); border-top: 1px solid var(--flaeche-leise);
+}
+.fa-kapzeile b { display: inline-block; min-width: 28px; }
+
+@media (max-width: 720px) {
+  .fa-raster { --etikett: 164px; --spalte: 36px; padding-right: 12px; }
+  /* Was der Finger trifft, ist mindestens 44 px hoch. */
+  .fa-schieben .knopf-still, .fa-klein { min-height: var(--griff); min-width: var(--griff); }
+  .fa-schieben { gap: 2px; }
+  .fa-ab { display: none; }
+  .fa-personzeile { min-height: var(--griff); }
+  .fa-etikett { padding-left: 12px; padding-right: 8px; }
+  .fa-zwischentitel > span, .fa-ohne-personen > span { padding-left: 12px; }
+  .fa-saeule { height: 120px; padding: 0 3px; }
+  .fa-antragsetikett a b { font-size: 12.5px; -webkit-line-clamp: 3; }
+  .fa-antragsetikett a .fa-leise { display: none; }
+  .fa-standwahl { width: 100%; }
+  .fa-standwahl button { flex: 1 1 0; justify-content: center; padding: 0 8px; }
+  .fa-ohnezeile { grid-template-columns: minmax(0, 1fr); }
+  .fa-personzeile .fa-etikett .fa-leise { display: none; }
+}

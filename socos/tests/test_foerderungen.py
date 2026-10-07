@@ -470,9 +470,12 @@ class TestAuslastung:
         return {"bg": bg, "frei": frei, "a": a, "b": b, "c": c}
 
     def test_monate_summen_und_personen(self, lage):
-        ergebnis = foerderung.auslastung(["eingereicht", "bewilligt"])
+        from datetime import date
+
+        ergebnis = foerderung.auslastung(["eingereicht", "bewilligt"], heute=date(2027, 2, 14))
 
         assert ergebnis["monate"] == ["2027-01", "2027-02", "2027-03"]
+        assert ergebnis["heute"] == "2027-02"
         assert [a["titel"] for a in ergebnis["antraege"]] == ["A", "B"]
         assert ergebnis["je_monat"] == {
             "2027-01": Decimal("43.25"), "2027-02": Decimal("53.25"), "2027-03": Decimal("63.50"),
@@ -497,6 +500,15 @@ class TestAuslastung:
         # Mit Kapazität, aber ohne Stunden: steht da, mit nichts.
         frei = personen[f"n{lage['frei'].pk}"]
         assert (frei["stunden"], frei["je_monat"], frei["kapazitaet"]) == (Decimal("0.00"), {}, Decimal("40.00"))
+
+    def test_achse_reicht_bis_heute(self, lage):
+        """Verschiebt man den ersten Antrag, bleibt die Achse am laufenden Monat stehen."""
+        from datetime import date
+
+        monate = foerderung.auslastung(["eingereicht", "bewilligt"], heute=date(2026, 11, 3))["monate"]
+        assert (monate[0], monate[-1], len(monate)) == ("2026-11", "2027-03", 5)
+        monate = foerderung.auslastung(["eingereicht", "bewilligt"], heute=date(2027, 6, 1))["monate"]
+        assert (monate[0], monate[-1]) == ("2027-01", "2027-06")
 
     def test_ohne_beginn_zaehlt_nicht(self, lage):
         ergebnis = foerderung.auslastung(["eingereicht"])
@@ -523,7 +535,10 @@ class TestAuslastung:
         assert daten["staende"] == ["eingereicht", "bewilligt"]
         # Ohne Angabe alle Stände — auch der Entwurf von 2026.
         assert client.get("/api/foerderauslastung/").json()["monate"][0] == "2026-01"
+        assert "heute" in daten
         assert client.get("/api/foerderauslastung/?stand=quatsch").status_code == 400
+        # Leer heißt nichts gewählt — nicht alles.
+        assert client.get("/api/foerderauslastung/?stand=").json()["antraege"] == []
 
     def test_kapazitaet_ueber_die_schnittstelle(self, client, bearbeiter, admin_nutzer):
         client.force_login(bearbeiter)

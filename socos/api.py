@@ -1464,7 +1464,9 @@ def foerderauslastung(request):
     """
     erlaubt = [wert for wert, _ in Foerderantrag.Stand.choices]
     roh = request.query_params.get("stand")
-    staende = [s.strip() for s in roh.split(",") if s.strip()] if roh else erlaubt
+    # Fehlt der Parameter, gilt alles; steht er leer da, ist nichts gewählt.
+    # Wer auf der Seite alle Stände abwählt, bekommt sonst wieder alle.
+    staende = erlaubt if roh is None else [s.strip() for s in roh.split(",") if s.strip()]
     unbekannt = [s for s in staende if s not in erlaubt]
     if unbekannt:
         raise ValidationError({"stand": f"Diesen Stand gibt es nicht: {', '.join(unbekannt)}."})

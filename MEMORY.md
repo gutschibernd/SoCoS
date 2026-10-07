@@ -7,6 +7,40 @@ betrifft.
 
 ---
 
+## 2026-10-07 — Seite der Förderauslastung (`ansichten/Foerderauslastung.tsx`)
+
+`/module/foerderungen/auslastung`, erreichbar über den Knopf „Auslastung“ über
+den Fördergeber-Kacheln. Eine Seite neben den Fördergebern, keine Ebene
+darunter (`foerderauslastungAusWeg`, eigener Weg statt Sonderfall in
+`foerderungAusWeg`).
+
+- **Entwürfe lassen sich dazuschalten** (Wunsch Bernd): Man plant den Antrag,
+  den man schreibt, um das herum, was schon feststeht. Beim Öffnen sind
+  *bewilligt* und *eingereicht* gewählt. Mit ‹ › wandert der Beginn eines
+  nicht bewilligten Antrags um einen Monat — gespeichert in
+  `Foerderantrag.beginn`, **kein zweites Planfeld**. Der Tag bleibt, der 31.
+  wird zum Monatsletzten.
+- **Muster je Stand statt Farbe:** bewilligt voll, eingereicht hell mit Rand,
+  Entwurf gestrichelt — im Balken, an den Paketen und als Legende im Schalter.
+  Die geplante Schraffur für „eingereicht“ ist verworfen: Auf ihr war die
+  Beschriftung der Pakete nicht zu lesen.
+- **Farbe je Antrag = die acht Thementöne aus Thoughts** (`--t1…8`, `--f1…8`),
+  fest an der Antragsnummer. Keine zweite Farbreihe.
+- **Am Handy rollt die Achse in ihrer Karte**, die Namen bleiben links stehen.
+  Die ursprünglich geplante gedrehte Ansicht (Monate als Zeilen) wäre ein
+  zweites Markup gewesen. Wichtig dafür: `.fa-seite` hat
+  `grid-template-columns: minmax(0, 1fr)` — mit `1fr` wuchs die Spalte auf die
+  Breite der Achse, und die ganze Seite rollte waagrecht.
+- **Wärmekarte:** Stufen bei 50 / 85 / über 100 % der Kapazität
+  (`waermestufe`). Das ist Darstellung, keine Schwelle mit Folgen — sie steht
+  deshalb im Frontend und nicht in `berechtigung.py`.
+- **Datumsfeld „Vermuteter Beginn“ speichert beim Verlassen**, nicht bei jeder
+  Änderung: Chrome meldet das Feld schon nach der ersten Ziffer der Jahreszahl
+  als gültig („0002-04-01“).
+- Neues Zeichen `saeulen` in `Zeichen.tsx`.
+
+---
+
 ## 2026-10-07 — Rechnung der Förderauslastung (`services/foerderung.auslastung`)
 
 `GET /api/foerderauslastung/?stand=eingereicht,bewilligt` legt alle lebenden

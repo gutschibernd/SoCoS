@@ -241,7 +241,7 @@ def _anteil(stunden: Decimal, kapazitaet):
     return (stunden * 100 / kapazitaet).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
 
-def auslastung(staende) -> dict:
+def auslastung(staende, heute=None) -> dict:
     """
     Die Förderauslastung über alle lebenden Anträge in `staende`.
 
@@ -252,7 +252,14 @@ def auslastung(staende) -> dict:
     Summen werden hier gerechnet und nicht in der Seite, auch die je Person
     und Monat: `verteilung` ist die feinste Ebene (Monat · Antrag · Paket ·
     Person), alles andere ist daraus summiert.
+
+    **Die Achse reicht immer auch über den laufenden Monat.** Finge sie beim
+    frühesten Paket an, wanderte sie mit, sobald man den ersten Antrag
+    verschiebt — und es sähe aus, als hätten sich die anderen bewegt. Am
+    heutigen Monat verankert bleibt sie stehen. Gefiltert wird dabei nichts.
     """
+    from django.utils import timezone
+
     from socos.models import Foerderantrag, Foerderkapazitaet, Nutzer
 
     antraege = (
@@ -280,6 +287,8 @@ def auslastung(staende) -> dict:
             "programm_name": antrag.programm.name,
         }
 
+    heute = heute or timezone.localdate()
+    jetzt = f"{heute.year:04d}-{heute.month:02d}"
     personen = {}  # Schlüssel → Angaben, in der Reihenfolge des ersten Auftretens
 
     def person(zeile):
@@ -366,7 +375,8 @@ def auslastung(staende) -> dict:
 
     return {
         "staende": list(staende),
-        "monate": _monatsreihe(min(enden), max(enden)) if enden else [],
+        "monate": _monatsreihe(min(enden + [jetzt]), max(enden + [jetzt])) if enden else [],
+        "heute": jetzt,
         "antraege": auf_der_achse,
         "ohne_termin": ohne_termin,
         # Erst die Nutzer nach Namen, dann die Namen ohne Konto.

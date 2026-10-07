@@ -27,7 +27,7 @@ import {
   telefonatQuelle,
   telefonatText,
 } from "./foerderungen";
-import { alsEuro, foerderungAusWeg, themaAusWeg } from "./module";
+import { alsEuro, foerderauslastungAusWeg, foerderungAusWeg, themaAusWeg } from "./module";
 
 const antrag = (teil: Partial<Foerderantrag> = {}) => ({ laufzeit: 0, ...teil }) as Foerderantrag;
 const programm = (teil: Partial<Foerderprogramm> = {}) => ({ max_monate: 24, ...teil }) as Foerderprogramm;
@@ -167,6 +167,10 @@ describe("der Weg zu einem Antrag", () => {
     expect(foerderungAusWeg("foerderungen/2/4/12")).toMatchObject({ geber: 2, programm: 4, antrag: 12 });
     expect(foerderungAusWeg("praktikum/12")).toBeNull();
     expect(foerderungAusWeg("foerderungen/2/4/12/1")).toBeNull();
+    // Die Auslastung ist kein Fördergeber, und kein Fördergeber heißt „auslastung".
+    expect(foerderungAusWeg("foerderungen/auslastung")).toBeNull();
+    expect(foerderauslastungAusWeg("foerderungen/auslastung")).not.toBeNull();
+    expect(foerderauslastungAusWeg("foerderungen/2")).toBeNull();
     expect(themaAusWeg("foerderungen/12")).toBeNull();
     expect(foerderungAusWeg("foerderungen")).toBeNull();
   });

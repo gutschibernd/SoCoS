@@ -968,6 +968,22 @@ function ModuleDoku() {
               text: "Oben im Antrag steht, was wir sind. Förderwerber heißt: Wir reichen ein. Drittleister heißt: Ein anderer reicht ein — beim Land NÖ das Pflegeheim —, und wir liefern zu. Dann sind die Stunden in den Paketen unser geschätzter Aufwand: Sie zählen für die Planung, aber nicht als Geld, und einen Stundensatz braucht es nicht. Die Pakete behalten ihre Pauschalbeträge.",
             },
             {
+              begriff: "Auslastung",
+              text: "Der Knopf „Auslastung“ über den Fördergebern legt alle Anträge der gewählten Stände auf eine Zeitachse: oben die Stunden je Monat als Säulen, darunter jeder Antrag mit seinen Paketen, unten je Person die Stunden je Monat. Bewilligt ist voll gezeichnet, eingereicht hell mit Rand, ein Entwurf nur gestrichelt umrandet — so sieht man, welcher Teil der Last feststeht. Ein Klick auf einen Monat schlüsselt ihn auf: wer woran wie viel, und welche Pakete in ihm enden. Die Achse reicht immer bis zum laufenden Monat, er ist kupfern unterstrichen.",
+            },
+            {
+              begriff: "Mit Entwürfen planen",
+              text: "Schalte oben „Entwurf“ dazu, dann liegt auch der Antrag mit drin, an dem du gerade schreibst. Mit ‹ › neben seinem Namen wandert sein Beginn um einen Monat; Säulen und Personen rechnen sofort mit. Gespeichert wird das als geplanter Beginn des Antrags — derselbe Wert wie oben im Antrag. Bewilligte Anträge haben keine Pfeile, ihr Beginn steht fest. Ein Antrag ohne Beginn steht unten unter „Ohne Termin“; trag dort einen vermuteten ein, und er rückt auf die Achse.",
+            },
+            {
+              begriff: "Kapazität",
+              text: "Hinter dem Zahnrad steht je Person, wie viele Stunden sie im Monat für Förderprojekte hat. Daran misst die Auslastung: Bis zur Hälfte bleibt ein Feld hell, darüber wird es grün, ab 85 % kräftiger, über 100 % kupfern. Ohne Kapazität steht nur die Zahl da. Eine Kapazität leeren heißt sie entfernen, das darf nur, wer löschen darf.",
+            },
+            {
+              begriff: "Wie die Stunden auf die Monate kommen",
+              text: "Ein Antrag sagt, wie viele Stunden ein Paket hat, nicht wann darin gearbeitet wird. Die Auslastung verteilt sie deshalb gleichmäßig auf die Monate des Pakets, auf die Viertelstunde, und legt den Rest in den letzten Monat — 100 Stunden auf drei Monate sind 33,25 · 33,25 · 33,50. Das ist eine Annahme für die Planung, kein Nachweis.",
+            },
+            {
               begriff: "Antragsreife",
               text: "Kurzbezeichnung, Beschreibung, Pakete mit Beträgen, Summe und Laufzeit in der Grenze — und dazu jeder Abschnitt des Antrags, bis etwas darin steht. Ein Antrag fürs Land NÖ hat so Nutzen, Mehrwert, Wirkungsziele und Kostenprognose als Punkte, einer fürs KWF nur, was du dort anlegst. Sie wird gerechnet, abhaken muss man nichts.",
             },

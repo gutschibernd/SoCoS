@@ -3,7 +3,7 @@
  * auseinanderlaufen.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { hole } from "./api";
 
@@ -701,6 +701,75 @@ export type Foerderprogramm = {
 /* Eine Abfrage für das ganze Modul: Programm, Fragen, Anträge, Pakete. */
 export const useFoerderungen = () =>
   useQuery({ queryKey: ["foerderungen"], queryFn: () => hole<Foerderprogramm[]>("/foerderprogramme/") });
+
+/** Ein Antrag, wie die Auslastung ihn nennt — Kopf ohne Texte und Kalkulation. */
+export type Auslastungsantrag = {
+  id: number;
+  titel: string;
+  nummer: number;
+  stand: Antragsstand;
+  rolle: Foerderantrag["rolle"];
+  beginn: string | null;
+  geber: number;
+  /** Kürzel, sonst der Name. */
+  geber_name: string;
+  programm: number;
+  programm_name: string;
+  stunden: string;
+};
+
+/** Ein Paket auf der Kalenderachse; `von` und `bis` sind Monate wie „2027-03". */
+export type Auslastungspaket = { id: number; titel: string; ergebnis: string; von: string; bis: string; stunden: string };
+
+/** Eine Person der Auslastung: `n<id>` ist ein Nutzer, `p:<Name>` jemand ohne Konto. */
+export type Auslastungsperson = {
+  schluessel: string;
+  nutzer: number | null;
+  name: string;
+  voller_name: string;
+  kapazitaet: string | null;
+  stunden: string;
+  /** Je Monat die Stunden und der Anteil an der Kapazität in ganzen Prozent — ohne Kapazität `null`. */
+  je_monat: Record<string, { stunden: string; anteil: string | null }>;
+};
+
+/** Gerechnet in socos/services/foerderung.py (`auslastung`) — die Seite summiert nichts selbst. */
+export type Foerderauslastung = {
+  staende: Antragsstand[];
+  /** Lückenlos vom ersten bis zum letzten Paketmonat — und immer über den laufenden Monat. */
+  monate: string[];
+  /** Der laufende Monat, „2026-10". */
+  heute: string;
+  antraege: (Auslastungsantrag & { pakete: Auslastungspaket[]; je_monat: Record<string, string> })[];
+  /** Ohne Beginn: kein Platz auf der Achse, in keiner Summe. */
+  ohne_termin: (Auslastungsantrag & { laufzeit: number })[];
+  personen: Auslastungsperson[];
+  je_monat: Record<string, string>;
+  /** Die Kapazität aller zusammen je Monat — oder keine. */
+  kapazitaet: string | null;
+  /** Die feinste Ebene: Monat · Antrag · Paket · Person. */
+  verteilung: { monat: string; antrag: number; paket: number; person: string; stunden: string }[];
+};
+
+export type Foerderkapazitaet = { id: number; nutzer: number; stunden_je_monat: string };
+
+/* Unter dem Schlüssel der Förderungen: `neuLaden` verwirft sie mit, sobald
+   irgendwo ein Antrag, ein Paket oder eine Stunde geändert wird. Beim
+   Umschalten der Stände bleibt die vorige Antwort stehen, bis die neue da ist —
+   sonst verschwände mit den Zahlen auch der Schalter, auf den man gerade
+   getippt hat. */
+export const useFoerderauslastung = (staende: Antragsstand[]) =>
+  useQuery({
+    queryKey: ["foerderungen", "auslastung", staende],
+    queryFn: () => hole<Foerderauslastung>(`/foerderauslastung/?stand=${staende.join(",")}`),
+    placeholderData: keepPreviousData,
+  });
+
+export const useFoerderkapazitaeten = () =>
+  useQuery({
+    queryKey: ["foerderungen", "kapazitaeten"],
+    queryFn: () => hole<Foerderkapazitaet[]>("/foerderkapazitaeten/"),
+  });
 
 /* Unter demselben Schlüssel wie die Programme — `neuLaden` verwirft beide. */
 export const useFoerdergeber = () =>
