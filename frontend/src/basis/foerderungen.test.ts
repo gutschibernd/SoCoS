@@ -183,6 +183,8 @@ describe("der Projektinhalt zum Kopieren", () => {
     nummer: 2,
     stand: "entwurf",
     foerderwerber: "Sopharmis",
+    rolle: "foerderwerber",
+    stunden_sind_geld: true,
     beginn: "2027-01-01",
     beschreibung: "Worum es geht.",
     abschnitte: [
@@ -245,6 +247,17 @@ describe("der Projektinhalt zum Kopieren", () => {
     expect(text).toContain("## Fragen an die Förderstelle (1 offen)\n\n- [ ] F2\n- [x] F1");
   });
 
+  it("nennt beim Drittleister die Rolle und die Stunden als Aufwand", () => {
+    const stunden = [{ id: 1, paket: 1, nutzer: 3, person: "", name: "BG", stunden: "40.00" }];
+    const mitAufwand = { ...voll, pakete: [paket(1, { titel: "Konzept", stunden })] };
+    expect(projektinhalt(antrag(mitAufwand), prog, geber)).toContain("- **Stunden:** BG 40 h");
+    const zuliefern = projektinhalt(
+      antrag({ ...mitAufwand, rolle: "drittleister", stunden_sind_geld: false }), prog, geber,
+    );
+    expect(zuliefern).toContain("- **Unsere Rolle:** Drittleister");
+    expect(zuliefern).toContain("- **Geschätzter Aufwand:** BG 40 h");
+  });
+
   it("kommt ohne Fördergeber und ohne Pakete aus", () => {
     const knapp = projektinhalt(antrag({ ...voll, pakete: [] }), { ...prog, fragen: [] }, null);
     expect(knapp).not.toContain("Fördergeber");
@@ -264,9 +277,16 @@ describe("Stunden und Kosten", () => {
   });
 
   it("erkennt ein aufgeschlüsseltes Paket an Stunden oder Posten", () => {
-    expect(istAufgeschluesselt(paket({}))).toBe(false);
-    expect(istAufgeschluesselt(paket({ stunden: [{ id: 1, paket: 1, person: "BG", stunden: "1.00" }] }))).toBe(true);
-    expect(istAufgeschluesselt(paket({ kosten: { ...nichts, sach: "1000.00" } }))).toBe(true);
+    const mitStunden = paket({ stunden: [{ id: 1, paket: 1, nutzer: null, person: "BG", name: "BG", stunden: "1.00" }] });
+    expect(istAufgeschluesselt(paket({}), true)).toBe(false);
+    expect(istAufgeschluesselt(mitStunden, true)).toBe(true);
+    expect(istAufgeschluesselt(paket({ kosten: { ...nichts, sach: "1000.00" } }), true)).toBe(true);
+  });
+
+  it("beim Drittleister machen Stunden kein Paket aufgeschlüsselt, Posten schon", () => {
+    const mitStunden = paket({ stunden: [{ id: 1, paket: 1, nutzer: 3, person: "", name: "BG", stunden: "1.00" }] });
+    expect(istAufgeschluesselt(mitStunden, false)).toBe(false);
+    expect(istAufgeschluesselt(paket({ kosten: { ...nichts, sach: "1000.00" } }), false)).toBe(true);
   });
 
   it("summiert die Pakete in Cent", () => {

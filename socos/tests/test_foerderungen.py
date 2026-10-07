@@ -374,8 +374,10 @@ class TestSchnittstelle:
     def test_rolle_einstellen(self, client, bearbeiter, antrag):
         client.force_login(bearbeiter)
         pfad = f"/api/foerderantraege/{antrag.pk}/"
-        assert client.get(pfad).json()["rolle"] == "foerderwerber"
-        assert client.patch(pfad, {"rolle": "drittleister"}, content_type="application/json").json()["rolle"] == "drittleister"
+        geholt = client.get(pfad).json()
+        assert (geholt["rolle"], geholt["stunden_sind_geld"]) == ("foerderwerber", True)
+        geholt = client.patch(pfad, {"rolle": "drittleister"}, content_type="application/json").json()
+        assert (geholt["rolle"], geholt["stunden_sind_geld"]) == ("drittleister", False)
         assert client.patch(pfad, {"rolle": "partner"}, content_type="application/json").status_code == 400
 
     def test_posten_nicht_an_fremdes_paket(self, client, bearbeiter, programm, antrag):
@@ -589,7 +591,8 @@ def test_migration_ordnet_personen_und_rollen_zu():
         Antrag.objects.create(programm=programm, titel="C")
         paket = alt.get_model("socos", "Foerderpaket").objects.create(antrag=fremd, titel="Bau")
         Stunden = alt.get_model("socos", "Foerderstunden")
-        for name in ("F. D.", "MM", "N. N."):
+        # Zweimal Fritz Dorn: Der zweite Eintrag mit demselben Namen muss ihn auch finden.
+        for name in ("F. D.", "fd", "MM", "N. N."):
             Stunden.objects.create(paket=paket, person=name, stunden=Decimal("1"))
 
         ausfuehrer = MigrationExecutor(connection)
@@ -598,7 +601,7 @@ def test_migration_ordnet_personen_und_rollen_zu():
         rollen = dict(neu.get_model("socos", "Foerderantrag").objects.values_list("titel", "rolle"))
         assert rollen == {"A": "drittleister", "B": "foerderwerber", "C": "foerderwerber"}
         zeilen = sorted(neu.get_model("socos", "Foerderstunden").objects.values_list("person", "nutzer_id"))
-        assert zeilen == [("", fd.pk), ("MM", None), ("N. N.", None)]
+        assert zeilen == [("", fd.pk), ("", fd.pk), ("MM", None), ("N. N.", None)]
     finally:
         ausfuehrer = MigrationExecutor(connection)
         ausfuehrer.migrate(ausfuehrer.loader.graph.leaf_nodes())

@@ -583,8 +583,18 @@ export type Foerderpaket = {
   kosten: { stunden: string; personal: string; sach: string; gesamt: string };
 };
 
-/** Wie viele Stunden eine Person in einem Paket plant. Die Person ist ein Name. */
-export type Foerderstunden = { id: number; paket: number; person: string; stunden: string };
+/**
+ * Wie viele Stunden eine Person in einem Paket plant — entweder ein Nutzer
+ * oder ein Name ohne Konto („N. N."), nie beides. `name` sagt, wie sie heißt.
+ */
+export type Foerderstunden = {
+  id: number;
+  paket: number;
+  nutzer: number | null;
+  person: string;
+  name: string;
+  stunden: string;
+};
 
 /** Eine Sachposition eines Antrags — einem Paket zugeordnet oder nicht. */
 export type Foerderposten = {
@@ -622,6 +632,10 @@ export type Foerderantrag = {
   titel: string;
   stand: Antragsstand;
   foerderwerber: string;
+  /** Beim Drittleister liefern wir einem anderen Förderwerber zu. */
+  rolle: "foerderwerber" | "drittleister";
+  /** Ob die Stunden in die Kalkulation gehen — beim Drittleister sind sie geschätzter Aufwand. */
+  stunden_sind_geld: boolean;
   /** Geplanter Beginn — rechnet Projektmonate in Kalendermonate um. */
   beginn: string | null;
   /** Monate im Zeitplan; leer heißt: wie das Programm (siehe monatsanzahl). */

@@ -961,7 +961,11 @@ function ModuleDoku() {
             },
             {
               begriff: "Stunden und Kalkulation",
-              text: "Programme mit Kostenleitfaden (KWF, FFG) wollen Stunden je Person und Paket statt eines Betrags. Im aufgeklappten Paket trägst du unter „Stunden“ Person und Stunden ein, unter Kalkulation den Stundensatz, die Gemeinkostenpauschale und die Förderquote, dazu die Sach- und Materialposten — mit oder ohne Paket. Die Rechnung darunter geht wie im Kostenplan: Personal plus Sachkosten sind die direkten Kosten, darauf die Pauschale, davon die Quote ist der Zuschuss. Ohne Quote bleibt es wie beim Land NÖ: Die Beträge der Pakete sind schon die Fördersumme.",
+              text: "Programme mit Kostenleitfaden (KWF, FFG) wollen Stunden je Person und Paket statt eines Betrags. Im aufgeklappten Paket wählst du unter „Stunden“ die Person aus dem Team und trägst ihre Stunden ein — wer noch kein Konto hat, steht als „ohne Konto“ mit einem Namen da, etwa „N. N.“. Unter Kalkulation den Stundensatz, die Gemeinkostenpauschale und die Förderquote, dazu die Sach- und Materialposten — mit oder ohne Paket. Die Rechnung darunter geht wie im Kostenplan: Personal plus Sachkosten sind die direkten Kosten, darauf die Pauschale, davon die Quote ist der Zuschuss. Ohne Quote bleibt es wie beim Land NÖ: Die Beträge der Pakete sind schon die Fördersumme.",
+            },
+            {
+              begriff: "Förderwerber oder Drittleister",
+              text: "Oben im Antrag steht, was wir sind. Förderwerber heißt: Wir reichen ein. Drittleister heißt: Ein anderer reicht ein — beim Land NÖ das Pflegeheim —, und wir liefern zu. Dann sind die Stunden in den Paketen unser geschätzter Aufwand: Sie zählen für die Planung, aber nicht als Geld, und einen Stundensatz braucht es nicht. Die Pakete behalten ihre Pauschalbeträge.",
             },
             {
               begriff: "Antragsreife",

@@ -53,9 +53,13 @@ export function alsProzent(prozent: string): string {
   return `${Number(prozent).toLocaleString("de-AT", { maximumFractionDigits: 2 })} %`;
 }
 
-/** Ob ein Paket aufgeschlüsselt ist — dann steht seine Summe gerechnet da, nicht als Betrag zum Eintippen. */
-export function istAufgeschluesselt(paket: Foerderpaket): boolean {
-  return paket.stunden.length > 0 || inCent(paket.kosten.sach) > 0;
+/**
+ * Ob ein Paket aufgeschlüsselt ist — dann steht seine Summe gerechnet da,
+ * nicht als Betrag zum Eintippen. Stunden zählen nur, wo sie Geld sind: Beim
+ * Drittleister bleibt das Paket ein Pauschalbetrag, auch mit Aufwand darin.
+ */
+export function istAufgeschluesselt(paket: Foerderpaket, stundenSindGeld: boolean): boolean {
+  return (stundenSindGeld && paket.stunden.length > 0) || inCent(paket.kosten.sach) > 0;
 }
 
 /** Die Summe der Paketkosten, in Cent gerechnet. */
@@ -253,6 +257,11 @@ export const STAENDE: { wert: Foerderantrag["stand"]; text: string }[] = [
   { wert: "abgelehnt", text: "abgelehnt" },
 ];
 
+export const ROLLEN: { wert: Foerderantrag["rolle"]; text: string }[] = [
+  { wert: "foerderwerber", text: "Förderwerber" },
+  { wert: "drittleister", text: "Drittleister" },
+];
+
 export const antragsstandText = (stand: Foerderantrag["stand"]) => STAENDE.find((s) => s.wert === stand)?.text ?? stand;
 
 /** Wie viele Punkte der Reife erfüllt sind. */
@@ -287,6 +296,7 @@ export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, 
   if (programm.link) z.push(`- **Richtlinie / Link:** ${programm.link}`);
   z.push(`- **Antrag:** Nr. ${antrag.nummer} · Stand: ${antragsstandText(antrag.stand)}`);
   z.push(`- **Förderwerber:** ${antrag.foerderwerber || "noch offen"}`);
+  if (!antrag.stunden_sind_geld) z.push("- **Unsere Rolle:** Drittleister");
   z.push(`- **Geplanter Beginn:** ${antrag.beginn ?? "noch offen"}`);
   z.push(
     `- **Laufzeit:** ${antrag.laufzeit} Monate` + (programm.max_monate ? ` (höchstens ${programm.max_monate})` : ""),
@@ -311,7 +321,8 @@ export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, 
   if (antrag.stundensatz || antrag.foerderquote || antrag.posten.length) {
     const k = antrag.kosten;
     z.push("", "## Kalkulation", "");
-    z.push(`- **Personal:** ${alsStunden(k.stunden)} × ${antrag.stundensatz ? alsEuro(antrag.stundensatz) : "noch offen"} = ${alsEuro(k.personal)}`);
+    if (antrag.stunden_sind_geld)
+      z.push(`- **Personal:** ${alsStunden(k.stunden)} × ${antrag.stundensatz ? alsEuro(antrag.stundensatz) : "noch offen"} = ${alsEuro(k.personal)}`);
     z.push(`- **Sach- und Materialkosten:** ${alsEuro(k.sach)}`);
     for (const posten of antrag.posten) z.push(`  - ${posten.bezeichnung}: ${alsEuro(posten.betrag)}`);
     if (inCent(k.pauschal) > 0) z.push(`- **Pauschalbeträge der Pakete:** ${alsEuro(k.pauschal)}`);
@@ -330,7 +341,10 @@ export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, 
     z.push(`- **Zeitraum:** ${monate}${antrag.beginn ? ` (${spanne(p.von, p.bis, antrag.beginn)})` : ""}`);
     z.push(`- **Dauer:** ${p.bis - p.von + 1} Monate`);
     if (p.stunden.length)
-      z.push(`- **Stunden:** ${p.stunden.map((s) => `${s.person} ${alsStunden(s.stunden)}`).join(", ")}`);
+      z.push(
+        `- **${antrag.stunden_sind_geld ? "Stunden" : "Geschätzter Aufwand"}:** ` +
+          p.stunden.map((s) => `${s.name} ${alsStunden(s.stunden)}`).join(", "),
+      );
     z.push(`- **Kosten:** ${inCent(p.kosten.gesamt) > 0 ? alsEuro(p.kosten.gesamt) : "noch offen"}`);
     z.push(`- **Ziel:** ${p.ziel.trim() || "noch leer"}`);
     z.push(`- **Ergebnis:** ${p.ergebnis.trim() || "noch leer"}`, "");

@@ -35,7 +35,9 @@ def rolle_und_personen(apps, schema_editor):
     for zeile in Foerderstunden.objects.all():
         kandidaten = treffer.get(_schluessel(zeile.person), set())
         if len(kandidaten) == 1:
-            zeile.nutzer_id = kandidaten.pop()
+            # Nicht `pop()`: Die Menge gehört allen Zeilen mit demselben Namen,
+            # und die zweite fände sie sonst leer.
+            (zeile.nutzer_id,) = kandidaten
             zeile.person = ""
         elif not zeile.person.strip():
             zeile.person = "N. N."

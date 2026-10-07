@@ -33,6 +33,7 @@ import {
   useFoerderungen,
   useNeuLaden,
   useOrganisationen,
+  useTeam,
   type Foerderabschnitt,
   type Foerderantrag,
   type Foerderfrage,
@@ -42,8 +43,10 @@ import {
   type Foerderprogramm,
   type Foerderstunden,
   type Ich,
+  type Teammitglied,
 } from "../basis/daten";
 import {
+  ROLLEN,
   STAENDE,
   alsProzent,
   alsStunden,
@@ -1009,6 +1012,22 @@ function Antrag({
                 </button>
               ))}
             </div>
+            <div className="fd-rollenwahl">
+              <span className="beschriftung-klein">Wir sind</span>
+              <div className="spannenwahl fd-standwahl" role="group" aria-label="Unsere Rolle im Antrag">
+                {ROLLEN.map((r) => (
+                  <button
+                    key={r.wert}
+                    type="button"
+                    aria-pressed={antrag.rolle === r.wert}
+                    disabled={!darf}
+                    onClick={() => antrag.rolle !== r.wert && speichern(pfad, { rolle: r.wert })}
+                  >
+                    {r.text}
+                  </button>
+                ))}
+              </div>
+            </div>
             <label className="fd-kopffeld">
               <span className="beschriftung-klein">Förderwerber</span>
               <Feldtext
@@ -1521,7 +1540,7 @@ function Zeitplan({
                     {darf && <i data-griff="ende" />}
                   </div>
                 </div>
-                {istAufgeschluesselt(p) ? (
+                {istAufgeschluesselt(p, antrag.stunden_sind_geld) ? (
                   <span className="zahl fd-betrag fd-paketkosten">
                     {alsEuro(p.kosten.gesamt)}
                     {p.stunden.length > 0 && <em>{alsStunden(p.kosten.stunden)}</em>}
@@ -1541,6 +1560,7 @@ function Zeitplan({
                   reihe={antrag.pakete}
                   anzahl={anzahl}
                   beginn={antrag.beginn}
+                  stundenSindGeld={antrag.stunden_sind_geld}
                   darf={darf}
                   darfLoeschen={darfLoeschen}
                 />
@@ -1559,7 +1579,9 @@ function Zeitplan({
           <span className="fd-leise zahl">
             {[
               antrag.laufzeit > 0 ? `${antrag.laufzeit} Monate` : "",
-              Number(antrag.kosten.stunden) > 0 ? alsStunden(antrag.kosten.stunden) : "",
+              Number(antrag.kosten.stunden) > 0
+                ? `${alsStunden(antrag.kosten.stunden)}${antrag.stunden_sind_geld ? "" : " Aufwand"}`
+                : "",
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -1690,6 +1712,7 @@ function Paketdetail({
   reihe,
   anzahl,
   beginn,
+  stundenSindGeld,
   darf,
   darfLoeschen,
 }: {
@@ -1698,6 +1721,7 @@ function Paketdetail({
   reihe: Foerderpaket[];
   anzahl: number;
   beginn: string | null;
+  stundenSindGeld: boolean;
   darf: boolean;
   darfLoeschen: boolean;
 }) {
@@ -1748,8 +1772,8 @@ function Paketdetail({
           speichern={(ergebnis) => speichern(pfad, { ergebnis })}
         />
       </label>
-      <Paketstunden paket={paket} darf={darf} darfLoeschen={darfLoeschen} />
-      {istAufgeschluesselt(paket) && (
+      <Paketstunden paket={paket} geschaetzt={!stundenSindGeld} darf={darf} darfLoeschen={darfLoeschen} />
+      {istAufgeschluesselt(paket, stundenSindGeld) && (
         <label className="profilfeld fd-breit">
           <span className="beschriftung-klein">Pauschalbetrag zusätzlich</span>
           <Betragsfeld
@@ -1837,24 +1861,67 @@ function Paketdetail({
   );
 }
 
+/** Der Wert in der Personenwahl für jemanden ohne Konto („N. N."). */
+const OHNE_KONTO = "ohne";
+
 /**
- * Die Stunden eines Pakets je Person — „BG 270 h, FD 140 h". Eine Zeile je
- * Person; eine neue mit Name und Stunden, Enter.
+ * Wen man in einem Paket wählen kann: die aktiven Nutzer. Wer stillgelegt
+ * ist, bleibt in der Zeile stehen, in der er schon steht — sonst zeigte die
+ * Auswahl dort still den Ersten der Liste.
  */
-function Paketstunden({ paket, darf, darfLoeschen }: { paket: Foerderpaket; darf: boolean; darfLoeschen: boolean }) {
+function Personenwahl({ team, behalten, name }: { team: Teammitglied[] | undefined; behalten: number | null; name: string }) {
+  const liste = (team ?? []).filter((n) => n.is_active || n.id === behalten);
+  return (
+    <>
+      {liste.map((n) => (
+        <option key={n.id} value={n.id}>
+          {n.initialen} · {n.name}
+        </option>
+      ))}
+      {/* Solange die Liste noch nicht da ist, wenigstens der eigene Name. */}
+      {behalten !== null && !liste.some((n) => n.id === behalten) && <option value={behalten}>{name}</option>}
+      <option value={OHNE_KONTO}>ohne Konto …</option>
+    </>
+  );
+}
+
+/**
+ * Die Stunden eines Pakets je Person — „BG 270 h, FD 140 h". Die Person ist
+ * ein Nutzer, damit die Auslastung ihre Stunden aus allen Anträgen
+ * zusammenzählt; wer noch kein Konto hat, steht als Name da („N. N.").
+ * Beim Drittleister ist es unser geschätzter Aufwand und kein Geld.
+ */
+function Paketstunden({
+  paket,
+  geschaetzt,
+  darf,
+  darfLoeschen,
+}: {
+  paket: Foerderpaket;
+  geschaetzt: boolean;
+  darf: boolean;
+  darfLoeschen: boolean;
+}) {
   const speichern = useAendern();
   const neuLaden = useNeuLaden();
+  const team = useTeam();
+  // Eine Nutzernummer als Text, OHNE_KONTO oder leer (noch niemand gewählt).
+  const [wer, setWer] = useState("");
   const [person, setPerson] = useState("");
   const [stunden, setStunden] = useState("");
   const [entfernen, setEntfernen] = useState<Foerderstunden | null>(null);
+  const ohneKonto = wer === OHNE_KONTO;
+  const vollstaendig = wer !== "" && (!ohneKonto || person.trim() !== "") && stunden.trim() !== "";
 
   async function dazu() {
     const zahl = betragAusEingabe(stunden);
-    if (!person.trim() || !zahl) {
-      melden("fehler", "Name und Stunden, bitte.");
+    if (!vollstaendig || !zahl) {
+      melden("fehler", "Person und Stunden, bitte.");
       return;
     }
-    await speichern("/foerderstunden/", { paket: paket.id, person: person.trim(), stunden: zahl }, "POST");
+    const wen = ohneKonto ? { person: person.trim() } : { nutzer: Number(wer) };
+    await speichern("/foerderstunden/", { paket: paket.id, ...wen, stunden: zahl }, "POST");
+    setWer("");
     setPerson("");
     setStunden("");
   }
@@ -1862,20 +1929,38 @@ function Paketstunden({ paket, darf, darfLoeschen }: { paket: Foerderpaket; darf
   if (!darf && paket.stunden.length === 0) return null;
   return (
     <div className="profilfeld fd-breit fd-stunden">
-      <span className="beschriftung-klein">Stunden</span>
+      <span className="beschriftung-klein">{geschaetzt ? "Geschätzter Aufwand" : "Stunden"}</span>
       {paket.stunden.map((s) => (
         <div key={s.id} className="fd-stundenzeile">
-          <Feldtext wert={s.person} aendern={darf} speichern={(p) => speichern(`/foerderstunden/${s.id}/`, { person: p })} />
+          <div className="fd-person">
+            <select
+              className="feld"
+              value={s.nutzer ?? OHNE_KONTO}
+              disabled={!darf}
+              aria-label={`Person für ${s.name}`}
+              onChange={(e) =>
+                speichern(
+                  `/foerderstunden/${s.id}/`,
+                  e.target.value === OHNE_KONTO ? { person: "N. N." } : { nutzer: Number(e.target.value) },
+                )
+              }
+            >
+              <Personenwahl team={team.data} behalten={s.nutzer} name={s.name} />
+            </select>
+            {s.nutzer === null && (
+              <Feldtext wert={s.person} aendern={darf} speichern={(p) => speichern(`/foerderstunden/${s.id}/`, { person: p })} />
+            )}
+          </div>
           <Betragsfeld
             betrag={s.stunden}
             aendern={darf}
             leer="—"
             anzeigen={alsStunden}
-            beschriftung={`Stunden ${s.person}`}
+            beschriftung={`Stunden ${s.name}`}
             speichern={(h) => speichern(`/foerderstunden/${s.id}/`, { stunden: h ?? "0" })}
           />
           {darfLoeschen && (
-            <button type="button" className="knopf-still fd-klein" aria-label={`${s.person} entfernen`} onClick={() => setEntfernen(s)}>
+            <button type="button" className="knopf-still fd-klein" aria-label={`${s.name} entfernen`} onClick={() => setEntfernen(s)}>
               <Zeichen name="korb" />
             </button>
           )}
@@ -1889,7 +1974,22 @@ function Paketstunden({ paket, darf, darfLoeschen }: { paket: Foerderpaket; darf
             dazu();
           }}
         >
-          <input className="feld" value={person} placeholder="Person, z. B. BG" aria-label="Person" onChange={(e) => setPerson(e.target.value)} />
+          <div className="fd-person">
+            <select className="feld" value={wer} aria-label="Person" onChange={(e) => setWer(e.target.value)}>
+              <option value="">Person wählen</option>
+              <Personenwahl team={team.data} behalten={null} name="" />
+            </select>
+            {ohneKonto && (
+              <input
+                className="feld"
+                value={person}
+                placeholder="z. B. N. N."
+                aria-label="Name ohne Konto"
+                autoFocus
+                onChange={(e) => setPerson(e.target.value)}
+              />
+            )}
+          </div>
           <input
             className="feld zahl fd-betragfeld"
             inputMode="decimal"
@@ -1898,7 +1998,7 @@ function Paketstunden({ paket, darf, darfLoeschen }: { paket: Foerderpaket; darf
             aria-label="Stunden"
             onChange={(e) => setStunden(e.target.value)}
           />
-          <button type="submit" className="knopf-still" disabled={!person.trim() || !stunden.trim()}>
+          <button type="submit" className="knopf-still" disabled={!vollstaendig}>
             <Zeichen name="plus" />
             Stunden
           </button>
@@ -1906,7 +2006,7 @@ function Paketstunden({ paket, darf, darfLoeschen }: { paket: Foerderpaket; darf
       )}
       {entfernen && (
         <Loeschdialog
-          name={`${entfernen.person} · ${alsStunden(entfernen.stunden)}`}
+          name={`${entfernen.name} · ${alsStunden(entfernen.stunden)}`}
           was="Die Stunden dieser Person im Paket"
           milder={{ text: "Auf 0 Stunden setzen", tun: async () => {
             setEntfernen(null);
@@ -1951,8 +2051,12 @@ function Kalkulation({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; da
     setBetrag("");
   }
 
+  // Beim Drittleister sind die Stunden geschätzter Aufwand: kein Satz, keine Personalzeile.
+  const geld = antrag.stunden_sind_geld;
   const zeilen: [string, string, string | null][] = [
-    ["Personal", `${alsStunden(k.stunden)} × ${antrag.stundensatz ? alsEuro(antrag.stundensatz) : "—"}`, k.personal],
+    ...(geld
+      ? [["Personal", `${alsStunden(k.stunden)} × ${antrag.stundensatz ? alsEuro(antrag.stundensatz) : "—"}`, k.personal] as [string, string, string]]
+      : []),
     ["Sach- und Materialkosten", `${antrag.posten.length} Posten`, k.sach],
     ...(Number(k.pauschal) > 0 ? [["Pauschalbeträge der Pakete", "", k.pauschal] as [string, string, string]] : []),
     ["Direkte Kosten", "", null],
@@ -1967,16 +2071,18 @@ function Kalkulation({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; da
     <section className="karte fd-abschnitt" id="fd-kalkulation">
       <h2>Kalkulation</h2>
       <div className="fd-kalkwerte">
-        <label className="profilfeld">
-          <span className="beschriftung-klein">Stundensatz</span>
-          <Betragsfeld
-            betrag={antrag.stundensatz}
-            aendern={darf}
-            leer="—"
-            beschriftung="Stundensatz in Euro"
-            speichern={(stundensatz) => speichern(pfad, { stundensatz })}
-          />
-        </label>
+        {geld && (
+          <label className="profilfeld">
+            <span className="beschriftung-klein">Stundensatz</span>
+            <Betragsfeld
+              betrag={antrag.stundensatz}
+              aendern={darf}
+              leer="—"
+              beschriftung="Stundensatz in Euro"
+              speichern={(stundensatz) => speichern(pfad, { stundensatz })}
+            />
+          </label>
+        )}
         <label className="profilfeld">
           <span className="beschriftung-klein">Gemeinkosten</span>
           <Betragsfeld

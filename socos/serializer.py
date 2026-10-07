@@ -1009,6 +1009,9 @@ class FoerderantragSerializer(serializers.ModelSerializer):
     laufzeit = serializers.SerializerMethodField()
     reife = serializers.SerializerMethodField()
     zeichen = serializers.SerializerMethodField()
+    # Ob die Stunden Geld sind. Die Regel steht in `services/foerderung.py`;
+    # die Seite liest sie, statt die Rolle selbst zu deuten.
+    stunden_sind_geld = serializers.SerializerMethodField()
 
     class Meta:
         model = Foerderantrag
@@ -1016,7 +1019,8 @@ class FoerderantragSerializer(serializers.ModelSerializer):
             "id", "programm", "nummer", "titel", "stand", "foerderwerber", "rolle", "beginn", "zeitachse",
             "beschreibung", "datenbedarf",
             "stundensatz", "gemeinkosten", "foerderquote",
-            "abschnitte", "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "geaendert_am",
+            "abschnitte", "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "stunden_sind_geld",
+            "geaendert_am",
         ]
         read_only_fields = ["geaendert_am"]
 
@@ -1033,6 +1037,9 @@ class FoerderantragSerializer(serializers.ModelSerializer):
 
     def get_kosten(self, antrag):
         return _geld(foerderung.kosten(antrag))
+
+    def get_stunden_sind_geld(self, antrag):
+        return foerderung.stunden_kosten_geld(antrag)
 
     def validate(self, daten):
         for feld in ("stundensatz", "gemeinkosten", "foerderquote"):
