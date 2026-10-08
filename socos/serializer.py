@@ -26,7 +26,9 @@ from socos.models import (
     Foerderfrage,
     Foerderpaket,
     Foerderposten,
+    Foerderabschnitt,
     Foerderprogramm,
+    Foerderkapazitaet,
     Foerderstunden,
     Kontakt,
     Kontostand,
@@ -911,14 +913,56 @@ def _geld(werte: dict) -> dict:
 
 
 class FoerderstundenSerializer(serializers.ModelSerializer):
+    # Initialen des Nutzers oder der Name — damit die Seite nicht selbst
+    # entscheidet, welches von beiden gilt.
+    name = serializers.CharField(read_only=True)
+
     class Meta:
         model = Foerderstunden
-        fields = ["id", "paket", "person", "stunden"]
+        fields = ["id", "paket", "nutzer", "person", "name", "stunden"]
+        # Sonst prüfte DRF den Namen als Pflichtfeld, bevor `validate` sagen
+        # kann, dass ein Nutzer genügt.
+        extra_kwargs = {"person": {"required": False}}
 
     def validate_stunden(self, wert):
         if wert < 0:
             raise serializers.ValidationError("Stunden sind nicht negativ.")
         return wert
+
+    def validate(self, daten):
+        nutzer = daten.get("nutzer", self.instance.nutzer if self.instance else None)
+        person = daten.get("person", self.instance.person if self.instance else "").strip()
+        # Wer einen Nutzer wählt, löscht damit den Namen — und umgekehrt. Sonst
+        # müsste die Seite beim Umstellen immer beide Felder mitschicken.
+        if "nutzer" in daten and nutzer is not None:
+            person = ""
+        elif "person" in daten and person:
+            nutzer = None
+        if (nutzer is None) == (not person):
+            raise serializers.ValidationError({"person": "Entweder ein Nutzer oder ein Name."})
+        daten["nutzer"], daten["person"] = nutzer, person
+        return daten
+
+
+class FoerderkapazitaetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Foerderkapazitaet
+        fields = ["id", "nutzer", "stunden_je_monat"]
+
+    def validate_stunden_je_monat(self, wert):
+        if wert < 0:
+            raise serializers.ValidationError("Stunden sind nicht negativ.")
+        return wert
+
+    def validate_nutzer(self, nutzer):
+        # Hier und nicht erst in der Datenbank: Deren Einschränkung käme als
+        # 500 zurück, nicht als Satz.
+        andere = Foerderkapazitaet.objects.filter(nutzer=nutzer)
+        if self.instance is not None:
+            andere = andere.exclude(pk=self.instance.pk)
+        if andere.exists():
+            raise serializers.ValidationError(f"Für {nutzer.name} steht schon eine Kapazität.")
+        return nutzer
 
 
 class FoerderpostenSerializer(serializers.ModelSerializer):
@@ -936,6 +980,12 @@ class FoerderpostenSerializer(serializers.ModelSerializer):
         return daten
 
 
+class FoerderabschnittSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Foerderabschnitt
+        fields = ["id", "antrag", "titel", "text", "reihenfolge"]
+
+
 class FoerderpaketSerializer(serializers.ModelSerializer):
     stunden = serializers.SerializerMethodField()
     kosten = serializers.SerializerMethodField()
@@ -945,7 +995,7 @@ class FoerderpaketSerializer(serializers.ModelSerializer):
         fields = ["id", "antrag", "titel", "ziel", "ergebnis", "von", "bis", "betrag", "reihenfolge", "stunden", "kosten"]
 
     def get_stunden(self, paket):
-        stunden = sorted(foerderung.lebende_stunden(paket), key=lambda s: (s.person, s.id))
+        stunden = sorted(foerderung.lebende_stunden(paket), key=lambda s: (s.name, s.id))
         return FoerderstundenSerializer(stunden, many=True).data
 
     def get_kosten(self, paket):
@@ -973,6 +1023,7 @@ class FoerderantragSerializer(serializers.ModelSerializer):
     damit die Zahl nur in `services/foerderung.py` steht.
     """
 
+    abschnitte = serializers.SerializerMethodField()
     pakete = serializers.SerializerMethodField()
     posten = serializers.SerializerMethodField()
     kosten = serializers.SerializerMethodField()
@@ -980,16 +1031,23 @@ class FoerderantragSerializer(serializers.ModelSerializer):
     laufzeit = serializers.SerializerMethodField()
     reife = serializers.SerializerMethodField()
     zeichen = serializers.SerializerMethodField()
+    # Ob die Stunden Geld sind. Die Regel steht in `services/foerderung.py`;
+    # die Seite liest sie, statt die Rolle selbst zu deuten.
+    stunden_sind_geld = serializers.SerializerMethodField()
 
     class Meta:
         model = Foerderantrag
         fields = [
-            "id", "programm", "nummer", "titel", "stand", "foerderwerber", "beginn", "zeitachse",
-            "beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb", "datenbedarf",
+            "id", "programm", "nummer", "titel", "stand", "foerderwerber", "rolle", "beginn", "zeitachse",
+            "beschreibung", "datenbedarf",
             "stundensatz", "gemeinkosten", "foerderquote",
-            "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "geaendert_am",
+            "abschnitte", "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "stunden_sind_geld",
+            "geaendert_am",
         ]
         read_only_fields = ["geaendert_am"]
+
+    def get_abschnitte(self, antrag):
+        return FoerderabschnittSerializer(foerderung.lebende_abschnitte(antrag), many=True).data
 
     def get_pakete(self, antrag):
         pakete = sorted(foerderung.lebende_pakete(antrag), key=lambda p: (p.reihenfolge, p.id))
@@ -1001,6 +1059,9 @@ class FoerderantragSerializer(serializers.ModelSerializer):
 
     def get_kosten(self, antrag):
         return _geld(foerderung.kosten(antrag))
+
+    def get_stunden_sind_geld(self, antrag):
+        return foerderung.stunden_kosten_geld(antrag)
 
     def validate(self, daten):
         for feld in ("stundensatz", "gemeinkosten", "foerderquote"):

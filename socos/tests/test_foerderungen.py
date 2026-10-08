@@ -15,13 +15,16 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 
 from socos.models import (
+    Foerderabschnitt,
     Foerderantrag,
     Foerderfrage,
     Foerdergeber,
+    Foerderkapazitaet,
     Foerderpaket,
     Foerderposten,
     Foerderprogramm,
     Foerderstunden,
+    Nutzer,
     Organisation,
 )
 from socos.services import foerderung
@@ -140,6 +143,47 @@ class TestKalkulation:
         assert reife["pakete"]["erfuellt"] and reife["summe"]["erfuellt"]
 
 
+class TestDrittleister:
+    """
+    Beim Drittleister sind die Stunden unser geschätzter Aufwand: Sie zählen
+    nie als Geld und lassen die Reife in Ruhe — der Antrag rechnet mit den
+    Paketbeträgen dessen, der fördern lässt.
+    """
+
+    def _drittleister(self, antrag):
+        antrag.rolle = Foerderantrag.Rolle.DRITTLEISTER
+        antrag.save()
+        return antrag
+
+    def test_stunden_sind_kein_geld_auch_mit_satz(self, antrag):
+        self._drittleister(antrag)
+        antrag.stundensatz = Decimal("50")
+        antrag.save()
+        paket = _paket(antrag, "Bau", 1, 2, "1000")
+        Foerderstunden.objects.create(paket=paket, person="BG", stunden=Decimal("10"))
+        antrag.refresh_from_db()
+        kosten = foerderung.kosten(antrag)
+        assert (kosten["stunden"], kosten["personal"], kosten["zuschuss"]) == (
+            Decimal("10.00"), Decimal("0.00"), Decimal("1000.00")
+        )
+        assert foerderung.paketkosten(paket, antrag)["gesamt"] == Decimal("1000.00")
+
+    def test_reife_fragt_nicht_nach_dem_satz(self, antrag):
+        self._drittleister(antrag)
+        paket = _paket(antrag, "Bau", 1, 2, "1000")
+        Foerderstunden.objects.create(paket=paket, person="BG", stunden=Decimal("10"))
+        assert _reife(antrag)["pakete"]["erfuellt"]
+
+    def test_stunden_ersetzen_keinen_betrag(self, antrag):
+        """Ein Paket mit Aufwand, aber ohne Betrag, fehlt im Antrag des anderen trotzdem."""
+        self._drittleister(antrag)
+        paket = _paket(antrag, "Bau", 1, 2, None)
+        Foerderstunden.objects.create(paket=paket, person="BG", stunden=Decimal("10"))
+        reife = _reife(antrag)
+        assert not reife["pakete"]["erfuellt"]
+        assert reife["pakete"]["hinweis"] == "1 Paket ohne Betrag."
+
+
 class TestReife:
     def test_ein_leerer_antrag_hat_nur_den_titel(self, antrag):
         reife = _reife(antrag)
@@ -147,12 +191,28 @@ class TestReife:
         assert reife["pakete"]["hinweis"] == "Noch kein Arbeitspaket."
 
     def test_ein_vollstaendiger_antrag(self, antrag):
-        for feld in ("beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb"):
-            setattr(antrag, feld, "Text")
+        antrag.beschreibung = "Text"
         antrag.save()
+        Foerderabschnitt.objects.create(antrag=antrag, titel="Kostenprognose Regelbetrieb", text="Text")
         _paket(antrag, "Bau", 1, 18, "49000")
 
         assert all(p["erfuellt"] for p in _reife(antrag).values())
+
+    def test_jeder_abschnitt_ist_ein_punkt(self, antrag):
+        """Ein Antrag ohne Abschnitte (KWF) fragt nach keinem; ein leerer ist offen."""
+        assert not [k for k in _reife(antrag) if k.startswith("abschnitt-")]
+
+        leer = Foerderabschnitt.objects.create(antrag=antrag, titel="Mehrwert", reihenfolge=1)
+        voll = Foerderabschnitt.objects.create(antrag=antrag, titel="Nutzen", text="Text", reihenfolge=0)
+        weg = Foerderabschnitt.objects.create(antrag=antrag, titel="Alt", reihenfolge=2)
+        weg.delete()
+
+        reife = _reife(antrag)
+        assert [k for k in reife if k.startswith("abschnitt-")] == [f"abschnitt-{voll.pk}", f"abschnitt-{leer.pk}"]
+        assert reife[f"abschnitt-{voll.pk}"]["erfuellt"]
+        assert reife[f"abschnitt-{leer.pk}"] == {
+            "schluessel": f"abschnitt-{leer.pk}", "text": "Mehrwert", "erfuellt": False, "hinweis": "Noch leer.",
+        }
 
     def test_ueber_der_grenze_ist_nicht_fertig(self, antrag):
         _paket(antrag, "Bau", 1, 18, "50000.01")
@@ -206,7 +266,7 @@ class TestSchnittstelle:
         assert geholt["pakete"][0]["betrag"] == "1234.50"
         assert geholt["laufzeit"] == 3
         assert geholt["zeichen"] == {"titel": 200, "beschreibung": 500}
-        assert len(geholt["reife"]) == 9
+        assert len(geholt["reife"]) == 5
 
     def test_leser_schreibt_nicht(self, client, leser, antrag):
         client.force_login(leser)
@@ -232,10 +292,28 @@ class TestSchnittstelle:
 
     def test_antrag_entfernen_nimmt_die_pakete_mit(self, client, admin_nutzer, antrag):
         paket = _paket(antrag, "Bau", 1, 2, "10")
+        abschnitt = Foerderabschnitt.objects.create(antrag=antrag, titel="Nutzen")
         client.force_login(admin_nutzer)
         assert client.delete(f"/api/foerderantraege/{antrag.pk}/").status_code == 204
         assert not Foerderpaket.objects.filter(pk=paket.pk).exists()
         assert Foerderpaket.alle_objekte.filter(pk=paket.pk).exists()  # weich
+        assert not Foerderabschnitt.objects.filter(pk=abschnitt.pk).exists()
+
+    def test_abschnitte_ueber_die_schnittstelle(self, client, bearbeiter, antrag):
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/foerderabschnitte/", {"antrag": antrag.pk, "titel": "Nutzen", "reihenfolge": 0},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201
+        pfad = f"/api/foerderabschnitte/{antwort.json()['id']}/"
+        assert client.patch(pfad, {"text": "Spart Zeit."}, content_type="application/json").status_code == 200
+        # Wie alles im Modul: anlegen ja, entfernen nur der Admin.
+        assert client.delete(pfad).status_code == 403
+
+        geholt = client.get(f"/api/foerderantraege/{antrag.pk}/").json()
+        assert [(a["titel"], a["text"]) for a in geholt["abschnitte"]] == [("Nutzen", "Spart Zeit.")]
+        assert geholt["reife"][2]["text"] == "Nutzen" and geholt["reife"][2]["erfuellt"]
 
     def test_zeitachse_einstellen(self, client, bearbeiter, antrag):
         client.force_login(bearbeiter)
@@ -267,6 +345,40 @@ class TestSchnittstelle:
         assert geholt["pakete"][0]["stunden"][0]["person"] == "BG"
         assert geholt["pakete"][0]["kosten"]["gesamt"] == "600.00"
         assert geholt["posten"][0]["bezeichnung"] == "Teile"
+
+    def test_stunden_mit_nutzer_oder_name(self, client, bearbeiter, antrag):
+        paket = _paket(antrag, "Bau", 1, 2, None)
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/foerderstunden/", {"paket": paket.pk, "nutzer": bearbeiter.pk, "stunden": "10"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201
+        assert (antwort.json()["person"], antwort.json()["name"]) == ("", bearbeiter.initialen)
+        pfad = f"/api/foerderstunden/{antwort.json()['id']}/"
+
+        # Umstellen auf einen Namen nimmt den Nutzer weg — und zurück.
+        umgestellt = client.patch(pfad, {"person": "N. N."}, content_type="application/json").json()
+        assert (umgestellt["nutzer"], umgestellt["name"]) == (None, "N. N.")
+        zurueck = client.patch(pfad, {"nutzer": bearbeiter.pk}, content_type="application/json").json()
+        assert (zurueck["nutzer"], zurueck["person"]) == (bearbeiter.pk, "")
+
+        assert client.post(
+            "/api/foerderstunden/", {"paket": paket.pk, "stunden": "10"}, content_type="application/json"
+        ).status_code == 400
+        assert client.post(
+            "/api/foerderstunden/", {"paket": paket.pk, "person": "  ", "stunden": "10"},
+            content_type="application/json",
+        ).status_code == 400
+
+    def test_rolle_einstellen(self, client, bearbeiter, antrag):
+        client.force_login(bearbeiter)
+        pfad = f"/api/foerderantraege/{antrag.pk}/"
+        geholt = client.get(pfad).json()
+        assert (geholt["rolle"], geholt["stunden_sind_geld"]) == ("foerderwerber", True)
+        geholt = client.patch(pfad, {"rolle": "drittleister"}, content_type="application/json").json()
+        assert (geholt["rolle"], geholt["stunden_sind_geld"]) == ("drittleister", False)
+        assert client.patch(pfad, {"rolle": "partner"}, content_type="application/json").status_code == 400
 
     def test_posten_nicht_an_fremdes_paket(self, client, bearbeiter, programm, antrag):
         fremd = _paket(Foerderantrag.objects.create(programm=programm, titel="Anderer"), "X", 1, 1, None)
@@ -305,6 +417,150 @@ class TestSchnittstelle:
         assert client.delete(f"/api/foerdergeber/{programm.geber_id}/").status_code == 409
 
 
+class TestAuslastung:
+    """
+    Die Förderauslastung: Stunden gleichmäßig auf die Monate eines Pakets,
+    auf die Viertelstunde, der Rest im letzten Monat — und die Summe bleibt
+    genau die eingetragene.
+    """
+
+    def test_verteilen_geht_auf(self):
+        assert foerderung.verteilen(Decimal("100"), 3) == [Decimal("33.25"), Decimal("33.25"), Decimal("33.50")]
+        assert foerderung.verteilen(Decimal("10"), 1) == [Decimal("10")]
+        krumm = foerderung.verteilen(Decimal("10.10"), 4)
+        assert krumm == [Decimal("2.50"), Decimal("2.50"), Decimal("2.50"), Decimal("2.60")]
+        assert sum(krumm) == Decimal("10.10")
+        with pytest.raises(ValueError):
+            foerderung.verteilen(Decimal("1"), 0)
+
+    def test_kalendermonat_ueber_den_jahreswechsel(self):
+        from datetime import date
+
+        assert foerderung.kalendermonat(date(2027, 11, 15), 1) == "2027-11"
+        assert foerderung.kalendermonat(date(2027, 11, 15), 3) == "2028-01"
+
+    @pytest.fixture
+    def lage(self, programm):
+        from datetime import date
+
+        bg = Nutzer.objects.create_user(email="bg@example.invalid", name="Bernd Gutschi")
+        frei = Nutzer.objects.create_user(email="aw@example.invalid", name="Anna Weiß")
+        Foerderkapazitaet.objects.create(nutzer=bg, stunden_je_monat=Decimal("60"))
+        Foerderkapazitaet.objects.create(nutzer=frei, stunden_je_monat=Decimal("40"))
+
+        a = Foerderantrag.objects.create(programm=programm, titel="A", stand="eingereicht", beginn=date(2027, 1, 10))
+        ap1 = _paket(a, "AP1", 1, 3, None)
+        Foerderstunden.objects.create(paket=ap1, nutzer=bg, stunden=Decimal("100"))
+        Foerderstunden.objects.create(paket=ap1, person="N. N.", stunden=Decimal("30"))
+        Foerderstunden.objects.create(paket=ap1, nutzer=bg, stunden=Decimal("999")).delete()
+        ap2 = _paket(a, "AP2", 3, 3, None)
+        Foerderstunden.objects.create(paket=ap2, nutzer=bg, stunden=Decimal("10"))
+
+        b = Foerderantrag.objects.create(
+            programm=programm, titel="B", stand="bewilligt", beginn=date(2027, 2, 1),
+            rolle=Foerderantrag.Rolle.DRITTLEISTER,
+        )
+        Foerderstunden.objects.create(paket=_paket(b, "Lieferung", 1, 2, "5000"), nutzer=bg, stunden=Decimal("20"))
+
+        c = Foerderantrag.objects.create(programm=programm, titel="C", stand="eingereicht")
+        Foerderstunden.objects.create(paket=_paket(c, "Irgendwann", 1, 5, None), nutzer=bg, stunden=Decimal("50"))
+
+        d = Foerderantrag.objects.create(programm=programm, titel="D", stand="entwurf", beginn=date(2026, 1, 1))
+        Foerderstunden.objects.create(paket=_paket(d, "Entwurf", 1, 1, None), nutzer=bg, stunden=Decimal("7"))
+        return {"bg": bg, "frei": frei, "a": a, "b": b, "c": c}
+
+    def test_monate_summen_und_personen(self, lage):
+        from datetime import date
+
+        ergebnis = foerderung.auslastung(["eingereicht", "bewilligt"], heute=date(2027, 2, 14))
+
+        assert ergebnis["monate"] == ["2027-01", "2027-02", "2027-03"]
+        assert ergebnis["heute"] == "2027-02"
+        assert [a["titel"] for a in ergebnis["antraege"]] == ["A", "B"]
+        assert ergebnis["je_monat"] == {
+            "2027-01": Decimal("43.25"), "2027-02": Decimal("53.25"), "2027-03": Decimal("63.50"),
+        }
+        # Nichts geht verloren: 100 + 30 + 10 + 20, der gelöschte Eintrag nicht.
+        assert sum(ergebnis["je_monat"].values()) == Decimal("160")
+        assert ergebnis["kapazitaet"] == Decimal("100")
+
+        a = ergebnis["antraege"][0]
+        assert [(p["titel"], p["von"], p["bis"], p["stunden"]) for p in a["pakete"]] == [
+            ("AP1", "2027-01", "2027-03", Decimal("130")),
+            ("AP2", "2027-03", "2027-03", Decimal("10")),
+        ]
+        assert ergebnis["antraege"][1]["je_monat"] == {"2027-02": Decimal("10"), "2027-03": Decimal("10")}
+
+        personen = {p["schluessel"]: p for p in ergebnis["personen"]}
+        assert [p["name"] for p in ergebnis["personen"]] == ["AW", "BG", "N. N."]
+        bg = personen[f"n{lage['bg'].pk}"]
+        assert bg["stunden"] == Decimal("130")
+        assert bg["je_monat"]["2027-03"] == {"stunden": Decimal("53.50"), "anteil": Decimal("89")}
+        assert personen["p:N. N."]["je_monat"]["2027-01"] == {"stunden": Decimal("10"), "anteil": None}
+        # Mit Kapazität, aber ohne Stunden: steht da, mit nichts.
+        frei = personen[f"n{lage['frei'].pk}"]
+        assert (frei["stunden"], frei["je_monat"], frei["kapazitaet"]) == (Decimal("0.00"), {}, Decimal("40.00"))
+
+    def test_achse_reicht_bis_heute(self, lage):
+        """Verschiebt man den ersten Antrag, bleibt die Achse am laufenden Monat stehen."""
+        from datetime import date
+
+        monate = foerderung.auslastung(["eingereicht", "bewilligt"], heute=date(2026, 11, 3))["monate"]
+        assert (monate[0], monate[-1], len(monate)) == ("2026-11", "2027-03", 5)
+        monate = foerderung.auslastung(["eingereicht", "bewilligt"], heute=date(2027, 6, 1))["monate"]
+        assert (monate[0], monate[-1]) == ("2027-01", "2027-06")
+
+    def test_ohne_beginn_zaehlt_nicht(self, lage):
+        ergebnis = foerderung.auslastung(["eingereicht"])
+        assert [(a["titel"], a["laufzeit"], a["stunden"]) for a in ergebnis["ohne_termin"]] == [("C", 5, Decimal("50"))]
+        assert [a["titel"] for a in ergebnis["antraege"]] == ["A"]
+        assert sum(ergebnis["je_monat"].values()) == Decimal("140")
+
+    def test_feinste_ebene_summiert_sich_zu_allem(self, lage):
+        ergebnis = foerderung.auslastung(["eingereicht", "bewilligt"])
+        zeilen = ergebnis["verteilung"]
+        assert sum(z["stunden"] for z in zeilen) == sum(ergebnis["je_monat"].values())
+        assert {z["paket"] for z in zeilen if z["antrag"] == lage["b"].id} == {lage["b"].pakete.get().id}
+
+    def test_nichts_gewaehlt(self, lage):
+        ergebnis = foerderung.auslastung([])
+        assert (ergebnis["monate"], ergebnis["antraege"], ergebnis["je_monat"]) == ([], [], {})
+
+    def test_schnittstelle(self, client, leser, lage):
+        client.force_login(leser)
+        antwort = client.get("/api/foerderauslastung/?stand=eingereicht,bewilligt")
+        assert antwort.status_code == 200
+        daten = antwort.json()
+        assert daten["je_monat"]["2027-03"] == "63.50"  # Zeichenkette, wie alles Gezählte
+        assert daten["staende"] == ["eingereicht", "bewilligt"]
+        # Ohne Angabe alle Stände — auch der Entwurf von 2026.
+        assert client.get("/api/foerderauslastung/").json()["monate"][0] == "2026-01"
+        assert "heute" in daten
+        assert client.get("/api/foerderauslastung/?stand=quatsch").status_code == 400
+        # Leer heißt nichts gewählt — nicht alles.
+        assert client.get("/api/foerderauslastung/?stand=").json()["antraege"] == []
+
+    def test_kapazitaet_ueber_die_schnittstelle(self, client, bearbeiter, admin_nutzer):
+        client.force_login(bearbeiter)
+        antwort = client.post(
+            "/api/foerderkapazitaeten/", {"nutzer": bearbeiter.pk, "stunden_je_monat": "60"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 201
+        pfad = f"/api/foerderkapazitaeten/{antwort.json()['id']}/"
+        assert client.patch(pfad, {"stunden_je_monat": "72.5"}, content_type="application/json").status_code == 200
+        assert client.post(
+            "/api/foerderkapazitaeten/", {"nutzer": bearbeiter.pk, "stunden_je_monat": "10"},
+            content_type="application/json",
+        ).status_code == 400
+        assert client.patch(pfad, {"stunden_je_monat": "-1"}, content_type="application/json").status_code == 400
+        # Leeren ist Entfernen, und das darf nur der Admin.
+        assert client.delete(pfad).status_code == 403
+        client.force_login(admin_nutzer)
+        assert client.delete(pfad).status_code == 204
+        assert not Foerderkapazitaet.objects.exists()
+
+
 class TestEinspielen:
     DATEN = {
         "name": "Pflegeinnovation NÖ",
@@ -319,7 +575,7 @@ class TestEinspielen:
         "antraege": [
             {
                 "titel": "Befüllsystem",
-                "nutzen": ["Zeile eins", "Zeile zwei"],
+                "abschnitte": [{"titel": "Nutzen", "text": ["Zeile eins", "Zeile zwei"]}, {"titel": "Mehrwert"}],
                 "pakete": [{"titel": "Bau", "von": 1, "bis": 6, "betrag": "1000"}, {"titel": "Test", "von": 6}],
             }
         ],
@@ -337,7 +593,7 @@ class TestEinspielen:
         assert programm.geber.name == "Land Niederösterreich"  # ohne Angabe
         assert programm.steckbrief == "Höhe: 50.000 €\nLaufzeit: 2 Jahre"
         antrag = Foerderantrag.objects.get()
-        assert antrag.nutzen == "Zeile eins\nZeile zwei"
+        assert [(a.titel, a.text) for a in antrag.abschnitte.all()] == [("Nutzen", "Zeile eins\nZeile zwei"), ("Mehrwert", "")]
         assert [(p.titel, p.von, p.bis) for p in Foerderpaket.objects.all()] == [("Bau", 1, 6), ("Test", 6, 6)]
         # Ohne Haken in der Datei: beantwortet, wenn eine Antwort dasteht.
         assert [f.beantwortet for f in Foerderfrage.objects.all()] == [False, True, False]
@@ -368,6 +624,24 @@ class TestEinspielen:
         assert (ffg.kurz, ffg.link) == ("FFG", "https://www.ffg.at")
         assert Foerdergeber.objects.count() == 2
 
+    def test_weist_alte_textfelder_ab(self, db, tmp_path):
+        """Bis 2026-10-07 waren die Texte Felder — eine alte Datei verlöre sie sonst still."""
+        daten = json.loads(json.dumps(self.DATEN))
+        daten["antraege"][0]["regelbetrieb"] = "Kostet wenig."
+        with pytest.raises(CommandError, match="regelbetrieb"):
+            call_command("foerderungen_einspielen", datei=self._datei(tmp_path, daten), verbosity=0)
+        assert not Foerderprogramm.objects.exists()
+
+    def test_rolle_aus_der_datei(self, db, tmp_path):
+        daten = json.loads(json.dumps(self.DATEN))
+        daten["antraege"].append({"titel": "Pilottest", "rolle": "drittleister"})
+        call_command("foerderungen_einspielen", datei=self._datei(tmp_path, daten), verbosity=0)
+        assert [a.rolle for a in Foerderantrag.objects.order_by("nummer")] == ["foerderwerber", "drittleister"]
+
+        daten["antraege"][1]["rolle"] = "partner"
+        with pytest.raises(CommandError, match="Rolle"):
+            call_command("foerderungen_einspielen", datei=self._datei(tmp_path, daten), ersetzen=True, verbosity=0)
+
     def test_weist_unsinnige_monate_ab(self, db, tmp_path):
         daten = json.loads(json.dumps(self.DATEN))
         daten["antraege"][0]["pakete"][0]["bis"] = 0
@@ -387,33 +661,91 @@ def medien(tmp_path, settings):
 def test_foerderungen_wandern_mit_der_sicherung(tmp_path, medien):
     """
     Der Fördergeber zeigt auf eine Organisation. Er muss deshalb **vor** ihr
-    geleert werden, sonst hält PROTECT beim Einspielen dagegen.
+    geleert werden, sonst hält PROTECT beim Einspielen dagegen. Stunden und
+    Kapazität zeigen auf den Nutzer und stehen deshalb vor ihm.
     """
     haus = Organisation.objects.create(name="Österreichische Forschungsförderungsgesellschaft")
     geber = Foerdergeber.objects.create(name="FFG", kurz="FFG", link="https://www.ffg.at", organisation=haus)
     programm = Foerderprogramm.objects.create(geber=geber, name="Pflegeinnovation NÖ", max_foerderung=Decimal("50000"))
     Foerderfrage.objects.create(programm=programm, frage="Wie lang?", antwort="2 Jahre")
-    antrag = Foerderantrag.objects.create(programm=programm, titel="Befüllsystem", wirkung="DGKP-Zeit")
+    antrag = Foerderantrag.objects.create(
+        programm=programm, titel="Befüllsystem", rolle=Foerderantrag.Rolle.DRITTLEISTER
+    )
+    Foerderabschnitt.objects.create(antrag=antrag, titel="Wirkungsziele", text="DGKP-Zeit")
     _paket(antrag, "Bau", 2, 9, "12345.67")
     antrag.stundensatz = Decimal("50")
     antrag.save()
     Foerderstunden.objects.create(paket=antrag.pakete.get(), person="BG", stunden=Decimal("270"))
+    fd = Nutzer.objects.create_user(email="fd@example.invalid", name="Fritz Dorn")
+    Foerderstunden.objects.create(paket=antrag.pakete.get(), nutzer=fd, stunden=Decimal("140"))
+    Foerderkapazitaet.objects.create(nutzer=fd, stunden_je_monat=Decimal("60.5"))
     Foerderposten.objects.create(antrag=antrag, paket=antrag.pakete.get(), bezeichnung="Kamera", betrag=Decimal("1000"))
 
     archiv = tmp_path / "archiv.tar.gz"
     call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
     Foerderstunden.objects.all().hart_loeschen()
+    Foerderkapazitaet.objects.all().hart_loeschen()
     Foerderposten.objects.all().hart_loeschen()
+    Foerderabschnitt.objects.all().hart_loeschen()
     Foerderpaket.objects.all().hart_loeschen()
     Foerderantrag.objects.all().hart_loeschen()
     call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
 
     paket = Foerderpaket.objects.get()
     assert (paket.von, paket.bis, paket.betrag) == (2, 9, Decimal("12345.67"))
-    assert paket.antrag.wirkung == "DGKP-Zeit"
+    assert [(a.titel, a.text) for a in paket.antrag.abschnitte.all()] == [("Wirkungsziele", "DGKP-Zeit")]
     assert Foerderfrage.objects.get().antwort == "2 Jahre"
     assert paket.antrag.programm.geber.link == "https://www.ffg.at"
     assert paket.antrag.stundensatz == Decimal("50.00")
-    assert (paket.stunden.get().person, paket.stunden.get().stunden) == ("BG", Decimal("270.00"))
+    assert paket.antrag.rolle == Foerderantrag.Rolle.DRITTLEISTER
+    assert sorted((s.person, s.nutzer and s.nutzer.email, s.stunden) for s in paket.stunden.all()) == [
+        ("", "fd@example.invalid", Decimal("140.00")),
+        ("BG", None, Decimal("270.00")),
+    ]
+    kapazitaet = Foerderkapazitaet.objects.get()
+    assert (kapazitaet.nutzer.email, kapazitaet.stunden_je_monat) == ("fd@example.invalid", Decimal("60.50"))
     assert (paket.posten.get().bezeichnung, paket.posten.get().betrag) == ("Kamera", Decimal("1000.00"))
     assert paket.antrag.programm.geber.organisation.name == "Österreichische Forschungsförderungsgesellschaft"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_migration_ordnet_personen_und_rollen_zu():
+    """
+    0045 liest den Förderwerber und die Namen an den Stunden genau einmal.
+    Ein Name wird nur zugeordnet, wenn er genau einen Nutzer trifft — „F. D."
+    zu Fritz Dorn, aber „MM" nicht, solange zwei so heißen.
+    """
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+
+    vorher, nachher = [("socos", "0044_foerderabschnitte")], [("socos", "0046_foerderstunden_nutzer_oder_name")]
+    ausfuehrer = MigrationExecutor(connection)
+    try:
+        ausfuehrer.migrate(vorher)
+        alt = ausfuehrer.loader.project_state(vorher).apps
+        Nutzer_alt = alt.get_model("socos", "Nutzer")
+        fd = Nutzer_alt.objects.create(email="fd@example.invalid", name="Fritz Dorn", initialen="FD")
+        for nummer in (1, 2):
+            Nutzer_alt.objects.create(email=f"mm{nummer}@example.invalid", name=f"Max Muster {nummer}", initialen="MM")
+        geber = alt.get_model("socos", "Foerdergeber").objects.create(name="Land NÖ")
+        programm = alt.get_model("socos", "Foerderprogramm").objects.create(geber=geber, name="Pflege")
+        Antrag = alt.get_model("socos", "Foerderantrag")
+        fremd = Antrag.objects.create(programm=programm, titel="A", foerderwerber="Gut umsorgt GmbH")
+        Antrag.objects.create(programm=programm, titel="B", foerderwerber="SOPHARMIS GmbH")
+        Antrag.objects.create(programm=programm, titel="C")
+        paket = alt.get_model("socos", "Foerderpaket").objects.create(antrag=fremd, titel="Bau")
+        Stunden = alt.get_model("socos", "Foerderstunden")
+        # Zweimal Fritz Dorn: Der zweite Eintrag mit demselben Namen muss ihn auch finden.
+        for name in ("F. D.", "fd", "MM", "N. N."):
+            Stunden.objects.create(paket=paket, person=name, stunden=Decimal("1"))
+
+        ausfuehrer = MigrationExecutor(connection)
+        ausfuehrer.migrate(nachher)
+        neu = ausfuehrer.loader.project_state(nachher).apps
+        rollen = dict(neu.get_model("socos", "Foerderantrag").objects.values_list("titel", "rolle"))
+        assert rollen == {"A": "drittleister", "B": "foerderwerber", "C": "foerderwerber"}
+        zeilen = sorted(neu.get_model("socos", "Foerderstunden").objects.values_list("person", "nutzer_id"))
+        assert zeilen == [("", fd.pk), ("", fd.pk), ("MM", None), ("N. N.", None)]
+    finally:
+        ausfuehrer = MigrationExecutor(connection)
+        ausfuehrer.migrate(ausfuehrer.loader.graph.leaf_nodes())

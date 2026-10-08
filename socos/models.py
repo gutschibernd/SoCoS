@@ -2209,9 +2209,10 @@ class Foerderantrag(Basismodell):
     """
     Ein Antrag in einem Programm.
 
-    Die Textfelder folgen den Pflichtinhalten der Richtlinie (V.4 a–e) und den
-    Feldern des Online-Formulars — damit die Antragsreife sagen kann, was noch
-    fehlt, ohne dass jemand eine eigene Gliederung pflegt.
+    Die langen Texte stehen als `Foerderabschnitt` daneben, nicht als Felder:
+    Jedes Programm verlangt andere (Land NÖ: Nutzen, Mehrwert, Wirkung,
+    Regelbetrieb; KWF: nichts davon). Hier bleibt nur, was jedes Formular
+    fragt — Kurzbezeichnung und Beschreibung.
     """
 
     class Stand(models.TextChoices):
@@ -2220,11 +2221,25 @@ class Foerderantrag(Basismodell):
         BEWILLIGT = "bewilligt", "bewilligt"
         ABGELEHNT = "abgelehnt", "abgelehnt"
 
+    class Rolle(models.TextChoices):
+        """
+        Was wir im Antrag sind. Beim Drittleister fördert das Programm einen
+        anderen, und wir liefern ihm zu (Land NÖ, Förderwerber ein Pflegeheim).
+
+        **Warum ein Feld und kein Blick auf den Förderwerber:** Am Förderwerber
+        hängt ein Name, und „Sopharmis GmbH" gegen „SOPHARMIS" zu vergleichen,
+        damit eine Rechnung stimmt, wäre ein stiller Fehler beim ersten Tippfehler.
+        Die Migration hat den Namen genau einmal gelesen (0045), danach gilt das Feld.
+        """
+
+        FOERDERWERBER = "foerderwerber", "Förderwerber"
+        DRITTLEISTER = "drittleister", "Drittleister"
+
     # Die langen Texte speichern sich beim Tippen selbst (wie die Mitschrift
     # eines Meetings). Jede Schreibpause schriebe sonst einen Eintrag mit dem
     # ganzen alten und dem ganzen neuen Text, und das Protokoll des Antrags
     # bestünde nach einer Stunde Schreiben nur noch aus Absätzen.
-    protokoll_ohne = ("beschreibung", "nutzen", "mehrwert", "wirkung", "regelbetrieb")
+    protokoll_ohne = ("beschreibung",)
 
     programm = models.ForeignKey(
         Foerderprogramm, verbose_name="Programm", on_delete=models.PROTECT, related_name="antraege"
@@ -2234,6 +2249,10 @@ class Foerderantrag(Basismodell):
     titel = models.CharField("Kurzbezeichnung", max_length=200)
     stand = models.CharField("Stand", max_length=12, choices=Stand.choices, default=Stand.ENTWURF)
     foerderwerber = models.CharField("Förderwerber", max_length=200, blank=True)
+    # Beim Drittleister sind die Stunden der Pakete **unser geschätzter
+    # Aufwand**, keine Kalkulation: Sie zählen in der Auslastung, aber nie als
+    # Geld und nie in der Reife (`services/foerderung.stunden_kosten_geld`).
+    rolle = models.CharField("Unsere Rolle", max_length=14, choices=Rolle.choices, default=Rolle.FOERDERWERBER)
     beginn = models.DateField("Geplanter Beginn", null=True, blank=True)
     # Wie viele Monate der Zeitplan zeigt. Leer heißt: so viele, wie das
     # Programm höchstens erlaubt. Kürzer als die Pakete wird die Achse nie —
@@ -2242,10 +2261,6 @@ class Foerderantrag(Basismodell):
     # Das Formular nimmt 500 Zeichen. **Nicht** hart begrenzt: Beim Schreiben
     # ist ein Satz zu viel normal; die Seite zählt mit und sagt es.
     beschreibung = models.TextField("Beschreibung des Vorhabens", blank=True)
-    nutzen = models.TextField("Projektbeschreibung und Nutzen (V.4.a)", blank=True)
-    mehrwert = models.TextField("Mehrwert gegenüber Bestehendem (V.4.b)", blank=True)
-    wirkung = models.TextField("Wirkungsziele und Kennzahlen (V.4.c)", blank=True)
-    regelbetrieb = models.TextField("Kostenprognose Regelbetrieb (V.4.e)", blank=True)
     datenbedarf = models.TextField(
         "Was wir noch brauchen", blank=True, help_text="Eine Zeile je Punkt; „✓ “ davor heißt: ist da."
     )
@@ -2262,6 +2277,37 @@ class Foerderantrag(Basismodell):
         verbose_name = "Förderantrag"
         verbose_name_plural = "Förderanträge"
         ordering = ["programm", "nummer", "id"]
+
+    def __str__(self):
+        return self.titel
+
+
+class Foerderabschnitt(Basismodell):
+    """
+    Ein Textabschnitt eines Antrags — „Kostenprognose Regelbetrieb",
+    „Mehrwert gegenüber Bestehendem".
+
+    **Je Antrag frei, nicht als Felder am Antrag** (Rückmeldung Bernd,
+    2026-10-07): Die vier festen Texte der NÖ-Richtlinie standen auch im
+    KWF-Antrag und dort in der Reife als „fehlt", obwohl das KWF sie nicht
+    verlangt. Ein Abschnitt zählt in der Reife, sobald es ihn gibt — leer
+    heißt dann: noch zu schreiben.
+    """
+
+    # Der Text speichert sich beim Tippen selbst — siehe Foerderantrag.
+    protokoll_ohne = ("text",)
+
+    antrag = models.ForeignKey(
+        Foerderantrag, verbose_name="Antrag", on_delete=models.CASCADE, related_name="abschnitte"
+    )
+    titel = models.CharField("Überschrift", max_length=200)
+    text = models.TextField("Text", blank=True)
+    reihenfolge = models.IntegerField("Reihenfolge", default=0)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Textabschnitt eines Antrags"
+        verbose_name_plural = "Textabschnitte eines Antrags"
+        ordering = ["reihenfolge", "id"]
 
     def __str__(self):
         return self.titel
@@ -2306,25 +2352,53 @@ class Foerderstunden(Basismodell):
     Wie viele Stunden eine Person in einem Paket eines Antrags plant — „AP02:
     BG 270 h, FD 140 h".
 
-    **Die Person ist ein Name, kein Nutzer** — anders als beim `Pensum` eines
-    Projekts. Gegen diese Stunden wird nichts gebucht (die Pakete eines
-    Antrags sind keine Projektpakete), und in einem Antrag steht auch, wer
-    erst eingestellt werden soll („N. N.").
+    **Entweder ein Nutzer oder ein Name.** Bis 2026-10-07 war die Person nur
+    ein Name. Für die Förderauslastung müssen die Stunden derselben Person aus
+    allen Anträgen zusammenkommen, und mit Freitext ist „BG" im einen Antrag
+    und „B. G." im anderen zwei Leute — ohne dass es jemand merkt. Der Name
+    bleibt für die, die es noch nicht gibt („N. N.").
+
+    Gegen diese Stunden wird nichts gebucht (die Pakete eines Antrags sind
+    keine Projektpakete) — deshalb ist das kein `Pensum`.
     """
 
     paket = models.ForeignKey(
         Foerderpaket, verbose_name="Arbeitspaket", on_delete=models.CASCADE, related_name="stunden"
     )
-    person = models.CharField("Person", max_length=80)
+    nutzer = models.ForeignKey(
+        "Nutzer",
+        verbose_name="Nutzer",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="foerderstunden",
+    )
+    # Nur ohne Nutzer. Stünde der Name zusätzlich da, liefe er beim ersten
+    # umbenannten Nutzer auseinander.
+    person = models.CharField("Person ohne Konto", max_length=80, blank=True)
     stunden = models.DecimalField("Stunden", max_digits=7, decimal_places=2)
 
     class Meta(Basismodell.Meta):
         verbose_name = "Stunden in einem Antragspaket"
         verbose_name_plural = "Stunden in Antragspaketen"
         ordering = ["paket", "person", "id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(nutzer__isnull=False) & models.Q(person=""))
+                | (models.Q(nutzer__isnull=True) & ~models.Q(person="")),
+                name="foerderstunden_nutzer_oder_name",
+            ),
+        ]
+
+    @property
+    def name(self):
+        """Wie die Person in Listen heißt: Initialen des Nutzers oder der Name."""
+        if self.nutzer_id is None:
+            return self.person
+        return self.nutzer.initialen or self.nutzer.name
 
     def __str__(self):
-        return f"{self.paket.titel} · {self.person}: {self.stunden} h"
+        return f"{self.paket.titel} · {self.name}: {self.stunden} h"
 
 
 class Foerderposten(Basismodell):
@@ -2358,3 +2432,38 @@ class Foerderposten(Basismodell):
 
     def __str__(self):
         return self.bezeichnung
+
+
+class Foerderkapazitaet(Basismodell):
+    """
+    Wie viele Stunden eine Person im Monat für Förderprojekte hat — der
+    Maßstab, gegen den die Förderauslastung rechnet.
+
+    **Nicht am Nutzer** (Wunsch Bernd, 2026-10-07): Die Zahl gehört zur
+    Förderplanung und wird dort hinter dem Zahnrad eingestellt. Am Nutzer
+    stünde sie zwischen Telefon und Geburtsdatum, wo sie niemand sucht — und
+    sie sähe aus wie eine Arbeitszeit, die sie nicht ist.
+
+    Höchstens eine Zeile je Person. Fehlt sie, gibt es keinen Maßstab, und die
+    Seite zeigt nur den Bedarf.
+    """
+
+    nutzer = models.ForeignKey(
+        "Nutzer", verbose_name="Nutzer", on_delete=models.PROTECT, related_name="foerderkapazitaeten"
+    )
+    stunden_je_monat = models.DecimalField("Stunden je Monat", max_digits=6, decimal_places=2)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Förderkapazität"
+        verbose_name_plural = "Förderkapazitäten"
+        ordering = ["nutzer", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["nutzer"],
+                condition=models.Q(geloescht_am__isnull=True),
+                name="eine_foerderkapazitaet_je_nutzer",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.nutzer.name}: {self.stunden_je_monat} h je Monat"

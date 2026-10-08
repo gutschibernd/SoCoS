@@ -131,6 +131,15 @@ export function foerderungAusWeg(unter: string | null): {
   };
 }
 
+/** Der Weg der Förderauslastung — eine Seite neben den Fördergebern, keine Ebene darunter. */
+export const AUSLASTUNGSWEG = "foerderungen/auslastung";
+
+/** Die Förderauslastung hinter `foerderungen/auslastung` — oder nichts. */
+export function foerderauslastungAusWeg(unter: string | null): { modul: Modul; teil: Foerderteil } | null {
+  const gefunden = unter === AUSLASTUNGSWEG ? teilZuWeg("foerderungen") : null;
+  return gefunden && gefunden.teil.schluessel === "foerderung" ? { modul: gefunden.modul, teil: gefunden.teil } : null;
+}
+
 /** „3 Themen", „1 Idee" — wie die Zeile auf der Übersicht und die Leiste zählen. */
 export function themenZahl(zahl: number, art: Themenart): string {
   if (art === "idee") return `${zahl} ${zahl === 1 ? "Idee" : "Ideen"}`;

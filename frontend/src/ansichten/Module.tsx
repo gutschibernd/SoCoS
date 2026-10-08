@@ -49,6 +49,7 @@ import {
   zuletztText,
   teilZuWeg,
   themaAusWeg,
+  foerderauslastungAusWeg,
   foerderungAusWeg,
   zumSenden,
   type Foerderteil,
@@ -65,6 +66,7 @@ import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
+import { Foerderauslastung } from "./Foerderauslastung";
 import { Antragsseite, Foerderungen, Geberseite, Programmseite } from "./Foerderungen";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
@@ -80,6 +82,7 @@ export function Module({
 }) {
   const thema = themaAusWeg(unter);
   if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} />;
+  if (foerderauslastungAusWeg(unter)) return <Foerderauslastung ich={ich} wechseln={wechseln} />;
   const foerderung = foerderungAusWeg(unter);
   if (foerderung?.antrag)
     return <Antragsseite key={foerderung.antrag} ich={ich} id={foerderung.antrag} wechseln={wechseln} />;

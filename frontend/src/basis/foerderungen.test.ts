@@ -27,7 +27,7 @@ import {
   telefonatQuelle,
   telefonatText,
 } from "./foerderungen";
-import { alsEuro, foerderungAusWeg, themaAusWeg } from "./module";
+import { alsEuro, foerderauslastungAusWeg, foerderungAusWeg, themaAusWeg } from "./module";
 
 const antrag = (teil: Partial<Foerderantrag> = {}) => ({ laufzeit: 0, ...teil }) as Foerderantrag;
 const programm = (teil: Partial<Foerderprogramm> = {}) => ({ max_monate: 24, ...teil }) as Foerderprogramm;
@@ -167,6 +167,10 @@ describe("der Weg zu einem Antrag", () => {
     expect(foerderungAusWeg("foerderungen/2/4/12")).toMatchObject({ geber: 2, programm: 4, antrag: 12 });
     expect(foerderungAusWeg("praktikum/12")).toBeNull();
     expect(foerderungAusWeg("foerderungen/2/4/12/1")).toBeNull();
+    // Die Auslastung ist kein Fördergeber, und kein Fördergeber heißt „auslastung".
+    expect(foerderungAusWeg("foerderungen/auslastung")).toBeNull();
+    expect(foerderauslastungAusWeg("foerderungen/auslastung")).not.toBeNull();
+    expect(foerderauslastungAusWeg("foerderungen/2")).toBeNull();
     expect(themaAusWeg("foerderungen/12")).toBeNull();
     expect(foerderungAusWeg("foerderungen")).toBeNull();
   });
@@ -183,12 +187,14 @@ describe("der Projektinhalt zum Kopieren", () => {
     nummer: 2,
     stand: "entwurf",
     foerderwerber: "Sopharmis",
+    rolle: "foerderwerber",
+    stunden_sind_geld: true,
     beginn: "2027-01-01",
     beschreibung: "Worum es geht.",
-    nutzen: "",
-    mehrwert: "",
-    wirkung: "",
-    regelbetrieb: "",
+    abschnitte: [
+      { id: 7, antrag: 1, titel: "Nutzen für Pflege und Betreuung", text: "", reihenfolge: 0 },
+      { id: 8, antrag: 1, titel: "Kostenprognose Regelbetrieb", text: "Trägt sich.", reihenfolge: 1 },
+    ],
     datenbedarf: "✓ Muster\nPersonalkosten",
     laufzeit: 4,
     summe: "30000.00",
@@ -225,7 +231,8 @@ describe("der Projektinhalt zum Kopieren", () => {
     expect(text).toContain("- **Antrag:** Nr. 2 · Stand: Entwurf");
     expect(text).toContain("- **Höhe:** höchstens 50.000 €");
     expect(text).toContain("## Beschreibung des Vorhabens\n\nWorum es geht.");
-    expect(text).toContain("### a · Nutzen für Pflege und Betreuung\n\n_(noch leer)_");
+    expect(text).toContain("## Nutzen für Pflege und Betreuung\n\n_(noch leer)_");
+    expect(text).toContain("## Kostenprognose Regelbetrieb\n\nTrägt sich.");
   });
 
   it("stellt die Arbeitspakete in ihrer Reihenfolge mit Monaten dar", () => {
@@ -242,6 +249,17 @@ describe("der Projektinhalt zum Kopieren", () => {
     expect(text).toContain("## Antragsreife (1 von 1)\n\n- [x] Titel gesetzt");
     expect(text).toContain("- [x] Muster\n- [ ] Personalkosten");
     expect(text).toContain("## Fragen an die Förderstelle (1 offen)\n\n- [ ] F2\n- [x] F1");
+  });
+
+  it("nennt beim Drittleister die Rolle und die Stunden als Aufwand", () => {
+    const stunden = [{ id: 1, paket: 1, nutzer: 3, person: "", name: "BG", stunden: "40.00" }];
+    const mitAufwand = { ...voll, pakete: [paket(1, { titel: "Konzept", stunden })] };
+    expect(projektinhalt(antrag(mitAufwand), prog, geber)).toContain("- **Stunden:** BG 40 h");
+    const zuliefern = projektinhalt(
+      antrag({ ...mitAufwand, rolle: "drittleister", stunden_sind_geld: false }), prog, geber,
+    );
+    expect(zuliefern).toContain("- **Unsere Rolle:** Drittleister");
+    expect(zuliefern).toContain("- **Geschätzter Aufwand:** BG 40 h");
   });
 
   it("kommt ohne Fördergeber und ohne Pakete aus", () => {
@@ -263,9 +281,16 @@ describe("Stunden und Kosten", () => {
   });
 
   it("erkennt ein aufgeschlüsseltes Paket an Stunden oder Posten", () => {
-    expect(istAufgeschluesselt(paket({}))).toBe(false);
-    expect(istAufgeschluesselt(paket({ stunden: [{ id: 1, paket: 1, person: "BG", stunden: "1.00" }] }))).toBe(true);
-    expect(istAufgeschluesselt(paket({ kosten: { ...nichts, sach: "1000.00" } }))).toBe(true);
+    const mitStunden = paket({ stunden: [{ id: 1, paket: 1, nutzer: null, person: "BG", name: "BG", stunden: "1.00" }] });
+    expect(istAufgeschluesselt(paket({}), true)).toBe(false);
+    expect(istAufgeschluesselt(mitStunden, true)).toBe(true);
+    expect(istAufgeschluesselt(paket({ kosten: { ...nichts, sach: "1000.00" } }), true)).toBe(true);
+  });
+
+  it("beim Drittleister machen Stunden kein Paket aufgeschlüsselt, Posten schon", () => {
+    const mitStunden = paket({ stunden: [{ id: 1, paket: 1, nutzer: 3, person: "", name: "BG", stunden: "1.00" }] });
+    expect(istAufgeschluesselt(mitStunden, false)).toBe(false);
+    expect(istAufgeschluesselt(paket({ kosten: { ...nichts, sach: "1000.00" } }), false)).toBe(true);
   });
 
   it("summiert die Pakete in Cent", () => {

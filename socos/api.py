@@ -18,7 +18,7 @@ from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.http import content_disposition_header
 from rest_framework import viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
@@ -59,6 +59,8 @@ from socos.models import (
     Foerderfrage,
     Foerderpaket,
     Foerderposten,
+    Foerderabschnitt,
+    Foerderkapazitaet,
     Foerderprogramm,
     Foerderstunden,
     Projekt,
@@ -72,7 +74,7 @@ from socos.models import (
     Zeitbuchung,
     auffangpaket,
 )
-from socos.services import aktivitaet, auswertung, finanzen
+from socos.services import aktivitaet, auswertung, finanzen, foerderung
 from socos.services import zeit as zeitdienst
 
 logger = logging.getLogger(__name__)
@@ -1372,7 +1374,8 @@ class FoerdergeberViewSet(SocosViewSet):
 class FoerderprogrammViewSet(SocosViewSet):
     serializer_class = ser.FoerderprogrammSerializer
     queryset = Foerderprogramm.objects.prefetch_related(
-        "fragen", "antraege", "antraege__pakete", "antraege__pakete__stunden", "antraege__posten"
+        "fragen", "antraege", "antraege__pakete", "antraege__pakete__stunden__nutzer", "antraege__posten",
+        "antraege__abschnitte",
     )
 
 
@@ -1383,14 +1386,19 @@ class FoerderfrageViewSet(SocosViewSet):
 
 class FoerderantragViewSet(SocosViewSet):
     serializer_class = ser.FoerderantragSerializer
-    queryset = Foerderantrag.objects.select_related("programm").prefetch_related("pakete", "pakete__stunden", "posten")
+    queryset = Foerderantrag.objects.select_related("programm").prefetch_related(
+        "pakete", "pakete__stunden__nutzer", "posten", "abschnitte"
+    )
 
     @transaction.atomic
     def perform_destroy(self, antrag):
         """
-        Die Pakete gehen mit. Über `on_delete=CASCADE` geschähe das nur beim
-        harten Löschen; weich gelöscht blieben sie als Waisen stehen.
+        Pakete, Posten und Abschnitte gehen mit. Über `on_delete=CASCADE`
+        geschähe das nur beim harten Löschen; weich gelöscht blieben sie als
+        Waisen stehen.
         """
+        for abschnitt in Foerderabschnitt.objects.filter(antrag=antrag):
+            abschnitt.delete()
         for posten in Foerderposten.objects.filter(antrag=antrag):
             posten.delete()
         for paket in Foerderpaket.objects.filter(antrag=antrag):
@@ -1402,7 +1410,7 @@ class FoerderantragViewSet(SocosViewSet):
 
 class FoerderpaketViewSet(SocosViewSet):
     serializer_class = ser.FoerderpaketSerializer
-    queryset = Foerderpaket.objects.select_related("antrag").prefetch_related("stunden", "antrag__posten")
+    queryset = Foerderpaket.objects.select_related("antrag").prefetch_related("stunden__nutzer", "antrag__posten")
 
     @transaction.atomic
     def perform_destroy(self, paket):
@@ -1420,9 +1428,46 @@ class FoerderpaketViewSet(SocosViewSet):
 
 class FoerderstundenViewSet(SocosViewSet):
     serializer_class = ser.FoerderstundenSerializer
-    queryset = Foerderstunden.objects.all()
+    queryset = Foerderstunden.objects.select_related("nutzer")
 
 
 class FoerderpostenViewSet(SocosViewSet):
     serializer_class = ser.FoerderpostenSerializer
     queryset = Foerderposten.objects.all()
+
+
+class FoerderabschnittViewSet(SocosViewSet):
+    serializer_class = ser.FoerderabschnittSerializer
+    queryset = Foerderabschnitt.objects.all()
+
+
+class FoerderkapazitaetViewSet(SocosViewSet):
+    """
+    Die Kapazität je Person für die Förderauslastung. Leeren heißt entfernen —
+    und das darf, wie jedes Entfernen, nur der Admin.
+    """
+
+    serializer_class = ser.FoerderkapazitaetSerializer
+    queryset = Foerderkapazitaet.objects.select_related("nutzer")
+
+
+@api_view(["GET"])
+@permission_classes([berechtigung.SocosBerechtigung])
+def foerderauslastung(request):
+    """
+    Alle Anträge in den gewählten Ständen auf einer Kalenderachse, mit den
+    Stunden je Monat, Antrag und Person (`services/foerderung.auslastung`).
+
+    `?stand=bewilligt,eingereicht`. **Ohne Angabe alle Stände** — es gibt keine
+    stille Vorauswahl, auch keine naheliegende: Wer nur die sicheren Anträge
+    sehen will, sagt das.
+    """
+    erlaubt = [wert for wert, _ in Foerderantrag.Stand.choices]
+    roh = request.query_params.get("stand")
+    # Fehlt der Parameter, gilt alles; steht er leer da, ist nichts gewählt.
+    # Wer auf der Seite alle Stände abwählt, bekommt sonst wieder alle.
+    staende = erlaubt if roh is None else [s.strip() for s in roh.split(",") if s.strip()]
+    unbekannt = [s for s in staende if s not in erlaubt]
+    if unbekannt:
+        raise ValidationError({"stand": f"Diesen Stand gibt es nicht: {', '.join(unbekannt)}."})
+    return Response(foerderung.auslastung(staende))

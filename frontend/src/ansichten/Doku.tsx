@@ -932,7 +932,7 @@ function ModuleDoku() {
       <Abschnitt
         zeichen="foerderung"
         titel="Förderungen: vom Fördergeber zum Antrag"
-        vorspann="Oben die Fördergeber — FFG, aws, KWF, Land Niederösterreich —, darunter ihre Programme mit der Richtlinie in Kürze und den Fragen an die Förderstelle, darin die Anträge. Jeder Antrag hat seine Arbeitspakete auf einer Zeitleiste, die Texte, die Formular und Richtlinie verlangen, und rechts, was noch fehlt."
+        vorspann="Oben die Fördergeber — FFG, aws, KWF, Land Niederösterreich —, darunter ihre Programme mit der Richtlinie in Kürze und den Fragen an die Förderstelle, darin die Anträge. Jeder Antrag hat seine Arbeitspakete auf einer Zeitleiste, die Texte, die sein Programm verlangt, und rechts, was noch fehlt."
       >
         <Schritte
           schritte={[
@@ -940,7 +940,7 @@ function ModuleDoku() {
             "Auf der Seite des Programms steht je Antrag eine Kachel: wie viel Geld er belegt, wie seine Pakete in der Zeit liegen und wie viele Punkte der Antragsreife erfüllt sind. Ein Klick öffnet den Antrag.",
             "Oben im Antrag stehen die Arbeitspakete als Zeitleiste. Einen Balken ziehst du in der Mitte, um ihn zu verschieben, an einem Rand, um ihn zu verlängern. Mit der Tastatur geht es mit ← und →, mit Umschalt verschiebst du nur das Ende.",
             "Ein Klick auf den Titel eines Pakets klappt es auf: Ziel und Inhalt, Ergebnis, Monate, Reihenfolge. Ein Klick auf den Betrag ändert ihn. Ein neues Paket ist die Zeile unter der Leiste: tippen, Enter.",
-            "Darunter stehen die Texte in der Reihenfolge, die der Antrag verlangt: die Beschreibung für das Online-Formular, die Projektbeschreibung (Nutzen, Mehrwert, Wirkungsziele) und die Kostenprognose für den Regelbetrieb. Sie speichern sich beim Tippen.",
+            "Darunter stehen die Texte: zuerst die Beschreibung für das Online-Formular, dann die Abschnitte, die der Antrag selbst führt. Welche das sind, legst du je Antrag an — „Abschnitt“ ganz unten, Überschrift tippen, Enter. Ein Klick auf die Überschrift ändert sie, die Pfeile daneben schieben den Abschnitt nach oben oder unten. Die Texte speichern sich beim Tippen.",
             "Rechts steht, was noch fehlt. Ein Klick auf einen Punkt springt an die Stelle, an der du ihn erledigst.",
           ]}
         />
@@ -961,11 +961,35 @@ function ModuleDoku() {
             },
             {
               begriff: "Stunden und Kalkulation",
-              text: "Programme mit Kostenleitfaden (KWF, FFG) wollen Stunden je Person und Paket statt eines Betrags. Im aufgeklappten Paket trägst du unter „Stunden“ Person und Stunden ein, unter Kalkulation den Stundensatz, die Gemeinkostenpauschale und die Förderquote, dazu die Sach- und Materialposten — mit oder ohne Paket. Die Rechnung darunter geht wie im Kostenplan: Personal plus Sachkosten sind die direkten Kosten, darauf die Pauschale, davon die Quote ist der Zuschuss. Ohne Quote bleibt es wie beim Land NÖ: Die Beträge der Pakete sind schon die Fördersumme.",
+              text: "Programme mit Kostenleitfaden (KWF, FFG) wollen Stunden je Person und Paket statt eines Betrags. Im aufgeklappten Paket wählst du unter „Stunden“ die Person aus dem Team und trägst ihre Stunden ein — wer noch kein Konto hat, steht als „ohne Konto“ mit einem Namen da, etwa „N. N.“. Unter Kalkulation den Stundensatz, die Gemeinkostenpauschale und die Förderquote, dazu die Sach- und Materialposten — mit oder ohne Paket. Die Rechnung darunter geht wie im Kostenplan: Personal plus Sachkosten sind die direkten Kosten, darauf die Pauschale, davon die Quote ist der Zuschuss. Ohne Quote bleibt es wie beim Land NÖ: Die Beträge der Pakete sind schon die Fördersumme.",
+            },
+            {
+              begriff: "Förderwerber oder Drittleister",
+              text: "Oben im Antrag steht, was wir sind. Förderwerber heißt: Wir reichen ein. Drittleister heißt: Ein anderer reicht ein — beim Land NÖ das Pflegeheim —, und wir liefern zu. Dann sind die Stunden in den Paketen unser geschätzter Aufwand: Sie zählen für die Planung, aber nicht als Geld, und einen Stundensatz braucht es nicht. Die Pakete behalten ihre Pauschalbeträge.",
+            },
+            {
+              begriff: "Auslastung",
+              text: "Der Knopf „Auslastung“ über den Fördergebern legt alle Anträge der gewählten Stände auf eine Zeitachse: oben die Stunden je Monat als Säulen, darunter jeder Antrag mit seinen Paketen, unten je Person die Stunden je Monat. Bewilligt ist voll gezeichnet, eingereicht hell mit Rand, ein Entwurf nur gestrichelt umrandet — so sieht man, welcher Teil der Last feststeht. Ein Klick auf einen Monat schlüsselt ihn auf: wer woran wie viel, und welche Pakete in ihm enden. Die Achse reicht immer bis zum laufenden Monat, er ist kupfern unterstrichen.",
+            },
+            {
+              begriff: "Mit Entwürfen planen",
+              text: "Schalte oben „Entwurf“ dazu, dann liegt auch der Antrag mit drin, an dem du gerade schreibst. Mit ‹ › neben seinem Namen wandert sein Beginn um einen Monat; Säulen und Personen rechnen sofort mit. Gespeichert wird das als geplanter Beginn des Antrags — derselbe Wert wie oben im Antrag. Bewilligte Anträge haben keine Pfeile, ihr Beginn steht fest. Ein Antrag ohne Beginn steht unten unter „Ohne Termin“; trag dort einen vermuteten ein, und er rückt auf die Achse.",
+            },
+            {
+              begriff: "Kapazität",
+              text: "Hinter dem Zahnrad steht je Person, wie viele Stunden sie im Monat für Förderprojekte hat. Daran misst die Auslastung: Bis zur Hälfte bleibt ein Feld hell, darüber wird es grün, ab 85 % kräftiger, über 100 % kupfern. Ohne Kapazität steht nur die Zahl da. Eine Kapazität leeren heißt sie entfernen, das darf nur, wer löschen darf.",
+            },
+            {
+              begriff: "Wie die Stunden auf die Monate kommen",
+              text: "Ein Antrag sagt, wie viele Stunden ein Paket hat, nicht wann darin gearbeitet wird. Die Auslastung verteilt sie deshalb gleichmäßig auf die Monate des Pakets, auf die Viertelstunde, und legt den Rest in den letzten Monat — 100 Stunden auf drei Monate sind 33,25 · 33,25 · 33,50. Das ist eine Annahme für die Planung, kein Nachweis.",
             },
             {
               begriff: "Antragsreife",
-              text: "Neun Punkte aus der Richtlinie (V.4 a–e) und dem Online-Formular: Kurzbezeichnung, Beschreibung, Nutzen, Mehrwert, Wirkungsziele, Pakete mit Beträgen, Summe und Laufzeit in der Grenze, Kostenprognose. Sie wird gerechnet, abhaken muss man nichts.",
+              text: "Kurzbezeichnung, Beschreibung, Pakete mit Beträgen, Summe und Laufzeit in der Grenze — und dazu jeder Abschnitt des Antrags, bis etwas darin steht. Ein Antrag fürs Land NÖ hat so Nutzen, Mehrwert, Wirkungsziele und Kostenprognose als Punkte, einer fürs KWF nur, was du dort anlegst. Sie wird gerechnet, abhaken muss man nichts.",
+            },
+            {
+              begriff: "Abschnitte",
+              text: "Jedes Programm verlangt andere Texte: das Land NÖ eine Projektbeschreibung in drei Teilen und eine Kostenprognose für den Regelbetrieb, das KWF nichts davon. Deshalb hat ein Antrag keine festen Textfelder außer der Beschreibung, sondern so viele Abschnitte, wie du anlegst. „Projektinhalt kopieren“ nimmt sie mit ihren Überschriften mit.",
             },
             {
               begriff: "Zeichen zählen",

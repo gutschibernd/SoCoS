@@ -47,6 +47,136 @@ Kacheln sprängen hin und her.
 
 ---
 
+## 2026-10-07 — Seite der Förderauslastung (`ansichten/Foerderauslastung.tsx`)
+
+`/module/foerderungen/auslastung`, erreichbar über den Knopf „Auslastung“ über
+den Fördergeber-Kacheln. Eine Seite neben den Fördergebern, keine Ebene
+darunter (`foerderauslastungAusWeg`, eigener Weg statt Sonderfall in
+`foerderungAusWeg`).
+
+- **Entwürfe lassen sich dazuschalten** (Wunsch Bernd): Man plant den Antrag,
+  den man schreibt, um das herum, was schon feststeht. Beim Öffnen sind
+  *bewilligt* und *eingereicht* gewählt. Mit ‹ › wandert der Beginn eines
+  nicht bewilligten Antrags um einen Monat — gespeichert in
+  `Foerderantrag.beginn`, **kein zweites Planfeld**. Der Tag bleibt, der 31.
+  wird zum Monatsletzten.
+- **Muster je Stand statt Farbe:** bewilligt voll, eingereicht hell mit Rand,
+  Entwurf gestrichelt — im Balken, an den Paketen und als Legende im Schalter.
+  Die geplante Schraffur für „eingereicht“ ist verworfen: Auf ihr war die
+  Beschriftung der Pakete nicht zu lesen.
+- **Farbe je Antrag = die acht Thementöne aus Thoughts** (`--t1…8`, `--f1…8`),
+  fest an der Antragsnummer. Keine zweite Farbreihe.
+- **Am Handy rollt die Achse in ihrer Karte**, die Namen bleiben links stehen.
+  Die ursprünglich geplante gedrehte Ansicht (Monate als Zeilen) wäre ein
+  zweites Markup gewesen. Wichtig dafür: `.fa-seite` hat
+  `grid-template-columns: minmax(0, 1fr)` — mit `1fr` wuchs die Spalte auf die
+  Breite der Achse, und die ganze Seite rollte waagrecht.
+- **Wärmekarte:** Stufen bei 50 / 85 / über 100 % der Kapazität
+  (`waermestufe`). Das ist Darstellung, keine Schwelle mit Folgen — sie steht
+  deshalb im Frontend und nicht in `berechtigung.py`.
+- **Datumsfeld „Vermuteter Beginn“ speichert beim Verlassen**, nicht bei jeder
+  Änderung: Chrome meldet das Feld schon nach der ersten Ziffer der Jahreszahl
+  als gültig („0002-04-01“).
+- Neues Zeichen `saeulen` in `Zeichen.tsx`.
+
+---
+
+## 2026-10-07 — Rechnung der Förderauslastung (`services/foerderung.auslastung`)
+
+`GET /api/foerderauslastung/?stand=eingereicht,bewilligt` legt alle lebenden
+Anträge der Stände auf eine Kalenderachse. **Ohne `stand` kommen alle Stände**
+— keine stille Vorauswahl, auch nicht die naheliegende (CLAUDE.md).
+
+- **Verteilung:** Die Stunden einer Person in einem Paket liegen gleichmäßig
+  auf dessen Monaten, je Monat auf die Viertelstunde abgerundet, der Rest im
+  letzten Monat (100 h / 3 = 33,25 · 33,25 · 33,50). Geteilt mit zwei
+  Nachkommastellen gingen über ein Jahr Stunden verloren, die keinem Antrag
+  mehr zuzuordnen sind. Dass gleichmäßig verteilt wird, ist eine **Annahme**
+  — ein Antrag sagt nicht, wann im Paket gearbeitet wird; sie steht in der Doku.
+- **M1 ist der Monat von `beginn`**, der Tag zählt nicht.
+- **Ohne Beginn kein Platz auf der Achse:** Solche Anträge stehen unter
+  `ohne_termin` und zählen in keiner Monatssumme. Den vermuteten Beginn trägt
+  man ein (Wunsch Bernd), eine Regel wie „Einreichung + 4 Monate“ gibt es nicht.
+- **Alle Summen kommen vom Server**: je Monat, je Antrag und Monat, je Person
+  und Monat samt Anteil an der Kapazität (ganze Prozent). `verteilung` ist die
+  feinste Ebene (Monat · Antrag · Paket · Person) für das Aufschlüsseln eines
+  Monats; die Seite summiert nichts selbst.
+- **Personen:** Nutzer über `n<id>`, Namen ohne Konto über ihren Text
+  (`p:N. N.`) — zweimal „N. N.“ ist eine Person. Wer eine Kapazität hat, steht
+  auch ohne Stunden da (freie Zeit ist eine Antwort); Stillgelegte nur mit
+  Stunden.
+- `/api/foerderkapazitaeten/` ist ein gewöhnliches ViewSet. **Leeren heißt
+  entfernen**, und das darf nach `berechtigung.py` nur der Admin — keine
+  Sonderregel für einen Einstellwert.
+
+---
+
+## 2026-10-07 — Grundlagen der Förderauslastung (Migrationen 0045, 0046)
+
+Vorbereitung einer Seite, die alle eingereichten und bewilligten Anträge mit
+ihren Paketen und Stunden auf einer Zeitachse übereinanderlegt (Auslastung je
+Person und Monat). Drei Schemaänderungen, alle mit Bernd abgestimmt:
+
+- **`Foerderantrag.rolle`** (*Förderwerber* | *Drittleister*). Beim
+  Drittleister fördert das Programm einen anderen, wir liefern zu (Land NÖ,
+  Förderwerber Gut umsorgt GmbH). Seine Stunden sind **unser geschätzter
+  Aufwand**: Sie zählen in der Auslastung, aber nie als Geld (`personal`
+  bleibt 0, auch mit Satz) und nie in der Reife — sonst stünde jeder
+  NÖ-Antrag mit Aufwand auf „Stunden ohne Stundensatz“
+  (`services/foerderung.stunden_kosten_geld`). Ein Paket mit Aufwand, aber
+  ohne Betrag, fehlt trotzdem. **Ein Feld, kein Vergleich mit dem
+  Förderwerber-Namen:** Die Migration hat den Namen genau einmal gelesen
+  (anderer Förderwerber als Sopharmis ⇒ Drittleister), danach gilt das Feld.
+  *Partner* gibt es nicht, solange kein solcher Antrag existiert.
+- **`Foerderstunden.nutzer`** (nullbar, PROTECT) — **entweder Nutzer oder
+  Name**, als Prüfregel in der Datenbank. Mit Freitext wären „BG“ und „B. G.“
+  in der Auslastung zwei Leute. Der Name bleibt für „N. N.“. Die API liefert
+  `name` (Initialen oder Name), damit das Frontend nicht selbst entscheidet;
+  wer `nutzer` schickt, löscht den Namen und umgekehrt. Die Migration ordnete
+  einen Namen nur zu, wenn er **genau einen** Nutzer über Initialen oder
+  vollen Namen traf (Punkte und Leerzeichen egal); der Rest blieb Text.
+- **`Foerderkapazitaet(nutzer, stunden_je_monat)`**, höchstens eine je Person.
+  **Nicht am Nutzer** (Wunsch Bernd): eingestellt wird sie hinter einem
+  Zahnrad auf der Auslastungsseite, und am Nutzer sähe sie wie eine
+  Arbeitszeit aus. Ohne Zeile zeigt die Seite nur den Bedarf.
+
+**Falle beim Migrieren:** Die Prüfregel an `Foerderstunden` steht in einer
+eigenen Migration (0046). PostgreSQL verweigert ein `ALTER TABLE`, solange in
+derselben Transaktion Fremdschlüssel-Prüfungen für eben geänderte Zeilen
+ausstehen — und genau das tut die Datenmigration in 0045.
+
+`foerderungen_einspielen` nimmt `"rolle": "drittleister"` je Antrag; ohne
+Angabe Förderwerber. Kapazität und Nutzerverweis wandern mit der Sicherung
+(steht vor `Nutzer` in der Löschreihenfolge).
+
+---
+
+## 2026-10-07 — Textabschnitte je Antrag statt fester Felder (Migration 0044)
+
+`Foerderantrag.nutzen`, `mehrwert`, `wirkung`, `regelbetrieb` sind weg. An
+ihrer Stelle steht `Foerderabschnitt(antrag, titel, text, reihenfolge)`, frei
+je Antrag. **Warum:** Die vier Felder waren die Pflichtinhalte der
+NÖ-Richtlinie (V.4 a–e). Sie standen auch im KWF-Antrag und dort in der Reife
+als „fehlt“, obwohl das KWF sie nicht verlangt (Rückmeldung Bernd: jeder
+Antrag hat eigene Beschreibungen). Verworfen wurden ein Schalter am Programm
+(das KWF bekäme dann keine eigenen Abschnitte) und das bloße Ausblenden leerer
+Felder (ein neuer NÖ-Antrag hätte sie dann nie).
+
+- **Am Antrag, nicht am Programm**, wie gewünscht — zwei Anträge im selben
+  Programm legen dieselben Abschnitte eben zweimal an.
+- **Reife:** Jeder lebende Abschnitt ist ein Punkt (`abschnitt-<id>`), offen
+  solange sein Text leer ist. Was ein Antrag nicht hat, fehlt ihm auch nicht.
+- **Umzug:** Anträge, in denen wenigstens eines der vier Felder Text hatte,
+  bekamen alle vier als Abschnitte (auch leere, als offene Punkte). Anträge
+  ohne jeden Text (KWF) bekamen keine. Die Migration geht auch zurück.
+- `beschreibung` bleibt ein Feld: Die 500 Zeichen des Online-Formulars werden
+  gezählt.
+- `foerderungen_einspielen` nimmt `"abschnitte": [{"titel", "text"}]` und
+  weist die alten Schlüssel mit einer Meldung ab, statt sie still zu
+  verlieren.
+
+---
+
 ## 2026-10-06 — Länge der Zeitleiste im Antrag (Migration 0043)
 
 `Foerderantrag.zeitachse` (nullbar): wie viele Monate der Zeitplan zeigt

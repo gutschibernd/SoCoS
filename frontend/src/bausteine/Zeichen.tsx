@@ -52,7 +52,8 @@ export type ZeichenName =
   | "thoughts"
   | "foerderung"
   | "kopie"
-  | "lupe";
+  | "lupe"
+  | "saeulen";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -147,6 +148,9 @@ const PFADE: Record<ZeichenName, string> = {
   // Ein Glas mit Griff nach rechts unten — Suchen. Der Griff ist kurz: lang
   // wird aus dem Zeichen bei 18 px ein Schläger.
   lupe: "M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13M15.5 15.5 20 20",
+  // Vier Säulen auf einer Grundlinie — die Förderauslastung. Ungleich hoch,
+  // sonst liest man ein Raster und keine Last.
+  saeulen: "M4 20h16M6.5 20v-6M10.5 20V8M14.5 20v-9M18.5 20V5",
   // Zwei Blätter versetzt — das vordere ganz, vom hinteren nur die Ecke.
   kopie: "M8.5 8.5h11v11h-11zM15.5 8.5V4.5h-11v11h4",
   // Drei Münzen übereinander — Geld, das zu einem Vorhaben dazukommt.
