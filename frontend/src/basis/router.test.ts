@@ -29,9 +29,10 @@ describe("ausPfad", () => {
 
   it("liest das Modul", () => {
     expect(ausPfad("/module")).toEqual({ seite: "module", unter: null });
-    expect(ausPfad("/module/spg")).toEqual({ seite: "module", unter: "spg" });
-    expect(ausPfad("/module/spg-businessplan")).toEqual({ seite: "module", unter: "spg-businessplan" });
-    expect(ausPfad("/module/spg-4")).toEqual({ seite: "module", unter: null });
+    expect(ausPfad("/module/praktikum")).toEqual({ seite: "module", unter: "praktikum" });
+    expect(ausPfad("/module/praktikum-4")).toEqual({ seite: "module", unter: null });
+    // Die SPG Academy gibt es nicht mehr — ihr alter Weg führt zur Übersicht.
+    expect(ausPfad("/module/spg")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/pitch")).toEqual({ seite: "module", unter: null });
   });
 

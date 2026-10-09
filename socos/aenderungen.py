@@ -23,7 +23,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-10-09",
-        "titel": "Thoughts bleibt übersichtlich",
+        "titel": "Thoughts übersichtlicher, SPG Academy entfernt",
         "punkte": [
             {
                 "titel": "Erledigtes klappt ein",
@@ -42,6 +42,15 @@ VERSIONEN = [
                     "und lässt sich von dort wieder aufnehmen."
                 ),
                 "wo": "module/thoughts",
+            },
+            {
+                "titel": "Die SPG Academy ist weg",
+                "text": (
+                    "Lean Model Canvas, Business Plan Lite und Vision Statement wurden nicht "
+                    "genutzt und sind aus den Modulen verschwunden, samt ihrem Inhalt. Die drei "
+                    "Abgaben auf der Tafel bleiben stehen, bis du sie abhakst oder entfernst."
+                ),
+                "wo": "module",
             },
         ],
     },
@@ -257,7 +266,6 @@ VERSIONEN = [
                     "markierst du die drei Kernstellen fett, indem du sie in "
                     "**zwei Sternchen** fasst."
                 ),
-                "wo": "module/spg-vision",
             },
         ],
     },
@@ -336,7 +344,6 @@ VERSIONEN = [
                     "ob sie Nutzer oder Kunde sind. Auf der Leinwand stehen sie "
                     "unter den Punkten, im PDF auf einer eigenen Seite."
                 ),
-                "wo": "module/spg",
             },
             {
                 "titel": "Product links, Market rechts",
@@ -345,12 +352,10 @@ VERSIONEN = [
                     "darunter sagt eine Zeile, was sie trennt: links das Produkt, "
                     "rechts der Markt."
                 ),
-                "wo": "module/spg",
             },
             {
                 "titel": "Größeres Fenster zum Bearbeiten",
                 "text": "Das Fenster zu einem Feld ist deutlich breiter — lange Punkte stehen in einer Zeile.",
-                "wo": "module/spg",
             },
             {
                 "titel": "Business Plan Lite: Überblick statt Schreibfläche",
@@ -360,7 +365,6 @@ VERSIONEN = [
                     "am 19.11. — und je Abschnitt, was hineingehört und ob er offen, "
                     "im Entwurf oder fertig ist. Ein Tipp auf den Stand dreht ihn weiter."
                 ),
-                "wo": "module/spg-businessplan",
             },
             {
                 "titel": "Aufgaben mit Frist",
@@ -379,7 +383,6 @@ VERSIONEN = [
                     "Je Abschnitt stehen jetzt Stichworte aus der Vorlage der SPG — "
                     "was er abdecken muss — und wie viele Seiten er haben soll."
                 ),
-                "wo": "module/spg-businessplan",
             },
         ],
     },
@@ -408,7 +411,6 @@ VERSIONEN = [
                     "und steht immer da — auch leer, mit allen Fragen. Als PDF gibt "
                     "es sie auch."
                 ),
-                "wo": "module/spg",
             },
             {
                 "titel": "Zweiter Workshop: Business Plan Lite",
@@ -419,7 +421,6 @@ VERSIONEN = [
                     "bearbeitet wird er wie die Leinwand, und als PDF kommt er "
                     "als Dokument heraus."
                 ),
-                "wo": "module/spg-businessplan",
             },
             {
                 "titel": "Jedes Feld sagt, was verlangt ist",
@@ -430,7 +431,6 @@ VERSIONEN = [
                     "Aufgabe aus den Vorbereitungsvideos — etwa „höchstens drei "
                     "Probleme“ oder „eine Persona anlegen“."
                 ),
-                "wo": "module/spg",
             },
         ],
     },

@@ -53,9 +53,6 @@ NAMEN = {
     "socos.Monatskosten": ("p", "Monatskosten", "Monatskosten"),
     "socos.Rueckmeldung": ("f", "Meldung", "Meldungen"),
     "socos.Aufgabe": ("f", "Aufgabe", "Aufgaben"),
-    "socos.Vorhaben": ("n", "Vorhaben", "Vorhaben"),
-    "socos.Canvaspunkt": ("m", "Canvas-Punkt", "Canvas-Punkte"),
-    "socos.Persona": ("f", "Persona", "Personas"),
     "socos.Praktikumsthema": ("n", "Praktikumsthema", "Praktikumsthemen"),
     "socos.Lagethema": ("n", "Thema in Thoughts", "Themen in Thoughts"),
     "socos.Lageschritt": ("m", "Schritt in Thoughts", "Schritte in Thoughts"),
@@ -88,7 +85,7 @@ VERB = {
 }
 
 
-# Länger wird ein Objekt im Satz nicht. Ein Canvas-Punkt oder eine Aufgabe ist
+# Länger wird ein Objekt im Satz nicht. Eine Aufgabe oder ein Schritt ist
 # oft ein ganzer Satz für sich, und die Kachel soll fünf Zeilen zeigen, nicht
 # drei Absätze.
 OBJEKT_HOECHSTENS = 60
@@ -98,8 +95,8 @@ def kuerzen(text):
     """
     Der Objekttext, wie er im Satz steht: ohne `**` und gekürzt.
 
-    Die Sternchen sind die Hervorhebung aus dem Vision Statement. Dort werden
-    sie fett gesetzt, hier stünden sie roh im Satz.
+    Die Sternchen sind Markdown-Hervorhebung, wie sie beim Einfügen aus einem
+    LLM mitkommt. Hier stünden sie roh im Satz.
     """
     text = " ".join(text.replace("**", "").split())
     if len(text) <= OBJEKT_HOECHSTENS:

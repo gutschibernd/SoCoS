@@ -55,9 +55,6 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   // anderen Seite aus.
   "aufgaben/ideen": { titel: "Aufgaben", unter: "Ideen — was möglich wäre, noch nicht entschieden" },
   "aufgaben/archiv": { titel: "Aufgaben", unter: "Archiv — was abgehakt ist" },
-  "module/spg": { titel: "SPG Academy", unter: "Lean Model Canvas" },
-  "module/spg-businessplan": { titel: "SPG Academy", unter: "Business Plan Lite" },
-  "module/spg-vision": { titel: "SPG Academy", unter: "Vision Statement" },
   "module/praktikum": { titel: "Praktikantenstellen", unter: "Haupt-Aufgabenstellungen" },
   "module/praktikum-ideen": { titel: "Praktikantenstellen", unter: "Sonstige Ideen" },
   "module/thoughts": { titel: "Thoughts", unter: "Was frei ist, was wartet" },

@@ -125,6 +125,10 @@ class TestPdf:
         assert _seiten(antwort.content) == 1
         assert 'filename="Praktikum_Usability-Spender.pdf"' in antwort["Content-Disposition"]
 
+    def test_der_dateiname_bleibt_ascii(self):
+        thema = Praktikumsthema(titel="Prüfung für Ärzte")
+        assert ausschreibung.dateiname(thema) == "Praktikum_Pruefung-fuer-Aerzte.pdf"
+
     @pytest.mark.django_db
     def test_ohne_ausschreibung_kein_pdf(self, client, leser, thema):
         client.force_login(leser)

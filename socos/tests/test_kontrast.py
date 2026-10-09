@@ -109,11 +109,11 @@ class TestKontrastDunkel:
 @pytest.mark.parametrize("palette", [HELL, DUNKEL], ids=["hell", "dunkel"])
 @pytest.mark.parametrize("vordergrund", ["--text", "--text-leise", "--akzent"])
 @pytest.mark.parametrize("hintergrund", ["--flaeche", "--grund", "--akzent-hell"])
-def test_die_leinwand_des_lean_canvas(palette, vordergrund, hintergrund):
+def test_text_und_akzent_auf_den_drei_gruenden(palette, vordergrund, hintergrund):
     """
-    Auf der Leinwand stehen Text, Leitfragen und Feldnummer auf drei Gründen:
-    ein Feld mit Punkten, ein leeres Feld und das hervorgehobene
-    Nutzenversprechen. Gerade der dritte ist der, an dem man nicht nachsieht.
+    Text, leiser Text und Akzent stehen auf Fläche, Seitengrund und der hellen
+    Akzentfläche (neue Kontakte, hohe Priorität, Frist heute). Gerade die
+    dritte ist die, an der man nicht nachsieht.
     """
     wert = kontrast(palette[vordergrund], palette[hintergrund])
     assert wert >= AA_KLEIN, f"{vordergrund} auf {hintergrund}: {wert:.2f}:1"

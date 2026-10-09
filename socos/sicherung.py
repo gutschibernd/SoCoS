@@ -39,9 +39,6 @@ MODELLE_IM_ARCHIV = [
     "socos.Monatskosten",
     "socos.Rueckmeldung",
     "socos.Aufgabe",
-    "socos.Vorhaben",
-    "socos.Canvaspunkt",
-    "socos.Persona",
     "socos.Praktikumsthema",
     "socos.Lagethema",
     "socos.Lageschritt",
@@ -106,10 +103,6 @@ LOESCHREIHENFOLGE = [
     "socos.Rueckmeldung",
     # Zeigt auf den Nutzer und steht deshalb vor ihm.
     "socos.Aufgabe",
-    # Punkt und Persona vor ihrem Vorhaben.
-    "socos.Canvaspunkt",
-    "socos.Persona",
-    "socos.Vorhaben",
     "socos.Praktikumsthema",
     # Verbindungen vor Schritten vor Themen: jedes hängt am nächsten.
     "socos.Lageverbindung",
@@ -133,6 +126,14 @@ LOESCHREIHENFOLGE = [
 # Verweise auf diese Modelle werden über natürliche Schlüssel gesichert
 # (--natural-foreign), damit sie nach dem Migrieren wieder auflösbar sind.
 
+# Modelle, die es nicht mehr gibt, die aber in älteren Archiven stehen. Sie
+# werden beim Einspielen übergangen. Ohne das bräche `loaddata` an der ersten
+# Zeile ab („Invalid model identifier") — und jedes Archiv von vor der
+# Entfernung wäre wertlos, auch für alles andere, was darin steht.
+#
+# Die SPG Academy (Migration 0047): entfernt, weil sie nicht genutzt wurde.
+ENTFERNTE_MODELLE = {"socos.vorhaben", "socos.canvaspunkt", "socos.persona"}
+
 DATENBANK_IM_ARCHIV = "datenbank.json"
 MEDIEN_IM_ARCHIV = "medien"
 
@@ -154,6 +155,7 @@ def archivname(zeitpunkt):
 # heraus tun. Zwei Kopien liefen auseinander — und die Sicherung ist genau die
 # Stelle, an der man das erst im Ernstfall merkt.
 
+import json
 import shutil
 import tarfile
 import tempfile
@@ -230,6 +232,7 @@ def archiv_einspielen(quelle):
                 f"Das Archiv enthält kein {DATENBANK_IM_ARCHIV}. "
                 "Stammt es aus der Sicherung von SoCoS?"
             )
+        _entfernte_uebergehen(datenbank)
 
         geleert = []
         with transaction.atomic():
@@ -257,6 +260,19 @@ def archiv_einspielen(quelle):
             _medien_ersetzen(medien_quelle)
 
     return geleert
+
+
+def _entfernte_uebergehen(datenbank):
+    """Schreibt `datenbank` ohne die Zeilen der entfernten Modelle zurück."""
+    try:
+        zeilen = json.loads(datenbank.read_text(encoding="utf-8"))
+    except ValueError as fehler:
+        raise ArchivFehler(f"Das Archiv ließ sich nicht einlesen: {fehler}")
+    if not isinstance(zeilen, list):
+        raise ArchivFehler(f"{DATENBANK_IM_ARCHIV} ist keine Liste von Datensätzen.")
+    behalten = [z for z in zeilen if str(z.get("model", "")).lower() not in ENTFERNTE_MODELLE]
+    if len(behalten) != len(zeilen):
+        datenbank.write_text(json.dumps(behalten, ensure_ascii=False), encoding="utf-8")
 
 
 def _medien_ersetzen(quelle):

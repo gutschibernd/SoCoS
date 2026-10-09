@@ -7,7 +7,7 @@ betrifft.
 
 ---
 
-## 2026-10-09 — Thoughts: Erledigtes eingeklappt, Themen abschließen (Migration 0047)
+## 2026-10-09 — Thoughts: Erledigtes eingeklappt, Themen abschließen (Migration 0048)
 
 **Wunsch Bernd:** Erledigte Schritte sollen einklappen — erst in den
 Strängen, dann auch auf der Sternkarte („drei erledigte Kacheln zu einer") —,
@@ -41,6 +41,35 @@ Karte, und niemand sähe es wieder. Die Schnittstelle liefert weiter alles;
 `offeneKarte` nimmt abgeschlossene Themen samt Schritten und Pfeilen heraus,
 bevor Bühne, Lage und Fangfeld sie sehen. Pfeile aus einem abgeschlossenen
 Thema sperren deshalb nichts — ihr Anfang war erledigt.
+
+---
+
+## 2026-10-09 — SPG Academy entfernt (Migration 0047)
+
+**Auftrag Bernd:** Das Modul wird nicht genutzt, ganz löschen. Weg sind die
+Modelle `Vorhaben`, `Canvaspunkt` und `Persona`, `/api/vorhaben/` und
+`/api/personas/`, das PDF der Leinwand (`services/leinwand.py`), die Seiten unter
+`/module/spg*`, das Zeichen „akademie" und der Abschnitt in der Doku.
+`ascii_teil` ist zur Ausschreibung des Praktikums gezogen, dem einzigen, der es
+noch braucht.
+
+**Die Migration löscht die Tabellen hart** — die eine Ausnahme von „es gibt kein
+hartes Löschen", und eine mit Absicht: Ohne Oberfläche gibt es nichts, worüber
+man ein weich Gelöschtes zurückholen könnte, und eine Tabelle, die nur noch im
+Schema steht, muss jede Sicherung weiter mitschleppen. Der Inhalt liegt in jedem
+Archiv von vor diesem Tag.
+
+**Ältere Archive lassen sich weiter einspielen.** `loaddata` bricht an einem
+unbekannten Modell ab, und damit wäre jede ältere Sicherung wertlos geworden —
+auch für alles andere darin. `ENTFERNTE_MODELLE` in `socos/sicherung.py` nennt,
+was beim Einspielen übergangen wird; ein Test baut ein solches Archiv nach.
+**Wer wieder ein Modell entfernt, trägt es dort ein.**
+
+**Stehen geblieben:** die drei Abgaben des Business Plan Lite als Aufgaben auf
+der Tafel (Migration 0025) — sie sind seither gewöhnliche Aufgaben —, die
+Einträge im Änderungsprotokoll und die alten Punkte in `aenderungen.py` (ohne
+ihren „Ansehen"-Weg, der ins Leere führte). Die Abschnitte vom 2026-09-21 bis
+2026-09-25 weiter unten beschreiben, was es gab.
 
 ---
 
@@ -863,6 +892,8 @@ dafür hängt die Mail am Meeting.
 
 ## 2026-09-25 — Vision Statement, der dritte Workshop (Migration 0027, 0028)
 
+*Entfernt am 2026-10-09 mit der ganzen SPG Academy.*
+
 **Ein Satz: „Our Vision is …"**, darin drei Kernstellen fett. **Derselbe
 Mechanismus wie Canvas und Plan**: `Visionsteil` als weiterer Wert für
 `Canvaspunkt.feld`, höchstens **ein** Punkt (geprüft in `feld`). Ein Textfeld am
@@ -891,6 +922,9 @@ steht dort als drei gleiche Spalten mit umbrechendem Titel, sonst schnitte
 ---
 
 ## 2026-09-22 — Business Plan Lite als Überblick, Aufgaben mit Frist (Migration 0025)
+
+*Der Business Plan Lite ist am 2026-10-09 mit der SPG Academy entfernt.
+`Aufgabe.frist` gilt weiter.*
 
 ### Der Plan wird nicht in SoCoS geschrieben
 
@@ -944,6 +978,9 @@ Tage werden über UTC-Mitternacht gezählt: Am 25. Oktober hat der Tag 25 Stunde
 und zwei Ortsmitternächte ergäben dort 1,04 Tage.
 
 ## 2026-09-21 — Module und die SPG Academy (`Vorhaben`, `Canvaspunkt`, Migration 0021)
+
+*Die SPG Academy ist am 2026-10-09 entfernt. Was über „Module" unter Intern
+steht, gilt weiter.*
 
 ### „Module" steht unter Intern und klappt nur auf, wenn man drin ist
 
