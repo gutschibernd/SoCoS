@@ -6,39 +6,23 @@
  * der Übersicht noch keine Kachel, und niemand sähe warum.
  */
 
-import { tageBis } from "./aufgaben";
-import type { Abschnittstand, Canvaspunkt, Persona, Themenart, Vorhaben, Workshopschluessel } from "./daten";
+import type { Themenart } from "./daten";
 import type { ZeichenName } from "../bausteine/Zeichen";
 
-/** Ein Workshop in einem Modul — ein Teil mit eigenem Weg und eigenen Feldern. */
-export type Workshop = {
-  /** Der Weg hinter `/module/` — der erste Teil eines Moduls trägt dessen Weg. */
-  weg: string;
-  titel: string;
-  /** Wie die Schnittstelle ihn nennt (`/api/vorhaben/felder/?workshop=…`). */
-  schluessel: Workshopschluessel;
-  /** Was er zählt: „9 Felder", „8 Abschnitte", „1 Satz". */
-  einheit: string;
-};
-
 /**
- * Ein Teil, der kein Workshop ist: eine Liste von Themen, die man selbst
- * anlegt — die Haupt-Aufgabenstellungen der Praktikantenstellen oder ihre
- * sonstigen Ideen. Er hat keine Felder vom Server und zählt nichts gegen eine
- * feste Zahl. Beide Listen sind dasselbe Modell; `art` trennt sie.
+ * Eine Liste von Themen, die man selbst anlegt — die Haupt-Aufgabenstellungen
+ * der Praktikantenstellen oder ihre sonstigen Ideen. Der Weg des ersten Teils
+ * ist der Weg des Moduls. Beide Listen sind dasselbe Modell; `art` trennt sie.
  */
 export type Themenliste = { weg: string; titel: string; schluessel: "praktikum"; art: Themenart };
 
-/**
- * Ein Teil, der eine eigene Seite ohne Felder vom Server ist — Thoughts.
- * Sie hat keine Unterteile und zählt nichts gegen eine feste Zahl.
- */
+/** Ein Teil, der eine eigene Seite ohne Unterteile ist — Thoughts. */
 export type Kartenteil = { weg: string; titel: string; schluessel: "thoughts" };
 
 /** Die Förderungen: Programme mit Anträgen — eine eigene Seite, Anträge darunter. */
 export type Foerderteil = { weg: string; titel: string; schluessel: "foerderung" };
 
-export type Teil = Workshop | Themenliste | Kartenteil | Foerderteil;
+export type Teil = Themenliste | Kartenteil | Foerderteil;
 
 export type Modul = {
   /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
@@ -51,17 +35,6 @@ export type Modul = {
 };
 
 export const MODULE: Modul[] = [
-  {
-    weg: "spg",
-    titel: "SPG Academy",
-    wozu: "Workshop-Aufgaben ausarbeiten",
-    zeichen: "akademie",
-    teile: [
-      { weg: "spg", titel: "Lean Model Canvas", schluessel: "canvas", einheit: "Felder" },
-      { weg: "spg-businessplan", titel: "Business Plan Lite", schluessel: "businessplan", einheit: "Abschnitte" },
-      { weg: "spg-vision", titel: "Vision Statement", schluessel: "vision", einheit: "Satz" },
-    ],
-  },
   {
     weg: "praktikum",
     titel: "Praktikantenstellen",
@@ -162,169 +135,7 @@ export function teilZuWeg(unter: string | null): { modul: Modul; teil: Teil } | 
   return null;
 }
 
-/* --- Die Leinwand --------------------------------------------------------- */
-
-/** Die Punkte eines Feldes in ihrer Reihenfolge. */
-export function punkteIn(vorhaben: Vorhaben, feld: string): Canvaspunkt[] {
-  return vorhaben.punkte
-    .filter((p) => p.feld === feld)
-    .sort((a, b) => a.reihenfolge - b.reihenfolge || a.id - b.id);
-}
-
-/**
- * Wie viele der genannten Felder mindestens einen Punkt haben. Die Felder
- * werden mitgegeben, weil an einem Vorhaben die Punkte **aller** Workshops
- * hängen — ohne sie zählte das Canvas die Abschnitte des Businessplans mit.
- */
-export function ausgefuellt(vorhaben: Vorhaben, felder: string[]): number {
-  const belegt = new Set(vorhaben.punkte.map((p) => p.feld));
-  return felder.filter((f) => belegt.has(f)).length;
-}
-
-/* --- Business Plan Lite ---------------------------------------------------- */
-
-/**
- * Die drei Abgaben des Business Plan Lite, wie die SPG Academy sie setzt.
- *
- * Sie stehen außerdem als Aufgaben mit Frist auf der Tafel (Migration 0025) —
- * dort werden sie abgehakt. **Hier** steht nur der Fahrplan: Verschiebt die
- * Academy eine Abgabe, wird sie hier und auf der Tafel geändert.
- */
-export const PLANVERSIONEN: { titel: string; frist: string }[] = [
-  { titel: "Version 1", frist: "2026-10-12" },
-  { titel: "Version 2", frist: "2026-10-27" },
-  { titel: "Finale Abgabe", frist: "2026-11-19" },
-];
-
-export type Abgabe = {
-  titel: string;
-  frist: string;
-  tage: number;
-  /** Vorbei, die nächste, die jetzt ansteht, oder eine danach. */
-  lage: "vorbei" | "naechste" | "spaeter";
-};
-
-/** Die Abgaben mit ihrem Abstand zu heute. Die erste, die nicht vorbei ist, ist die nächste. */
-export function abgaben(heute = new Date()): Abgabe[] {
-  let naechsteVergeben = false;
-  return PLANVERSIONEN.map((v) => {
-    const tage = tageBis(v.frist, heute);
-    let lage: Abgabe["lage"] = "vorbei";
-    if (tage >= 0) {
-      lage = naechsteVergeben ? "spaeter" : "naechste";
-      naechsteVergeben = true;
-    }
-    return { ...v, tage, lage };
-  });
-}
-
-/** Die Reihenfolge ist der Weg, den ein Abschnitt geht — und die Reihenfolge des Weiterdrehens. */
-export const STAENDE: { wert: Abschnittstand; text: string }[] = [
-  { wert: "offen", text: "offen" },
-  { wert: "entwurf", text: "Entwurf" },
-  { wert: "fertig", text: "fertig" },
-];
-
-/** Der Stand eines Abschnitts — was nie gesetzt wurde, ist offen. */
-export function standVon(vorhaben: Vorhaben, abschnitt: string): Abschnittstand {
-  return vorhaben.planstand[abschnitt] ?? "offen";
-}
-
-/** Ein Tipp dreht weiter: offen → Entwurf → fertig → offen. */
-export function naechsterStand(jetzt: Abschnittstand): Abschnittstand {
-  const i = STAENDE.findIndex((s) => s.wert === jetzt);
-  return STAENDE[(i + 1) % STAENDE.length].wert;
-}
-
-/** Wie viele der genannten Abschnitte fertig sind. */
-export function fertigeAbschnitte(vorhaben: Vorhaben, abschnitte: string[]): number {
-  return abschnitte.filter((a) => standVon(vorhaben, a) === "fertig").length;
-}
-
-/* --- Vision Statement ------------------------------------------------------ */
-
-/**
- * Der Satz in Stücke zerlegt: `**…**` markiert eine Stelle fett, wie man es
- * aus Chat und Markdown kennt. Welche Stellen es sind, entscheidet, wer den
- * Satz schreibt — deshalb stehen sie im Text und nicht in einem Feld daneben.
- *
- * Ein `**` ohne Gegenstück bleibt als Zeichen stehen, statt den Rest des
- * Satzes fett zu machen: Ein vergessener Stern soll auffallen, nicht den
- * halben Satz verschlucken.
- */
-export function fettStellen(text: string): { text: string; fett: boolean }[] {
-  const stuecke: { text: string; fett: boolean }[] = [];
-  const muster = /\*\*(.+?)\*\*/g;
-  let ab = 0;
-  for (const treffer of text.matchAll(muster)) {
-    if (treffer.index > ab) stuecke.push({ text: text.slice(ab, treffer.index), fett: false });
-    stuecke.push({ text: treffer[1], fett: true });
-    ab = treffer.index + treffer[0].length;
-  }
-  if (ab < text.length) stuecke.push({ text: text.slice(ab), fett: false });
-  return stuecke;
-}
-
-/* --- Ein Feld bearbeiten -------------------------------------------------- */
-
-/**
- * Ein Punkt, während er bearbeitet wird. `id: null` heißt: neu, noch nicht
- * gespeichert. `schluessel` hält React die Zeile fest, auch wenn sich darüber
- * eine neue einschiebt — die `id` taugt dafür nicht, neue haben noch keine.
- */
-export type Punktentwurf = { schluessel: string; id: number | null; text: string };
-
-let naechsterSchluessel = 0;
-export const neuerSchluessel = () => `neu-${++naechsterSchluessel}`;
-
-export function alsEntwuerfe(punkte: Canvaspunkt[]): Punktentwurf[] {
-  const entwuerfe = punkte.map((p) => ({ schluessel: `p-${p.id}`, id: p.id, text: p.text }));
-  // Ein leeres Feld beginnt mit einer leeren Zeile — sonst müsste man vor dem
-  // ersten Wort erst einen Knopf suchen.
-  return entwuerfe.length ? entwuerfe : [{ schluessel: neuerSchluessel(), id: null, text: "" }];
-}
-
-/**
- * Ob sich gegenüber dem Gespeicherten etwas geändert hat — **mit denselben
- * Regeln wie der Server**: Leere Zeilen zählen nicht, Leerzeichen am Rand auch
- * nicht. Sonst fragte das Fenster beim Schließen nach etwas, das beim
- * Speichern ohnehin verworfen würde.
- */
-export function istGeaendert(punkte: Canvaspunkt[], entwuerfe: Punktentwurf[]): boolean {
-  const echte = entwuerfe.filter((e) => e.text.trim());
-  if (echte.length !== punkte.length) return true;
-  return echte.some((e, i) => e.id !== punkte[i].id || e.text.trim() !== punkte[i].text);
-}
-
-/** Was an den Server geht: die Liste in ihrer Reihenfolge, ohne leere Zeilen. */
-export function zumSenden(entwuerfe: Punktentwurf[]): { id?: number; text: string }[] {
-  return entwuerfe
-    .filter((e) => e.text.trim())
-    .map((e) => (e.id === null ? { text: e.text.trim() } : { id: e.id, text: e.text.trim() }));
-}
-
-/**
- * „heute 10:42", „gestern 16:05", sonst das Datum. Die Uhrzeit nur, solange sie
- * noch etwas sagt — „am 3. März um 10:42" fragt niemand.
- */
-export function zuletztText(iso: string, jetzt = new Date()): string {
-  const d = new Date(iso);
-  const tag = (x: Date) => `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`;
-  const gestern = new Date(jetzt);
-  gestern.setDate(jetzt.getDate() - 1);
-  const uhr = d.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" });
-  if (tag(d) === tag(jetzt)) return `heute ${uhr}`;
-  if (tag(d) === tag(gestern)) return `gestern ${uhr}`;
-  return d.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
-
-/* --- Personas -------------------------------------------------------------- */
-
-export const ROLLEN: { wert: Persona["rolle"]; text: string }[] = [
-  { wert: "nutzer", text: "Nutzer" },
-  { wert: "kunde", text: "Kunde" },
-  { wert: "beides", text: "Nutzer und Kunde" },
-];
+/* --- Beträge --------------------------------------------------------------- */
 
 /**
  * „1.450" oder „1450,50" → "1450.00" / "1450.50" für die API; leer → null.
@@ -353,11 +164,6 @@ export function alsEuro(betrag: string): string {
 export function betragZumBearbeiten(betrag: string | null): string {
   if (betrag === null) return "";
   return betrag.replace(/\.00$/, "").replace(".", ",");
-}
-
-/** „78 · Pensionistin · Graz" — so viel, wie davon eingetragen ist. */
-export function personaKurz(p: Persona): string {
-  return [p.alter !== null ? `${p.alter} Jahre` : "", p.beruf, p.wohnort].filter(Boolean).join(" · ");
 }
 
 /* --- Praktikantenstellen ---------------------------------------------------- */

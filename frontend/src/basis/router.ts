@@ -95,7 +95,7 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   kontakte: (unter) => unter === "lose" || /^\d+$/.test(unter),
   events: (unter) => /^\d+$/.test(unter),
   meetings: (unter) => /^\d+$/.test(unter),
-  // Ein Workshop eines Moduls: `/module/spg`, `/module/spg-businessplan`. Die
+  // Ein Teil eines Moduls: `/module/praktikum`, `/module/thoughts`. Die
   // Liste steht in basis/module.ts und nicht ein zweites Mal hier. Dazu ein
   // einzelnes Praktikumsthema: `/module/praktikum/12`, `/module/praktikum-ideen/7`,
   // Fördergeber, Programm und Antrag: `/module/foerderungen/2`, `/2/1`, `/2/1/3`,

@@ -214,7 +214,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, nach Fälligkeit." },
-            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die SPG Academy, die Praktikantenstellen und Thoughts." },
+            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die Praktikantenstellen, Thoughts und die Förderungen." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
@@ -758,65 +758,6 @@ function ModuleDoku() {
             {
               begriff: "Ein Modul fehlt",
               text: "Module entstehen im Code, nicht in der Oberfläche. Wer eines braucht, meldet es unter Wünsche & Fehler.",
-            },
-          ]}
-        />
-      </Abschnitt>
-
-      <Abschnitt
-        zeichen="akademie"
-        titel="SPG Academy: Lean Model Canvas, Business Plan Lite und Vision Statement"
-        vorspann="Hier kommen die Ergebnisse aus dem Workshop hin: neun Felder, nummeriert wie in der SPG Academy, für das Vorhaben Sopharmis Arzneimittelspender."
-      >
-        <Schritte
-          schritte={[
-            "Auf ein Feld klicken. Oben steht die Aufgabe aus den Vorbereitungsvideos — was im Feld verlangt ist —, darunter die Fragen aus dem Workshop und dann deine Punkte.",
-            "Enter beginnt den nächsten Punkt, Umschalt+Enter bricht innerhalb eines Punktes um. Rückschritt in einer leeren Zeile nimmt sie weg; mit Alt+↑ und Alt+↓ verschiebst du einen Punkt.",
-            "Mit den Knöpfen unten im Fenster gehst du zum vorigen oder nächsten Feld. Was offen ist, wird dabei gespeichert.",
-            "„PDF“ gibt die Leinwand als eine Seite A4 quer aus — zum Mitnehmen in den Workshop.",
-          ]}
-        />
-        <Merke>
-          Gespeichert wird mit „Speichern“ oder beim Weiterblättern, nicht beim Tippen. Schließt du
-          das Fenster mit offenen Änderungen, wird nachgefragt.
-        </Merke>
-        <Begriffe
-          paare={[
-            {
-              begriff: "Wer was darf",
-              text: "Sehen dürfen alle. Punkte schreiben und streichen dürfen Admin und Bearbeiter; ein Leser sieht die Leinwand ohne Stift.",
-            },
-            {
-              begriff: "Ein Vorhaben",
-              text: "In der SPG Academy gibt es genau eines: Sopharmis Arzneimittelspender. Es hängt an keinem Projekt, und die Seite zeigt immer seine Leinwand.",
-            },
-            {
-              begriff: "Personas",
-              text: "Im Fenster zu Customer Segments, unter den Punkten: „+ Persona“ legt einen Steckbrief an — eine erfundene Person mit Alter, Geschlecht, Einkommen, Beruf, Wohnort, Haushalt, Bedürfnissen und Problemen, dazu ob sie Nutzer, Kunde oder beides ist. Ein Klick auf eine Persona öffnet ihren Steckbrief. Sie wird für sich gespeichert, unabhängig von den Punkten. Entfernen darf sie nur der Admin.",
-            },
-            {
-              begriff: "Product und Market",
-              text: "Die gestrichelte Linie in der Mitte teilt die Leinwand: links, was das Produkt betrifft, rechts den Markt. Die Zeile darunter sagt es noch einmal.",
-            },
-            {
-              begriff: "Business Plan Lite",
-              text: "Der zweite Workshop, oben umzuschalten. Geschrieben wird der Plan nicht hier, sondern im Dokument, das abgegeben wird. SoCoS zeigt oben die drei Abgaben — Version 1 am 12.10., Version 2 am 27.10., die finale Fassung am 19.11. — und darunter je Abschnitt in Stichworten aus der Vorlage der SPG, was er abdecken muss, und wie viele Seiten er haben soll.",
-            },
-            {
-              begriff: "Stand eines Abschnitts",
-              text: "Rechts neben dem Titel: offen, Entwurf oder fertig. Ein Tipp dreht weiter. Oben zählt SoCoS, wie viele Abschnitte fertig sind.",
-            },
-            {
-              begriff: "Die Abgaben",
-              text: "Sie stehen außerdem als Aufgaben mit Frist unter „Allgemein“ auf der Tafel. Abgehakt wird dort.",
-            },
-            {
-              begriff: "Vision Statement",
-              text: "Der dritte Workshop, oben umzuschalten: ein Satz, der mit „Our Vision is“ beginnt. Unter „Bearbeiten“ schreibst du den Rest. Was fett stehen soll — die drei Kernstellen —, fasst du in zwei Sternchen: **safe** wird zu safe in Fett. Ein einzelnes ** ohne Gegenstück bleibt als Zeichen stehen, damit ein vergessener Stern auffällt.",
-            },
-            {
-              begriff: "Ein volles Feld im PDF",
-              text: "Was nicht in seinen Kasten passt, wird kleiner gesetzt. Reicht das nicht, steht am Ende des Feldes, wie viele Punkte fehlen.",
             },
           ]}
         />

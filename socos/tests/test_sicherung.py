@@ -32,7 +32,6 @@ from socos.models import (
     Projekt,
     Protokolleintrag,
     Verlaufseintrag,
-    Vorhaben,
 )
 
 
@@ -508,15 +507,37 @@ def test_pensen_und_phasenlaufzeit_wandern_mit(tmp_path, medien, bearbeiter):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_stand_des_business_plan_wandert_mit(tmp_path, medien):
-    """Der Stand je Abschnitt ist ein Feld am Vorhaben — er muss mit ihm zurückkommen."""
-    vorhaben = Vorhaben.objects.create(titel="Spender", planstand={"markt": "entwurf", "summary": "fertig"})
+def test_ein_archiv_mit_entfernten_modellen_laesst_sich_einspielen(tmp_path, medien):
+    """
+    Ein Archiv von vor der Entfernung der SPG Academy enthält noch Vorhaben,
+    Canvas-Punkte und Personas. Was es sonst enthält, muss trotzdem
+    zurückkommen — sonst wäre jede ältere Sicherung wertlos.
+    """
+    import json
+    import tarfile
 
+    Aufgabe.objects.create(text="Bleibt")
     archiv = tmp_path / "archiv.tar.gz"
     call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
 
-    vorhaben.planstand = {}
-    vorhaben.save()
-    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+    # Das Archiv so umbauen, wie es vor der Entfernung aussah.
+    entpackt = tmp_path / "entpackt"
+    with tarfile.open(archiv, "r:gz") as datei:
+        datei.extractall(entpackt, filter="data")
+    datenbank = entpackt / sicherung.DATENBANK_IM_ARCHIV
+    zeilen = json.loads(datenbank.read_text(encoding="utf-8"))
+    zeilen += [
+        {"model": "socos.vorhaben", "pk": 1, "fields": {"titel": "Spender", "planstand": {}}},
+        {"model": "socos.canvaspunkt", "pk": 1, "fields": {"vorhaben": 1, "feld": "problem", "text": "x"}},
+        {"model": "socos.persona", "pk": 1, "fields": {"vorhaben": 1, "name": "Maria"}},
+    ]
+    datenbank.write_text(json.dumps(zeilen), encoding="utf-8")
+    alt = tmp_path / "alt.tar.gz"
+    with tarfile.open(alt, "w:gz") as datei:
+        datei.add(datenbank, arcname=sicherung.DATENBANK_IM_ARCHIV)
+        datei.add(entpackt / sicherung.MEDIEN_IM_ARCHIV, arcname=sicherung.MEDIEN_IM_ARCHIV)
 
-    assert Vorhaben.objects.get(titel="Spender").planstand == {"markt": "entwurf", "summary": "fertig"}
+    Aufgabe.objects.all().hart_loeschen()
+    call_command("sicherung_einspielen", str(alt), ja_bestand_ersetzen=True, verbosity=0)
+
+    assert Aufgabe.objects.filter(text="Bleibt").exists()

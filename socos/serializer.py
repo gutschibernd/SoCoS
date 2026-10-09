@@ -16,7 +16,6 @@ from socos.models import (
     Lagethema,
     Lageverbindung,
     Aufgabe,
-    Canvaspunkt,
     Event,
     Eventanhang,
     Eventziel,
@@ -39,7 +38,6 @@ from socos.models import (
     Nutzer,
     Organisation,
     Pensum,
-    Persona,
     Praktikumsthema,
     Projekt,
     Projektphase,
@@ -47,7 +45,6 @@ from socos.models import (
     Rueckmeldung,
     Unteraufgabe,
     Verlaufseintrag,
-    Vorhaben,
     Zeitbuchung,
 )
 from socos.services import ausschreibung, auswertung, foerderung, lagekarte, zeit as zeitdienst
@@ -741,69 +738,7 @@ class AufgabeSerializer(serializers.ModelSerializer):
         return text
 
 
-# --- Module: SPG Academy ----------------------------------------------------
-
-
-class CanvaspunktSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Canvaspunkt
-        fields = ["id", "feld", "text", "reihenfolge"]
-
-
-class PersonaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Persona
-        fields = [
-            "id", "vorhaben", "name", "rolle", "alter", "geschlecht", "wohnort", "beruf",
-            "haushalt", "einkommen", "beduerfnisse", "probleme", "reihenfolge",
-        ]
-
-
-class VorhabenSerializer(serializers.ModelSerializer):
-    """
-    Ein Vorhaben samt allen Punkten seiner Leinwand — in einem Stück.
-
-    Die Punkte kommen mit, weil die Leinwand sie alle auf einmal zeigt und es
-    nur eine Handvoll Vorhaben gibt. Geschrieben werden sie nicht hier, sondern
-    feldweise über `POST /api/vorhaben/<id>/feld/`, der Stand des Business Plan
-    Lite über `POST /api/vorhaben/<id>/stand/`.
-    """
-
-    punkte = serializers.SerializerMethodField()
-    personas = serializers.SerializerMethodField()
-    zuletzt = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Vorhaben
-        fields = ["id", "titel", "punkte", "personas", "planstand", "zuletzt"]
-        read_only_fields = ["planstand"]
-
-    def get_punkte(self, vorhaben):
-        # Nur die nicht gelöschten — über die Beziehung käme sonst auch weich
-        # Gelöschtes mit, weil Django dafür den Basis-Manager nimmt.
-        menge = [p for p in vorhaben.canvaspunkte.all() if p.geloescht_am is None]
-        menge.sort(key=lambda p: (p.feld, p.reihenfolge, p.id))
-        return CanvaspunktSerializer(menge, many=True).data
-
-    def get_personas(self, vorhaben):
-        menge = [p for p in vorhaben.personas.all() if p.geloescht_am is None]
-        menge.sort(key=lambda p: (p.reihenfolge, p.id))
-        return PersonaSerializer(menge, many=True).data
-
-    def get_zuletzt(self, vorhaben):
-        """
-        Wann zuletzt daran gearbeitet wurde — auch ein entfernter Punkt zählt.
-
-        Gerechnet, nicht gespeichert: Ein Feld am Vorhaben müsste bei jedem
-        Punkt mitgeschrieben werden, und genau das vergisst der nächste Weg,
-        der einen Punkt ändert.
-        """
-        stempel = (
-            [vorhaben.geaendert_am]
-            + [p.geaendert_am for p in vorhaben.canvaspunkte.all()]
-            + [p.geaendert_am for p in vorhaben.personas.all()]
-        )
-        return max(stempel)
+# --- Module: Praktikantenstellen ---------------------------------------------
 
 
 class PraktikumsthemaSerializer(serializers.ModelSerializer):

@@ -356,55 +356,6 @@ export type Meetingzeile = {
   hat_protokoll: boolean;
 };
 
-/** Ein Feld des Lean Model Canvas, wie es der Server beschreibt (`/api/vorhaben/felder/`). */
-export type Canvasfeld = {
-  feld: string;
-  nummer: number;
-  titel: string;
-  /** Was im Feld verlangt ist, aus den Vorbereitungsvideos — oft leer. */
-  aufgabe: string[];
-  leitfragen: string[];
-  /** Wie lang der Abschnitt laut Vorlage sein soll („1–2 pages") — beim Canvas leer. */
-  umfang: string;
-};
-
-export type Abschnittstand = "offen" | "entwurf" | "fertig";
-
-/** Die Workshops der SPG Academy, wie die Schnittstelle sie nennt. */
-export type Workshopschluessel = "canvas" | "businessplan" | "vision";
-
-export type Canvaspunkt = { id: number; feld: string; text: string; reihenfolge: number };
-
-/** Ein Steckbrief zu Customer Segments — eine erfundene Person. */
-export type Persona = {
-  id: number;
-  vorhaben: number;
-  name: string;
-  rolle: "nutzer" | "kunde" | "beides";
-  alter: number | null;
-  geschlecht: string;
-  wohnort: string;
-  beruf: string;
-  haushalt: string;
-  /** Netto im Monat, als Zeichenkette wie jedes Geld in der API. */
-  einkommen: string | null;
-  beduerfnisse: string;
-  probleme: string;
-  reihenfolge: number;
-};
-
-/** Ein Vorhaben der SPG Academy samt allen Punkten seiner Leinwand. */
-export type Vorhaben = {
-  id: number;
-  titel: string;
-  punkte: Canvaspunkt[];
-  personas: Persona[];
-  /** Stand je Abschnitt des Business Plan Lite. Was fehlt, ist offen. */
-  planstand: Record<string, Abschnittstand>;
-  /** Wann zuletzt daran gearbeitet wurde — gerechnet am Server. */
-  zuletzt: string;
-};
-
 export const useIch = () => useQuery({ queryKey: ["ich"], queryFn: () => hole<Ich>("/ich/") });
 
 /**
@@ -491,9 +442,6 @@ export const useEvents = () =>
 
 export const useMeetings = () =>
   useQuery({ queryKey: ["meetings"], queryFn: () => hole<Meeting[]>("/meetings/") });
-
-export const useVorhaben = () =>
-  useQuery({ queryKey: ["vorhaben"], queryFn: () => hole<Vorhaben[]>("/vorhaben/") });
 
 /** Ein Thema für ein Praktikum — eine der Haupt-Aufgabenstellungen. */
 /** Haupt-Aufgabenstellung oder sonstige Idee — dasselbe Thema, eine andere Liste. */
@@ -775,15 +723,6 @@ export const useFoerderkapazitaeten = () =>
 export const useFoerdergeber = () =>
   useQuery({ queryKey: ["foerderungen", "geber"], queryFn: () => hole<Foerdergeber[]>("/foerdergeber/") });
 
-/* Die Felder ändern sich nur mit einer neuen Version der Anwendung — sie
-   werden deshalb nicht bei jedem Fensterwechsel neu geholt. */
-export const useCanvasfelder = (workshop: Workshopschluessel = "canvas") =>
-  useQuery({
-    queryKey: ["canvasfelder", workshop],
-    queryFn: () => hole<Canvasfeld[]>(`/vorhaben/felder/?workshop=${workshop}`),
-    staleTime: Infinity,
-  });
-
 /**
  * Nach jeder Änderung werden **alle** betroffenen Abrufe verworfen.
  *
@@ -796,7 +735,7 @@ export function useNeuLaden() {
   return () => {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
-      "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben", "vorhaben",
+      "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
       "praktikumsthemen", "lagekarte", "foerderungen",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });

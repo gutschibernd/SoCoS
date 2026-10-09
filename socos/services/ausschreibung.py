@@ -34,8 +34,6 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Flowable, Frame, Paragraph, Spacer
 
-from socos.services.leinwand import ascii_teil
-
 UNSERE_FIRMA = "Sopharmis Medical Solutions FlexCo"
 KONTAKT = "info@sopharmis.com"
 
@@ -552,3 +550,17 @@ def _fuss(blatt, breite):
 
 def dateiname(thema):
     return f"Praktikum_{ascii_teil(thema.titel) or 'Thema'}.pdf"
+
+
+def ascii_teil(titel):
+    """
+    Ein Titel als Teil eines Dateinamens.
+
+    Nur ASCII: Ein Umlaut im Dateinamen des Content-Disposition-Kopfs kommt je
+    nach Browser als Mojibake an. Ausgeschrieben statt ersetzt — aus „Prüfung"
+    wird „Pruefung", nicht „Pr-fung".
+    """
+    for umlaut, aus in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("Ä", "Ae"), ("Ö", "Oe"), ("Ü", "Ue"), ("ß", "ss")):
+        titel = titel.replace(umlaut, aus)
+    teil = "".join(z if z.isascii() and z.isalnum() else "-" for z in titel)
+    return "-".join(t for t in teil.split("-") if t)

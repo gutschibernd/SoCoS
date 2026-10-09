@@ -28,16 +28,9 @@ from socos.models import (
     Lageschritt,
     Lagethema,
     Lageverbindung,
-    AUFGABEN,
-    LEITFRAGEN,
-    UMFANG,
-    WORKSHOPS,
     Anhangart,
     Arbeitspaket,
-    Abschnittstand,
     Aufgabe,
-    Canvasfeld,
-    Canvaspunkt,
     Event,
     Eventanhang,
     Eventziel,
@@ -51,8 +44,6 @@ from socos.models import (
     Nutzer,
     Organisation,
     Pensum,
-    Persona,
-    Planabschnitt,
     Praktikumsthema,
     Foerderantrag,
     Foerdergeber,
@@ -69,8 +60,6 @@ from socos.models import (
     Rueckmeldung,
     Unteraufgabe,
     Verlaufseintrag,
-    Visionsteil,
-    Vorhaben,
     Zeitbuchung,
     auffangpaket,
 )
@@ -650,168 +639,6 @@ class EventanhangViewSet(AnhangViewSet):
     besitzer = Event
     besitzerfeld = "event"
     besitzer_fehlt = "Dieses Event gibt es nicht."
-
-
-# --- Module: SPG Academy ----------------------------------------------------
-
-
-class VorhabenViewSet(SocosViewSet):
-    """
-    Die Vorhaben der SPG Academy samt ihrer Leinwand.
-
-    Sehen dürfen alle, bearbeiten Admin und Bearbeiter, ein Vorhaben entfernen
-    nur der Admin — die gewöhnliche Regel aus `berechtigung.py`, keine eigene.
-    """
-
-    serializer_class = ser.VorhabenSerializer
-    queryset = Vorhaben.objects.prefetch_related("canvaspunkte", "personas")
-
-    @action(detail=False, methods=["get"])
-    def felder(self, request):
-        """
-        Die Felder eines Workshops in der Reihenfolge der SPG Academy, samt
-        Aufgabe und Leitfragen. `?workshop=canvas` (Vorgabe), `businessplan`
-        oder `vision`. Das Vision Statement hat keine Leitfragen — sein Titel ist
-        das Stück Satz, das davor steht.
-        """
-        workshop = request.query_params.get("workshop", "canvas")
-        if workshop not in WORKSHOPS:
-            raise ValidationError({"workshop": f"„{workshop}“ ist kein Workshop der SPG Academy."})
-        return Response([
-            {
-                "feld": wert,
-                "nummer": nummer,
-                "titel": titel,
-                "aufgabe": AUFGABEN.get(wert, []),
-                "leitfragen": LEITFRAGEN.get(wert, []),
-                "umfang": UMFANG.get(wert, ""),
-            }
-            for nummer, (wert, titel) in enumerate(WORKSHOPS[workshop].choices, start=1)
-        ])
-
-    @action(detail=True, methods=["post"])
-    def feld(self, request, pk=None):
-        """
-        Setzt die Punkte **eines** Feldes. Die geschickte Liste ist danach der
-        Inhalt des Feldes, in ihrer Reihenfolge.
-
-        Ein Punkt mit `id` wird geändert, einer ohne angelegt, und was fehlt,
-        wird entfernt (weich, wie alles). **Warum abgeglichen und nicht einfach
-        ersetzt:** Beim Ersetzen stünde nach jedem Speichern jeder Punkt
-        zweimal im Änderungsprotokoll — einmal entfernt, einmal neu angelegt —,
-        auch der, an dem niemand etwas geändert hat. Die Frage „wer hat diesen
-        Satz umgeschrieben" hätte dann keine Antwort mehr.
-
-        **Warum ein Bearbeiter hier Punkte entfernen darf,** obwohl Löschen
-        sonst dem Admin vorbehalten ist: Einen Stichpunkt zu streichen ist
-        Arbeit am Text des Feldes, nicht das Entfernen eines Datensatzes, den
-        jemand vermissen könnte. Der gestrichene Punkt bleibt weich gelöscht
-        und steht im Änderungsprotokoll — so wie ein ersetzter
-        Protokollabschnitt eines Meetings.
-        """
-        vorhaben = self.get_object()
-
-        # Canvas und Vision Statement. Der Business Plan Lite wird nicht hier
-        # geschrieben, sondern im Dokument, das abgegeben wird — hier steht nur
-        # sein Stand (siehe `stand`).
-        feld = request.data.get("feld")
-        if feld not in Canvasfeld.values + Visionsteil.values:
-            raise ValidationError({"feld": f"„{feld}“ ist kein Feld, das hier geschrieben wird."})
-
-        roh = request.data.get("punkte")
-        if not isinstance(roh, list):
-            raise ValidationError({"punkte": "Erwartet wird eine Liste von Punkten."})
-        if len(roh) > 60:
-            raise ValidationError({"punkte": "Über 60 Punkte in einem Feld — das ist kein Stichpunkt mehr."})
-
-        vorhanden = {
-            p.pk: p
-            for p in vorhaben.canvaspunkte.filter(feld=feld, geloescht_am__isnull=True)
-        }
-        gewuenscht = []
-        for eintrag in roh:
-            if not isinstance(eintrag, dict):
-                raise ValidationError({"punkte": "Jeder Punkt ist ein Objekt mit einem Text."})
-            text = str(eintrag.get("text") or "").strip()
-            # Eine leere Zeile ist kein Punkt — sie entsteht, wenn jemand
-            # Enter drückt und dann doch nichts schreibt.
-            if not text:
-                continue
-            if len(text) > 2000:
-                raise ValidationError({"punkte": "Ein Punkt ist höchstens 2000 Zeichen lang."})
-            gewuenscht.append((eintrag.get("id"), text))
-
-        # Das Vision Statement ist ein Satz, keine Liste. Zwei Punkte könnte
-        # die Oberfläche nur hintereinanderkleben, und welcher vorn steht,
-        # entschiede die Reihenfolge — die dort niemand sieht.
-        if feld in Visionsteil.values and len(gewuenscht) > 1:
-            raise ValidationError({"punkte": "Das Vision Statement ist ein Satz, keine Liste."})
-
-        with transaction.atomic():
-            behalten = set()
-            for stelle, (kennung, text) in enumerate(gewuenscht):
-                punkt = vorhanden.get(kennung) if isinstance(kennung, int) else None
-                if punkt is None:
-                    Canvaspunkt.objects.create(
-                        vorhaben=vorhaben, feld=feld, text=text, reihenfolge=stelle
-                    )
-                    continue
-                behalten.add(punkt.pk)
-                if punkt.text != text or punkt.reihenfolge != stelle:
-                    punkt.text, punkt.reihenfolge = text, stelle
-                    punkt.save()
-            for kennung, punkt in vorhanden.items():
-                if kennung not in behalten:
-                    punkt.delete()
-
-        return Response(self.get_serializer(self.get_queryset().get(pk=vorhaben.pk)).data)
-
-    @action(detail=True, methods=["post"])
-    def stand(self, request, pk=None):
-        """
-        Setzt den Stand **eines** Abschnitts des Business Plan Lite:
-        `{"abschnitt": "markt", "stand": "entwurf"}`.
-
-        Eine eigene Aktion statt eines PATCH auf `planstand`: Zwei, die
-        gleichzeitig verschiedene Abschnitte weiterdrehen, schickten sonst
-        jeder das ganze Wörterbuch — und der zweite überschriebe still den
-        ersten.
-        """
-        abschnitt = request.data.get("abschnitt")
-        if abschnitt not in Planabschnitt.values:
-            raise ValidationError({"abschnitt": f"„{abschnitt}“ ist kein Abschnitt des Plans."})
-        stand = request.data.get("stand")
-        if stand not in Abschnittstand.values:
-            raise ValidationError({"stand": f"„{stand}“ ist kein Stand."})
-
-        vorhaben = self.get_object()
-        with transaction.atomic():
-            vorhaben = Vorhaben.objects.select_for_update().get(pk=vorhaben.pk)
-            if vorhaben.planstand.get(abschnitt, Abschnittstand.OFFEN) != stand:
-                vorhaben.planstand = {**vorhaben.planstand, abschnitt: stand}
-                vorhaben.save()
-
-        return Response(self.get_serializer(self.get_queryset().get(pk=vorhaben.pk)).data)
-
-    @action(detail=True, methods=["get"])
-    def pdf(self, request, pk=None):
-        """Die Leinwand als PDF — eine Seite A4 quer, zum Mitnehmen in den Workshop."""
-        from socos.services import leinwand
-
-        vorhaben = self.get_object()
-        antwort = HttpResponse(leinwand.erzeugen(vorhaben), content_type="application/pdf")
-        antwort["Content-Disposition"] = f'attachment; filename="{leinwand.dateiname(vorhaben)}"'
-        return antwort
-
-
-class PersonaViewSet(SocosViewSet):
-    """
-    Die Steckbriefe zu Customer Segments. Die gewöhnliche Regel: sehen alle,
-    anlegen und ändern Admin und Bearbeiter, entfernen nur der Admin.
-    """
-
-    serializer_class = ser.PersonaSerializer
-    queryset = Persona.objects.all()
 
 
 # --- Module: Praktikantenstellen ---------------------------------------------
