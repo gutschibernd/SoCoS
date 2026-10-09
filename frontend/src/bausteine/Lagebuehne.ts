@@ -25,6 +25,7 @@ import type { Karte, Lageschritt, Lagethema, Lageverbindung } from "../basis/dat
 import {
   MITTE,
   ORDNUNG,
+  alsBuendel,
   alsSchritt,
   anordnen,
   alsThema,
@@ -37,6 +38,7 @@ import {
   gesperrt,
   graph,
   hubZeilen,
+  istBuendel,
   istSchritt,
   istThema,
   klemme,
@@ -136,6 +138,8 @@ export class Lagebuehne {
   private server: Karte = { themen: [], schritte: [], verbindungen: [] };
   private D: Karte = this.server;
   private g: Graph = graph(this.D);
+  /** Die Stränge, deren erledigter Vorlauf aufgeklappt ist. Nur bis zum Neuladen der Seite — eingeklappt ist der Normalfall. */
+  private aufgeklappt = new Set<number | null>();
   private B = straenge(this.g);
   private wartend: Karte | null = null;
   private entwurf: { schritt?: Lageschritt; verbindung?: Lageverbindung; thema?: Lagethema } | null = null;
@@ -234,6 +238,9 @@ export class Lagebuehne {
     this.selKante = a?.art === "verbindung" ? a.id : null;
     this.etikettOffen = false;
     this.sel = a?.art === "schritt" ? alsSchritt(a.id) : a?.art === "thema" ? alsThema(a.id) : null;
+    // Wer einen eingeklappten Schritt in der Seitenspalte wählt, will ihn sehen.
+    const s = a?.art === "schritt" ? this.g.schritt(a.id) : undefined;
+    if (s && this.ansicht === "straenge" && this.B.eingeklappt.has(s.id)) this.klappe(s.thema);
     // Eben erst angelegt (Fangfeld): Hingeflogen wird, sobald er da ist.
     if (this.sel && !this.objekt(this.sel)) {
       this.erwartet = this.sel;
@@ -249,7 +256,7 @@ export class Lagebuehne {
     // Die Kacheln fliegen von ihrem alten an den neuen Platz; die Kamera folgt.
     if (this.stufe === "lage") this.zurLage();
     else if (this.sel) this.fliegeZu(this.sel);
-    else this.blende(this.alleIds(), 0.62, 1, 60);
+    else this.blende(this.sichtbareIds(), 0.62, 1, 60);
     this.dirty = true;
   }
 
@@ -280,7 +287,7 @@ export class Lagebuehne {
 
   zurKarte() {
     if (this.sel) return this.fliegeZu(this.sel, 0.8);
-    this.blende(this.alleIds(), 0.62, 1, 60);
+    this.blende(this.sichtbareIds(), 0.62, 1, 60);
   }
 
   detail() {
@@ -375,7 +382,7 @@ export class Lagebuehne {
     this.e.verschieben(lageNeu);
     // Die Kacheln gleiten an ihren neuen Platz; die Kamera nimmt alles ins Bild.
     if (this.stufe === "lage") this.zurLage();
-    else this.blende(this.alleIds(), 0.62, 1, 60);
+    else this.blende(this.sichtbareIds(), 0.62, 1, 60);
     this.dirty = true;
     this.melde("Neu angeordnet");
   }
@@ -419,7 +426,7 @@ export class Lagebuehne {
       verbindungen: [...s.verbindungen, ...(d?.verbindung ? [d.verbindung] : [])],
     };
     this.g = graph(this.D);
-    this.B = straenge(this.g);
+    this.B = straenge(this.g, this.aufgeklappt);
     if (this.erwartet && this.objekt(this.erwartet)) {
       if (this.hinflug && this.sel === this.erwartet) this.fliegeZu(this.sel, Math.max(this.cam.k, 0.85));
       this.erwartet = null;
@@ -444,7 +451,30 @@ export class Lagebuehne {
   }
 
   private alleIds(): Schluessel[] {
-    return [MITTE, ...this.D.themen.map((t) => alsThema(t.id)), ...this.D.schritte.map((s) => alsSchritt(s.id))];
+    return [
+      MITTE,
+      ...this.D.themen.map((t) => alsThema(t.id)),
+      ...this.D.schritte.map((s) => alsSchritt(s.id)),
+      ...this.B.buendel.map((b) => alsBuendel(b.thema)),
+    ];
+  }
+
+  /** Was gerade zu sehen ist: Bündel nur in den Strängen, eingeklappte Schritte dort nicht. */
+  private sichtbar(id: Schluessel) {
+    if (istBuendel(id)) return this.ansicht === "straenge";
+    return !(this.ansicht === "straenge" && istSchritt(id) && this.B.eingeklappt.has(nummer(id)));
+  }
+
+  private sichtbareIds(): Schluessel[] {
+    return this.alleIds().filter((id) => this.sichtbar(id));
+  }
+
+  /** Klappt den erledigten Vorlauf eines Strangs auf oder zu. */
+  private klappe(thema: number | null) {
+    if (this.aufgeklappt.has(thema)) this.aufgeklappt.delete(thema);
+    else this.aufgeklappt.add(thema);
+    this.B = straenge(this.g, this.aufgeklappt);
+    this.baue();
   }
 
   /* --------------------------------------------------------------- Lage */
@@ -466,6 +496,10 @@ export class Lagebuehne {
     if (istSchritt(id)) {
       const s = this.g.schritt(nummer(id));
       return this.zielPos(s ? nabeVon(s) : MITTE);
+    }
+    if (istBuendel(id)) {
+      const th = this.B.buendel.find((b) => alsBuendel(b.thema) === id)?.thema;
+      return this.zielPos(th != null ? alsThema(th) : MITTE);
     }
     const p = this.ansicht === "straenge" ? (this.B.lage[id] ?? { x: 0, y: 0 }) : this.grundPos(id);
     const f = this.lageF();
@@ -535,6 +569,18 @@ export class Lagebuehne {
       e.dataset.art = s.art;
       if (gesperrt(this.g, s)) e.classList.add("lk-gesperrt");
       if (frei(this.g, s)) e.classList.add("lk-frei");
+      if (this.B.eingeklappt.has(s.id)) e.classList.add("lk-eingeklappt");
+    }
+    for (const b of this.B.buendel) {
+      const n = b.ids.length;
+      neu(
+        alsBuendel(b.thema),
+        "lk-buendel",
+        `<button type="button" aria-expanded="${!b.eingeklappt}"><span class="lk-b-zahl">${n} erledigt</span><span class="lk-b-tun">${
+          b.eingeklappt ? "aufklappen" : "einklappen"
+        }</span></button>`,
+        farbStil(b.thema !== null ? this.g.thema(b.thema) : undefined),
+      ).dataset.zu = String(b.eingeklappt);
     }
     this.baender.innerHTML = this.B.baender
       .map(
@@ -580,14 +626,39 @@ export class Lagebuehne {
       }
       return L.concat([...paare.values()]);
     }
+    // Ein eingeklappter Schritt liegt auf seinem Bündel; seine Pfeile gehen
+    // von dort aus, als ein einziger, und sind nicht greifbar — umhängen
+    // lässt sich nur, was man sieht.
+    const zu = this.ansicht === "straenge" ? this.B.eingeklappt : new Map<number, Schluessel>();
+    const ton = (thema: number | null) => (thema !== null ? this.g.thema(thema)?.farbe : 0);
+    // Aufgeklappt steht das Bündel vor seinen Schritten; der Ast läuft durch
+    // es hindurch, statt außen um es herum.
+    const davor = new Map<number, Schluessel>();
+    if (this.ansicht === "straenge")
+      for (const b of this.B.buendel) {
+        L.push({ a: b.thema !== null ? alsThema(b.thema) : MITTE, b: alsBuendel(b.thema), art: "ast", ton: ton(b.thema) });
+        if (!b.eingeklappt) b.ids.forEach((id) => davor.set(id, alsBuendel(b.thema)));
+      }
     for (const s of this.D.schritte) {
+      if (zu.has(s.id)) continue;
       if (!this.g.vor(s.id).some((v) => this.g.schritt(v)?.thema === s.thema))
-        L.push({ a: nabeVon(s), b: alsSchritt(s.id), art: "ast", ton: s.thema !== null ? this.g.thema(s.thema)?.farbe : 0 });
+        L.push({ a: davor.get(s.id) ?? nabeVon(s), b: alsSchritt(s.id), art: "ast", ton: ton(s.thema) });
     }
+    const gebuendelt = new Set<string>();
     for (const v of this.D.verbindungen) {
       const a = this.g.schritt(v.von);
       const b = this.g.schritt(v.nach);
       if (!a || !b) continue;
+      const va = zu.get(v.von);
+      const vb = zu.get(v.nach);
+      if (va || vb) {
+        const pa = va ?? alsSchritt(v.von);
+        const pb = vb ?? alsSchritt(v.nach);
+        if (pa === pb || gebuendelt.has(`${pa}>${pb}`)) continue;
+        gebuendelt.add(`${pa}>${pb}`);
+        L.push({ a: pa, b: pb, art: "erfuellt", pfeil: true });
+        continue;
+      }
       L.push({
         a: alsSchritt(v.von),
         b: alsSchritt(v.nach),
@@ -616,8 +687,8 @@ export class Lagebuehne {
   private fuehreLinien(liste: Linie[]) {
     const kacheln: Record<string, Rechteck> = {};
     const hindernisse: Rechteck[] = [];
-    for (const id of this.alleIds()) {
-      if (this.stufe === "lage" && istSchritt(id)) continue;
+    for (const id of this.sichtbareIds()) {
+      if (this.stufe === "lage" && (istSchritt(id) || istBuendel(id))) continue;
       const r = this.rechteck(id);
       if (!r) continue;
       kacheln[id] = r;
@@ -735,6 +806,9 @@ export class Lagebuehne {
           ...[this.g.schritt(kg.von), this.g.schritt(kg.nach)].filter((x): x is Lageschritt => !!x).map(nabeVon),
         ])
       : this.kette(this.sel ?? this.schwebt);
+    // Ein Bündel bleibt hell, wenn einer seiner Schritte zur Kette gehört.
+    if (fokus && this.ansicht === "straenge")
+      for (const [id, b] of this.B.eingeklappt) if (fokus.has(alsSchritt(id))) fokus.add(b);
     for (const id in this.el) {
       const e = this.el[id];
       const c = this.cur[id];
@@ -801,7 +875,7 @@ export class Lagebuehne {
   private zeichneKlein() {
     const klein = this.klein;
     if (klein.offsetParent === null) return;
-    const ids = this.alleIds().filter((id) => this.stufe !== "lage" || !istSchritt(id));
+    const ids = this.sichtbareIds().filter((id) => this.stufe !== "lage" || !(istSchritt(id) || istBuendel(id)));
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
     for (const id of ids) {
       const r = this.rechteck(id);
@@ -824,15 +898,18 @@ export class Lagebuehne {
         const r = this.rechteck(id);
         if (!r) return "";
         const ton = (th: number | null | undefined) => (th != null ? this.g.thema(th)?.farbe : undefined);
+        const th = istBuendel(id)
+          ? this.B.buendel.find((x) => alsBuendel(x.thema) === id)?.thema
+          : this.g.schritt(nummer(id))?.thema;
         const f =
           id === MITTE
             ? "var(--kopf-grund)"
             : istThema(id)
               ? `var(--t${ton(nummer(id))})`
-              : ton(this.g.schritt(nummer(id))?.thema)
-                ? `var(--t${ton(this.g.schritt(nummer(id))?.thema)})`
+              : ton(th)
+                ? `var(--t${ton(th)})`
                 : "var(--rand-stark)";
-        return `<rect x="${r.x - r.w}" y="${r.y - r.h}" width="${r.w * 2}" height="${r.h * 2}" fill="${f}" opacity="${istSchritt(id) ? 0.55 : 1}"/>`;
+        return `<rect x="${r.x - r.w}" y="${r.y - r.h}" width="${r.w * 2}" height="${r.h * 2}" fill="${f}" opacity="${istSchritt(id) || istBuendel(id) ? 0.55 : 1}"/>`;
       })
       .join("");
     const km = this.kleinMass;
@@ -1161,6 +1238,9 @@ export class Lagebuehne {
     an(b, "pointerdown", (ev) => {
       if (ausserhalb(ev.target)) return;
       if (ev.pointerType === "mouse" && ev.button !== 0) return;
+      // Das Bündel ist ein Knopf: Ohne Zeigerfang kommt sein Klick an ihm an,
+      // und Enter oder Leertaste auf ihm gehen denselben Weg.
+      if ((ev.target as Element).closest(".lk-buendel")) return;
       try {
         b.setPointerCapture(ev.pointerId);
       } catch {
@@ -1384,6 +1464,15 @@ export class Lagebuehne {
       const wy = (ev.clientY - rr.top - m.oy) / m.s + m.y0;
       const r = this.flaeche();
       this.camZiel = { k: this.cam.k, x: r.width / 2 - wx * this.cam.k, y: r.height / 2 - wy * this.cam.k };
+    });
+
+    an(this.schicht, "click", (ev) => {
+      const k = (ev.target as Element).closest<HTMLElement>(".lk-buendel")?.dataset.id;
+      const bd = k ? this.B.buendel.find((x) => alsBuendel(x.thema) === k) : undefined;
+      if (!bd) return;
+      this.klappe(bd.thema);
+      // Neu gebaut: Der Fokus bleibt am Knopf, damit Enter wieder zuklappt.
+      this.el[k!]?.querySelector("button")?.focus({ preventScroll: true });
     });
 
     an(this.etikettFeld, "keydown", (ev) => {

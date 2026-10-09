@@ -29,6 +29,9 @@ export const alsThema = (id: number): Schluessel => `t:${id}`;
 export const alsSchritt = (id: number): Schluessel => `s:${id}`;
 export const istThema = (k: Schluessel) => k.startsWith("t:");
 export const istSchritt = (k: Schluessel) => k.startsWith("s:");
+/** Das Bündel erledigter Schritte am Anfang eines Strangs — je Thema höchstens eins. */
+export const alsBuendel = (thema: number | null): Schluessel => `b:${thema ?? "lose"}`;
+export const istBuendel = (k: Schluessel) => k.startsWith("b:");
 export const nummer = (k: Schluessel) => Number(k.slice(2));
 
 /** Wo auf der Karte ein Schritt hängt: an seinem Thema oder, lose, an der Mitte. */
@@ -184,22 +187,79 @@ export const klemme = (v: number, a: number, b: number) => Math.max(a, Math.min(
 export type Band = { thema: number | null; y: number; h: number; x0: number; x1: number };
 
 /**
+ * Was erledigt ist und vor dem auch alles erledigt ist — der abgeschlossene
+ * Anfang der Karte. Ein erledigter Schritt hinter einem offenen gehört nicht
+ * dazu: Er steht mitten in laufender Arbeit, und eingeklappt sähe man nicht
+ * mehr, dass dort etwas außer der Reihe fertig wurde.
+ */
+export function erledigterVorlauf(g: Graph): Set<number> {
+  const ja = new Map<number, boolean>();
+  const pruefe = (id: number): boolean => {
+    const bekannt = ja.get(id);
+    if (bekannt !== undefined) return bekannt;
+    ja.set(id, false); // Wächter, falls doch ein Kreis hereinkommt
+    const r = g.schritt(id)?.status === "erledigt" && g.vor(id).every(pruefe);
+    ja.set(id, r);
+    return r;
+  };
+  return new Set(g.karte.schritte.filter((s) => pruefe(s.id)).map((s) => s.id));
+}
+
+/** Ab so vielen erledigten Schritten am Anfang eines Strangs gibt es ein Bündel — eines allein spart nichts. */
+export const BUENDEL_AB = 2;
+
+export type Buendel = { thema: number | null; ids: number[]; eingeklappt: boolean };
+
+/**
  * Die Stränge: eine Zeile je Thema, die Spalte ist der **längste** Weg über
  * alle Abhängigkeiten — auch über Themengrenzen. Dadurch rückt „Bewerbung
  * FFG" hinter „Unterzeichnung Bank", und die Lücke im Strang der
  * Praktikantinnen zeigt von selbst, dass dort gewartet wird.
  *
+ * Der erledigte Vorlauf eines Strangs liegt als **Bündel** in der ersten
+ * Spalte; alles andere rückt dahinter. Eingeklappt liegen seine Schritte auf
+ * dem Bündel (`eingeklappt`: Schritt → Bündel), aufgeklappt (`aufgeklappt`
+ * nennt die Themen, `null` für die losen) stehen sie hinter ihm, und das
+ * Bündel bleibt als Griff zum Wiedereinklappen stehen. Gerechnet, nicht
+ * gespeichert: Wird ein Schritt wieder geöffnet, fällt er von selbst heraus.
+ *
  * `lage` ist dieselbe Ansicht, eingeklappt auf die Themen untereinander.
  */
-export function straenge(g: Graph): { pos: Record<Schluessel, P>; lage: Record<Schluessel, P>; baender: Band[] } {
+export function straenge(
+  g: Graph,
+  aufgeklappt: ReadonlySet<number | null> = new Set(),
+): {
+  pos: Record<Schluessel, P>;
+  lage: Record<Schluessel, P>;
+  baender: Band[];
+  buendel: Buendel[];
+  eingeklappt: Map<number, Schluessel>;
+} {
   const { themen, schritte } = g.karte;
+  const vorlauf = erledigterVorlauf(g);
+  const buendel: Buendel[] = [];
+  const eingeklappt = new Map<number, Schluessel>();
+  const mitBuendel = new Set<number | null>();
+  for (const thema of new Set(schritte.map((s) => s.thema))) {
+    const ids = schritte.filter((s) => s.thema === thema && vorlauf.has(s.id)).map((s) => s.id);
+    if (ids.length < BUENDEL_AB) continue;
+    const zu = !aufgeklappt.has(thema);
+    buendel.push({ thema, ids, eingeklappt: zu });
+    mitBuendel.add(thema);
+    if (zu) ids.forEach((id) => eingeklappt.set(id, alsBuendel(thema)));
+  }
+
+  // Eingeklappte zählen als Spalte 0, das Bündel selbst steht dort. In einem
+  // Strang mit Bündel beginnt alles andere erst dahinter.
   const tiefe = new Map<number, number>();
   const t = (id: number): number => {
+    if (eingeklappt.has(id)) return 0;
     const bekannt = tiefe.get(id);
     if (bekannt !== undefined) return bekannt;
     tiefe.set(id, 0); // Wächter, falls doch ein Kreis hereinkommt
     const v = g.vor(id);
-    const d = v.length ? Math.max(...v.map((x) => t(x) + 1)) : 0;
+    const ab = mitBuendel.has(g.schritt(id)?.thema ?? null) ? 1 : 0;
+    const d = Math.max(ab, ...v.map((x) => t(x) + 1));
     tiefe.set(id, d);
     return d;
   };
@@ -210,13 +270,12 @@ export function straenge(g: Graph): { pos: Record<Schluessel, P>; lage: Record<S
   const SPALTE = 300;
   const ZEILE = 96;
   const zeilen = spuren.map((thema) => {
-    const spalten = new Map<number, Lageschritt[]>();
+    const spalten = new Map<number, Schluessel[]>();
+    const lege = (d: number, k: Schluessel) => (spalten.get(d) ?? spalten.set(d, []).get(d)!).push(k);
+    if (mitBuendel.has(thema)) lege(0, alsBuendel(thema));
     schritte
-      .filter((s) => s.thema === thema)
-      .forEach((s) => {
-        const d = tiefe.get(s.id)!;
-        (spalten.get(d) ?? spalten.set(d, []).get(d)!).push(s);
-      });
+      .filter((s) => s.thema === thema && !eingeklappt.has(s.id))
+      .forEach((s) => lege(tiefe.get(s.id)!, alsSchritt(s.id)));
     const hoechstens = Math.max(1, ...[...spalten.values()].map((a) => a.length));
     return { thema, spalten, h: Math.max(150, hoechstens * ZEILE + 60) };
   });
@@ -229,22 +288,23 @@ export function straenge(g: Graph): { pos: Record<Schluessel, P>; lage: Record<S
   for (const { thema, spalten, h } of zeilen) {
     const mitteY = aufRaster(y + h / 2);
     for (const [d, liste] of spalten) {
-      liste.forEach((s, i) => {
+      liste.forEach((k, i) => {
         const x = d * SPALTE;
         maxX = Math.max(maxX, x);
-        pos[alsSchritt(s.id)] = { x, y: mitteY + (i - (liste.length - 1) / 2) * ZEILE };
+        pos[k] = { x, y: mitteY + (i - (liste.length - 1) / 2) * ZEILE };
       });
     }
     if (thema !== null) pos[alsThema(thema)] = { x: -300, y: mitteY };
     baender.push({ thema, y, h, x0: -440, x1: 0 });
     y += h;
   }
+  for (const [id, b] of eingeklappt) pos[alsSchritt(id)] = pos[b];
   pos[MITTE] = { x: -640, y: 0 };
   baender.forEach((b) => (b.x1 = maxX + 170));
 
   const lageP: Record<Schluessel, P> = { [MITTE]: { x: -380, y: 0 } };
   themen.forEach((th, i) => (lageP[alsThema(th.id)] = { x: 0, y: (i - (themen.length - 1) / 2) * 200 }));
-  return { pos, lage: lageP, baender };
+  return { pos, lage: lageP, baender, buendel, eingeklappt };
 }
 
 /* --- Neu anordnen --------------------------------------------------------- */

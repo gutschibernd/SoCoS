@@ -2534,6 +2534,36 @@ span.lk-k-punkt { cursor: inherit; }
 @keyframes lk-geboren { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } }
 .lk-buehne[data-stufe="lage"] .lk-k { opacity: 0; pointer-events: none; }
 
+/* Das Bündel: der erledigte Vorlauf eines Strangs, nur in den Strängen.
+   Ein Knopf — eingeklappt mit einer zweiten Kante dahinter als Stapel. */
+.lk-buendel { position: absolute; width: 200px; transform: translate(-50%, -50%); transition: opacity 0.3s; }
+.lk-buendel button {
+  position: relative; display: block; width: 100%; min-height: 48px; padding: 8px 12px 9px 34px;
+  background: var(--f); border: 2px solid var(--gut); border-radius: var(--kante);
+  font: inherit; text-align: left; color: var(--text-leise); cursor: pointer;
+}
+.lk-buendel[data-zu="false"] button { border-style: dashed; }
+.lk-buendel[data-zu="true"]::before {
+  content: ""; position: absolute; inset: 5px -5px -5px 5px; z-index: -1;
+  background: var(--f); border: 2px solid var(--gut); border-radius: var(--kante);
+}
+.lk-buendel button::before {
+  content: ""; position: absolute; left: 11px; top: 50%; width: 12px; height: 12px; margin-top: -6px;
+  border-radius: 50%; background: var(--gut);
+}
+.lk-buendel button::after {
+  content: ""; position: absolute; left: 15px; top: 50%; width: 3px; height: 6px; margin-top: -4px;
+  border: solid var(--flaeche); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.lk-buendel button:focus-visible { outline: 2px solid var(--akzent); outline-offset: 4px; }
+.lk-b-zahl { display: block; font-weight: 600; font-size: 14px; line-height: 1.3; }
+.lk-b-tun { display: block; font-size: 12px; margin-top: 2px; text-decoration: underline; text-underline-offset: 2px; }
+.lk-buehne[data-ansicht="stern"] .lk-buendel { display: none; }
+.lk-buehne[data-stufe="lage"] .lk-buendel { opacity: 0; pointer-events: none; visibility: hidden; }
+/* Eingeklappt liegt ein Schritt unsichtbar auf seinem Bündel — auch dann,
+   wenn eine gewählte Kette den Rest leise stellt. */
+.lk-buehne[data-ansicht="straenge"] .lk-k.lk-eingeklappt { opacity: 0 !important; pointer-events: none; }
+
 /* Schwebende Werkzeugleisten */
 .lk-schwebe { position: absolute; z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
 .lk-oben { left: 12px; right: 12px; top: 12px; }

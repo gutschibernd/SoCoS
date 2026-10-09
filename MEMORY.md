@@ -7,6 +7,31 @@ betrifft.
 
 ---
 
+## 2026-10-09 — Thoughts: Erledigtes in den Strängen eingeklappt
+
+**Wunsch Bernd:** Eine Reihe erledigter Schritte soll in der Strangansicht
+einklappen, damit die Karte übersichtlich bleibt, wenn viel dazukommt.
+
+**Eingeklappt wird nur der erledigte Vorlauf** (`erledigterVorlauf` in
+`basis/lagekarte.ts`): erledigt, und alles davor auch. Ein erledigter
+Schritt hinter einem offenen bleibt stehen — er steht mitten in laufender
+Arbeit, und im Bündel sähe man nicht mehr, dass dort etwas außer der Reihe
+fertig wurde. Ein Bündel gibt es ab zwei Schritten (`BUENDEL_AB`); eines
+allein ersetzte nur eine Kachel durch eine andere.
+
+**Gerechnet, nicht gespeichert, und nur in den Strängen.** Kein Feld, keine
+Migration: Wird ein Schritt wieder geöffnet, fällt er mit allem dahinter von
+selbst heraus. Die Sternkarte bleibt, wie man sie hingelegt hat. Was
+aufgeklappt ist, hält die Bühne nur bis zum Neuladen — eingeklappt ist der
+Normalfall. Wer einen eingeklappten Schritt in der Seitenspalte wählt,
+bekommt seinen Strang aufgeklappt.
+
+**Archivieren ist bewusst noch nicht gebaut.** Es bräuchte ein Feld an
+`Lagethema` (ein ganzes Thema „abgeschlossen") und damit eine Migration;
+das lohnt erst, wenn ganze Themen fertig werden und trotzdem stören.
+
+---
+
 ## 2026-10-07 — Thoughts: „Neu anordnen" und Pfeile aus der Seitenmitte
 
 **Rückmeldung Bernd:** Die Pfeile sahen nicht gut aus, auch von Hand

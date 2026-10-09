@@ -4,10 +4,12 @@ import type { Karte, Lageschritt, Lagethema, Lageverbindung } from "./daten";
 import {
   ORDNUNG,
   RASTER,
+  alsBuendel,
   alsSchritt,
   alsThema,
   anordnen,
   belegt,
+  erledigterVorlauf,
   erreichbar,
   fang,
   freieFarbe,
@@ -148,6 +150,52 @@ describe("Stränge", () => {
   it("übersteht einen Kreis, der doch hereinkommt", () => {
     const k: Karte = { themen: [], schritte: [schritt(1, "A"), schritt(2, "B")], verbindungen: [pfeil(1, 2), pfeil(2, 1)] };
     expect(() => straenge(graph(k))).not.toThrow();
+  });
+});
+
+describe("Stränge — der erledigte Vorlauf", () => {
+  /** Gründung: drei erledigt, dann offen; dazu ein erledigter Schritt hinter dem offenen. */
+  function erledigt(): Karte {
+    const k = beispiel();
+    for (const id of [1, 2, 3]) k.schritte.find((s) => s.id === id)!.status = "erledigt";
+    k.schritte.push(schritt(7, "Firmenbuch", { thema: 1 }), schritt(8, "Logo", { thema: 1, status: "erledigt" }));
+    k.verbindungen.push(pfeil(3, 7), pfeil(7, 8));
+    return k;
+  }
+
+  it("zählt nur, was erledigt ist und vor dem alles erledigt ist", () => {
+    // 8 ist erledigt, steht aber hinter dem offenen 7.
+    expect([...erledigterVorlauf(graph(erledigt()))].sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  it("eingeklappt liegen die Schritte auf dem Bündel, und der Rest rückt dahinter", () => {
+    const { pos, buendel, eingeklappt } = straenge(graph(erledigt()));
+    // Praktikantinnen haben nur einen erledigten Schritt — dafür kein Bündel.
+    expect(buendel).toEqual([{ thema: 1, ids: [1, 2, 3], eingeklappt: true }]);
+    const b = alsBuendel(1);
+    expect(pos[b].x).toBe(0);
+    for (const id of [1, 2, 3]) {
+      expect(eingeklappt.get(id)).toBe(b);
+      expect(pos[alsSchritt(id)]).toEqual(pos[b]);
+    }
+    expect(pos[alsSchritt(7)].x).toBe(300);
+    expect(pos[alsSchritt(8)].x).toBe(600);
+    // Die Bewerbung hängt an der Unterzeichnung — die liegt jetzt im Bündel.
+    expect(pos[alsSchritt(5)].x).toBe(300);
+  });
+
+  it("aufgeklappt stehen sie hinter dem Bündel, das als Griff bleibt", () => {
+    const { pos, buendel, eingeklappt } = straenge(graph(erledigt()), new Set([1]));
+    expect(buendel[0].eingeklappt).toBe(false);
+    expect(eingeklappt.size).toBe(0);
+    expect(pos[alsBuendel(1)].x).toBe(0);
+    expect([1, 2, 3].map((id) => pos[alsSchritt(id)].x)).toEqual([300, 600, 900]);
+  });
+
+  it("ein wieder geöffneter Schritt fällt aus dem Bündel — und mit ihm alles danach", () => {
+    const k = erledigt();
+    k.schritte.find((s) => s.id === 2)!.status = "offen";
+    expect(straenge(graph(k)).buendel).toEqual([]);
   });
 });
 
