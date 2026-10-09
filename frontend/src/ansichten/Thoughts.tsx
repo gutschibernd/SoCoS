@@ -25,7 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { hole } from "../basis/api";
-import { fristText } from "../basis/aufgaben";
+import { datumIn, fristText } from "../basis/aufgaben";
 import { useLagekarte, type Ich, type Karte, type Lageschritt, type Lagethema, type Lageverbindung } from "../basis/daten";
 import {
   ARTEN,
@@ -33,6 +33,7 @@ import {
   fortschritt,
   graph,
   lage,
+  offeneKarte,
   platzFuer,
   verbindungsHindernis,
   type Graph,
@@ -46,9 +47,13 @@ type Wechseln = (seite: Seite, unter?: string | null) => void;
 
 export function Thoughts({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }) {
   const karte = useLagekarte();
+  // Abgeschlossene Themen stehen nur in der Seitenspalte; Bühne, Lage und
+  // Fangfeld sehen sie nicht. Gemerkt, damit die Bühne nur bei neuen Daten neu baut.
+  const offen = useMemo(() => karte.data && offeneKarte(karte.data), [karte.data]);
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
-  if (!karte.data) return <Zustand abfrage={karte} erneut={() => karte.refetch()} />;
-  return <Kartenseite ich={ich} daten={karte.data} wechseln={wechseln} />;
+  if (!karte.data || !offen) return <Zustand abfrage={karte} erneut={() => karte.refetch()} />;
+  const abgeschlossen = karte.data.themen.filter((t) => t.abgeschlossen_am);
+  return <Kartenseite ich={ich} daten={offen} abgeschlossen={abgeschlossen} wechseln={wechseln} />;
 }
 
 /* --- Schreiben ------------------------------------------------------------ */
@@ -158,7 +163,17 @@ function useKartenSchreiben() {
 
 /* --- Die Seite ------------------------------------------------------------ */
 
-function Kartenseite({ ich, daten, wechseln }: { ich: Ich; daten: Karte; wechseln: Wechseln }) {
+function Kartenseite({
+  ich,
+  daten,
+  abgeschlossen,
+  wechseln,
+}: {
+  ich: Ich;
+  daten: Karte;
+  abgeschlossen: Lagethema[];
+  wechseln: Wechseln;
+}) {
   const buehneRef = useRef<HTMLElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const bRef = useRef<Lagebuehne | null>(null);
@@ -331,6 +346,7 @@ function Kartenseite({ ich, daten, wechseln }: { ich: Ich; daten: Karte; wechsel
         <div className="lk-seite-inhalt">
           <Seitenspalte
             g={g}
+            abgeschlossen={abgeschlossen}
             auswahl={auswahl}
             darf={darf}
             nachfrage={nachfrage}
@@ -351,6 +367,7 @@ function Kartenseite({ ich, daten, wechseln }: { ich: Ich; daten: Karte; wechsel
 type Schreiben = ReturnType<typeof useKartenSchreiben>;
 type Spaltenzeug = {
   g: Graph;
+  abgeschlossen: Lagethema[];
   darf: { bearbeiten: boolean; loeschen: boolean };
   zeige: (a: Auswahl) => void;
   s: Schreiben;
@@ -377,6 +394,8 @@ function Seitenspalte(p: Spaltenzeug & { auswahl: Auswahl; wechseln: Wechseln })
 }
 
 const farbe = (t: Lagethema | undefined) => (t ? `lk-ton-${t.farbe}` : "lk-ton-0");
+/** „9.10.2026" aus „2026-10-09". */
+const tagText = (d: string) => d.split("-").map(Number).reverse().join(".");
 const themaName = (g: Graph, x: Lageschritt) => (x.thema !== null ? (g.thema(x.thema)?.name ?? "") : "Ohne Thema");
 
 function Frist({ frist }: { frist: string }) {
@@ -409,7 +428,7 @@ function Abschnitt({ titel, zahl, children }: { titel: string; zahl?: number; ch
   );
 }
 
-function Lageblatt({ g, zeige, b, darf, wechseln }: Spaltenzeug & { wechseln: Wechseln }) {
+function Lageblatt({ g, abgeschlossen, zeige, s, b, darf, wechseln }: Spaltenzeug & { wechseln: Wechseln }) {
   const l = lage(g);
   const tag = new Date().toLocaleDateString("de-AT", { weekday: "short", day: "2-digit", month: "2-digit" });
   const leer = !g.karte.themen.length && !g.karte.schritte.length;
@@ -483,6 +502,29 @@ function Lageblatt({ g, zeige, b, darf, wechseln }: Spaltenzeug & { wechseln: We
             </Abschnitt>
           )}
         </>
+      )}
+      {abgeschlossen.length > 0 && (
+        <Abschnitt titel="Abgeschlossen" zahl={abgeschlossen.length}>
+          {abgeschlossen.map((t) => (
+            <div key={t.id} className={`lk-abgeschlossen ${farbe(t)}`}>
+              <i className="lk-farbe" />
+              <span className="lk-tn">{t.name}</span>
+              <span className="zahl">{tagText(t.abgeschlossen_am!)}</span>
+              {darf.bearbeiten && (
+                <button
+                  type="button"
+                  className="knopf-still"
+                  onClick={() => {
+                    void s.thema(t.id, { abgeschlossen_am: null });
+                    b.current?.melde(`„${t.name}“ wieder auf der Karte`);
+                  }}
+                >
+                  Wieder aufnehmen
+                </button>
+              )}
+            </div>
+          ))}
+        </Abschnitt>
       )}
       <button type="button" className="lk-doku" onClick={() => wechseln("doku", "module")}>
         Griffe und Kürzel in der Doku
@@ -758,6 +800,13 @@ function Schrittblatt({ g, schritt: x, zeige, s, b, darf, nachfrage, setNachfrag
 
 function Themenblatt({ g, thema: t, zeige, s, b, darf, nachfrage, setNachfrage }: Spaltenzeug & { thema: Lagethema }) {
   const ns = g.karte.schritte.filter((x) => x.thema === t.id);
+  // Abschließen nur, was ganz erledigt ist — der Server prüft dasselbe.
+  const fertig = ns.length > 0 && ns.every((x) => x.status === "erledigt");
+  const abschliessen = () => {
+    void s.thema(t.id, { abgeschlossen_am: datumIn(0) });
+    zeige(null);
+    b.current?.melde(`„${t.name}“ abgeschlossen`);
+  };
   return (
     <>
       <Zurueck zeige={zeige} />
@@ -808,7 +857,12 @@ function Themenblatt({ g, thema: t, zeige, s, b, darf, nachfrage, setNachfrage }
       </Abschnitt>
       {darf.bearbeiten && (
         <div className="lk-aktionen">
-          <button type="button" className="knopf" onClick={() => b.current?.neuerSchritt({ thema: t.id })}>
+          {fertig && (
+            <button type="button" className="knopf" title="Von der Karte nehmen — steht dann unter „Abgeschlossen“" onClick={abschliessen}>
+              Abschließen
+            </button>
+          )}
+          <button type="button" className={fertig ? "knopf-still" : "knopf"} onClick={() => b.current?.neuerSchritt({ thema: t.id })}>
             Schritt <kbd>Tab</kbd>
           </button>
           {darf.loeschen && (
@@ -820,8 +874,16 @@ function Themenblatt({ g, thema: t, zeige, s, b, darf, nachfrage, setNachfrage }
       )}
       {nachfrage && darf.loeschen && (
         <Nachfrage titel={`Thema „${t.name}“ auflösen?`}>
-          <p>Thema „{t.name}“ auflösen? Die Schritte bleiben als lose Gedanken um die Mitte liegen.</p>
+          <p>
+            Thema „{t.name}“ auflösen? Die Schritte bleiben als lose Gedanken um die Mitte liegen.
+            {fertig && " Milder: abschließen — dann ist es von der Karte und lässt sich wieder aufnehmen."}
+          </p>
           <div className="lk-aktionen">
+            {fertig && (
+              <button type="button" className="knopf" onClick={abschliessen}>
+                Abschließen
+              </button>
+            )}
             <button
               type="button"
               className="knopf-still lk-gefahr"

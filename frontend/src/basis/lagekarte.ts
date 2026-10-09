@@ -69,6 +69,23 @@ export function graph(karte: Karte): Graph {
   };
 }
 
+/**
+ * Die Karte ohne abgeschlossene Themen — ohne deren Schritte und ohne Pfeile,
+ * die zu ihnen führen. Abgeschlossen wird nur, was ganz erledigt ist; ein
+ * fehlender Vorgänger sperrt also nichts, was vorher frei gewesen wäre.
+ */
+export function offeneKarte(k: Karte): Karte {
+  const zu = new Set(k.themen.filter((t) => t.abgeschlossen_am).map((t) => t.id));
+  if (!zu.size) return k;
+  const schritte = k.schritte.filter((s) => s.thema === null || !zu.has(s.thema));
+  const da = new Set(schritte.map((s) => s.id));
+  return {
+    themen: k.themen.filter((t) => !zu.has(t.id)),
+    schritte,
+    verbindungen: k.verbindungen.filter((v) => da.has(v.von) && da.has(v.nach)),
+  };
+}
+
 /** Offen, aber ein Vorgänger ist es auch noch. */
 export function gesperrt(g: Graph, s: Lageschritt): boolean {
   return s.status === "offen" && g.vor(s.id).some((v) => g.schritt(v)?.status !== "erledigt");
@@ -205,10 +222,30 @@ export function erledigterVorlauf(g: Graph): Set<number> {
   return new Set(g.karte.schritte.filter((s) => pruefe(s.id)).map((s) => s.id));
 }
 
-/** Ab so vielen erledigten Schritten am Anfang eines Strangs gibt es ein Bündel — eines allein spart nichts. */
-export const BUENDEL_AB = 2;
+/** Ab so vielen erledigten Schritten am Anfang eines Themas gibt es ein Bündel (Wunsch Bernd: drei). */
+export const BUENDEL_AB = 3;
 
 export type Buendel = { thema: number | null; ids: number[]; eingeklappt: boolean };
+
+/**
+ * Die Bündel: je Thema (und für die losen Gedanken) der erledigte Vorlauf,
+ * sobald er `BUENDEL_AB` Schritte hat. `aufgeklappt` nennt die Themen, die
+ * jemand aufgeklappt hat (`null` für die losen); `eingeklappt` sagt je
+ * Schritt, auf welchem Bündel er liegt. Gilt für beide Ansichten gleich.
+ */
+export function buendelVon(g: Graph, aufgeklappt: ReadonlySet<number | null> = new Set()) {
+  const vorlauf = erledigterVorlauf(g);
+  const buendel: Buendel[] = [];
+  const eingeklappt = new Map<number, Schluessel>();
+  for (const thema of new Set(g.karte.schritte.map((s) => s.thema))) {
+    const ids = g.karte.schritte.filter((s) => s.thema === thema && vorlauf.has(s.id)).map((s) => s.id);
+    if (ids.length < BUENDEL_AB) continue;
+    const zu = !aufgeklappt.has(thema);
+    buendel.push({ thema, ids, eingeklappt: zu });
+    if (zu) ids.forEach((id) => eingeklappt.set(id, alsBuendel(thema)));
+  }
+  return { buendel, eingeklappt };
+}
 
 /**
  * Die Stränge: eine Zeile je Thema, die Spalte ist der **längste** Weg über
@@ -216,12 +253,11 @@ export type Buendel = { thema: number | null; ids: number[]; eingeklappt: boolea
  * FFG" hinter „Unterzeichnung Bank", und die Lücke im Strang der
  * Praktikantinnen zeigt von selbst, dass dort gewartet wird.
  *
- * Der erledigte Vorlauf eines Strangs liegt als **Bündel** in der ersten
- * Spalte; alles andere rückt dahinter. Eingeklappt liegen seine Schritte auf
- * dem Bündel (`eingeklappt`: Schritt → Bündel), aufgeklappt (`aufgeklappt`
- * nennt die Themen, `null` für die losen) stehen sie hinter ihm, und das
- * Bündel bleibt als Griff zum Wiedereinklappen stehen. Gerechnet, nicht
- * gespeichert: Wird ein Schritt wieder geöffnet, fällt er von selbst heraus.
+ * Ein eingeklappter erledigter Vorlauf (`buendelVon`) liegt als **Bündel**
+ * in der ersten Spalte, seine Schritte darauf; alles andere rückt dahinter.
+ * Aufgeklappt stehen die Schritte, wo sie ohne Bündel stünden. Gerechnet,
+ * nicht gespeichert: Wird ein Schritt wieder geöffnet, fällt er von selbst
+ * heraus.
  *
  * `lage` ist dieselbe Ansicht, eingeklappt auf die Themen untereinander.
  */
@@ -236,18 +272,8 @@ export function straenge(
   eingeklappt: Map<number, Schluessel>;
 } {
   const { themen, schritte } = g.karte;
-  const vorlauf = erledigterVorlauf(g);
-  const buendel: Buendel[] = [];
-  const eingeklappt = new Map<number, Schluessel>();
-  const mitBuendel = new Set<number | null>();
-  for (const thema of new Set(schritte.map((s) => s.thema))) {
-    const ids = schritte.filter((s) => s.thema === thema && vorlauf.has(s.id)).map((s) => s.id);
-    if (ids.length < BUENDEL_AB) continue;
-    const zu = !aufgeklappt.has(thema);
-    buendel.push({ thema, ids, eingeklappt: zu });
-    mitBuendel.add(thema);
-    if (zu) ids.forEach((id) => eingeklappt.set(id, alsBuendel(thema)));
-  }
+  const { buendel, eingeklappt } = buendelVon(g, aufgeklappt);
+  const mitBuendel = new Set(buendel.filter((b) => b.eingeklappt).map((b) => b.thema));
 
   // Eingeklappte zählen als Spalte 0, das Bündel selbst steht dort. In einem
   // Strang mit Bündel beginnt alles andere erst dahinter.

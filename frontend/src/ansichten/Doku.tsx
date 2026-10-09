@@ -891,7 +891,15 @@ function ModuleDoku() {
           paare={[
             {
               begriff: "Sternkarte und Stränge",
-              text: "Oben links umzuschalten. Auf der Sternkarte legst du die Kacheln selbst hin, wo sie hingehören; sie bleiben dort. „Neu anordnen“ oben räumt sie einmal auf: die Themen links und rechts der Mitte untereinander, ihre Schritte nach außen in Zeilen, sodass eine Kette als gerade Linie läuft. Danach kannst du wieder von Hand schieben. In den Strängen ordnet SoCoS: eine Zeile je Thema, von links nach rechts in der Reihenfolge, in der die Schritte aneinander hängen — auch über Themen hinweg. Eine Lücke in einem Strang heißt: Hier wird auf ein anderes Thema gewartet. Was am Anfang eines Strangs schon erledigt ist (ab zwei Schritten), liegt dort zusammengeklappt als „… erledigt“; ein Klick klappt es auf und wieder zu. Ein erledigter Schritt hinter einem offenen bleibt stehen.",
+              text: "Oben links umzuschalten. Auf der Sternkarte legst du die Kacheln selbst hin, wo sie hingehören; sie bleiben dort. „Neu anordnen“ oben räumt sie einmal auf: die Themen links und rechts der Mitte untereinander, ihre Schritte nach außen in Zeilen, sodass eine Kette als gerade Linie läuft. Danach kannst du wieder von Hand schieben. In den Strängen ordnet SoCoS: eine Zeile je Thema, von links nach rechts in der Reihenfolge, in der die Schritte aneinander hängen — auch über Themen hinweg. Eine Lücke in einem Strang heißt: Hier wird auf ein anderes Thema gewartet.",
+            },
+            {
+              begriff: "Erledigtes eingeklappt",
+              text: "Was am Anfang eines Themas schon erledigt ist (ab drei Schritten), liegt in beiden Ansichten zusammengeklappt als eine Kachel „… erledigt“. Ein Klick klappt es auf; darüber steht dann „einklappen“. In den Strängen rückt das Offene dabei nach vorn, auf der Sternkarte bleibt alles, wo du es hingelegt hast. Ein erledigter Schritt hinter einem offenen bleibt immer stehen.",
+            },
+            {
+              begriff: "Thema abschließen",
+              text: "Ist in einem Thema alles erledigt, steht im Blatt des Themas „Abschließen“. Es verschwindet dann samt Schritten von der Karte und steht in der Seitenspalte unter „Abgeschlossen“, mit dem Tag. Von dort holt „Wieder aufnehmen“ es zurück, an seinen alten Platz. Gelöscht wird dabei nichts.",
             },
             {
               begriff: "Lage, Karte, Details",

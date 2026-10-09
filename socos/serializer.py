@@ -849,7 +849,14 @@ class PraktikumsthemaSerializer(serializers.ModelSerializer):
 class LagethemaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lagethema
-        fields = ["id", "name", "farbe", "x", "y"]
+        fields = ["id", "name", "farbe", "x", "y", "abgeschlossen_am"]
+
+    def validate_abgeschlossen_am(self, wert):
+        # Abschließen nimmt das Thema mit allen Schritten von der Karte. Ein
+        # offener Schritt verschwände dabei mit, und niemand sähe ihn wieder.
+        if wert and self.instance and Lageschritt.objects.filter(thema=self.instance, status="offen").exists():
+            raise serializers.ValidationError("Erst alle Schritte erledigen — sonst verschwände Offenes mit.")
+        return wert
 
 
 class LageschrittSerializer(serializers.ModelSerializer):

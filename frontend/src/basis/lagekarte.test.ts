@@ -8,6 +8,7 @@ import {
   alsSchritt,
   alsThema,
   anordnen,
+  buendelVon,
   belegt,
   erledigterVorlauf,
   erreichbar,
@@ -20,6 +21,7 @@ import {
   hubZeilen,
   kreuzSperre,
   lage,
+  offeneKarte,
   platzFuer,
   straenge,
   straffe,
@@ -28,7 +30,7 @@ import {
   type Rechteck,
 } from "./lagekarte";
 
-const thema = (id: number, name: string, x = 0, y = 0): Lagethema => ({ id, name, farbe: id, x, y });
+const thema = (id: number, name: string, x = 0, y = 0): Lagethema => ({ id, name, farbe: id, x, y, abgeschlossen_am: null });
 const schritt = (id: number, titel: string, mehr: Partial<Lageschritt> = {}): Lageschritt => ({
   id, thema: null, titel, art: "schritt", status: "offen", frist: null, notiz: "", x: 0, y: 0, ...mehr,
 });
@@ -153,6 +155,25 @@ describe("Stränge", () => {
   });
 });
 
+describe("Abgeschlossene Themen", () => {
+  it("verschwinden samt Schritten und den Pfeilen zu ihnen", () => {
+    const k = beispiel();
+    for (const s of k.schritte) if (s.thema === 1) s.status = "erledigt";
+    k.themen[0].abgeschlossen_am = "2026-10-09";
+    const o = offeneKarte(k);
+    expect(o.themen.map((t) => t.id)).toEqual([2]);
+    expect(o.schritte.map((s) => s.id)).toEqual([4, 5, 6]);
+    expect(o.verbindungen.map((v) => [v.von, v.nach])).toEqual([[4, 5], [5, 6]]);
+    // Die Bewerbung hing an der Unterzeichnung — die war erledigt, also bleibt sie frei.
+    expect(frei(graph(o), o.schritte[1])).toBe(true);
+  });
+
+  it("ohne abgeschlossenes Thema bleibt die Karte dieselbe", () => {
+    const k = beispiel();
+    expect(offeneKarte(k)).toBe(k);
+  });
+});
+
 describe("Stränge — der erledigte Vorlauf", () => {
   /** Gründung: drei erledigt, dann offen; dazu ein erledigter Schritt hinter dem offenen. */
   function erledigt(): Karte {
@@ -184,12 +205,17 @@ describe("Stränge — der erledigte Vorlauf", () => {
     expect(pos[alsSchritt(5)].x).toBe(300);
   });
 
-  it("aufgeklappt stehen sie hinter dem Bündel, das als Griff bleibt", () => {
+  it("aufgeklappt stehen sie, wo sie ohne Bündel stünden", () => {
     const { pos, buendel, eingeklappt } = straenge(graph(erledigt()), new Set([1]));
     expect(buendel[0].eingeklappt).toBe(false);
     expect(eingeklappt.size).toBe(0);
-    expect(pos[alsBuendel(1)].x).toBe(0);
-    expect([1, 2, 3].map((id) => pos[alsSchritt(id)].x)).toEqual([300, 600, 900]);
+    expect([1, 2, 3, 7].map((id) => pos[alsSchritt(id)].x)).toEqual([0, 300, 600, 900]);
+  });
+
+  it("zwei erledigte am Anfang geben noch kein Bündel", () => {
+    const k = erledigt();
+    k.schritte.find((s) => s.id === 3)!.status = "offen";
+    expect(buendelVon(graph(k)).buendel).toEqual([]);
   });
 
   it("ein wieder geöffneter Schritt fällt aus dem Bündel — und mit ihm alles danach", () => {

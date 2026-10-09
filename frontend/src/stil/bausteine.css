@@ -2534,35 +2534,42 @@ span.lk-k-punkt { cursor: inherit; }
 @keyframes lk-geboren { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } }
 .lk-buehne[data-stufe="lage"] .lk-k { opacity: 0; pointer-events: none; }
 
-/* Das Bündel: der erledigte Vorlauf eines Strangs, nur in den Strängen.
-   Ein Knopf — eingeklappt mit einer zweiten Kante dahinter als Stapel. */
+/* Das Bündel: der erledigte Vorlauf eines Themas, als ein Knopf. Eingeklappt
+   eine Kachel mit einer zweiten Kante dahinter als Stapel; aufgeklappt nur
+   noch ein Griff über dem ersten Schritt, wie „Als Nächstes". */
 .lk-buendel { position: absolute; width: 200px; transform: translate(-50%, -50%); transition: opacity 0.3s; }
 .lk-buendel button {
   position: relative; display: block; width: 100%; min-height: 48px; padding: 8px 12px 9px 34px;
   background: var(--f); border: 2px solid var(--gut); border-radius: var(--kante);
   font: inherit; text-align: left; color: var(--text-leise); cursor: pointer;
 }
-.lk-buendel[data-zu="false"] button { border-style: dashed; }
 .lk-buendel[data-zu="true"]::before {
   content: ""; position: absolute; inset: 5px -5px -5px 5px; z-index: -1;
   background: var(--f); border: 2px solid var(--gut); border-radius: var(--kante);
 }
-.lk-buendel button::before {
+.lk-buendel[data-zu="true"] button::before {
   content: ""; position: absolute; left: 11px; top: 50%; width: 12px; height: 12px; margin-top: -6px;
   border-radius: 50%; background: var(--gut);
 }
-.lk-buendel button::after {
+.lk-buendel[data-zu="true"] button::after {
   content: ""; position: absolute; left: 15px; top: 50%; width: 3px; height: 6px; margin-top: -4px;
   border: solid var(--flaeche); border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .lk-buendel button:focus-visible { outline: 2px solid var(--akzent); outline-offset: 4px; }
 .lk-b-zahl { display: block; font-weight: 600; font-size: 14px; line-height: 1.3; }
 .lk-b-tun { display: block; font-size: 12px; margin-top: 2px; text-decoration: underline; text-underline-offset: 2px; }
-.lk-buehne[data-ansicht="stern"] .lk-buendel { display: none; }
+.lk-buendel[data-zu="false"] { width: max-content; }
+.lk-buendel[data-zu="false"] button {
+  min-height: 0; padding: 2px 0; background: none; border: 0; white-space: nowrap;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+}
+/* Der Griff ist klein; der Finger trifft ein Stück daneben mit. */
+.lk-buendel[data-zu="false"] button::after { content: ""; position: absolute; inset: -10px -8px; }
+.lk-buendel[data-zu="false"] .lk-b-zahl, .lk-buendel[data-zu="false"] .lk-b-tun { display: inline; font-size: inherit; margin: 0; }
 .lk-buehne[data-stufe="lage"] .lk-buendel { opacity: 0; pointer-events: none; visibility: hidden; }
 /* Eingeklappt liegt ein Schritt unsichtbar auf seinem Bündel — auch dann,
    wenn eine gewählte Kette den Rest leise stellt. */
-.lk-buehne[data-ansicht="straenge"] .lk-k.lk-eingeklappt { opacity: 0 !important; pointer-events: none; }
+.lk-schicht .lk-k.lk-eingeklappt { opacity: 0 !important; pointer-events: none; }
 
 /* Schwebende Werkzeugleisten */
 .lk-schwebe { position: absolute; z-index: 5; display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
@@ -2638,6 +2645,12 @@ span.lk-k-punkt { cursor: inherit; }
 .lk-farbe { width: 12px; height: 12px; background: var(--t); }
 .lk-tn { font-weight: 600; font-size: 13.5px; }
 .lk-themenzeile .zahl { color: var(--text-sehr-leise); font-size: 12px; }
+.lk-abgeschlossen {
+  display: grid; grid-template-columns: 12px 1fr auto; gap: 2px 10px; align-items: center;
+  min-height: var(--griff); padding: 6px 0; border-bottom: 1px solid var(--rand);
+}
+.lk-abgeschlossen .zahl { color: var(--text-sehr-leise); font-size: 12px; }
+.lk-abgeschlossen .knopf-still { grid-column: 2 / 4; justify-self: start; }
 .lk-balken { grid-column: 2 / 4; display: flex; gap: 2px; height: 5px; }
 .lk-balken i { flex: 1; background: var(--flaeche-leise); border: 1px solid var(--rand); }
 .lk-balken i[data-s="erledigt"] { background: var(--gut); border-color: var(--gut); }

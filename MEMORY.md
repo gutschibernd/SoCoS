@@ -7,28 +7,40 @@ betrifft.
 
 ---
 
-## 2026-10-09 — Thoughts: Erledigtes in den Strängen eingeklappt
+## 2026-10-09 — Thoughts: Erledigtes eingeklappt, Themen abschließen (Migration 0047)
 
-**Wunsch Bernd:** Eine Reihe erledigter Schritte soll in der Strangansicht
-einklappen, damit die Karte übersichtlich bleibt, wenn viel dazukommt.
+**Wunsch Bernd:** Erledigte Schritte sollen einklappen — erst in den
+Strängen, dann auch auf der Sternkarte („drei erledigte Kacheln zu einer") —,
+und fertige Themen sollen sich archivieren lassen, damit die Karte
+übersichtlich bleibt, wenn viel dazukommt.
 
-**Eingeklappt wird nur der erledigte Vorlauf** (`erledigterVorlauf` in
-`basis/lagekarte.ts`): erledigt, und alles davor auch. Ein erledigter
-Schritt hinter einem offenen bleibt stehen — er steht mitten in laufender
-Arbeit, und im Bündel sähe man nicht mehr, dass dort etwas außer der Reihe
-fertig wurde. Ein Bündel gibt es ab zwei Schritten (`BUENDEL_AB`); eines
-allein ersetzte nur eine Kachel durch eine andere.
+**Eingeklappt wird nur der erledigte Vorlauf** (`erledigterVorlauf`,
+`buendelVon` in `basis/lagekarte.ts`): erledigt, und alles davor auch. Ein
+erledigter Schritt hinter einem offenen bleibt stehen — er steht mitten in
+laufender Arbeit, und im Bündel sähe man nicht mehr, dass dort etwas außer
+der Reihe fertig wurde. Ein Bündel gibt es ab drei Schritten (`BUENDEL_AB`),
+in beiden Ansichten gleich; was aufgeklappt ist, teilen sich die Ansichten.
 
-**Gerechnet, nicht gespeichert, und nur in den Strängen.** Kein Feld, keine
-Migration: Wird ein Schritt wieder geöffnet, fällt er mit allem dahinter von
-selbst heraus. Die Sternkarte bleibt, wie man sie hingelegt hat. Was
-aufgeklappt ist, hält die Bühne nur bis zum Neuladen — eingeklappt ist der
-Normalfall. Wer einen eingeklappten Schritt in der Seitenspalte wählt,
-bekommt seinen Strang aufgeklappt.
+**Gerechnet, nicht gespeichert.** Wird ein Schritt wieder geöffnet, fällt er
+mit allem dahinter von selbst heraus. Was aufgeklappt ist, hält die Bühne nur
+bis zum Neuladen — eingeklappt ist der Normalfall. Wer einen eingeklappten
+Schritt in der Seitenspalte wählt, bekommt sein Thema aufgeklappt.
 
-**Archivieren ist bewusst noch nicht gebaut.** Es bräuchte ein Feld an
-`Lagethema` (ein ganzes Thema „abgeschlossen") und damit eine Migration;
-das lohnt erst, wenn ganze Themen fertig werden und trotzdem stören.
+**Wo das Bündel steht:** In den Strängen in der ersten Spalte, und das Offene
+rückt nach vorn — dort ordnet ohnehin SoCoS. Auf der Sternkarte auf dem Platz
+des erledigten Schritts, der seinem Thema am nächsten liegt; die übrigen
+Plätze bleiben leer, denn dort hat jemand die Kacheln hingelegt, und
+„Neu anordnen" kennt die Bündel nicht. Aufgeklappt ist das Bündel keine
+Kachel mehr, sondern ein Griff „… erledigt · einklappen" über dem ersten
+Schritt — als Kachel läge es auf der Sternkarte auf ihm.
+
+**Abschließen ist ein Datum am Thema** (`Lagethema.abgeschlossen_am`), kein
+zweiter Status für Schritte und kein Löschen. Der Server nimmt es nur an,
+wenn kein Schritt des Themas mehr offen ist: Sonst verschwände Offenes von der
+Karte, und niemand sähe es wieder. Die Schnittstelle liefert weiter alles;
+`offeneKarte` nimmt abgeschlossene Themen samt Schritten und Pfeilen heraus,
+bevor Bühne, Lage und Fangfeld sie sehen. Pfeile aus einem abgeschlossenen
+Thema sperren deshalb nichts — ihr Anfang war erledigt.
 
 ---
 

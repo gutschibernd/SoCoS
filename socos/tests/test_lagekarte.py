@@ -134,6 +134,43 @@ class TestSchnittstelle:
 
 
 @pytest.mark.django_db
+class TestAbschliessen:
+    def test_nur_wenn_alles_erledigt_ist(self, client, bearbeiter):
+        thema = Lagethema.objects.create(name="Gründung")
+        a, b = _schritte("A", "B", thema=thema)
+        a.status = "erledigt"
+        a.save()
+        client.force_login(bearbeiter)
+        pfad = f"/api/lagethemen/{thema.pk}/"
+
+        antwort = client.patch(pfad, {"abgeschlossen_am": "2026-10-09"}, content_type="application/json")
+        assert antwort.status_code == 400
+        assert "erledigen" in str(antwort.json())
+
+        b.status = "erledigt"
+        b.save()
+        assert client.patch(pfad, {"abgeschlossen_am": "2026-10-09"}, content_type="application/json").status_code == 200
+        thema.refresh_from_db()
+        assert str(thema.abgeschlossen_am) == "2026-10-09"
+
+    def test_wieder_aufnehmen(self, client, bearbeiter):
+        thema = Lagethema.objects.create(name="Gründung", abgeschlossen_am="2026-10-01")
+        client.force_login(bearbeiter)
+
+        antwort = client.patch(f"/api/lagethemen/{thema.pk}/", {"abgeschlossen_am": None}, content_type="application/json")
+
+        assert antwort.status_code == 200
+        thema.refresh_from_db()
+        assert thema.abgeschlossen_am is None
+
+    def test_lesen_darf_jeder_abschliessen_nicht(self, client, leser):
+        thema = Lagethema.objects.create(name="Gründung")
+        client.force_login(leser)
+        antwort = client.patch(f"/api/lagethemen/{thema.pk}/", {"abgeschlossen_am": "2026-10-09"}, content_type="application/json")
+        assert antwort.status_code == 403
+
+
+@pytest.mark.django_db
 class TestEntfernen:
     def test_mit_dem_schritt_gehen_seine_pfeile(self, client, admin_nutzer):
         a, b, c = _schritte("A", "B", "C")
@@ -195,6 +232,7 @@ def test_die_karte_wandert_durch_die_sicherung(tmp_path, settings, bearbeiter):
     settings.MEDIA_ROOT = tmp_path / "medien"
     settings.MEDIA_ROOT.mkdir()
     thema = Lagethema.objects.create(name="Gründung", farbe=3, x=-420, y=-156)
+    Lagethema.objects.create(name="Messe 2026", abgeschlossen_am="2026-10-09")
     a = Lageschritt.objects.create(titel="Gesellschaftervertrag", thema=thema, x=-700, y=-300)
     b = Lageschritt.objects.create(titel="Z-Achse geliefert", art=Lageschritt.Art.WARTEN, status="erledigt")
     Lageverbindung.objects.create(von=a, nach=b, text="wenn geliefert")
@@ -207,7 +245,8 @@ def test_die_karte_wandert_durch_die_sicherung(tmp_path, settings, bearbeiter):
     call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
 
     thema = Lagethema.objects.get(name="Gründung")
-    assert (thema.farbe, thema.x, thema.y) == (3, -420, -156)
+    assert (thema.farbe, thema.x, thema.y, thema.abgeschlossen_am) == (3, -420, -156, None)
+    assert str(Lagethema.objects.get(name="Messe 2026").abgeschlossen_am) == "2026-10-09"
     a = Lageschritt.objects.get(titel="Gesellschaftervertrag")
     assert (a.thema, a.x, a.y) == (thema, -700, -300)
     b = Lageschritt.objects.get(titel="Z-Achse geliefert")

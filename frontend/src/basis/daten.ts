@@ -521,8 +521,11 @@ export const usePraktikumsthemen = () =>
 
 /* --- Thoughts (im Code: die Lagekarte) ----------------------------------- */
 
-/** Ein Themenfeld in Thoughts. `farbe` ist einer der acht Thementöne (1–8). */
-export type Lagethema = { id: number; name: string; farbe: number; x: number; y: number };
+/**
+ * Ein Themenfeld in Thoughts. `farbe` ist einer der acht Thementöne (1–8).
+ * Ein abgeschlossenes Thema steht samt Schritten nicht mehr auf der Karte.
+ */
+export type Lagethema = { id: number; name: string; farbe: number; x: number; y: number; abgeschlossen_am: string | null };
 
 export type Schrittart = "schritt" | "warten" | "entscheidung" | "termin";
 

@@ -22,6 +22,30 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-10-09",
+        "titel": "Thoughts bleibt übersichtlich",
+        "punkte": [
+            {
+                "titel": "Erledigtes klappt ein",
+                "text": (
+                    "Was am Anfang eines Themas schon erledigt ist, liegt jetzt als eine Kachel "
+                    "„… erledigt“ da — auf der Sternkarte und in den Strängen. Ein Klick klappt "
+                    "es auf, und über dem ersten Schritt steht dann „einklappen“."
+                ),
+                "wo": "module/thoughts",
+            },
+            {
+                "titel": "Fertige Themen abschließen",
+                "text": (
+                    "Ist in einem Thema alles erledigt, nimmt „Abschließen“ im Blatt des Themas "
+                    "es von der Karte. Es steht dann in der Seitenspalte unter „Abgeschlossen“ "
+                    "und lässt sich von dort wieder aufnehmen."
+                ),
+                "wo": "module/thoughts",
+            },
+        ],
+    },
+    {
         "version": "2026-10-07",
         "titel": "Förderauslastung",
         "punkte": [

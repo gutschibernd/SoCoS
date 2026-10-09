@@ -1991,7 +1991,14 @@ class Praktikumsthema(Basismodell):
 
 
 class Lagethema(Basismodell):
-    """Ein Themenfeld — Gründung, Praktikantinnen, Pilotpatient …"""
+    """
+    Ein Themenfeld — Gründung, Praktikantinnen, Pilotpatient …
+
+    **Abgeschlossen** heißt: fertig und von der Karte genommen, mit allen
+    Schritten. Es steht dann in der Seitenspalte und lässt sich wieder
+    aufnehmen. Kein Löschen und kein zweiter Status für Schritte — das Thema
+    trägt das Datum, die Schritte bleiben, wie sie sind.
+    """
 
     protokoll_ohne = ("x", "y")
 
@@ -2002,6 +2009,7 @@ class Lagethema(Basismodell):
     )
     x = models.IntegerField("x", default=0)
     y = models.IntegerField("y", default=0)
+    abgeschlossen_am = models.DateField("abgeschlossen am", null=True, blank=True)
 
     class Meta(Basismodell.Meta):
         verbose_name = "Thema in Thoughts"
