@@ -966,6 +966,10 @@ function ModuleDoku() {
               text: "Der Knopf oben im Antrag legt den ganzen Antrag als gegliederten Text in die Zwischenablage: Eckdaten, Richtlinie in Kürze, alle Texte, die Kalkulation, die Arbeitspakete mit Monaten, Stunden und Kosten, den Zeitplan als Raster, Antragsreife, Bedarf und Fragen. Den fügst du in ein Sprachmodell ein, um daran weiterzuschreiben. Leere Felder stehen dort als „noch leer“, damit das Modell nachfragt, statt etwas zu erfinden.",
             },
             {
+              begriff: "Übersicht als PDF",
+              text: "Der Knopf daneben lädt eine kurze Übersicht zum Mitnehmen: Eckdaten mit Fördersumme, Kosten und Laufzeit, die Beschreibung, den Zeitplan mit einer Linie für heute, die Arbeitspakete mit Zeitraum, Stunden und Kosten, die Kalkulation und was noch offen ist. Die Textabschnitte fehlen darin mit Absicht, und lange Ziele eines Pakets sind gekürzt — die ganzen Texte liefert „Projektinhalt kopieren“. Zum Einreichen ist sie nicht gedacht.",
+            },
+            {
               begriff: "Kein SoCoS-Projekt",
               text: "Die Arbeitspakete eines Antrags sind keine Projektpakete, auf sie wird keine Zeit gebucht. Wird ein Antrag bewilligt, legst du das Projekt unter Projekt an.",
             },

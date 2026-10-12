@@ -1246,6 +1246,16 @@ class FoerderantragViewSet(SocosViewSet):
         "pakete", "pakete__stunden__nutzer", "posten", "abschnitte"
     )
 
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        """Die Übersicht des Antrags — Eckdaten, Pakete, Kosten, was offen ist."""
+        from socos.services import antragsuebersicht
+
+        antrag = self.get_object()
+        antwort = HttpResponse(antragsuebersicht.erzeugen(antrag), content_type="application/pdf")
+        antwort["Content-Disposition"] = f'attachment; filename="{antragsuebersicht.dateiname(antrag)}"'
+        return antwort
+
     @transaction.atomic
     def perform_destroy(self, antrag):
         """

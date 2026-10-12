@@ -1003,6 +1003,11 @@ function Antrag({
                 <Zeichen name="kopie" />
                 Projektinhalt kopieren
               </button>
+              {/* Ein Link und kein fetch, wie beim Aushang: Das PDF soll im Download-Ordner landen. */}
+              <a className="knopf-still" href={`/api${pfad}pdf/`}>
+                <Zeichen name="pdf" />
+                Übersicht als PDF
+              </a>
             </span>
           </div>
           <Feldtext

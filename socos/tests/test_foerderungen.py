@@ -417,6 +417,86 @@ class TestSchnittstelle:
         assert client.delete(f"/api/foerdergeber/{programm.geber_id}/").status_code == 409
 
 
+class TestUebersicht:
+    """Die Antragsübersicht als PDF: dass sie aus jedem Antrag entsteht und die Zahlen deutsch schreibt."""
+
+    def test_aus_einem_vollen_antrag(self, client, leser, antrag):
+        from datetime import date
+
+        antrag.beginn = date(2027, 3, 1)
+        antrag.beschreibung = "Ein Spender, der sich selbst befüllt."
+        antrag.datenbedarf = "✓ Angebot Drucker\nZahlen vom Heim"
+        antrag.stundensatz, antrag.gemeinkosten, antrag.foerderquote = Decimal("85"), Decimal("20"), Decimal("70")
+        antrag.save()
+        bau = _paket(antrag, "Bau <mit> & Zeichen", 4, 15, None)
+        bau.ziel = "Ein langes Ziel. " * 40
+        bau.ergebnis = "Prototyp"
+        bau.save()
+        _paket(antrag, "Anforderungen", 1, 3, "1000")
+        Foerderstunden.objects.create(paket=bau, nutzer=leser, stunden=Decimal("270"))
+        Foerderstunden.objects.create(paket=bau, person="N. N.", stunden=Decimal("12.5"))
+        Foerderposten.objects.create(antrag=antrag, paket=bau, bezeichnung="Filament", betrag=Decimal("900"))
+        client.force_login(leser)
+
+        antwort = client.get(f"/api/foerderantraege/{antrag.pk}/pdf/")
+
+        assert antwort.status_code == 200
+        assert antwort["Content-Type"] == "application/pdf"
+        assert 'filename="Antragsuebersicht_Befuellsystem.pdf"' in antwort["Content-Disposition"]
+        assert antwort.content.startswith(b"%PDF")
+
+    def test_aus_einem_leeren_antrag(self, antrag):
+        from socos.services import antragsuebersicht
+
+        assert antragsuebersicht.erzeugen(antrag).startswith(b"%PDF")
+
+    def test_als_drittleister(self, antrag):
+        from socos.services import antragsuebersicht
+
+        antrag.rolle = Foerderantrag.Rolle.DRITTLEISTER
+        antrag.save()
+        paket = _paket(antrag, "Bau", 1, 30, "5000")
+        Foerderstunden.objects.create(paket=paket, person="BG", stunden=Decimal("100"))
+
+        assert antragsuebersicht.erzeugen(antrag).startswith(b"%PDF")
+
+    def test_ein_entfernter_antrag_hat_keine(self, client, leser, antrag):
+        antrag.delete()
+        client.force_login(leser)
+
+        assert client.get(f"/api/foerderantraege/{antrag.pk}/pdf/").status_code == 404
+
+    def test_zahlen_auf_deutsch(self):
+        from socos.services.antragsuebersicht import euro, zahl
+
+        assert euro(Decimal("50000.00")) == "50.000 €"
+        assert euro(Decimal("1234.5")) == "1.234,50 €"
+        assert zahl(Decimal("270.00")) == "270"
+        assert zahl(Decimal("1012.50")) == "1.012,5"
+
+    def test_zeitraum_mit_und_ohne_beginn(self):
+        from datetime import date
+
+        from socos.services.antragsuebersicht import monat, zeitraum
+
+        ohne = Foerderantrag(beginn=None)
+        assert zeitraum(ohne, 4, 15) == "M4–15"
+        mit = Foerderantrag(beginn=date(2026, 11, 20))
+        assert monat(mit, 3) == "Jän 27"
+        assert zeitraum(mit, 1, 1).startswith("Nov 26<br/>")
+
+    def test_kuerzen_am_wortende(self):
+        from socos.services.antragsuebersicht import gekuerzt
+
+        assert gekuerzt("kurz", 10) == "kurz"
+        assert gekuerzt("eins zwei drei vier", 12) == "eins zwei …"
+
+    def test_nur_was_noch_fehlt(self):
+        from socos.services.antragsuebersicht import offener_bedarf
+
+        assert offener_bedarf("✓ da\n\n  fehlt noch  \n✓da auch") == ["fehlt noch"]
+
+
 class TestAuslastung:
     """
     Die Förderauslastung: Stunden gleichmäßig auf die Monate eines Pakets,
