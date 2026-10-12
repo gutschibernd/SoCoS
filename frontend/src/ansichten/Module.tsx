@@ -131,7 +131,7 @@ function Themenzeile({
   wechseln: Wechseln;
 }) {
   const themen = usePraktikumsthemen();
-  const zahl = themen.data?.filter((t) => t.art === teil.art).length;
+  const zahl = themen.data?.filter((t) => t.art === teil.art && !t.archiviert_am).length;
   return (
     <li>
       <a

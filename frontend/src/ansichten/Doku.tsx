@@ -774,6 +774,7 @@ function ModuleDoku() {
             "Jedes Thema steht als Kachel. „Für ein LLM kopieren“ legt den Auftrag samt Thema in die Zwischenablage — gleich auf der Kachel oder auf der Seite des Themas. In ein LLM deiner Wahl einfügen.",
             "Ein Klick auf die Kachel öffnet die Seite des Themas. Dort unter „Ausschreibung“ aufklappen, die Antwort des LLM einfügen, bei Bedarf nachbessern, „Speichern“.",
             "„PDF“ lädt den Aushang: Briefkopf von Sopharmis Medical Solutions, die Ausschreibung, unten der Kontakt info@sopharmis.com mit einem Betreff.",
+            "„Alle PDFs“ oben in der Liste lädt alle Aushänge auf einmal, als ZIP — jedes Thema mit gespeicherter Ausschreibung, außer den archivierten.",
           ]}
         />
         <Merke>
@@ -800,7 +801,11 @@ function ModuleDoku() {
             },
             {
               begriff: "Sonstige Ideen",
-              text: "Themen, die noch nicht so weit sind — eine Zeile je Idee, ein Titel genügt. „Zur Haupt-Aufgabe“ macht eine Kachel daraus, samt allem, was schon dasteht; „Zu den Ideen“ auf der Seite eines Themas legt es zurück. Das ist auch der mildere Weg statt Entfernen.",
+              text: "Themen, die noch nicht so weit sind — eine Zeile je Idee, ein Titel genügt. „Zur Haupt-Aufgabe“ macht eine Kachel daraus, samt allem, was schon dasteht; „Zu den Ideen“ auf der Seite eines Themas legt es zurück.",
+            },
+            {
+              begriff: "Archiv",
+              text: "Eine besetzte oder abgelaufene Stelle kommt mit „Archivieren“ auf der Seite des Themas aus der Liste und aus „Alle PDFs“ — samt Ausschreibung, nichts geht verloren. „Archiv“ oben in der Liste zeigt sie, „Aus dem Archiv holen“ stellt sie zurück. Das ist auch der mildere Weg statt Entfernen.",
             },
             {
               begriff: "Wer was darf",

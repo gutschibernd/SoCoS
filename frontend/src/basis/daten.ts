@@ -458,6 +458,8 @@ export type Praktikumsthema = {
   ausschreibung: string;
   /** Der Auftrag an das LLM — vom Server geschrieben, siehe services/ausschreibung.py. */
   auftrag: string;
+  /** `"JJJJ-MM-TT"` oder null — archivierte stehen nicht in der Liste. */
+  archiviert_am: string | null;
   geaendert_am: string;
 };
 

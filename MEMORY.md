@@ -774,6 +774,17 @@ vom 2026-09-26: Überschrift links, Punkte rechts, Haarlinien dazwischen; der
 erste Abschnitt wird gezählt, der zweite hat volle Kupfer-, alle weiteren
 leere Quadrate.
 
+**Archiv: `archiviert_am`, ein Datum** (Migration 0049, 2026-10-12), wie
+`abgeschlossen_am` in Thoughts — kein Status-Feld, kein eigener Ort.
+Archivierte Themen stehen nicht in der Liste und nicht in der Zählung der
+Übersicht; der Umschalter „Archiv" ist Zustand der Seite, kein Weg. Archivieren
+ist jetzt der mildere Weg im Löschdialog (vorher „Zu den Ideen legen").
+
+**„Alle PDFs" ist ein ZIP** (`GET /api/praktikumsthemen/pdfs/?art=…`), kein
+zusammengeheftetes PDF: Jede Datei bleibt die, die der einzelne Knopf liefert.
+Mit geht jedes nicht archivierte Thema mit Ausschreibung; gleiche Titel
+bekommen `_2`, sonst überschriebe die zweite Datei die erste im ZIP still.
+
 **Offen:** In Österreich muss eine Stellenausschreibung das Mindestentgelt
 nennen (§ 9 GlBG), sofern das Praktikum ein Arbeitsverhältnis ist. Der
 Auftrag verbietet dem LLM, eine Vergütung zu erfinden — steht sie nicht als

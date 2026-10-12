@@ -52,7 +52,8 @@ export type ZeichenName =
   | "foerderung"
   | "kopie"
   | "lupe"
-  | "saeulen";
+  | "saeulen"
+  | "archiv";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -150,6 +151,9 @@ const PFADE: Record<ZeichenName, string> = {
   saeulen: "M4 20h16M6.5 20v-6M10.5 20V8M14.5 20v-9M18.5 20V5",
   // Zwei Blätter versetzt — das vordere ganz, vom hinteren nur die Ecke.
   kopie: "M8.5 8.5h11v11h-11zM15.5 8.5V4.5h-11v11h4",
+  // Eine Kiste mit Deckel und Griffleiste — archivieren. Der Deckel steht
+  // über, sonst ist es bei 18 px bloß ein Rechteck.
+  archiv: "M4 5h16v4H4zM5.5 9v11h13V9M10 13h4",
   // Drei Münzen übereinander — Geld, das zu einem Vorhaben dazukommt.
   foerderung:
     "M4 7c0-1.4 3.6-2.5 8-2.5s8 1.1 8 2.5-3.6 2.5-8 2.5S4 8.4 4 7zM4 7v5c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5V7M4 12v5c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5v-5",

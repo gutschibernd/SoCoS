@@ -669,6 +669,35 @@ class PraktikumsthemaViewSet(SocosViewSet):
         antwort["Content-Disposition"] = f'attachment; filename="{ausschreibung.dateiname(thema)}"'
         return antwort
 
+    @action(detail=False, methods=["get"])
+    def pdfs(self, request):
+        """
+        Alle Aushänge auf einmal, als ZIP. `?art=aufgabe` oder `?art=idee`
+        nimmt nur die eine Liste — ohne Angabe kommen beide.
+
+        Archivierte Themen gehen nicht mit: Wer „alle“ druckt, will die, die
+        gerade ausgeschrieben sind, und nicht die besetzten vom letzten Jahr.
+        Themen ohne Ausschreibung auch nicht — von ihnen gibt es noch kein PDF.
+        """
+        from socos.services import ausschreibung
+
+        themen = self.get_queryset().filter(archiviert_am__isnull=True)
+        art = request.query_params.get("art")
+        if art:
+            themen = themen.filter(art=art)
+        themen = [t for t in themen if t.ausschreibung.strip()]
+        if not themen:
+            raise ValidationError({"ausschreibung": "Noch kein Thema mit Ausschreibung — es gibt kein PDF zu laden."})
+        try:
+            daten = ausschreibung.sammlung(themen)
+        except ausschreibung.PasstNicht as fehler:
+            raise ValidationError(
+                {"ausschreibung": f"Die Ausschreibung zu „{fehler.args[0].titel}“ passt nicht auf eine Seite. Kürze sie."}
+            )
+        antwort = HttpResponse(daten, content_type="application/zip")
+        antwort["Content-Disposition"] = f'attachment; filename="{ausschreibung.sammelname()}"'
+        return antwort
+
 
 # --- Module: Thoughts (die Lagekarte) -------------------------------------------------------
 #

@@ -12,11 +12,16 @@
  * SoCoS schickt nichts irgendwohin. Den Auftrag schreibt der Server
  * (`socos/services/ausschreibung.py`), weil dort auch der Parser steht, der
  * die Antwort für das PDF zerlegt.
+ *
+ * **Archivierte Themen stehen nicht in der Liste**, sondern hinter dem
+ * Umschalter „Archiv". Der Umschalter ist Zustand der Seite und kein Weg:
+ * Ein Lesezeichen auf das Archiv braucht niemand.
  */
 
 import { useEffect, useState, type ReactNode } from "react";
 
 import { hole } from "../basis/api";
+import { datumIn } from "../basis/aufgaben";
 import {
   useNeuLaden,
   usePraktikumsthemen,
@@ -37,6 +42,7 @@ type Wechseln = (seite: Seite, unter?: string | null) => void;
 type Fenster = null | { neu: Themenart } | Praktikumsthema;
 
 const hatAusschreibung = (t: Praktikumsthema) => t.ausschreibung.trim() !== "";
+const tagText = (d: string) => d.split("-").map(Number).reverse().join(".");
 
 /* --- Die Listen ----------------------------------------------------------- */
 
@@ -53,11 +59,15 @@ export function Praktikum({
 }) {
   const themen = usePraktikumsthemen();
   const [fenster, setFenster] = useState<Fenster>(null);
+  const [zeigeArchiv, setZeigeArchiv] = useState(false);
 
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
   if (!themen.data) return <Zustand abfrage={themen} erneut={() => themen.refetch()} />;
 
-  const liste = themen.data.filter((t) => t.art === teil.art);
+  const dieser = themen.data.filter((t) => t.art === teil.art);
+  const offen = dieser.filter((t) => !t.archiviert_am);
+  const archiviert = dieser.filter((t) => t.archiviert_am);
+  const liste = zeigeArchiv ? archiviert : offen;
   const idee = teil.art === "idee";
   const oeffnen = (t: Praktikumsthema) => wechseln("module", `${teil.weg}/${t.id}`);
 
@@ -68,18 +78,48 @@ export function Praktikum({
     </button>
   );
 
+  // Ein Link und kein fetch, wie beim einzelnen PDF: Das ZIP soll im
+  // Download-Ordner landen. Welche Themen mitgehen, entscheidet der Server.
+  const allePdfs = !zeigeArchiv && offen.some(hatAusschreibung) && (
+    <a className="knopf-still" href={`/api/praktikumsthemen/pdfs/?art=${teil.art}`}>
+      <Zeichen name="pdf" />
+      Alle PDFs
+    </a>
+  );
+
+  const archivKnopf = (zeigeArchiv || archiviert.length > 0) && (
+    <button type="button" className="knopf-still" aria-pressed={zeigeArchiv} onClick={() => setZeigeArchiv((z) => !z)}>
+      <Zeichen name="archiv" />
+      Archiv <span className="zahl">{archiviert.length}</span>
+    </button>
+  );
+
   return (
     <div className="spalte">
       {umschalter}
       <div className="vorhabenleiste">
         <div className="vorhaben-kopf">
-          <b>{teil.titel}</b>
+          <b>{zeigeArchiv ? `${teil.titel} · Archiv` : teil.titel}</b>
           <span>{themenZahl(liste.length, teil.art)}</span>
         </div>
-        {liste.length > 0 && <div className="vorhaben-aktionen">{neu}</div>}
+        {(liste.length > 0 || archivKnopf) && (
+          <div className="vorhaben-aktionen">
+            {allePdfs}
+            {archivKnopf}
+            {!zeigeArchiv && liste.length > 0 && neu}
+          </div>
+        )}
       </div>
 
-      {liste.length === 0 ? (
+      {liste.length === 0 && zeigeArchiv ? (
+        <div className="karte leerstelle">
+          <b>Nichts im Archiv</b>
+          <p>Archiviert wird auf der Seite eines Themas.</p>
+          <button type="button" className="knopf-still" onClick={() => setZeigeArchiv(false)}>
+            Zu den {teil.titel}
+          </button>
+        </div>
+      ) : liste.length === 0 ? (
         <div className="karte leerstelle">
           <b>{idee ? "Noch keine Idee" : "Noch kein Thema"}</b>
           <p>
@@ -243,10 +283,14 @@ export function Themenseite({
       <div className="vorhabenleiste">
         <div className="vorhaben-kopf">
           <b className="thema-titel">{thema.titel}</b>
-          <span>{thema.art === "idee" ? "Sonstige Idee" : "Haupt-Aufgabenstellung"}</span>
+          <span>
+            {thema.art === "idee" ? "Sonstige Idee" : "Haupt-Aufgabenstellung"}
+            {thema.archiviert_am && ` · archiviert am ${tagText(thema.archiviert_am)}`}
+          </span>
         </div>
         {ich.darf.bearbeiten && (
           <div className="vorhaben-aktionen">
+            <ArchivKnopf thema={thema} />
             <ArtKnopf
               thema={thema}
               // Die Seite zieht mit in die andere Liste, damit „zurück"
@@ -375,6 +419,45 @@ function PdfKnopf({ thema, gesperrt = false }: { thema: Praktikumsthema; gesperr
   );
 }
 
+/**
+ * Ins Archiv oder wieder heraus. Gibt zurück, ob es geklappt hat; den Grund
+ * eines Fehlers hat `hole` schon gemeldet.
+ */
+async function archivieren(thema: Praktikumsthema, rein: boolean, neuLaden: () => void): Promise<boolean> {
+  try {
+    await hole(`/praktikumsthemen/${thema.id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ archiviert_am: rein ? datumIn(0) : null }),
+    });
+    neuLaden();
+    melden("gut", rein ? `„${thema.titel}“ steht jetzt im Archiv.` : `„${thema.titel}“ ist wieder in der Liste.`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ArchivKnopf({ thema }: { thema: Praktikumsthema }) {
+  const neuLaden = useNeuLaden();
+  const [laeuft, setLaeuft] = useState(false);
+  const rein = !thema.archiviert_am;
+  return (
+    <button
+      type="button"
+      className="knopf-still"
+      disabled={laeuft}
+      onClick={async () => {
+        setLaeuft(true);
+        await archivieren(thema, rein, neuLaden);
+        setLaeuft(false);
+      }}
+    >
+      <Zeichen name="archiv" />
+      {rein ? "Archivieren" : "Aus dem Archiv holen"}
+    </button>
+  );
+}
+
 /** Aus einer Idee eine Haupt-Aufgabe machen — oder zurück zu den Ideen. */
 function ArtKnopf({ thema, danach }: { thema: Praktikumsthema; danach?: (art: Themenart) => void }) {
   const neuLaden = useNeuLaden();
@@ -427,16 +510,24 @@ function Ausschreibung({ thema, darfBearbeiten }: { thema: Praktikumsthema; darf
   const [text, setText] = useState(thema.ausschreibung);
   const [auftragOffen, setAuftragOffen] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
+  // Was der Server zuletzt angenommen hat. Ohne das verglichen wir nach dem
+  // Speichern weiter mit `thema` aus dem Zwischenspeicher — und der kennt den
+  // neuen Stand erst, wenn der erneute Abruf zurück ist. Hält React Query den
+  // an (Fenster verdeckt, siehe basis/Zustand.tsx), stand „Nicht gespeichert"
+  // bis zum Neuladen der Seite da. Kommt der Abruf, setzt der neue `key` das
+  // Feld ohnehin neu auf.
+  const [gespeichert, setGespeichert] = useState(thema.ausschreibung);
 
-  const geaendert = text.trim() !== thema.ausschreibung.trim();
+  const geaendert = text.trim() !== gespeichert.trim();
 
   async function speichern() {
     setLaeuft(true);
     try {
-      await hole(`/praktikumsthemen/${thema.id}/`, {
+      const antwort = await hole<Praktikumsthema>(`/praktikumsthemen/${thema.id}/`, {
         method: "PATCH",
         body: JSON.stringify({ ausschreibung: text.trim() }),
       });
+      setGespeichert(antwort.ausschreibung);
       neuLaden();
       melden("gut", `Die Ausschreibung zu „${thema.titel}“ ist gespeichert.`);
     } catch {
@@ -570,18 +661,12 @@ function Themenfenster({
     }
   }
 
-  async function zuDenIdeen() {
+  async function insArchiv() {
     if (!thema) return;
     setLaeuft(true);
-    try {
-      await hole(`/praktikumsthemen/${thema.id}/`, { method: "PATCH", body: JSON.stringify({ art: "idee" }) });
-      neuLaden();
-      melden("gut", `„${thema.titel}“ steht jetzt unter Sonstige Ideen.`);
-      schliessen();
-    } catch {
-      setLaeuft(false);
-      setFragtLoeschen(false);
-    }
+    if (await archivieren(thema, true, neuLaden)) return schliessen();
+    setLaeuft(false);
+    setFragtLoeschen(false);
   }
 
   const zurueck = () => (geaendert ? setFragtVerwerfen(true) : schliessen());
@@ -664,9 +749,9 @@ function Themenfenster({
         <Loeschdialog
           name={thema.titel}
           was="Das Thema samt seiner Ausschreibung"
-          // Der mildere Weg für eine Haupt-Aufgabe: Sie ist nicht falsch,
-          // bloß gerade nicht dran — dann gehört sie zu den Ideen.
-          milder={thema.art === "aufgabe" ? { text: "Zu den Ideen legen", tun: zuDenIdeen } : undefined}
+          // Der mildere Weg: Ein Thema ist selten falsch, meist bloß nicht
+          // mehr dran — dann gehört es ins Archiv, samt Ausschreibung.
+          milder={thema.archiviert_am ? undefined : { text: "Archivieren", tun: insArchiv }}
           laeuft={laeuft}
           abbrechen={() => setFragtLoeschen(false)}
           loeschen={loeschen}

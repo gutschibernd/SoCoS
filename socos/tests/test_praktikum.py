@@ -9,7 +9,10 @@ Seite** hat — und dass eine Ausschreibung, die nicht passt, schon beim
 Speichern abgewiesen wird.
 """
 
+import io
 import re
+import zipfile
+from datetime import date
 
 import pytest
 from django.core.management import call_command
@@ -254,12 +257,80 @@ class TestSchnittstelle:
         assert Praktikumsthema.alle_objekte.filter(pk=thema.pk, geloescht_am__isnull=False).exists()
 
 
+class TestArchivUndSammlung:
+    """Archivieren ist ein Datum; der Sammel-Download nimmt nur, was gerade gilt."""
+
+    @staticmethod
+    def _namen(antwort):
+        return sorted(zipfile.ZipFile(io.BytesIO(antwort.content)).namelist())
+
+    @pytest.mark.django_db
+    def test_archivieren_und_zurueckholen(self, client, bearbeiter, thema):
+        client.force_login(bearbeiter)
+        weg = f"/api/praktikumsthemen/{thema.pk}/"
+
+        assert client.patch(weg, {"archiviert_am": "2026-10-12"}, content_type="application/json").status_code == 200
+        thema.refresh_from_db()
+        assert thema.archiviert_am == date(2026, 10, 12)
+
+        client.patch(weg, {"archiviert_am": None}, content_type="application/json")
+        thema.refresh_from_db()
+        assert thema.archiviert_am is None
+
+    @pytest.mark.django_db
+    def test_der_download_nimmt_nur_offene_mit_ausschreibung(self, client, leser):
+        Praktikumsthema.objects.create(titel="Spender", ausschreibung=ANTWORT)
+        Praktikumsthema.objects.create(titel="Ohne Text")
+        Praktikumsthema.objects.create(titel="Besetzt", ausschreibung=ANTWORT, archiviert_am=date(2026, 1, 1))
+        Praktikumsthema.objects.create(titel="Eine Idee", art=Praktikumsthema.IDEE, ausschreibung=ANTWORT)
+        # Laden dürfen alle, wie das einzelne PDF.
+        client.force_login(leser)
+
+        antwort = client.get("/api/praktikumsthemen/pdfs/?art=aufgabe")
+
+        assert antwort.status_code == 200
+        assert antwort["Content-Type"] == "application/zip"
+        assert "Praktikum_Ausschreibungen_" in antwort["Content-Disposition"]
+        assert self._namen(antwort) == ["Praktikum_Spender.pdf"]
+        pdf = zipfile.ZipFile(io.BytesIO(antwort.content)).read("Praktikum_Spender.pdf")
+        assert pdf.startswith(b"%PDF") and _seiten(pdf) == 1
+
+        # Ohne Angabe beide Listen.
+        assert self._namen(client.get("/api/praktikumsthemen/pdfs/")) == [
+            "Praktikum_Eine-Idee.pdf",
+            "Praktikum_Spender.pdf",
+        ]
+
+    @pytest.mark.django_db
+    def test_gleiche_titel_ueberschreiben_sich_nicht(self, client, leser):
+        Praktikumsthema.objects.create(titel="Spender", ausschreibung=ANTWORT)
+        Praktikumsthema.objects.create(titel="Spender", ausschreibung=ANTWORT)
+        client.force_login(leser)
+
+        antwort = client.get("/api/praktikumsthemen/pdfs/")
+
+        assert self._namen(antwort) == ["Praktikum_Spender.pdf", "Praktikum_Spender_2.pdf"]
+
+    @pytest.mark.django_db
+    def test_ohne_ausschreibung_gibt_es_nichts(self, client, leser, thema):
+        client.force_login(leser)
+
+        antwort = client.get("/api/praktikumsthemen/pdfs/")
+
+        assert antwort.status_code == 400
+        assert "kein PDF" in str(antwort.json())
+
+
 @pytest.mark.django_db(transaction=True)
 def test_themen_wandern_durch_die_sicherung(tmp_path, settings, bearbeiter):
     settings.MEDIA_ROOT = tmp_path / "medien"
     settings.MEDIA_ROOT.mkdir()
     Praktikumsthema.objects.create(
-        titel="Marktrecherche", art=Praktikumsthema.IDEE, punkte="Eins\nZwei", ausschreibung=ANTWORT
+        titel="Marktrecherche",
+        art=Praktikumsthema.IDEE,
+        punkte="Eins\nZwei",
+        ausschreibung=ANTWORT,
+        archiviert_am=date(2026, 10, 12),
     )
 
     archiv = tmp_path / "archiv.tar.gz"
@@ -271,3 +342,4 @@ def test_themen_wandern_durch_die_sicherung(tmp_path, settings, bearbeiter):
     assert wieder_da.punkte == "Eins\nZwei"
     assert wieder_da.ausschreibung == ANTWORT
     assert wieder_da.art == Praktikumsthema.IDEE
+    assert wieder_da.archiviert_am == date(2026, 10, 12)

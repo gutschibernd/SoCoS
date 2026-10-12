@@ -20,6 +20,7 @@ Kein eingebautes LLM, wie bei den Meetings: SoCoS schickt nichts irgendwohin.
 """
 
 import re
+import zipfile
 from io import BytesIO
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -550,6 +551,36 @@ def _fuss(blatt, breite):
 
 def dateiname(thema):
     return f"Praktikum_{ascii_teil(thema.titel) or 'Thema'}.pdf"
+
+
+def sammlung(themen):
+    """
+    Alle Aushänge als ZIP — ein Download statt eines Klicks je Kachel.
+
+    Ein ZIP und kein zusammengeheftetes PDF: Jeder Aushang bleibt die Datei,
+    die auch der einzelne Knopf liefert, mit demselben Namen. Zwei Themen mit
+    gleichem Titel überschrieben sich im Archiv still — die zweite bekommt
+    darum eine Nummer. Wirft `PasstNicht` mit dem Thema als Argument.
+    """
+    puffer = BytesIO()
+    vergeben = set()
+    with zipfile.ZipFile(puffer, "w", zipfile.ZIP_DEFLATED) as archiv:
+        for thema in themen:
+            try:
+                daten = erzeugen(thema)
+            except PasstNicht:
+                raise PasstNicht(thema)
+            name, n = dateiname(thema), 1
+            while name in vergeben:
+                n += 1
+                name = dateiname(thema).removesuffix(".pdf") + f"_{n}.pdf"
+            vergeben.add(name)
+            archiv.writestr(name, daten)
+    return puffer.getvalue()
+
+
+def sammelname():
+    return f"Praktikum_Ausschreibungen_{timezone.localdate():%Y-%m-%d}.zip"
 
 
 def ascii_teil(titel):

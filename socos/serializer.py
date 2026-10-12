@@ -754,7 +754,10 @@ class PraktikumsthemaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Praktikumsthema
-        fields = ["id", "titel", "art", "kurzbeschreibung", "punkte", "ausschreibung", "auftrag", "geaendert_am"]
+        fields = [
+            "id", "titel", "art", "kurzbeschreibung", "punkte", "ausschreibung", "auftrag", "archiviert_am",
+            "geaendert_am",
+        ]
         read_only_fields = ["geaendert_am"]
 
     def get_auftrag(self, thema):

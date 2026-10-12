@@ -1566,6 +1566,11 @@ class Praktikumsthema(Basismodell):
     Modell: Aus einer Idee wird irgendwann eine Haupt-Aufgabe, und dann soll
     sie mit allem umziehen, was schon an ihr steht — ein Feld umstellen statt
     abschreiben.
+
+    **Archiviert ist ein Datum, kein eigener Ort**, wie `abgeschlossen_am` in
+    Thoughts: Eine besetzte oder abgelaufene Stelle ist nicht falsch, bloß nicht
+    mehr dran. Sie verschwindet aus der Liste und aus dem Sammel-Download,
+    bleibt aber samt Ausschreibung da, falls sie wiederkommt.
     """
 
     AUFGABE = "aufgabe"
@@ -1577,6 +1582,7 @@ class Praktikumsthema(Basismodell):
     kurzbeschreibung = models.TextField("Kurzbeschreibung", blank=True)
     punkte = models.TextField("Punkte", blank=True, help_text="Ein Punkt je Zeile.")
     ausschreibung = models.TextField("Ausschreibung", blank=True)
+    archiviert_am = models.DateField("archiviert am", null=True, blank=True)
 
     class Meta(Basismodell.Meta):
         verbose_name = "Praktikumsthema"

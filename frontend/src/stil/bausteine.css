@@ -1934,6 +1934,8 @@ a.mini { text-decoration: none; }
 .vorhaben-kopf > span { font-size: 13.5px; color: var(--text-leise); }
 .vorhaben-aktionen { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 .vorhaben-aktionen .knopf-still { text-decoration: none; }
+/* Der Umschalter ins Archiv — `aria-pressed` wie bei `.spannenwahl`. */
+.vorhaben-aktionen .knopf-still[aria-pressed="true"] { background: var(--marke-hell); border-color: var(--marke); color: var(--marke); }
 
 /* --- Praktikantenstellen -------------------------------------------------- */
 /*
