@@ -3384,8 +3384,18 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 }
 .gantt-wahl > b { font-size: 14px; font-weight: 500; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gantt-wahl > em { font-style: normal; font-size: 11.5px; color: var(--text-sehr-leise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+a.gantt-wahl { text-decoration: none; }
 .gantt-wahl:hover > b, .gantt-wahl[aria-pressed="true"] > b { color: var(--akzent); }
 .gantt-wahl[aria-pressed="true"] > b { font-weight: 600; }
+/* Rechts in der Phasenzeile: Gebucht und Pakete, zugleich die Wahl der
+   Phase, deren Pakete unter dem Gantt stehen. */
+.gantt-pakete {
+  display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px;
+  min-height: var(--griff); padding: 2px 0; background: none; border: 0; color: var(--text);
+  font: inherit; text-align: right; cursor: pointer;
+}
+.gantt-pakete:hover .gantt-leise, .gantt-pakete[aria-pressed="true"] .gantt-leise { color: var(--akzent); }
+.gantt-pakete[aria-pressed="true"] .gantt-leise { font-weight: 600; }
 .gantt-leise { font-style: normal; font-size: 11.5px; color: var(--text-sehr-leise); white-space: nowrap; }
 .gantt-spur[data-setzbar] { cursor: copy; }
 

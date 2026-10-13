@@ -125,9 +125,18 @@ export type Ort = { seite: Seite; unter: string | null };
  * auseinanderliefe: Der Browser gibt den Zustand des Eintrags zurück, eine
  * Variable zählt nur hoch.
  */
-type Weggeschichte = { tiefe: number } | null;
+export type Weggeschichte = { tiefe: number; ruecksprung?: boolean } | null;
 
 const tiefe = () => (window.history.state as Weggeschichte)?.tiefe ?? 0;
+
+/**
+ * Wie ein Wechsel gemeint ist. `ruecksprung`: „Zurück" führt von der neuen
+ * Seite dorthin, woher man kam, und nicht eine Ebene hoch — von der Phase im
+ * Projekt-Gantt in ihre Planung und wieder ins Projekt, nicht in die Liste
+ * aller Planungen. Steht im Eintrag der Geschichte, damit es ein Neuladen
+ * übersteht.
+ */
+export type Wechselart = { ruecksprung?: boolean };
 
 export function ausPfad(pfad: string): Ort {
   const teile = pfad.replace(/^\/+/, "").split("/").filter(Boolean);
@@ -149,9 +158,32 @@ export function alsPfad(seite: Seite, unter: string | null): string {
   return unter ? `/${seite}/${unter}` : `/${seite}`;
 }
 
+/**
+ * Wohin „Zurück" führt. Vier Fälle, in dieser Reihenfolge:
+ *
+ * 1. Kam man mit `ruecksprung` hierher, zurück in der Geschichte — dorthin,
+ *    woher man kam.
+ * 2. Steht etwas hinter der Seite (ein Kontakt, ein Event, „bearbeiten"),
+ *    geht es **eine Ebene hoch** — nicht in der Geschichte zurück. Von
+ *    `/module/praktikum/12` also zu `/module/praktikum`, nicht zu `/module`. Wer über
+ *    einen Verlaufseintrag von einem Kontakt zu einem Event gesprungen ist,
+ *    will von dort zur Eventliste und nicht wieder zum Kontakt.
+ * 3. Sonst zurück in der Geschichte, solange sie in SoCoS bleibt.
+ * 4. Sonst zur Startseite. Von dort führt jeder weitere Weg mit einem Klick
+ *    weiter — anders als aus einem Lesezeichen heraus, wo „zurück" den
+ *    Browser aus der Anwendung trüge.
+ */
+export function wohinZurueck(ort: Ort, eintrag: Weggeschichte): "geschichte" | Ort | null {
+  const tief = (eintrag?.tiefe ?? 0) > 0;
+  if (eintrag?.ruecksprung && tief) return "geschichte";
+  if (ort.unter) return { seite: ort.seite, unter: darueber(ort.unter) };
+  if (tief) return "geschichte";
+  return ort.seite !== "start" ? { seite: "start", unter: null } : null;
+}
+
 export type Weg = {
   ort: Ort;
-  wechseln: (seite: Seite, unter?: string | null) => void;
+  wechseln: (seite: Seite, unter?: string | null, art?: Wechselart) => void;
   /** Eine Ebene hoch, sonst in der Geschichte zurück, sonst zur Startseite. */
   zurueck: () => void;
   /** Ob es überhaupt ein Zurück gibt — auf der Startseite beim ersten Aufruf nicht. */
@@ -167,28 +199,16 @@ export function useSeite(): Weg {
     return () => window.removeEventListener("popstate", beiZurueck);
   }, []);
 
-  const wechseln = (seite: Seite, unter: string | null = null) => {
-    window.history.pushState({ tiefe: tiefe() + 1 }, "", alsPfad(seite, unter));
+  const wechseln = (seite: Seite, unter: string | null = null, art: Wechselart = {}) => {
+    const eintrag: Weggeschichte = { tiefe: tiefe() + 1, ...(art.ruecksprung && { ruecksprung: true }) };
+    window.history.pushState(eintrag, "", alsPfad(seite, unter));
     setOrt({ seite, unter });
   };
 
-  /**
-   * Drei Fälle, in dieser Reihenfolge:
-   *
-   * 1. Steht etwas hinter der Seite (ein Kontakt, ein Event, „bearbeiten"),
-   *    geht es **eine Ebene hoch** — nicht in der Geschichte zurück. Von
-   *    `/module/praktikum/12` also zu `/module/praktikum`, nicht zu `/module`. Wer über
-   *    einen Verlaufseintrag von einem Kontakt zu einem Event gesprungen ist,
-   *    will von dort zur Eventliste und nicht wieder zum Kontakt.
-   * 2. Sonst zurück in der Geschichte, solange sie in SoCoS bleibt.
-   * 3. Sonst zur Startseite. Von dort führt jeder weitere Weg mit einem Klick
-   *    weiter — anders als aus einem Lesezeichen heraus, wo „zurück" den
-   *    Browser aus der Anwendung trüge.
-   */
   const zurueck = () => {
-    if (ort.unter) return wechseln(ort.seite, darueber(ort.unter));
-    if (tiefe() > 0) return window.history.back();
-    if (ort.seite !== "start") return wechseln("start");
+    const ziel = wohinZurueck(ort, window.history.state as Weggeschichte);
+    if (ziel === "geschichte") return window.history.back();
+    if (ziel) wechseln(ziel.seite, ziel.unter);
   };
 
   const kannZurueck = ort.unter !== null || tiefe() > 0 || ort.seite !== "start";

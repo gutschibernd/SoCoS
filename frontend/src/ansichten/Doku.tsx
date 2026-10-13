@@ -494,10 +494,10 @@ function ProjektDoku() {
       >
         <Schritte
           schritte={[
-            "Ein Klick auf den Namen oder den Balken einer Phase zeigt sie darunter. Beim Öffnen steht dort die laufende Phase, in der heute liegt.",
+            "Ein Klick auf den Namen oder den Balken einer Phase öffnet ihre Planung im Modul Projektplanung. „Zurück“ führt von dort wieder ins Projekt.",
+            "Ein Klick rechts auf „Gebucht · Pakete“ zeigt die Phase mit ihren Paketen darunter. Beim Öffnen steht dort die laufende Phase, in der heute liegt.",
             "Einen Balken ziehen verschiebt die Phase, an einem Rand ziehen verlängert oder kürzt sie. Gespeichert wird beim Loslassen. Mit der Tastatur: Balken anwählen, ← → verschiebt um eine Woche, mit Umschalt nur das Ende.",
             "Eine Phase ohne Zeitraum bekommt einen, wenn du in ihre leere Zeile klickst: drei Monate ab dem Tag, auf den du geklickt hast.",
-            "„Planung“ an der gewählten Phase öffnet ihre Planung mit Aufgaben im Modul Projektplanung.",
           ]}
         />
         <p className="doku-text">
@@ -1013,7 +1013,7 @@ function ModuleDoku() {
       >
         <Schritte
           schritte={[
-            "Hin kommst du über „Planung“ an einer Phase auf der Projektseite oder unter Module · Projektplanung.",
+            "Hin kommst du mit einem Klick auf eine Phase im Gantt der Projektseite oder unter Module · Projektplanung. Von der Projektseite aus führt „Zurück“ wieder ins Projekt.",
             "Oben rechts unter „Bezahlt aus“ den Förderantrag wählen, aus dem die Phase bezahlt wird. Dann in jedem Paket unter „Im Antrag“ das Antragspaket wählen, in das seine Stunden gehören.",
             "Ein Paket im Gantt aufklappen und darunter Aufgaben anlegen: Titel, Enter. Beginn, Ende, geplante Stunden und wer sie macht stehen in der Zeile.",
             "Im Gantt in die leere Zeile einer Aufgabe klicken gibt ihr eine Woche ab diesem Tag; den Balken ziehen verschiebt, an einem Rand ziehen verlängert.",

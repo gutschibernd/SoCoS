@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { alsPfad, ausPfad, darueber } from "./router";
+import { alsPfad, ausPfad, darueber, wohinZurueck } from "./router";
 
 describe("ausPfad", () => {
   it("liest die Seite", () => {
@@ -121,5 +121,29 @@ describe("alsPfad", () => {
       unter: "bearbeiten",
     });
     expect(ausPfad(alsPfad("kontakte", "12"))).toEqual({ seite: "kontakte", unter: "12" });
+  });
+});
+
+describe("wohinZurueck", () => {
+  const planung = { seite: "module", unter: "planung/28" } as const;
+
+  it("geht eine Stufe hoch, auch wenn es eine Geschichte gibt", () => {
+    expect(wohinZurueck(planung, { tiefe: 3 })).toEqual({ seite: "module", unter: "planung" });
+  });
+
+  // Von der Phase im Projekt-Gantt in die Planung — und wieder ins Projekt.
+  it("springt mit Rücksprung dorthin, woher man kam", () => {
+    expect(wohinZurueck(planung, { tiefe: 3, ruecksprung: true })).toBe("geschichte");
+  });
+
+  // Ein Rücksprung ohne Geschichte davor (Lesezeichen) trüge aus SoCoS heraus.
+  it("übergeht den Rücksprung ohne Geschichte", () => {
+    expect(wohinZurueck(planung, { tiefe: 0, ruecksprung: true })).toEqual({ seite: "module", unter: "planung" });
+  });
+
+  it("geht ohne Unterseite in der Geschichte zurück, sonst zur Startseite", () => {
+    expect(wohinZurueck({ seite: "projekt", unter: null }, { tiefe: 1 })).toBe("geschichte");
+    expect(wohinZurueck({ seite: "projekt", unter: null }, null)).toEqual({ seite: "start", unter: null });
+    expect(wohinZurueck({ seite: "start", unter: null }, null)).toBeNull();
   });
 });

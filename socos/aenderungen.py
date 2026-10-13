@@ -29,15 +29,16 @@ VERSIONEN = [
                 "titel": "Die Projektseite ist ein Gantt",
                 "text": (
                     "Jedes Projekt zeigt seine Phasen jetzt auf einer Zeitachse, mit einem Strich für "
-                    "heute. Balken ziehen verschiebt eine Phase, ein Klick zeigt sie darunter mit ihren "
-                    "Paketen — statt der langen Liste."
+                    "heute. Balken ziehen verschiebt eine Phase, ein Klick auf sie öffnet ihre Planung, "
+                    "und „Zurück“ führt wieder ins Projekt. Die Pakete einer Phase zeigt ein Klick rechts "
+                    "auf ihre Zahl — statt der langen Liste."
                 ),
                 "wo": "projekt",
             },
             {
                 "titel": "Neues Modul: Projektplanung",
                 "text": (
-                    "Unter Module · Projektplanung — oder mit „Planung“ an einer Phase — planst du die "
+                    "Unter Module · Projektplanung — oder mit einem Klick auf eine Phase — planst du die "
                     "Aufgaben jedes Pakets im Gantt und siehst, was als Nächstes dran ist. Hängt ein "
                     "Förderantrag an der Phase, stehen seine Stunden, Ziele und Ergebnisse als Maßstab daneben."
                 ),

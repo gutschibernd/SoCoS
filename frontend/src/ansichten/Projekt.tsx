@@ -9,7 +9,7 @@ import {
   type Paket,
   type Projekt as ProjektTyp,
 } from "../basis/daten";
-import { alsPfad, type Seite } from "../basis/router";
+import { alsPfad, type Seite, type Wechselart } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { clockIn } from "../basis/uhr";
 import { alsDauer } from "../basis/zeit";
@@ -99,7 +99,7 @@ function Bearbeitungsschalter({
   wechseln,
 }: {
   bearbeiten: boolean;
-  wechseln: (seite: Seite, unter?: string | null) => void;
+  wechseln: (seite: Seite, unter?: string | null, art?: Wechselart) => void;
 }) {
   return (
     <div className="ansicht-schalter">
@@ -125,7 +125,7 @@ export function Projekt({
 }: {
   ich: Ich;
   bearbeiten: boolean;
-  wechseln: (seite: Seite, unter?: string | null) => void;
+  wechseln: (seite: Seite, unter?: string | null, art?: Wechselart) => void;
 }) {
   const abfrage = useProjekte();
   const neuLaden = useNeuLaden();
@@ -369,7 +369,7 @@ function ProjektKarte({
   bearbeiten: boolean;
   statusFilter: string;
   neuLaden: () => void;
-  wechseln: (seite: Seite, unter?: string | null) => void;
+  wechseln: (seite: Seite, unter?: string | null, art?: Wechselart) => void;
   zumLoeschen: () => void;
 }) {
   const [neuePhase, setNeuePhase] = useState({ titel: "", art: "dev" });
@@ -452,6 +452,11 @@ function ProjektKarte({
           {projekt.phasen.map((p) => {
             const gebucht = p.pakete.reduce((summe, x) => summe + x.gebuchte_sekunden, 0);
             const waehlen = () => setGewaehlt(p.id);
+            // Ein Klick auf die Phase führt in ihre Planung, und „Zurück"
+            // von dort wieder hierher. Die Pakete darunter wählt die Zahl
+            // rechts — eine Phase ohne Zeitraum hat keinen Balken.
+            const planungsweg = `planung/${p.id}`;
+            const planen = () => wechseln("module", planungsweg, { ruecksprung: true });
             return (
               <GanttZeile
                 key={p.id}
@@ -467,21 +472,35 @@ function ProjektKarte({
                     : undefined
                 }
                 etikett={
-                  <button type="button" className="gantt-wahl" aria-pressed={p.id === phase?.id} onClick={waehlen}>
+                  <a
+                    className="gantt-wahl"
+                    href={alsPfad("module", planungsweg)}
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                      e.preventDefault();
+                      planen();
+                    }}
+                  >
                     <b>{p.titel}</b>
                     <em>
                       {p.art !== "dev" ? `${ART[p.art]} · ` : ""}
                       {p.von || p.bis ? monatsText(p.von, p.bis) : PHASENSTAND.find((s) => s.wert === p.stand)?.text}
                     </em>
-                  </button>
+                  </a>
                 }
                 rechts={
-                  <>
+                  <button
+                    type="button"
+                    className="gantt-pakete"
+                    aria-pressed={p.id === phase?.id}
+                    aria-label={`Pakete von ${p.titel} zeigen`}
+                    onClick={waehlen}
+                  >
                     <span className="zahl">{gebucht > 0 ? alsDauer(gebucht) : "—"}</span>
                     <em className="gantt-leise">
                       {p.pakete.length} {p.pakete.length === 1 ? "Paket" : "Pakete"}
                     </em>
-                  </>
+                  </button>
                 }
               >
                 {p.von && p.bis && (
@@ -492,7 +511,7 @@ function ProjektKarte({
                     beschriftung={`${p.titel}: ${zeitraumText(p.von, p.bis)}`}
                     darf={darf}
                     schritt={7}
-                    klick={waehlen}
+                    klick={planen}
                     aendern={async (spanne) => {
                       await aendern(`/phasen/${p.id}/`, spanne);
                       neuLaden();
@@ -578,7 +597,7 @@ function Phasenblock({
   bearbeiten: boolean;
   statusFilter: string;
   neuLaden: () => void;
-  wechseln: (seite: Seite, unter?: string | null) => void;
+  wechseln: (seite: Seite, unter?: string | null, art?: Wechselart) => void;
 }) {
   const [neuesPaket, setNeuesPaket] = useState("");
   const [paketFehler, setPaketFehler] = useState("");
@@ -685,7 +704,7 @@ function Phasenblock({
           href={alsPfad("module", planungsweg)}
           onClick={(e) => {
             e.preventDefault();
-            wechseln("module", planungsweg);
+            wechseln("module", planungsweg, { ruecksprung: true });
           }}
         >
           <Zeichen name="gantt" />
