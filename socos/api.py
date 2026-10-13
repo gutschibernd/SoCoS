@@ -1070,7 +1070,6 @@ def dashboard(request):
         von, bis = zeitdienst.woche_um()
 
     je_person = auswertung.sekunden_je_person(von, bis)
-    je_projekt = auswertung.sekunden_je_projekt(von, bis)
 
     team = list(Nutzer.objects.filter(is_active=True))
     laufende = {
@@ -1110,16 +1109,6 @@ def dashboard(request):
                 for n in team
             ],
             "team_sekunden": sum(je_person.values()),
-            "projekte": [
-                {
-                    "id": p.pk,
-                    "titel": p.titel,
-                    "untertitel": p.untertitel,
-                    "farbe": p.farbe,
-                    "sekunden": je_projekt.get(p.pk, 0),
-                }
-                for p in Projekt.objects.all()
-            ],
             "offene_entwuerfe": ser.ZeitbuchungSerializer(
                 auswertung.offene_entwuerfe(request.user), many=True
             ).data,

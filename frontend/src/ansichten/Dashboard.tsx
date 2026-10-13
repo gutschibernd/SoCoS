@@ -1,13 +1,15 @@
 import { useState } from "react";
 
-import { useDashboard, type Ich } from "../basis/daten";
-import type { Seite } from "../basis/router";
+import { useDashboard, useProjekte, type Ich } from "../basis/daten";
+import { achseUeber, heuteIso, monatsText, zeitraumText } from "../basis/gantt";
+import { alsPfad, type Seite, type Wechselart } from "../basis/router";
 import { alsDauer, heuteAlsDatum, uhrzeitAusZeitpunkt, wannKurz } from "../basis/zeit";
 import { Kontostandlinie } from "../bausteine/Kontostandlinie";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Zustand } from "../basis/Zustand";
 import { Finanzeingabe } from "../bausteine/Finanzeingabe";
+import { Gantt, GanttBalken, GanttZeile } from "../bausteine/Gantt";
 
 const EURO = new Intl.NumberFormat("de-AT", { style: "currency", currency: "EUR" });
 const ZAHL1 = new Intl.NumberFormat("de-AT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -60,14 +62,15 @@ function spannenParameter(spanne: Spanne, heute = new Date()): Record<string, st
   return { von: heuteAlsDatum(von), bis: heuteAlsDatum(bis) };
 }
 
-export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) => void }) {
+type Wechseln = (seite: Seite, unter?: string | null, art?: Wechselart) => void;
+
+export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }) {
   const [spanne, setSpanne] = useState<Spanne>("woche");
   const abfrage = useDashboard(spannenParameter(spanne));
   if (!abfrage.data) return <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />;
   const d = abfrage.data;
 
   const maxPerson = Math.max(1, ...d.team.map((p) => p.sekunden));
-  const gesamtProjekte = d.projekte.reduce((s, p) => s + p.sekunden, 0);
 
   return (
     <div className="spalte">
@@ -225,43 +228,7 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
         </div>
       </div>
 
-      <div className="karte">
-        <h2>Verteilung auf Projekte · {SPANNENTEXT[spanne].dazu}</h2>
-        {gesamtProjekte === 0 ? (
-          <Leerstelle
-            was="Noch keine Zeit auf Projekten"
-            satz="Sobald gebucht wird, steht hier, worauf die Woche gegangen ist."
-          />
-        ) : (
-          <>
-            <div className="verteilung">
-              {d.projekte
-                .filter((p) => p.sekunden > 0)
-                .map((p) => (
-                  <i
-                    key={p.id}
-                    style={{
-                      width: `${(100 * p.sekunden) / gesamtProjekte}%`,
-                      background: p.farbe,
-                    }}
-                    title={`${p.titel}: ${alsDauer(p.sekunden)}`}
-                  />
-                ))}
-            </div>
-            <ul className="legende">
-              {d.projekte
-                .filter((p) => p.sekunden > 0)
-                .map((p) => (
-                  <li key={p.id}>
-                    <i style={{ background: p.farbe }} />
-                    {p.titel}
-                    <span className="zahl">{alsDauer(p.sekunden)}</span>
-                  </li>
-                ))}
-            </ul>
-          </>
-        )}
-      </div>
+      <Projektplan wechseln={wechseln} />
 
       {ich.darf.finanzen_eintragen && <Finanzeingabe />}
 
@@ -323,6 +290,107 @@ export function Dashboard({ ich, wechseln }: { ich: Ich; wechseln: (s: Seite) =>
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Die Phasen aller Projekte auf einer Achse, mit dem Strich für heute — der
+ * Gantt der Projektseite, nur zum Lesen. Gezogen wird auf der Projektseite:
+ * Auf dem Dashboard verschöbe ein Wisch beim Blättern am Handy eine Phase.
+ *
+ * Nur Phasen mit Zeitraum. Die ohne (Finanzierung, Ziele) stünden als leere
+ * Zeilen da, und „in die Zeile klicken" setzt hier keinen.
+ */
+function Projektplan({ wechseln }: { wechseln: Wechseln }) {
+  const abfrage = useProjekte();
+  const heute = heuteIso();
+  const zurProjektseite = (
+    <a
+      className="knopf-still"
+      href={alsPfad("projekt", null)}
+      onClick={(e) => {
+        e.preventDefault();
+        wechseln("projekt");
+      }}
+    >
+      <Zeichen name="gantt" />
+      Projektseite
+    </a>
+  );
+  const kopf = (
+    <div className="kartenkopf">
+      <h2>Projekte</h2>
+      {zurProjektseite}
+    </div>
+  );
+  if (!abfrage.data) {
+    return (
+      <div className="karte">
+        {kopf}
+        <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />
+      </div>
+    );
+  }
+
+  const projekte = abfrage.data.filter((pr) => !pr.ist_auffang);
+  const zeilen = projekte.flatMap((pr) => pr.phasen.filter((ph) => ph.von && ph.bis).map((ph) => ({ pr, ph })));
+  // Den Projektnamen nur nennen, wenn es mehr als eines ist.
+  const mehrere = new Set(zeilen.map((z) => z.pr.id)).size > 1;
+
+  return (
+    <div className="karte">
+      {kopf}
+      {zeilen.length === 0 ? (
+        <Leerstelle
+          was="Noch keine Phase mit Zeitraum"
+          satz="Auf der Projektseite in die Zeile einer Phase klicken gibt ihr einen."
+          aktion={{ text: "Zur Projektseite", tun: () => wechseln("projekt") }}
+        />
+      ) : (
+        <Gantt achse={achseUeber(zeilen.flatMap(({ ph }) => [ph.von, ph.bis]), heute)} heute={heute} etikett="Phase" rechts="Gebucht">
+          {zeilen.map(({ pr, ph }) => {
+            const weg = `planung/${ph.id}`;
+            const planen = () => wechseln("module", weg, { ruecksprung: true });
+            const gebucht = ph.pakete.reduce((summe, x) => summe + x.gebuchte_sekunden, 0);
+            return (
+              <GanttZeile
+                key={ph.id}
+                art="phase"
+                etikett={
+                  <a
+                    className="gantt-wahl"
+                    href={alsPfad("module", weg)}
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                      e.preventDefault();
+                      planen();
+                    }}
+                  >
+                    <b>{ph.titel}</b>
+                    <em>
+                      {mehrere ? `${pr.titel} · ` : ""}
+                      {monatsText(ph.von, ph.bis)}
+                    </em>
+                  </a>
+                }
+                rechts={<span className="zahl">{gebucht > 0 ? alsDauer(gebucht) : "—"}</span>}
+              >
+                <GanttBalken
+                  spanne={{ von: ph.von!, bis: ph.bis! }}
+                  art="phase"
+                  stand={ph.stand}
+                  beschriftung={`${ph.titel}: ${zeitraumText(ph.von, ph.bis)}`}
+                  darf={false}
+                  klick={planen}
+                >
+                  {ph.titel}
+                </GanttBalken>
+              </GanttZeile>
+            );
+          })}
+        </Gantt>
+      )}
     </div>
   );
 }

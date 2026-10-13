@@ -164,20 +164,21 @@ function Planungsinhalt({ planung, ich, wechseln }: { planung: Planung; ich: Ich
           />
         </div>
       ) : (
-        planung.pakete.map(
-          (p, i) =>
-            offen.has(p.id) && (
-              <Paketkarte
-                key={p.id}
-                paket={p}
-                nummer={i + 1}
-                planung={planung}
-                antragspaket={p.foerderpaket === null ? undefined : antragspakete.get(p.foerderpaket)}
-                ich={ich}
-                zuklappen={() => umschalten(p.id)}
-              />
-            ),
-        )
+        // Alle Pakete, zugeklappte als eine Zeile: Stünden nur die offenen
+        // hier, fehlten genau die, die erst anfangen — und mit ihnen das Feld
+        // für ihre erste Aufgabe.
+        planung.pakete.map((p, i) => (
+          <Paketkarte
+            key={p.id}
+            paket={p}
+            nummer={i + 1}
+            planung={planung}
+            antragspaket={p.foerderpaket === null ? undefined : antragspakete.get(p.foerderpaket)}
+            ich={ich}
+            offen={offen.has(p.id)}
+            umschalten={() => umschalten(p.id)}
+          />
+        ))
       )}
       {planung.antrag && <Ziele planung={planung} />}
     </div>
@@ -406,6 +407,7 @@ function Plan({
                   spanne={{ von: ap.von, bis: ap.bis }}
                   art="antrag"
                   darf={false}
+                  klick={() => umschalten(p.id)}
                   beschriftung={`Laut Antrag: ${zeitraumText(ap.von, ap.bis)}`}
                 />
               )}
@@ -532,14 +534,16 @@ function Paketkarte({
   planung,
   antragspaket,
   ich,
-  zuklappen,
+  offen,
+  umschalten,
 }: {
   paket: Planungspaket;
   nummer: number;
   planung: Planung;
   antragspaket: Antragspaket | undefined;
   ich: Ich;
-  zuklappen: () => void;
+  offen: boolean;
+  umschalten: () => void;
 }) {
   const speichern = useSpeichern();
   const team = useTeam();
@@ -578,16 +582,33 @@ function Paketkarte({
     }
   }
 
+  const kopf = (
+    <div className="pl-kartenkopf">
+      <h2>
+        <span className="zahl pl-nr">{String(nummer).padStart(2, "0")}</span> {paket.titel}
+      </h2>
+      {!offen && (
+        <span className="pl-leise">
+          {paket.aufgaben.length} {paket.aufgaben.length === 1 ? "Aufgabe" : "Aufgaben"}
+        </span>
+      )}
+      <button type="button" className="knopf-still" aria-expanded={offen} onClick={umschalten}>
+        {offen ? "Zuklappen" : "Aufklappen"}
+      </button>
+    </div>
+  );
+
+  if (!offen) {
+    return (
+      <section className="karte pl-paket" id={`pl-paket-${paket.id}`} data-zu="">
+        {kopf}
+      </section>
+    );
+  }
+
   return (
     <section className="karte pl-paket" id={`pl-paket-${paket.id}`}>
-      <div className="pl-kartenkopf">
-        <h2>
-          <span className="zahl pl-nr">{String(nummer).padStart(2, "0")}</span> {paket.titel}
-        </h2>
-        <button type="button" className="knopf-still" onClick={zuklappen}>
-          Zuklappen
-        </button>
-      </div>
+      {kopf}
 
       <div className="pl-paketraster">
         <div className="pl-antragsteil">

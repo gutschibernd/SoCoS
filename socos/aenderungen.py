@@ -44,6 +44,14 @@ VERSIONEN = [
                 ),
                 "wo": "module/planung",
             },
+            {
+                "titel": "Der Projekt-Gantt auf dem Dashboard",
+                "text": (
+                    "Wo bisher die Verteilung auf Projekte stand, zeigt das Dashboard jetzt die Phasen "
+                    "aller Projekte mit dem Strich für heute. Ein Klick auf eine Phase öffnet ihre Planung."
+                ),
+                "wo": "dashboard",
+            },
         ],
     },
     {

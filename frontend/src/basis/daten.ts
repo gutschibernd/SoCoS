@@ -200,7 +200,6 @@ export type Dashboard = {
     zuletzt_bis: string | null;
   }[];
   team_sekunden: number;
-  projekte: { id: number; titel: string; untertitel: string; farbe: string; sekunden: number }[];
   offene_entwuerfe: Buchung[];
   /**
    * Die letzten Handgriffe aus dem Änderungsprotokoll, als Satz in drei
