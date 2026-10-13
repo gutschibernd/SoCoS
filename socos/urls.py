@@ -51,6 +51,7 @@ urlpatterns = [
     path("kalender/neu/", api.kalenderlink_neu, name="kalenderlink-neu"),
     path("zeitnachweis/", api.zeitnachweis, name="zeitnachweis"),
     path("foerderauslastung/", api.foerderauslastung, name="foerderauslastung"),
+    path("planung/<int:phase>/", api.planung, name="planung"),
     # Zwei Pfade und nicht ein GET/POST-Paar: Das Einspielen ersetzt den
     # gesamten Bestand. Dass es einen eigenen, aussprechbaren Pfad hat, ist an
     # dieser Stelle mehr wert als die kürzere Tabelle.

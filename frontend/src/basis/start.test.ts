@@ -27,6 +27,8 @@ function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[
           von: null,
           bis: null,
           stand: "laeuft",
+          foerderantrag: null,
+          reihenfolge: 0,
           pakete: pakete.map((p) => ({
             id: p.id,
             phase: 1,
@@ -39,6 +41,8 @@ function baum(pakete: { id: number; titel: string; status: string }[]): Projekt[
             fortschritt: null,
             unteraufgaben: [],
             pensen: [],
+            reihenfolge: 0,
+            foerderpaket: null,
             // Wie der Server es rechnet (`Arbeitspaket.grund_gegen_buchung`).
             // Die Prüfungen hier reichen einen Status herein, weil sich so am
             // kürzesten sagen lässt, welcher Fall gemeint ist — entschieden

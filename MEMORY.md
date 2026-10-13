@@ -7,6 +7,68 @@ betrifft.
 
 ---
 
+## 2026-10-13 — Projektseite als Gantt, Modul Projektplanung (Migration 0050)
+
+**Wunsch Bernd:** Für die KWF-Umsetzung F&E&I ein eigenes Werkzeug, um die
+Phase „Laborprototypen entwickeln" mit ihren sieben Paketen und deren
+Aufgaben zu planen — mit Gantt, wo man steht, was als Nächstes kommt, und den
+eingereichten Zielen und Stunden als Orientierung. **Nicht in den
+Förderungen**, sondern eigenständig, mit einem Klick von der Projektseite.
+Am selben Tag dazu: die Projektseite selbst als Gantt der Phasen statt der
+langen Liste.
+
+**Ein Gantt-Baustein für beide** (`bausteine/Gantt.tsx`, Rechnung in
+`basis/gantt.ts`). Die Einheit ist der Tag — Phasen dauern Monate, Aufgaben
+Tage; mit Tagen tragen beide dasselbe Raster. Gerechnet in UTC-Tagen, sonst
+verschiebt die Zeitumstellung einen Balken. Gespeichert wird beim Loslassen.
+**Der Zug steht in einer Referenz, nicht im Zustand:** Ein schnelles Ziehen
+schickt Bewegung und Loslassen, bevor React neu zeichnet — aus dem Zustand
+gelesen war der Zug dann nie begonnen, und nichts wurde gespeichert (beim
+Prüfen gefunden). Heute liegt immer auf der Achse.
+
+**Projektseite:** je Projekt der Gantt der Phasen, darunter nur die gewählte
+Phase (beim Öffnen die laufende, in der heute liegt — `startphase`). Die
+Projekte stehen jetzt untereinander über die ganze Breite. Unter Bearbeiten
+lässt sich eine Phase in ein anderes Projekt und ein Paket in eine andere
+Phase (auch projektübergreifend) ziehen — gebraucht, um Claire@home in den
+Arzneimittelspender zu legen. Gebuchte Zeit zieht mit, sie hängt am Paket.
+
+**Schema (0050):**
+
+- `Projektphase.foerderantrag` (nullbar, PROTECT) — aus welchem Antrag die
+  Phase bezahlt wird. **Ein Verweis, kein zweiter Plan:** Pakete, Monate,
+  Stunden je Person, Ziel und Ergebnis stehen im Antrag und werden in der
+  Planung als Maßstab gezeigt. Wechselt der Antrag, verlieren die Pakete
+  ihre Zuordnung (Serializer, Zeile für Zeile fürs Protokoll).
+- `Arbeitspaket.foerderpaket` (nullbar, PROTECT) — in welches Antragspaket
+  die Stunden bei der Abrechnung gehören. **Nur aus dem Antrag der Phase**
+  (Serializer); zieht das Paket in eine Phase ohne diesen Antrag, fällt die
+  Zuordnung weg. Das kippt „die Pakete eines Antrags sind keine
+  Projektpakete" (05.10.) nicht: Gebucht wird weiter nur aufs Arbeitspaket,
+  der Verweis sagt nur, wohin es abgerechnet wird.
+- `Unteraufgabe.von`, `bis` (beide oder keines — Prüfregel in der Datenbank),
+  `stunden` (Plan), `verantwortlich` (Nutzer, PROTECT). **Weiter keine
+  Buchungen auf Unteraufgaben** (Bernd: die realen Aufgaben dürfen vom Antrag
+  abweichen, die Stunden je Paket nicht). Die Stunden einer Aufgabe sind ein
+  Plan, der gegen das Soll des Pakets gezeigt wird.
+
+**Rechnung** (`services/planung.py`, `GET /api/planung/<phase>/`, nur lesend):
+Soll je Paket aus dem Antrag (Foerderstunden), ohne Antragspaket aus dem
+Pensum. **Wer bucht, ohne im Soll zu stehen, steht trotzdem da** („nicht im
+Soll") — genau das fällt sonst erst bei der Abrechnung auf. Soll bis heute
+gleichmäßig über die Tage der Antragsmonate (dieselbe Annahme wie in der
+Förderauslastung, in der Doku genannt). Ohne Beginn am Antrag gilt der der
+Phase, und die Seite sagt es. Lage je Aufgabe (erledigt gewinnt vor
+überfällig) und „Als Nächstes": überfällig, laufend, dann die nächsten
+fünf (`ANSTEHENDE`) — ohne Termin nicht, die werden gezählt.
+
+**Daten:** Die Umstellung der AMS-Phasen (MVP-Entwicklung und Erprobung klein
+weg, Full Redesign → „Produktseitige Überarbeitung", Zeiträume bis CE-MDR ab
+07/2028, Claire@home als Phase) ist **Bestand, kein Code** — sie geschieht
+in der Oberfläche der Live-Seite, nicht in einer Migration.
+
+---
+
 ## 2026-10-09 — Thoughts: Erledigtes eingeklappt, Themen abschließen (Migration 0048)
 
 **Wunsch Bernd:** Erledigte Schritte sollen einklappen — erst in den

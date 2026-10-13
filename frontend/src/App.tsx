@@ -1,6 +1,6 @@
 import { useIch } from "./basis/daten";
 import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
-import { foerderauslastungAusWeg, foerderungAusWeg, themaAusWeg } from "./basis/module";
+import { foerderauslastungAusWeg, foerderungAusWeg, planungAusWeg, themaAusWeg } from "./basis/module";
 import { useSeite, type Seite } from "./basis/router";
 import { Zustand } from "./basis/Zustand";
 import { Zeichen } from "./bausteine/Zeichen";
@@ -59,6 +59,7 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   "module/praktikum-ideen": { titel: "Praktikantenstellen", unter: "Sonstige Ideen" },
   "module/thoughts": { titel: "Thoughts", unter: "Was frei ist, was wartet" },
   "module/foerderungen": { titel: "Förderungen", unter: "Fördergeber, Programme, Anträge" },
+  "module/planung": { titel: "Projektplanung", unter: "Phasen mit Paketen und Aufgaben" },
 };
 
 export function App() {
@@ -82,6 +83,7 @@ export function App() {
     ort.seite === "module"
       ? (themaAusWeg(ort.unter) ??
         foerderungAusWeg(ort.unter) ??
+        planungAusWeg(ort.unter) ??
         (auslastung && { ...auslastung, teil: { ...auslastung.teil, titel: "Auslastung" } }))
       : null;
   const kopfzeile =

@@ -63,7 +63,7 @@ from socos.models import (
     Zeitbuchung,
     auffangpaket,
 )
-from socos.services import aktivitaet, auswertung, finanzen, foerderung
+from socos.services import aktivitaet, auswertung, finanzen, foerderung, planung as planungsdienst
 from socos.services import zeit as zeitdienst
 
 logger = logging.getLogger(__name__)
@@ -1337,3 +1337,20 @@ def foerderauslastung(request):
     if unbekannt:
         raise ValidationError({"stand": f"Diesen Stand gibt es nicht: {', '.join(unbekannt)}."})
     return Response(foerderung.auslastung(staende))
+
+
+@api_view(["GET"])
+@permission_classes([berechtigung.SocosBerechtigung])
+def planung(request, phase):
+    """
+    Die Planung einer Projektphase: Pakete mit Aufgaben, der Antrag dahinter,
+    Soll und Ist, was als Nächstes ansteht (`services/planung.py`). Geändert
+    wird über die gewöhnlichen Wege — `/unteraufgaben/`, `/pakete/`,
+    `/phasen/`; hier wird nur gelesen.
+    """
+    from django.shortcuts import get_object_or_404
+
+    gefunden = get_object_or_404(
+        Projektphase.objects.select_related("projekt", "foerderantrag__programm__geber"), pk=phase
+    )
+    return Response(planungsdienst.planung(gefunden))

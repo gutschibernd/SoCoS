@@ -77,9 +77,12 @@ LOESCHREIHENFOLGE = [
     "socos.Kontakt",
     "socos.Event",
     "socos.Zeitbuchung",
+    # Zeigt auf Paket und Verantwortlichen (Nutzer) und steht vor beiden.
     "socos.Unteraufgabe",
     # Zeigt auf Paket **und** Nutzer und steht deshalb vor beiden.
     "socos.Pensum",
+    # Paket und Phase zeigen auf Antragspaket und Antrag (Planung einer
+    # geförderten Phase) — die Projektstruktur steht deshalb vor den Förderungen.
     "socos.Arbeitspaket",
     "socos.Projektphase",
     "socos.Projekt",

@@ -22,7 +22,10 @@ export type Kartenteil = { weg: string; titel: string; schluessel: "thoughts" };
 /** Die Förderungen: Programme mit Anträgen — eine eigene Seite, Anträge darunter. */
 export type Foerderteil = { weg: string; titel: string; schluessel: "foerderung" };
 
-export type Teil = Themenliste | Kartenteil | Foerderteil;
+/** Die Projektplanung: die Phasen als Liste, je Phase eine eigene Seite darunter. */
+export type Planungsteil = { weg: string; titel: string; schluessel: "planung" };
+
+export type Teil = Themenliste | Kartenteil | Foerderteil | Planungsteil;
 
 export type Modul = {
   /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
@@ -58,6 +61,16 @@ export const MODULE: Modul[] = [
     wozu: "Programme verstehen, Anträge mit Arbeitspaketen planen",
     zeichen: "foerderung",
     teile: [{ weg: "foerderungen", titel: "Fördergeber, Programme, Anträge", schluessel: "foerderung" }],
+  },
+  {
+    // Ein eigenes Modul und nicht Teil der Förderungen (Wunsch Bernd): Hier
+    // wird die Arbeit geplant, die nach der Zusage getan wird — der Antrag
+    // ist dabei der Maßstab, nicht der Ort.
+    weg: "planung",
+    titel: "Projektplanung",
+    wozu: "Eine Phase mit Paketen, Aufgaben und Antrag im Gantt planen",
+    zeichen: "gantt",
+    teile: [{ weg: "planung", titel: "Phasen", schluessel: "planung" }],
   },
 ];
 
@@ -111,6 +124,17 @@ export const AUSLASTUNGSWEG = "foerderungen/auslastung";
 export function foerderauslastungAusWeg(unter: string | null): { modul: Modul; teil: Foerderteil } | null {
   const gefunden = unter === AUSLASTUNGSWEG ? teilZuWeg("foerderungen") : null;
   return gefunden && gefunden.teil.schluessel === "foerderung" ? { modul: gefunden.modul, teil: gefunden.teil } : null;
+}
+
+/**
+ * Die Planung einer Phase hinter `planung/28` — oder nichts. Die Nummer ist
+ * die der Projektphase; ob es sie gibt, sagt erst der Server.
+ */
+export function planungAusWeg(unter: string | null): { modul: Modul; teil: Planungsteil; phase: number } | null {
+  const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
+  const gefunden = treffer && teilZuWeg(treffer[1]);
+  if (!treffer || !gefunden || gefunden.teil.schluessel !== "planung") return null;
+  return { modul: gefunden.modul, teil: gefunden.teil, phase: Number(treffer[2]) };
 }
 
 /** „3 Themen", „1 Idee" — wie die Zeile auf der Übersicht und die Leiste zählen. */

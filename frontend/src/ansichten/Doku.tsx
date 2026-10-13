@@ -214,7 +214,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, nach Fälligkeit." },
-            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die Praktikantenstellen, Thoughts und die Förderungen." },
+            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die Praktikantenstellen, Thoughts, die Förderungen und die Projektplanung." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
@@ -452,7 +452,7 @@ function ProjektDoku() {
                     <ul>
                       <li>
                         <b>Unteraufgabe</b>
-                        <em>Abhaken, sonst nichts.</em>
+                        <em>Abhaken — in der Planung mit Zeitraum und geplanten Stunden. Gebucht wird darauf nicht.</em>
                       </li>
                     </ul>
                   </li>
@@ -488,14 +488,22 @@ function ProjektDoku() {
       </Abschnitt>
 
       <Abschnitt
-        zeichen="projekt"
-        titel="Phasen auf- und zuklappen"
-        vorspann="Eine Phase ist offen, läuft oder ist abgeschlossen. Aufgeklappt ist, was läuft — die anderen sagen in der Zeile, was drin ist."
+        zeichen="gantt"
+        titel="Die Phasen als Gantt"
+        vorspann="Jedes Projekt zeigt oben seine Phasen auf einer Zeitachse, mit einem Strich für heute. Darunter steht die eine Phase, die du gewählt hast, mit ihren Paketen."
       >
+        <Schritte
+          schritte={[
+            "Ein Klick auf den Namen oder den Balken einer Phase zeigt sie darunter. Beim Öffnen steht dort die laufende Phase, in der heute liegt.",
+            "Einen Balken ziehen verschiebt die Phase, an einem Rand ziehen verlängert oder kürzt sie. Gespeichert wird beim Loslassen. Mit der Tastatur: Balken anwählen, ← → verschiebt um eine Woche, mit Umschalt nur das Ende.",
+            "Eine Phase ohne Zeitraum bekommt einen, wenn du in ihre leere Zeile klickst: drei Monate ab dem Tag, auf den du geklickt hast.",
+            "„Planung“ an der gewählten Phase öffnet ihre Planung mit Aufgaben im Modul Projektplanung.",
+          ]}
+        />
         <p className="doku-text">
-          Den Stand stellst du unter <b>Bearbeiten</b> um. Eine abgeschlossene Phase
-          nimmt keine Zeit mehr an. Pakete klappen von selbst nur auf, wenn Zeit darauf
-          gebucht ist oder sie auf „läuft“ stehen.
+          Den Stand (offen, läuft, abgeschlossen) stellst du direkt an der gewählten
+          Phase um. Eine abgeschlossene Phase nimmt keine Zeit mehr an. Pakete klappen
+          von selbst nur auf, wenn Zeit darauf gebucht ist oder sie auf „läuft“ stehen.
         </p>
         <p className="doku-text">
           Das Overhead-Projekt steht <b>quer über den anderen</b>. Dort landet alles,
@@ -509,9 +517,26 @@ function ProjektDoku() {
         titel="Umbauen"
         vorspann="Gliedern, umordnen, entfernen steht hinter dem Schalter „bearbeiten“ — nicht im Weg der täglichen Arbeit."
       >
+        <Begriffe
+          paare={[
+            {
+              begriff: "Zeitraum genau",
+              text: "Unter Bearbeiten stehen an der gewählten Phase Beginn und Ende zum Eintippen — für den Tag genau, wo das Ziehen zu grob ist.",
+            },
+            {
+              begriff: "Umziehen",
+              text: "Eine Phase zieht über das Feld „Projekt“ in ein anderes Projekt, ein Paket über das Auswahlfeld in seiner Zeile in eine andere Phase — auch eines anderen Projekts. Gebuchte Zeit zieht mit, sie hängt am Paket.",
+            },
+            {
+              begriff: "Reihenfolge",
+              text: "↑ ↓ an der Phase ordnet die Zeilen im Gantt.",
+            },
+          ]}
+        />
         <Merke>
-          Ein Paket, an dem Zeiten hängen, lässt sich nicht entfernen. SoCoS sagt dann,
-          was im Weg steht — die Stunden wären sonst Waisen.
+          Ein Paket, an dem Zeiten hängen, lässt sich nicht entfernen, und eine Phase
+          nicht, solange Pakete darin stehen. SoCoS sagt dann, was im Weg steht — die
+          Stunden wären sonst Waisen. Der mildere Weg ist „verworfen“ oder „abgeschlossen“.
         </Merke>
       </Abschnitt>
     </>
@@ -976,6 +1001,54 @@ function ModuleDoku() {
             {
               begriff: "Wer was darf",
               text: "Sehen dürfen alle. Anlegen und ändern dürfen Admin und Bearbeiter. Einen Antrag, ein Paket oder eine Frage entfernen darf nur der Admin. Der mildere Weg für einen Antrag ist, ihn als abgelehnt zu führen.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="gantt"
+        titel="Projektplanung: eine Phase mit Aufgaben im Gantt"
+        vorspann="Für eine Phase planen, welche Aufgaben in welchem Paket anstehen und wann — und, wenn die Phase aus einem Förderantrag bezahlt wird, daneben sehen, was beantragt ist."
+      >
+        <Schritte
+          schritte={[
+            "Hin kommst du über „Planung“ an einer Phase auf der Projektseite oder unter Module · Projektplanung.",
+            "Oben rechts unter „Bezahlt aus“ den Förderantrag wählen, aus dem die Phase bezahlt wird. Dann in jedem Paket unter „Im Antrag“ das Antragspaket wählen, in das seine Stunden gehören.",
+            "Ein Paket im Gantt aufklappen und darunter Aufgaben anlegen: Titel, Enter. Beginn, Ende, geplante Stunden und wer sie macht stehen in der Zeile.",
+            "Im Gantt in die leere Zeile einer Aufgabe klicken gibt ihr eine Woche ab diesem Tag; den Balken ziehen verschiebt, an einem Rand ziehen verlängert.",
+            "„Als Nächstes“ zeigt, was überfällig ist, was gerade läuft und die nächsten fünf, die anstehen. Abhaken geht dort, im Gantt und in der Liste.",
+          ]}
+        />
+        <Begriffe
+          paare={[
+            {
+              begriff: "Laut Antrag",
+              text: "Die Stunden aus dem Antrag, über alle Pakete. So viele müssen auf die Pakete gebucht werden. Ohne Antrag steht dort das Pensum der Pakete.",
+            },
+            {
+              begriff: "Soll bis heute",
+              text: "Was laut Antrag bis heute gearbeitet sein sollte — die Stunden jedes Pakets gleichmäßig über die Tage seiner Monate verteilt. Das ist eine Annahme, der Antrag sagt nicht, wann im Paket gearbeitet wird. Darunter steht, wie viel über oder unter diesem Plan gebucht ist; im Gantt ist es der kupferne Strich im Balken rechts.",
+            },
+            {
+              begriff: "Die zwei Balken eines Pakets",
+              text: "Oben gestrichelt der Zeitraum laut Antrag, darunter hell, welchen Zeitraum seine Aufgaben belegen. Liegen sie auseinander, weicht die Arbeit vom Antrag ab — das darf sie.",
+            },
+            {
+              begriff: "Aufgaben dürfen abweichen, Stunden nicht",
+              text: "Die Aufgaben sind der echte Plan und dürfen anders aussehen als im Antrag. Gebucht wird aber aufs Arbeitspaket, und dessen Stunden gehören bei der Abrechnung in das zugeordnete Antragspaket. Wer in einem Paket gebucht hat, ohne im Antrag zu stehen, steht dort mit „nicht im Soll“.",
+            },
+            {
+              begriff: "Geplante Stunden",
+              text: "Die Stunden an einer Aufgabe sind ein Plan, gegen den nichts gebucht wird. Unter den Stunden des Pakets steht, wie viel die Aufgaben zusammen planen — gegen das Soll.",
+            },
+            {
+              begriff: "Ziele und Ergebnisse",
+              text: "Unten stehen die Ergebnisse der Antragspakete mit ihrem Termin. „Erreicht“ heißt: Das zugeordnete Arbeitspaket steht auf „fertig“. Die Texte des Antrags sind darunter zum Nachlesen.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen dürfen alle. Aufgaben anlegen, planen und abhaken dürfen Admin und Bearbeiter; eine Aufgabe entfernen nur der Admin — milder ist, sie abzuhaken.",
             },
           ]}
         />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { hole } from "../basis/api";
+import { ApiFehler, hole, lesbarerGrund } from "../basis/api";
 import {
   useNeuLaden,
   useProjekte,
@@ -13,6 +13,9 @@ import { alsPfad, type Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { clockIn } from "../basis/uhr";
 import { alsDauer } from "../basis/zeit";
+import { achseUeber, heuteIso, monatsText, plusTage, startphase, zeitraumText } from "../basis/gantt";
+import { Datumsfeld } from "../bausteine/Datumsfeld";
+import { Gantt, GanttBalken, GanttZeile } from "../bausteine/Gantt";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Feldtext } from "../bausteine/Feldtext";
@@ -41,8 +44,14 @@ const PHASENSTAND: { wert: Projektphase["stand"]; text: string }[] = [
   Zwei Modi, eine Ansicht.
 
   Die Übersicht ist zum Arbeiten: Status setzen, Beschreibung schreiben,
-  Haken setzen, Uhr starten. Die Gliederung — anlegen, umordnen,
-  entfernen — steht unter /projekt/bearbeiten und nur dort.
+  Haken setzen, Uhr starten, Phasen im Gantt verschieben. Die Gliederung —
+  anlegen, umordnen, umziehen, entfernen — steht unter /projekt/bearbeiten und
+  nur dort.
+
+  Seit 2026-10-13 steht je Projekt **ein Gantt der Phasen** oben und darunter
+  nur die eine Phase, die man darin gewählt hat (Wunsch Bernd: weg von der
+  langen Liste). Die Kette Anforderungen → Labor → Validierung → … liest sich
+  als Zeitachse, nicht als acht Absätze untereinander.
 
   Bewusst dieselben Komponenten mit einem Schalter statt einer zweiten Ansicht:
   Die zweite Ansicht wird beim nächsten neuen Feld vergessen, und dann steht in
@@ -248,22 +257,22 @@ export function Projekt({
         <OverheadKarte key={projekt.id} projekt={projekt} ich={ich} bearbeiten={bearbeiten} neuLaden={neuLaden} />
       ))}
 
-      {/* Nebeneinander, sobald der Platz für zwei Spalten reicht — am Laptop
-          stehen die beiden Projekte sonst untereinander und man scrollt an
-          einer halbleeren Seite vorbei. */}
-      <div className="projekt-raster">
-        {uebrige.map((projekt) => (
-          <ProjektKarte
-            key={projekt.id}
-            projekt={projekt}
-            ich={ich}
-            bearbeiten={bearbeiten}
-            statusFilter={statusFilter}
-            neuLaden={neuLaden}
-            zumLoeschen={() => setLoeschen({ id: projekt.id, name: projekt.titel })}
-          />
-        ))}
-      </div>
+      {/* Untereinander und über die ganze Breite: Ein Gantt braucht die
+          Breite für seine Achse. Bis 2026-10-13 standen die Projekte am
+          Laptop nebeneinander — als Listen. */}
+      {uebrige.map((projekt) => (
+        <ProjektKarte
+          key={projekt.id}
+          projekt={projekt}
+          projekte={projekte}
+          ich={ich}
+          bearbeiten={bearbeiten}
+          statusFilter={statusFilter}
+          neuLaden={neuLaden}
+          wechseln={wechseln}
+          zumLoeschen={() => setLoeschen({ id: projekt.id, name: projekt.titel })}
+        />
+      ))}
 
       {loeschen && bearbeiten && (
         <Loeschdialog
@@ -341,36 +350,53 @@ function OverheadKarte({
   );
 }
 
+/** Wie lang eine Phase wird, der man per Klick in die leere Zeile einen Zeitraum gibt: drei Monate. */
+const NEUE_PHASE_TAGE = 90;
+
 function ProjektKarte({
   projekt,
+  projekte,
   ich,
   bearbeiten,
   statusFilter,
   neuLaden,
+  wechseln,
   zumLoeschen,
 }: {
   projekt: ProjektTyp;
+  projekte: ProjektTyp[];
   ich: Ich;
   bearbeiten: boolean;
   statusFilter: string;
   neuLaden: () => void;
+  wechseln: (seite: Seite, unter?: string | null) => void;
   zumLoeschen: () => void;
 }) {
   const [neuePhase, setNeuePhase] = useState({ titel: "", art: "dev" });
   const [phasenFehler, setPhasenFehler] = useState("");
+  const heute = heuteIso();
+  const [gewaehlt, setGewaehlt] = useState<number | null>(() => startphase(projekt.phasen, heute)?.id ?? null);
+  // Ist die gewählte Phase weg (entfernt, in ein anderes Projekt gezogen),
+  // steht wieder die da, mit der die Seite auch öffnet.
+  const phase = projekt.phasen.find((p) => p.id === gewaehlt) ?? startphase(projekt.phasen, heute);
+  const darf = ich.darf.bearbeiten;
+  const achse = achseUeber(projekt.phasen.flatMap((p) => [p.von, p.bis]), heute);
 
   async function phaseAnlegen() {
     if (!neuePhase.titel.trim()) return setPhasenFehler("Ohne Titel gibt es nichts anzulegen.");
     setPhasenFehler("");
-    await hole("/phasen/", {
+    const neu = await hole<Projektphase>("/phasen/", {
       method: "POST",
       body: JSON.stringify({
         projekt: projekt.id,
         titel: neuePhase.titel.trim(),
         art: neuePhase.art,
+        // Hinten anstellen — sonst landet die neue Phase auf 0 und vor allen.
+        reihenfolge: Math.max(0, ...projekt.phasen.map((p) => p.reihenfolge)) + 1,
       }),
     });
     setNeuePhase({ titel: "", art: "dev" });
+    setGewaehlt(neu.id);
     neuLaden();
   }
 
@@ -385,7 +411,7 @@ function ProjektKarte({
                 hätte das Feld die Änderung verworfen. */}
             <Feldtext
               wert={projekt.titel}
-              aendern={ich.darf.bearbeiten && bearbeiten}
+              aendern={darf && bearbeiten}
               speichern={async (titel) => {
                 await aendern(`/projekte/${projekt.id}/`, { titel });
                 neuLaden();
@@ -396,7 +422,7 @@ function ProjektKarte({
             <Feldtext
               wert={projekt.untertitel}
               platzhalter="Untertitel …"
-              aendern={ich.darf.bearbeiten && bearbeiten}
+              aendern={darf && bearbeiten}
               speichern={async (untertitel) => {
                 await aendern(`/projekte/${projekt.id}/`, { untertitel });
                 neuLaden();
@@ -418,25 +444,85 @@ function ProjektKarte({
           was="Noch keine Projektphase"
           satz={
             "Projektphasen gliedern das Projekt — Entwicklung, Finanzierung, Ziele — und folgen aufeinander." +
-            (ich.darf.bearbeiten && !bearbeiten ? " Angelegt wird unter „Bearbeiten“." : "")
+            (darf && !bearbeiten ? " Angelegt wird unter „Bearbeiten“." : "")
           }
         />
       ) : (
-        projekt.phasen.map((phase, i) => (
-          <Phasenblock
-            key={phase.id}
-            phase={phase}
-            geschwister={projekt.phasen}
-            stelle={i}
-            ich={ich}
-            bearbeiten={bearbeiten}
-            statusFilter={statusFilter}
-            neuLaden={neuLaden}
-          />
-        ))
+        <Gantt achse={achse} heute={heute} etikett="Phase" rechts="Gebucht">
+          {projekt.phasen.map((p) => {
+            const gebucht = p.pakete.reduce((summe, x) => summe + x.gebuchte_sekunden, 0);
+            const waehlen = () => setGewaehlt(p.id);
+            return (
+              <GanttZeile
+                key={p.id}
+                art="phase"
+                gewaehlt={p.id === phase?.id}
+                setzen={
+                  darf && !p.von && !p.bis
+                    ? async (tag) => {
+                        await aendern(`/phasen/${p.id}/`, { von: tag, bis: plusTage(tag, NEUE_PHASE_TAGE - 1) });
+                        setGewaehlt(p.id);
+                        neuLaden();
+                      }
+                    : undefined
+                }
+                etikett={
+                  <button type="button" className="gantt-wahl" aria-pressed={p.id === phase?.id} onClick={waehlen}>
+                    <b>{p.titel}</b>
+                    <em>
+                      {p.art !== "dev" ? `${ART[p.art]} · ` : ""}
+                      {p.von || p.bis ? monatsText(p.von, p.bis) : PHASENSTAND.find((s) => s.wert === p.stand)?.text}
+                    </em>
+                  </button>
+                }
+                rechts={
+                  <>
+                    <span className="zahl">{gebucht > 0 ? alsDauer(gebucht) : "—"}</span>
+                    <em className="gantt-leise">
+                      {p.pakete.length} {p.pakete.length === 1 ? "Paket" : "Pakete"}
+                    </em>
+                  </>
+                }
+              >
+                {p.von && p.bis && (
+                  <GanttBalken
+                    spanne={{ von: p.von, bis: p.bis }}
+                    art="phase"
+                    stand={p.stand}
+                    beschriftung={`${p.titel}: ${zeitraumText(p.von, p.bis)}`}
+                    darf={darf}
+                    schritt={7}
+                    klick={waehlen}
+                    aendern={async (spanne) => {
+                      await aendern(`/phasen/${p.id}/`, spanne);
+                      neuLaden();
+                    }}
+                  >
+                    {p.titel}
+                  </GanttBalken>
+                )}
+              </GanttZeile>
+            );
+          })}
+        </Gantt>
       )}
 
-      {ich.darf.bearbeiten && bearbeiten && (
+      {phase && (
+        <Phasenblock
+          key={phase.id}
+          phase={phase}
+          geschwister={projekt.phasen}
+          stelle={projekt.phasen.indexOf(phase)}
+          projekte={projekte}
+          ich={ich}
+          bearbeiten={bearbeiten}
+          statusFilter={statusFilter}
+          neuLaden={neuLaden}
+          wechseln={wechseln}
+        />
+      )}
+
+      {darf && bearbeiten && (
         <div className="feld-reihe" style={{ marginTop: 14 }}>
           <input
             className="feld"
@@ -468,33 +554,54 @@ function ProjektKarte({
   );
 }
 
+/**
+ * Die eine Phase, die im Gantt gewählt ist: Kopf, Zeitraum, Weg zur Planung
+ * und ihre Pakete. Bis 2026-10-13 stand hier jede Phase als aufklappbarer
+ * Block untereinander.
+ */
 function Phasenblock({
   phase,
   geschwister,
   stelle,
+  projekte,
   ich,
   bearbeiten,
   statusFilter,
   neuLaden,
+  wechseln,
 }: {
   phase: Projektphase;
   geschwister: Projektphase[];
   stelle: number;
+  projekte: ProjektTyp[];
   ich: Ich;
   bearbeiten: boolean;
   statusFilter: string;
   neuLaden: () => void;
+  wechseln: (seite: Seite, unter?: string | null) => void;
 }) {
   const [neuesPaket, setNeuesPaket] = useState("");
   const [paketFehler, setPaketFehler] = useState("");
   const [loeschen, setLoeschen] = useState(false);
-  // Aufgeklappt ist, was läuft. Eine abgeschlossene Phase und eine, die erst
-  // ansteht, sind zugeklappt — bei acht Phasen in einer Kette wäre die Seite
-  // sonst eine Wand aus Leerstellen, und die zwei Pakete, an denen gerade
-  // gearbeitet wird, stünden irgendwo in der Mitte.
-  const [offen, setOffen] = useState(phase.stand === "laeuft");
+  const [fehler, setFehler] = useState("");
   const pakete = phase.pakete.filter((p) => statusFilter === "alle" || p.status === statusFilter);
-  const gebucht = phase.pakete.reduce((summe, p) => summe + p.gebuchte_sekunden, 0);
+  const gliedern = ich.darf.bearbeiten && bearbeiten;
+  const planungsweg = `planung/${phase.id}`;
+  // Wohin ein Paket ziehen kann: jede Phase jedes Projekts. Über Projekte
+  // hinweg, weil genau das beim Zusammenlegen zweier Projekte gebraucht wird.
+  const phasenwahl = projekte.flatMap((pr) =>
+    pr.ist_auffang ? [] : pr.phasen.map((ph) => ({ id: ph.id, text: `${pr.titel} · ${ph.titel}` })),
+  );
+
+  async function speichernMitFehler(daten: Record<string, unknown>) {
+    setFehler("");
+    try {
+      await aendern(`/phasen/${phase.id}/`, daten);
+      neuLaden();
+    } catch (e) {
+      setFehler(e instanceof ApiFehler ? lesbarerGrund(e) : "Das hat nicht geklappt.");
+    }
+  }
 
   async function verschieben(richtung: -1 | 1) {
     const nachbar = geschwister[stelle + richtung];
@@ -507,9 +614,19 @@ function Phasenblock({
   }
 
   async function entfernen() {
-    await hole(`/phasen/${phase.id}/`, { method: "DELETE" });
-    setLoeschen(false);
-    neuLaden();
+    setFehler("");
+    try {
+      await hole(`/phasen/${phase.id}/`, { method: "DELETE" });
+      setLoeschen(false);
+      neuLaden();
+    } catch (e) {
+      setLoeschen(false);
+      setFehler(
+        e instanceof ApiFehler && e.istInVerwendung
+          ? "An dieser Phase hängen noch Arbeitspakete. Zieh sie in eine andere Phase oder setz die Phase auf „abgeschlossen“."
+          : "Das hat nicht geklappt.",
+      );
+    }
   }
 
   async function paketAnlegen() {
@@ -517,27 +634,22 @@ function Phasenblock({
     setPaketFehler("");
     await hole("/pakete/", {
       method: "POST",
-      body: JSON.stringify({ phase: phase.id, titel: neuesPaket.trim() }),
+      body: JSON.stringify({
+        phase: phase.id,
+        titel: neuesPaket.trim(),
+        reihenfolge: Math.max(0, ...phase.pakete.map((p) => p.reihenfolge)) + 1,
+      }),
     });
     setNeuesPaket("");
     neuLaden();
   }
 
   return (
-    <section className="projektphase" data-offen={offen ? "ja" : "nein"}>
+    <section className="projektphase">
       <h4>
-        <button
-          type="button"
-          className="paket-aufklappen"
-          onClick={() => setOffen((o) => !o)}
-          aria-expanded={offen}
-          aria-label={`${phase.titel} ${offen ? "zuklappen" : "aufklappen"}`}
-        >
-          <Zeichen name="zeiger" />
-        </button>
         <Feldtext
           wert={phase.titel}
-          aendern={ich.darf.bearbeiten && bearbeiten}
+          aendern={gliedern}
           speichern={async (titel) => {
             await aendern(`/phasen/${phase.id}/`, { titel });
             neuLaden();
@@ -548,19 +660,13 @@ function Phasenblock({
         {ART[phase.art].toLowerCase() !== phase.titel.trim().toLowerCase() && (
           <span className="art">{ART[phase.art]}</span>
         )}
-        {/* Der Stand: im Bearbeiten ein Auswahlfeld, sonst nur eine Marke —
-            und die nur für „abgeschlossen": „läuft" sieht man daran, dass die
-            Phase aufgeklappt ist, und „offen" ist der Normalfall. */}
-        {ich.darf.bearbeiten && bearbeiten ? (
+        {ich.darf.bearbeiten ? (
           <select
             // Dieselben Töne wie am Paket: abgeschlossen ist grün wie „fertig".
             className={`status status-${phase.stand === "abgeschlossen" ? "fertig" : phase.stand}`}
             value={phase.stand}
             aria-label={`Stand von ${phase.titel}`}
-            onChange={async (e) => {
-              await aendern(`/phasen/${phase.id}/`, { stand: e.target.value });
-              neuLaden();
-            }}
+            onChange={(e) => speichernMitFehler({ stand: e.target.value })}
           >
             {PHASENSTAND.map((s) => (
               <option key={s.wert} value={s.wert}>
@@ -569,23 +675,65 @@ function Phasenblock({
             ))}
           </select>
         ) : (
-          phase.stand === "abgeschlossen" && <span className="art abgeschlossen">abgeschlossen</span>
-        )}
-        {/* Zugeklappt sagt die Zeile, was drin ist — sonst müsste man jede
-            Phase aufklappen, um zu sehen, ob sich das lohnt. Eine leere Phase
-            sagt nichts: Dass sie noch aussteht, sieht man ihr an. */}
-        {!offen && phase.pakete.length > 0 && (
-          <span className="phase-summe">
-            {`${phase.pakete.length} ${phase.pakete.length === 1 ? "Paket" : "Pakete"}` +
-              (gebucht > 0 ? ` · ${alsDauer(gebucht)}` : "")}
+          <span className={`status status-${phase.stand === "abgeschlossen" ? "fertig" : phase.stand}`}>
+            {PHASENSTAND.find((s) => s.wert === phase.stand)?.text}
           </span>
         )}
-        {ich.darf.bearbeiten && bearbeiten && (
+        <span className="phase-summe">{zeitraumText(phase.von, phase.bis)}</span>
+        <a
+          className="knopf-still"
+          href={alsPfad("module", planungsweg)}
+          onClick={(e) => {
+            e.preventDefault();
+            wechseln("module", planungsweg);
+          }}
+        >
+          <Zeichen name="gantt" />
+          Planung
+        </a>
+      </h4>
+
+      {/* Gliedern: Zeitraum genau, umziehen, umordnen, entfernen. Gezogen
+          wird der Zeitraum im Gantt in beiden Modi — eingetippt nur hier. */}
+      {gliedern && (
+        <div className="phase-gliedern">
+          <label>
+            <span className="beschriftung-klein">Beginn</span>
+            <Datumsfeld wert={phase.von} beschriftung="Beginn der Phase" darf speichern={(von) => speichernMitFehler({ von })} />
+          </label>
+          <label>
+            <span className="beschriftung-klein">Ende</span>
+            <Datumsfeld wert={phase.bis} beschriftung="Ende der Phase" darf speichern={(bis) => speichernMitFehler({ bis })} />
+          </label>
+          <label>
+            <span className="beschriftung-klein">Projekt</span>
+            <select
+              className="feld"
+              value={phase.projekt}
+              aria-label="Projekt der Phase"
+              onChange={(e) =>
+                speichernMitFehler({
+                  projekt: Number(e.target.value),
+                  // Im neuen Projekt hinten anstellen.
+                  reihenfolge:
+                    Math.max(0, ...(projekte.find((p) => p.id === Number(e.target.value))?.phasen ?? []).map((p) => p.reihenfolge)) + 1,
+                })
+              }
+            >
+              {projekte
+                .filter((p) => !p.ist_auffang)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.titel}
+                  </option>
+                ))}
+            </select>
+          </label>
           <span className="ordnen">
-            <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben" aria-label="Nach oben">
+            <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Im Gantt nach oben" aria-label="Im Gantt nach oben">
               <Zeichen name="hoch" />
             </button>
-            <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Nach unten" aria-label="Nach unten">
+            <button type="button" className="mini" disabled={stelle === geschwister.length - 1} onClick={() => verschieben(1)} title="Im Gantt nach unten" aria-label="Im Gantt nach unten">
               <Zeichen name="runter" />
             </button>
             {ich.darf.loeschen && (
@@ -595,19 +743,27 @@ function Phasenblock({
               </button>
             )}
           </span>
-        )}
-      </h4>
+        </div>
+      )}
+      <Fehlerzeile text={fehler} />
 
       {loeschen && bearbeiten && (
         <Loeschdialog
           name={phase.titel}
-          was="Die Projektphase mit allen Arbeitspaketen darin"
+          was="Die Projektphase"
+          milder={{
+            text: "Auf „abgeschlossen“ setzen",
+            tun: async () => {
+              setLoeschen(false);
+              await speichernMitFehler({ stand: "abgeschlossen" });
+            },
+          }}
           abbrechen={() => setLoeschen(false)}
           loeschen={entfernen}
         />
       )}
 
-      {!offen ? null : pakete.length === 0 ? (
+      {pakete.length === 0 ? (
         <Leerstelle
           was={statusFilter === "alle" ? "Noch kein Arbeitspaket" : "Kein Paket in diesem Filter"}
           satz={
@@ -624,6 +780,7 @@ function Phasenblock({
             paket={paket}
             geschwister={pakete}
             stelle={i}
+            phasenwahl={phasenwahl}
             ich={ich}
             bearbeiten={bearbeiten}
             neuLaden={neuLaden}
@@ -631,7 +788,7 @@ function Phasenblock({
         ))
       )}
 
-      {offen && ich.darf.bearbeiten && bearbeiten && statusFilter === "alle" && (
+      {gliedern && statusFilter === "alle" && (
         <div className="feld-reihe" style={{ marginTop: 10 }}>
           <input
             className="feld"
@@ -655,6 +812,7 @@ function PaketZeile({
   paket,
   geschwister,
   stelle,
+  phasenwahl,
   ich,
   bearbeiten,
   neuLaden,
@@ -662,6 +820,8 @@ function PaketZeile({
   paket: Paket;
   geschwister: Paket[];
   stelle: number;
+  /** Wohin das Paket umziehen kann — nur im Bearbeiten. */
+  phasenwahl: { id: number; text: string }[];
   ich: Ich;
   bearbeiten: boolean;
   neuLaden: () => void;
@@ -782,6 +942,28 @@ function PaketZeile({
 
         {ich.darf.bearbeiten && bearbeiten && (
           <span className="ordnen">
+            {/* Umziehen, auch in ein anderes Projekt. Gebuchte Zeit zieht mit —
+                sie hängt am Paket, nicht an der Phase. */}
+            <select
+              className="feld paket-umzug"
+              value={paket.phase}
+              aria-label={`Phase von ${paket.titel}`}
+              onChange={async (e) => {
+                setFehler("");
+                try {
+                  await aendern(`/pakete/${paket.id}/`, { phase: Number(e.target.value) });
+                  neuLaden();
+                } catch (fehler) {
+                  setFehler(fehler instanceof ApiFehler ? lesbarerGrund(fehler) : "Das hat nicht geklappt.");
+                }
+              }}
+            >
+              {phasenwahl.map((ph) => (
+                <option key={ph.id} value={ph.id}>
+                  {ph.text}
+                </option>
+              ))}
+            </select>
             <button type="button" className="mini" disabled={stelle === 0} onClick={() => verschieben(-1)} title="Nach oben" aria-label="Nach oben">
               <Zeichen name="hoch" />
             </button>

@@ -53,7 +53,8 @@ export type ZeichenName =
   | "kopie"
   | "lupe"
   | "saeulen"
-  | "archiv";
+  | "archiv"
+  | "gantt";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -157,6 +158,9 @@ const PFADE: Record<ZeichenName, string> = {
   // Drei Münzen übereinander — Geld, das zu einem Vorhaben dazukommt.
   foerderung:
     "M4 7c0-1.4 3.6-2.5 8-2.5s8 1.1 8 2.5-3.6 2.5-8 2.5S4 8.4 4 7zM4 7v5c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5V7M4 12v5c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5v-5",
+  // Drei Balken, nach rechts versetzt, an einer Zeitlinie — der Gantt. Die
+  // Balken sind Rahmen und keine Striche: Als Striche läse man eine Liste.
+  gantt: "M4 4v16M7 5.5h6v3H7zM10 10.5h7v3h-7zM14 15.5h6v3h-6z",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

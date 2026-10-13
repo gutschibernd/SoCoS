@@ -88,7 +88,19 @@ export type Aufgabe = {
   geaendert_am: string;
 };
 
-export type Unteraufgabe = { id: number; paket: number; titel: string; erledigt: boolean };
+export type Unteraufgabe = {
+  id: number;
+  paket: number;
+  titel: string;
+  erledigt: boolean;
+  reihenfolge: number;
+  /** Zeitraum für den Gantt der Planung — beide oder keines. */
+  von: string | null;
+  bis: string | null;
+  /** Geplante Stunden als Zeichenkette — ein Plan, gegen den nichts gebucht wird. */
+  stunden: string | null;
+  verantwortlich: number | null;
+};
 export type Pensum = {
   id: number;
   paket: number;
@@ -117,6 +129,9 @@ export type Paket = {
   buchbar: boolean;
   /** Leer, wenn buchbar — sonst der Satz, der es erklärt. */
   grund_gegen_buchung: string;
+  reihenfolge: number;
+  /** Das Paket des Förderantrags, in das die Stunden bei der Abrechnung gehören. */
+  foerderpaket: number | null;
 };
 export type Projektphase = {
   id: number;
@@ -128,6 +143,9 @@ export type Projektphase = {
   bis: string | null;
   /** Abgeschlossen nimmt keine Zeit mehr an; „läuft“ ist auf der Projektseite aufgeklappt. */
   stand: "offen" | "laeuft" | "abgeschlossen";
+  /** Der Förderantrag, aus dem die Phase bezahlt wird — oder keiner. */
+  foerderantrag: number | null;
+  reihenfolge: number;
   pakete: Paket[];
 };
 export type Projekt = {
@@ -728,6 +746,106 @@ export const useFoerderkapazitaeten = () =>
 export const useFoerdergeber = () =>
   useQuery({ queryKey: ["foerderungen", "geber"], queryFn: () => hole<Foerdergeber[]>("/foerdergeber/") });
 
+/* --- Projektplanung ------------------------------------------------------- */
+
+/** Wo eine Aufgabe steht — gerechnet am Server (`services/planung.lage`). */
+export type Aufgabenlage = "erledigt" | "ohne_termin" | "ueberfaellig" | "laeuft" | "steht_an";
+
+export type Planungsaufgabe = {
+  id: number;
+  paket: number;
+  titel: string;
+  erledigt: boolean;
+  reihenfolge: number;
+  von: string | null;
+  bis: string | null;
+  stunden: string | null;
+  verantwortlich: number | null;
+  verantwortlich_name: string;
+  lage: Aufgabenlage;
+};
+
+/** Eine Person in einem Paket: Soll (aus Antrag oder Pensum — oder keines) und was sie gebucht hat. */
+export type Planungsperson = { nutzer: number | null; name: string; soll: string | null; gebucht: string };
+
+export type Planungspaket = {
+  id: number;
+  titel: string;
+  status: string;
+  beschreibung: string;
+  foerderpaket: number | null;
+  /** Woher das Soll kommt: aus dem Antrag, sobald ein Antragspaket zugeordnet ist, sonst aus dem Pensum. */
+  soll_quelle: "antrag" | "pensum";
+  soll: string;
+  gebucht: string;
+  /** Was laut Antrag bis heute gearbeitet sein sollte — nur mit Zeitraum aus dem Antrag. */
+  soll_bis_heute: string | null;
+  personen: Planungsperson[];
+  /** Der Zeitraum, den die Aufgaben belegen. */
+  plan_von: string | null;
+  plan_bis: string | null;
+  aufgaben_stunden: string;
+  aufgaben: Planungsaufgabe[];
+};
+
+export type Antragspaket = {
+  id: number;
+  nummer: number;
+  titel: string;
+  ziel: string;
+  ergebnis: string;
+  monat_von: number;
+  monat_bis: number;
+  von: string | null;
+  bis: string | null;
+  stunden: string;
+};
+
+export type Planung = {
+  heute: string;
+  phase: {
+    id: number;
+    titel: string;
+    von: string | null;
+    bis: string | null;
+    stand: Projektphase["stand"];
+    projekt: number;
+    projekt_titel: string;
+    foerderantrag: number | null;
+  };
+  antrag: {
+    id: number;
+    titel: string;
+    stand: Antragsstand;
+    beschreibung: string;
+    programm: number;
+    programm_name: string;
+    geber: number;
+    geber_name: string;
+    beginn: string | null;
+    /** Der Antrag hat keinen Beginn; gerechnet wird mit dem der Phase. */
+    beginn_aus_phase: boolean;
+    abschnitte: { titel: string; text: string }[];
+    pakete: Antragspaket[];
+  } | null;
+  achse: { von: string; bis: string };
+  pakete: Planungspaket[];
+  /** Was als Nächstes ansteht — Kennungen von Aufgaben, in der Reihenfolge, in der sie dastehen. */
+  naechste: number[];
+  summen: {
+    soll: string;
+    gebucht: string;
+    soll_bis_heute: string | null;
+    aufgaben_stunden: string;
+    aufgaben: number;
+    erledigt: number;
+    ohne_termin: number;
+  };
+};
+
+export const usePlanung = (phase: number) =>
+  useQuery({ queryKey: ["planung", phase], queryFn: () => hole<Planung>(`/planung/${phase}/`) });
+
 /**
  * Nach jeder Änderung werden **alle** betroffenen Abrufe verworfen.
  *
@@ -741,7 +859,7 @@ export function useNeuLaden() {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
       "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
-      "praktikumsthemen", "lagekarte", "foerderungen",
+      "praktikumsthemen", "lagekarte", "foerderungen", "planung",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

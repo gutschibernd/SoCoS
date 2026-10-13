@@ -22,6 +22,30 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-10-13",
+        "titel": "Projekte als Gantt, Projektplanung",
+        "punkte": [
+            {
+                "titel": "Die Projektseite ist ein Gantt",
+                "text": (
+                    "Jedes Projekt zeigt seine Phasen jetzt auf einer Zeitachse, mit einem Strich für "
+                    "heute. Balken ziehen verschiebt eine Phase, ein Klick zeigt sie darunter mit ihren "
+                    "Paketen — statt der langen Liste."
+                ),
+                "wo": "projekt",
+            },
+            {
+                "titel": "Neues Modul: Projektplanung",
+                "text": (
+                    "Unter Module · Projektplanung — oder mit „Planung“ an einer Phase — planst du die "
+                    "Aufgaben jedes Pakets im Gantt und siehst, was als Nächstes dran ist. Hängt ein "
+                    "Förderantrag an der Phase, stehen seine Stunden, Ziele und Ergebnisse als Maßstab daneben."
+                ),
+                "wo": "module/planung",
+            },
+        ],
+    },
+    {
         "version": "2026-10-09",
         "titel": "Thoughts übersichtlicher, SPG Academy entfernt",
         "punkte": [

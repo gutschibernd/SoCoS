@@ -92,7 +92,23 @@ class NutzerSerializer(serializers.ModelSerializer):
 class UnteraufgabeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Unteraufgabe
-        fields = ["id", "paket", "titel", "erledigt", "reihenfolge"]
+        fields = ["id", "paket", "titel", "erledigt", "reihenfolge", "von", "bis", "stunden", "verantwortlich"]
+
+    def validate_stunden(self, wert):
+        if wert is not None and wert < 0:
+            raise serializers.ValidationError("Weniger als keine Stunden gibt es nicht.")
+        return wert
+
+    def validate(self, daten):
+        # Gegen den gespeicherten Stand prüfen: Ein PATCH schickt beim Ziehen
+        # beide Daten, beim Eintippen oft nur eines.
+        von = daten.get("von", getattr(self.instance, "von", None))
+        bis = daten.get("bis", getattr(self.instance, "bis", None))
+        if (von is None) != (bis is None):
+            raise serializers.ValidationError("Ein Zeitraum braucht Beginn und Ende — oder keines von beiden.")
+        if von is not None and bis < von:
+            raise serializers.ValidationError({"bis": "Das Ende liegt vor dem Beginn."})
+        return daten
 
 
 class PensumSerializer(serializers.ModelSerializer):
@@ -131,8 +147,31 @@ class ArbeitspaketSerializer(serializers.ModelSerializer):
         fields = [
             "id", "phase", "projekt", "titel", "beschreibung", "status",
             "reihenfolge", "gebuchte_sekunden", "pensum_stunden", "fortschritt",
-            "unteraufgaben", "pensen", "buchbar", "grund_gegen_buchung",
+            "unteraufgaben", "pensen", "buchbar", "grund_gegen_buchung", "foerderpaket",
         ]
+
+    def validate(self, daten):
+        """
+        Ein Antragspaket nur aus dem Antrag, den die Phase trägt. Sonst landen
+        Stunden bei der Abrechnung in einem Antrag, der diese Phase gar nicht
+        bezahlt — und keine Summe zeigte es.
+
+        Zieht das Paket in eine andere Phase, ohne dass ein Antragspaket
+        mitgeschickt wird, verliert es seine Zuordnung, wenn sie dort nicht
+        mehr passt.
+        """
+        phase = daten.get("phase", getattr(self.instance, "phase", None))
+        if "foerderpaket" in daten:
+            foerderpaket = daten["foerderpaket"]
+        else:
+            foerderpaket = getattr(self.instance, "foerderpaket", None)
+            if foerderpaket is not None and "phase" in daten and foerderpaket.antrag_id != phase.foerderantrag_id:
+                daten["foerderpaket"] = foerderpaket = None
+        if foerderpaket is not None and (phase is None or foerderpaket.antrag_id != phase.foerderantrag_id):
+            raise serializers.ValidationError(
+                {"foerderpaket": "Dieses Antragspaket gehört nicht zum Förderantrag der Phase."}
+            )
+        return daten
 
     def get_pensen(self, paket):
         menge = self._pensen(paket).order_by("person__name")
@@ -166,8 +205,28 @@ class ProjektphaseSerializer(serializers.ModelSerializer):
         model = Projektphase
         fields = [
             "id", "projekt", "titel", "art", "reihenfolge",
-            "von", "bis", "stand", "pakete",
+            "von", "bis", "stand", "foerderantrag", "pakete",
         ]
+
+    def validate(self, daten):
+        von = daten.get("von", getattr(self.instance, "von", None))
+        bis = daten.get("bis", getattr(self.instance, "bis", None))
+        if von is not None and bis is not None and bis < von:
+            raise serializers.ValidationError({"bis": "Das Ende liegt vor dem Beginn."})
+        return daten
+
+    def update(self, phase, daten):
+        """
+        Wechselt der Antrag, verlieren die Pakete ihre Zuordnung zu den
+        Antragspaketen des alten — sonst zeigten sie in einen Antrag, der die
+        Phase nicht mehr bezahlt. Zeile für Zeile gespeichert, damit es im
+        Änderungsprotokoll steht.
+        """
+        if "foerderantrag" in daten and daten["foerderantrag"] != phase.foerderantrag:
+            for paket in phase.pakete.filter(geloescht_am__isnull=True, foerderpaket__isnull=False):
+                paket.foerderpaket = None
+                paket.save()
+        return super().update(phase, daten)
 
     def get_pakete(self, phase):
         # Nur die nicht gelöschten: über die Beziehung käme sonst auch weich

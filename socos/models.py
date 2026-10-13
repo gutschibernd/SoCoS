@@ -374,6 +374,26 @@ class Projektphase(Basismodell):
         "Stand", max_length=14, choices=Phasenstand.choices, default=Phasenstand.OFFEN
     )
 
+    # Der Förderantrag, aus dem diese Phase bezahlt wird — „Laborprototypen
+    # entwickeln" aus KWF Umsetzung.F&E&I. Leer heißt: keine Förderung dahinter.
+    #
+    # **Warum ein Verweis und kein zweiter Plan:** Der eingereichte Plan steht
+    # im Antrag (Pakete, Monate, Stunden je Person, Ziel und Ergebnis). In der
+    # Planung der Phase steht er neben dem, was tatsächlich getan wird — als
+    # Maßstab, nicht als Kopie, die beim nächsten Nachbessern am Antrag
+    # auseinanderläuft.
+    #
+    # PROTECT: Ein Antrag, nach dem eine Phase abgerechnet wird, verschwindet
+    # nicht still. Erst die Verbindung lösen, dann entfernen.
+    foerderantrag = models.ForeignKey(
+        "Foerderantrag",
+        verbose_name="Förderantrag",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="phasen",
+    )
+
     @property
     def abgeschlossen(self):
         return self.stand == Phasenstand.ABGESCHLOSSEN
@@ -454,6 +474,22 @@ class Arbeitspaket(Basismodell):
     # Namen, und in keiner Auswertung fiele das auf. Das Merkmal überlebt jede
     # Umbenennung.
     ist_auffang = models.BooleanField("Auffangpaket", default=False)
+
+    # Das Paket des Antrags, in das die Stunden dieses Pakets bei der
+    # Förderabrechnung gehören. Nur ein Paket desselben Antrags, den die Phase
+    # trägt (geprüft im Serializer).
+    #
+    # **Gebucht wird weiter aufs Arbeitspaket.** Die Aufgaben darunter dürfen
+    # vom Antrag abweichen, die Stunden nicht: Was hier gebucht ist, ist das,
+    # was im Antragspaket abgerechnet wird.
+    foerderpaket = models.ForeignKey(
+        "Foerderpaket",
+        verbose_name="Paket im Förderantrag",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="arbeitspakete",
+    )
 
     class Meta(Basismodell.Meta):
         verbose_name = "Arbeitspaket"
@@ -602,6 +638,12 @@ class Unteraufgabe(Basismodell):
     """
     Eine Ebene unter dem Paket. **Ohne eigene Zeitbuchungen** — gebucht wird
     aufs Paket, sonst zerfällt jede Auswertung in zwei Töpfe.
+
+    Seit 2026-10-13 trägt sie einen Zeitraum, geplante Stunden und wer sie
+    macht — für die Planung einer Phase im Gantt. **Die Stunden sind ein
+    Plan, kein Pensum:** Gegen sie wird nichts gebucht. Sie sagen, wie sich
+    das Paket auf seine Aufgaben aufteilen soll, und ob die Aufgaben zusammen
+    zum Pensum oder zum Antrag passen.
     """
 
     paket = models.ForeignKey(
@@ -613,11 +655,31 @@ class Unteraufgabe(Basismodell):
     titel = models.CharField("Titel", max_length=250)
     erledigt = models.BooleanField("erledigt", default=False)
     reihenfolge = models.IntegerField("Reihenfolge", default=0)
+    # Beide oder keines — ein Balken braucht Anfang und Ende. Ohne Zeitraum
+    # steht die Aufgabe trotzdem in der Planung, nur nicht im Gantt.
+    von = models.DateField("Beginn", null=True, blank=True)
+    bis = models.DateField("Ende", null=True, blank=True)
+    stunden = models.DecimalField("geplante Stunden", max_digits=7, decimal_places=2, null=True, blank=True)
+    verantwortlich = models.ForeignKey(
+        "Nutzer",
+        verbose_name="Verantwortlich",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="unteraufgaben",
+    )
 
     class Meta(Basismodell.Meta):
         verbose_name = "Unteraufgabe"
         verbose_name_plural = "Unteraufgaben"
         ordering = ["paket", "reihenfolge", "titel"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(von__isnull=True) & models.Q(bis__isnull=True))
+                | (models.Q(von__isnull=False) & models.Q(bis__gte=models.F("von"))),
+                name="unteraufgabe_zeitraum_vollstaendig",
+            ),
+        ]
 
     def __str__(self):
         return self.titel

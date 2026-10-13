@@ -5,6 +5,7 @@ import {
   alsEuro,
   betragAusEingabe,
   betragZumBearbeiten,
+  planungAusWeg,
   punkteAusText,
   teilZuWeg,
   themaAusWeg,
@@ -13,8 +14,8 @@ import {
 } from "./module";
 
 describe("die Wege der Module", () => {
-  it("kennt die Praktikantenstellen, Thoughts und die Förderungen", () => {
-    expect(MODULWEGE).toEqual(["praktikum", "praktikum-ideen", "thoughts", "foerderungen"]);
+  it("kennt die Praktikantenstellen, Thoughts, die Förderungen und die Planung", () => {
+    expect(MODULWEGE).toEqual(["praktikum", "praktikum-ideen", "thoughts", "foerderungen", "planung"]);
     expect(teilZuWeg("thoughts")?.teil.schluessel).toBe("thoughts");
     expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikantenstellen");
     expect(teilZuWeg("praktikum")?.teil.titel).toBe("Haupt-Aufgabenstellungen");
@@ -30,6 +31,15 @@ describe("die Wege der Module", () => {
     expect(themaAusWeg("praktikum/12/x")).toBeNull();
     expect(themaAusWeg("spg/12")).toBeNull();
     expect(themaAusWeg(null)).toBeNull();
+  });
+
+  it("findet die Phase hinter dem Weg der Planung", () => {
+    expect(planungAusWeg("planung/28")?.phase).toBe(28);
+    expect(planungAusWeg("planung")).toBeNull();
+    expect(planungAusWeg("planung/28/1")).toBeNull();
+    // Ein Thema der Praktika ist keine Phase — und umgekehrt.
+    expect(planungAusWeg("praktikum/12")).toBeNull();
+    expect(themaAusWeg("planung/28")).toBeNull();
   });
 
   it("zählt Themen und Ideen", () => {

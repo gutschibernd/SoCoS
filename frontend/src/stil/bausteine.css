@@ -198,6 +198,7 @@
  */
 .karte > h2,
 .ko-suchkopf > h2,
+.pl-kartenkopf > h2,
 .kennzahl .beschriftung,
 .tabelle th,
 .sicherung-teil h3,
@@ -1051,11 +1052,6 @@ a.leiste-knopf { text-decoration: none; }
 
 /* --- Projektansicht ------------------------------------------------------ */
 
-.projekt-raster {
-  display: grid; gap: 12px; align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
-}
-
 
 .projekt-kopf {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -1068,24 +1064,26 @@ a.leiste-knopf { text-decoration: none; }
 .projekt-kopf .unter { font-size: 13px; color: var(--text-leise); margin-top: 2px; }
 .projekt-kopf .gebucht { margin-left: auto; font-size: 13px; color: var(--text-leise); }
 
-.projektphase { margin-bottom: 18px; }
-/* Zugeklappt rückt die nächste Phase näher: Eine Kette aus acht Phasen, von
-   denen sechs noch leer sind, soll wie eine Liste lesbar sein, nicht wie
-   acht Absätze. */
-.projektphase[data-offen="nein"] { margin-bottom: 4px; }
+/* Die im Gantt gewählte Phase, unter dem Gantt. */
+.projektphase { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--rand-stark); }
 .projektphase h4 {
-  margin: 0 0 9px;
+  margin: 0 0 12px; font-size: 16px; color: var(--text);
   display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
 }
-.projektphase[data-offen="nein"] h4 { margin-bottom: 0; }
-.projektphase h4 .paket-aufklappen { margin-left: -4px; }
+.projektphase h4 > a.knopf-still { text-decoration: none; }
+.phase-gliedern {
+  display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 0 0 14px;
+}
+.phase-gliedern > label { display: flex; flex-direction: column; gap: 2px; min-width: 150px; }
+.phase-gliedern .ordnen { margin-left: auto; }
+.paket-umzug { min-height: 36px; max-width: 220px; padding: 4px 8px; }
 .projektphase h4 .art {
   padding: 2px 8px; border-radius: var(--kante);
   background: var(--flaeche-leise); color: var(--text-leise); letter-spacing: 0.04em;
 }
 .projektphase h4 .abgeschlossen { background: var(--gut-hell); color: var(--gut); }
 .projektphase h4 .phase-summe {
-  margin-left: auto; white-space: nowrap;
+  margin-left: auto; white-space: nowrap; font-size: 13px;
   font-weight: 400; font-family: var(--schrift-zahl); color: var(--text-leise);
 }
 
@@ -3348,4 +3346,259 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .fa-standwahl button { flex: 1 1 0; justify-content: center; padding: 0 8px; }
   .fa-ohnezeile { grid-template-columns: minmax(0, 1fr); }
   .fa-personzeile .fa-etikett .fa-leise { display: none; }
+}
+
+/* --- Gantt (bausteine/Gantt.tsx) ------------------------------------------ */
+
+/* Ein Raster für alle Gantts: Etikett, Spur, Zahl. Die Spur rechnet in Tagen
+   (`--tage`), ein Balken trägt seinen Anfangstag `--a` und seine Länge `--l`.
+   Monatslinien sind Elemente und kein Hintergrundmuster — Monate sind
+   verschieden lang, ein Muster liefe nach drei Monaten neben den Köpfen. */
+.gantt-rollbar { overflow-x: auto; overscroll-behavior-x: contain; margin: 0 -20px; padding: 0 20px; }
+.gantt {
+  --etikett: 240px; --rechts: 104px;
+  min-width: calc(var(--etikett) + var(--rechts) + 480px);
+}
+.gantt-zeile {
+  display: grid; grid-template-columns: var(--etikett) minmax(0, 1fr) var(--rechts);
+  align-items: stretch; min-height: 48px; border-top: 1px solid var(--rand);
+}
+.gantt-kopf { min-height: 30px; border-top: 0; }
+.gantt-zeile[data-gewaehlt] { background: var(--flaeche-leise); }
+.gantt-etikett {
+  position: sticky; left: 0; z-index: 3; background: var(--flaeche);
+  display: flex; flex-direction: column; justify-content: center; min-width: 0;
+  padding: 4px 12px 4px 0;
+}
+.gantt-zeile[data-gewaehlt] .gantt-etikett { background: var(--flaeche-leise); }
+.gantt-kopf .gantt-etikett, .gantt-kopf .gantt-rechts { justify-content: flex-end; padding-bottom: 6px; margin: 0; }
+.gantt-rechts {
+  display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px;
+  padding-left: 12px; text-align: right; font-size: 13px; min-width: 0;
+}
+.gantt-spur { position: relative; min-width: 0; }
+/* Das Etikett einer Zeile, die man wählen kann: Name und eine leise Zeile darunter. */
+.gantt-wahl {
+  display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: var(--griff); justify-content: center;
+  padding: 2px 0; background: none; border: 0; color: var(--text); text-align: left; cursor: pointer; font: inherit;
+}
+.gantt-wahl > b { font-size: 14px; font-weight: 500; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gantt-wahl > em { font-style: normal; font-size: 11.5px; color: var(--text-sehr-leise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-wahl:hover > b, .gantt-wahl[aria-pressed="true"] > b { color: var(--akzent); }
+.gantt-wahl[aria-pressed="true"] > b { font-weight: 600; }
+.gantt-leise { font-style: normal; font-size: 11.5px; color: var(--text-sehr-leise); white-space: nowrap; }
+.gantt-spur[data-setzbar] { cursor: copy; }
+
+.gantt-monat {
+  position: absolute; bottom: 0; top: 0;
+  left: calc(var(--a) / var(--tage) * 100%); width: calc(var(--l) / var(--tage) * 100%);
+  display: flex; align-items: flex-end; padding: 0 0 6px 4px;
+  font-family: var(--schrift-zahl); font-size: 10.5px; color: var(--text-sehr-leise);
+  border-left: 1px solid var(--rand); white-space: nowrap; overflow: visible;
+}
+.gantt-monat[data-jahr] { border-left-color: var(--rand-stark); color: var(--text-leise); }
+.gantt-linie {
+  position: absolute; top: 0; bottom: 0; left: calc(var(--a) / var(--tage) * 100%);
+  border-left: 1px solid var(--flaeche-leise); pointer-events: none;
+}
+.gantt-zeile[data-gewaehlt] .gantt-linie { border-left-color: var(--rand); }
+.gantt-linie[data-jahr] { border-left-color: var(--rand); }
+/* Heute: der eine Strich im Kupfer. Alles links davon ist schon gewesen. */
+.gantt-heute {
+  position: absolute; top: 0; bottom: 0; z-index: 2; pointer-events: none;
+  left: calc((var(--a) + 0.5) / var(--tage) * 100%); border-left: 2px solid var(--akzent);
+}
+.gantt-heute-marke {
+  position: absolute; top: 0; z-index: 2; transform: translateX(-50%);
+  left: calc((var(--a) + 0.5) / var(--tage) * 100%);
+  padding: 1px 4px; font-size: 10.5px; font-weight: 600; color: var(--akzent); background: var(--flaeche);
+}
+.gantt-hinweis {
+  position: absolute; left: 8px; top: 50%; transform: translateY(-50%); pointer-events: none;
+  font-size: 12px; color: var(--text-sehr-leise); white-space: nowrap;
+}
+
+.gantt-balken {
+  position: absolute; top: 10px; bottom: 10px; z-index: 1;
+  left: calc(var(--a) / var(--tage) * 100%);
+  width: max(6px, calc(var(--l) / var(--tage) * 100%));
+  display: flex; align-items: center; min-width: 0; padding: 0 6px;
+  border: 1px solid var(--marke); border-radius: var(--kante);
+  background: var(--marke); color: var(--auf-marke);
+  font-size: 12px; user-select: none;
+}
+.gantt-balken[role] { cursor: pointer; }
+.gantt-balken[data-ziehbar] { cursor: grab; touch-action: none; }
+.gantt-balken[data-zieht] { cursor: grabbing; border-color: var(--akzent); background: var(--akzent); color: var(--auf-marke); }
+.gantt-balken:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+.gantt-balkentext { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
+.gantt-balken > i { position: absolute; top: -1px; bottom: -1px; width: 8px; cursor: ew-resize; }
+.gantt-balken > i[data-griff="anfang"] { left: -1px; }
+.gantt-balken > i[data-griff="ende"] { right: -1px; }
+.gantt-balken[data-ziehbar]:hover > i::after {
+  content: ""; position: absolute; top: 4px; bottom: 4px; left: 3px; width: 2px; background: currentColor; opacity: 0.6;
+}
+
+/* Phasen: läuft voll, steht an hell, abgeschlossen ruhend. */
+.gantt-balken[data-stand="offen"] { background: var(--marke-hell); border-color: var(--marke-rand); color: var(--text); }
+.gantt-balken[data-stand="abgeschlossen"] { background: var(--ruhend-hell); border-color: var(--rand-stark); color: var(--text-leise); }
+/* Ein Paket hat zwei Balken übereinander: oben, was im Antrag steht
+   (gestrichelt — eingereicht, nicht getan), unten, was die Aufgaben belegen. */
+.gantt-balken[data-art="antrag"] {
+  top: 8px; bottom: auto; height: 12px; padding: 0;
+  background: transparent; border: 1px dashed var(--marke); color: var(--text);
+}
+.gantt-balken[data-art="plan"] {
+  top: 24px; bottom: 9px; background: var(--marke-hell); border-color: var(--marke-rand); color: var(--text);
+}
+.gantt-zeile[data-art="aufgabe"] { min-height: 40px; border-top-color: var(--flaeche-leise); }
+.gantt-zeile[data-art="aufgabe"] .gantt-balken { top: 9px; bottom: 9px; }
+.gantt-balken[data-stand="erledigt"] { background: var(--gut-hell); border-color: var(--gut); color: var(--gut); }
+.gantt-balken[data-stand="ueberfaellig"] { background: var(--warnung-hell); border-color: var(--warnung); color: var(--warnung); }
+
+@media (max-width: 720px) {
+  .gantt-rollbar { margin: 0 -18px; padding: 0 18px; }
+  .gantt { --etikett: 136px; --rechts: 76px; min-width: calc(var(--etikett) + var(--rechts) + 480px); }
+  .gantt-rechts { font-size: 12px; }
+}
+
+/* --- Projektplanung (ansichten/Planung.tsx) ---------------------------------- */
+
+.pl-seite { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.pl-leise { color: var(--text-leise); font-size: 13px; }
+.pl-leise a, a.pl-leise { color: var(--marke); }
+.pl-nr { font-size: 12px; color: var(--text-sehr-leise); font-weight: 400; }
+.pl-kartenkopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.pl-kartenkopf > h2 { margin: 0; }
+.pl-kartenkopf > .knopf-still { margin-left: auto; }
+
+/* Die Liste der Phasen — dieselbe Zeile wie auf der Übersicht der Module. */
+.pl-liste > h2 { margin-bottom: 8px; }
+.pl-liste ul { list-style: none; margin: 0; padding: 0; }
+.pl-liste li { border-top: 1px solid var(--rand); }
+.pl-liste a {
+  display: flex; align-items: center; gap: 12px; min-height: 52px;
+  color: var(--text); text-decoration: none;
+}
+.pl-liste a:hover { color: var(--akzent); }
+.pl-liste a:hover .modul-zeiger { color: var(--akzent); }
+.pl-listentitel { display: flex; flex-direction: column; min-width: 0; }
+.pl-listentitel b { font-weight: 500; }
+.pl-listentitel em { font-style: normal; font-size: 12px; color: var(--text-sehr-leise); }
+.pl-liste .art {
+  padding: 2px 8px; border-radius: var(--kante); font-size: 12px;
+  background: var(--marke-hell); color: var(--marke);
+}
+
+.pl-kopfzeile { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.pl-kopfzeile h2 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.02em; }
+.pl-antrag { display: flex; flex-direction: column; gap: 4px; min-width: min(320px, 100%); max-width: 420px; }
+.pl-antrag > .feld { width: 100%; }
+.pl-kennzahlen {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0;
+  margin-top: 16px; border-top: 1px solid var(--rand);
+}
+.pl-kennzahlen > .kennzahl { padding: 12px 16px 0 0; }
+.pl-kennzahlen > .kennzahl + .kennzahl { padding-left: 16px; border-left: 1px solid var(--rand); }
+.pl-kennzahlen .wert { font-size: 22px; }
+
+.pl-naechstes ul { list-style: none; margin: 0; padding: 0; }
+.pl-naechstes li {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; align-items: center; gap: 4px 12px;
+  min-height: var(--griff); border-top: 1px solid var(--rand); padding: 4px 0;
+}
+.pl-naechstes-text { display: flex; flex-direction: column; min-width: 0; }
+.pl-naechstes-text b { font-weight: 500; }
+.pl-naechstes-text em { font-style: normal; font-size: 12px; color: var(--text-sehr-leise); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-person {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; padding: 2px 6px; border-radius: var(--kante);
+  background: var(--flaeche-leise); color: var(--text-leise);
+}
+.pl-lage { font-size: 12.5px; color: var(--text-leise); white-space: nowrap; }
+.pl-naechstes li[data-lage="ueberfaellig"] .pl-lage { color: var(--warnung); font-weight: 600; }
+.pl-naechstes li[data-lage="laeuft"] .pl-lage { color: var(--marke); }
+
+/* Im Gantt: eine Aufgabe als Haken und Name, eingerückt unter ihrem Paket. */
+.pl-aufgabe { display: flex; align-items: center; gap: 8px; min-width: 0; padding-left: 22px; cursor: pointer; }
+.pl-aufgabe > span { display: flex; flex-direction: column; min-width: 0; }
+.pl-aufgabe b { font-size: 13px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-aufgabe em { font-style: normal; font-size: 11px; color: var(--text-sehr-leise); white-space: nowrap; }
+.pl-aufgabe[data-erledigt] b { text-decoration: line-through; color: var(--text-sehr-leise); }
+
+.pl-balken { position: relative; width: 100%; max-width: 96px; overflow: visible; }
+.pl-sollstrich {
+  position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--akzent);
+}
+.pl-legende li i { border: 1px solid var(--marke); }
+.pl-legende i[data-muster="antrag"] { border-style: dashed; background: transparent; }
+.pl-legende i[data-muster="plan"] { background: var(--marke-hell); border-color: var(--marke-rand); }
+.pl-legende i[data-muster="ueberfaellig"] { background: var(--warnung-hell); border-color: var(--warnung); }
+.pl-legende i[data-muster="erledigt"] { background: var(--gut-hell); border-color: var(--gut); }
+
+.pl-paket .pl-kartenkopf > h2 { font-size: 16px; color: var(--text); }
+.pl-paketraster { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 28px; margin-bottom: 14px; }
+.pl-antragsteil, .pl-stundenteil { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pl-antragsteil > .feld { max-width: 420px; }
+.pl-ziel { margin: 6px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.pl-ziel dd { margin: 2px 0 0; font-size: 13.5px; line-height: 1.5; }
+.pl-stundenteil p { margin: 4px 0 0; }
+
+/* Die Aufgaben eines Pakets: eine Zeile je Aufgabe. Am Handy wird daraus
+   eine Karte — aus demselben Markup, die Beschriftung kommt aus `data-feld`. */
+.pl-aufgabenzeile {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) 150px 150px 80px 84px 36px;
+  align-items: center; gap: 0 8px; min-height: var(--griff); border-top: 1px solid var(--rand);
+}
+.pl-aufgabenzeile .feld { min-height: 38px; padding: 4px 8px; width: 100%; }
+.pl-aufgabenzeile[data-lage="erledigt"] .pl-aufgabentitel { text-decoration: line-through; color: var(--text-sehr-leise); }
+.pl-aufgabenzeile[data-lage="ueberfaellig"] [data-feld="Ende"] .feld { border-color: var(--warnung); color: var(--warnung); }
+.pl-stundenfeld { text-align: right; }
+.pl-stundenfeld[aria-invalid] { border-color: var(--warnung); }
+.pl-neu { margin-top: 10px; }
+
+.pl-ziele ol { list-style: none; margin: 0; padding: 0; }
+.pl-ziele li {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; align-items: center; gap: 4px 12px;
+  min-height: 52px; border-top: 1px solid var(--rand); padding: 6px 0;
+}
+.pl-zieltext { display: flex; flex-direction: column; min-width: 0; }
+.pl-zieltext b { font-weight: 500; }
+.pl-zieltext em { font-style: normal; font-size: 12px; color: var(--text-sehr-leise); }
+.pl-ziele li[data-fertig] .pl-zieltext b { color: var(--gut); }
+.pl-texte { margin-top: 12px; border-top: 1px solid var(--rand); padding-top: 10px; }
+.pl-texte summary { cursor: pointer; min-height: var(--griff); display: flex; align-items: center; font-weight: 500; }
+.pl-texte h3 { font-size: 14px; margin: 12px 0 4px; }
+.pl-texte p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.55; white-space: pre-line; color: var(--text-leise); }
+
+@media (max-width: 960px) {
+  .pl-kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pl-kennzahlen > .kennzahl:nth-child(3) { padding-left: 0; border-left: 0; }
+  .pl-kennzahlen > .kennzahl:nth-child(n + 3) { border-top: 1px solid var(--rand); margin-top: 12px; }
+  .pl-paketraster { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 720px) {
+  .pl-antrag { max-width: none; width: 100%; }
+  .pl-naechstes li { grid-template-columns: 28px minmax(0, 1fr) auto; }
+  .pl-naechstes li .pl-lage { grid-column: 2 / -1; }
+  .pl-ziele li { grid-template-columns: 28px minmax(0, 1fr) auto; }
+  .pl-ziele li > .zahl.pl-leise { grid-column: 2; }
+  .pl-aufgabenzeile {
+    /* Die Felder über die ganze Breite: Ein Datum in 16 px braucht den Platz,
+       eingerückt unter den Haken schnitte es die Jahreszahl ab. */
+    grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) 44px;
+    grid-template-areas: "haken titel titel weg" "beginn beginn ende ende" "stunden stunden wer wer";
+    gap: 6px 8px; padding: 8px 0;
+  }
+  .pl-aufgabenzeile > :nth-child(1) { grid-area: haken; }
+  .pl-aufgabenzeile > :nth-child(2) { grid-area: titel; }
+  .pl-aufgabenzeile > :nth-child(3) { grid-area: beginn; }
+  .pl-aufgabenzeile > :nth-child(4) { grid-area: ende; }
+  .pl-aufgabenzeile > :nth-child(5) { grid-area: stunden; }
+  .pl-aufgabenzeile > :nth-child(6) { grid-area: wer; }
+  .pl-aufgabenzeile > :nth-child(7) { grid-area: weg; }
+  .pl-aufgabenzeile [data-feld]:not(.pl-aufgabentitel)::before {
+    content: attr(data-feld); display: block; font-size: 11px; color: var(--text-leise); margin-bottom: 2px;
+  }
+  .pl-aufgabenzeile .feld { font-size: 16px; min-height: var(--griff); }
 }

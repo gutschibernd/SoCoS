@@ -2,11 +2,11 @@
  * Module: zusätzliche Werkzeuge, die mit Projekt und Zeit nichts zu tun haben.
  *
  * `/module` ist die Übersicht aller Module, `/module/praktikum` die
- * Praktikantenstellen (in `Praktikum.tsx`), `/module/thoughts` und
- * `/module/foerderungen` je eine eigene Seite.
+ * Praktikantenstellen (in `Praktikum.tsx`), `/module/thoughts`,
+ * `/module/foerderungen` und `/module/planung` je eine eigene Seite.
  */
 
-import { useFoerderungen, useLagekarte, usePraktikumsthemen, type Ich } from "../basis/daten";
+import { useFoerderungen, useLagekarte, usePraktikumsthemen, useProjekte, type Ich } from "../basis/daten";
 import {
   MODULE,
   themenZahl,
@@ -14,7 +14,9 @@ import {
   themaAusWeg,
   foerderauslastungAusWeg,
   foerderungAusWeg,
+  planungAusWeg,
   type Foerderteil,
+  type Planungsteil,
   type Kartenteil,
   type Modul,
   type Teil,
@@ -26,6 +28,7 @@ import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
 import { Foerderauslastung } from "./Foerderauslastung";
 import { Antragsseite, Foerderungen, Geberseite, Programmseite } from "./Foerderungen";
+import { Planungsliste, Planungsseite } from "./Planung";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
@@ -41,6 +44,8 @@ export function Module({
   const thema = themaAusWeg(unter);
   if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} />;
   if (foerderauslastungAusWeg(unter)) return <Foerderauslastung ich={ich} wechseln={wechseln} />;
+  const planung = planungAusWeg(unter);
+  if (planung) return <Planungsseite key={planung.phase} ich={ich} id={planung.phase} wechseln={wechseln} />;
   const foerderung = foerderungAusWeg(unter);
   if (foerderung?.antrag)
     return <Antragsseite key={foerderung.antrag} ich={ich} id={foerderung.antrag} wechseln={wechseln} />;
@@ -52,6 +57,7 @@ export function Module({
   const { modul, teil } = treffer;
   if (teil.schluessel === "thoughts") return <Thoughts ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "foerderung") return <Foerderungen ich={ich} wechseln={wechseln} />;
+  if (teil.schluessel === "planung") return <Planungsliste wechseln={wechseln} />;
   return (
     <Praktikum
       key={teil.weg}
@@ -98,6 +104,8 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
                 <Themenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "thoughts" ? (
                 <Kartenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
+              ) : teil.schluessel === "planung" ? (
+                <Planungszeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : (
                 <Foerderzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ),
@@ -199,6 +207,32 @@ function Foerderzeile({ teil, stelle, wechseln }: { teil: Foerderteil; stelle: n
         <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
         {teil.titel}
         <span className="modul-stand">{stand}</span>
+        <Zeichen name="zeiger" klasse="modul-zeiger" />
+      </a>
+    </li>
+  );
+}
+
+/** Eine Zeile der Kachel für die Projektplanung: wie viele Phasen etwas zu planen haben. */
+function Planungszeile({ teil, stelle, wechseln }: { teil: Planungsteil; stelle: number; wechseln: Wechseln }) {
+  const projekte = useProjekte();
+  // Dieselbe Auswahl wie die Liste selbst: Pakete oder ein Antrag.
+  const zahl = projekte.data
+    ?.filter((p) => !p.ist_auffang)
+    .flatMap((p) => p.phasen)
+    .filter((ph) => ph.pakete.length > 0 || ph.foerderantrag !== null).length;
+  return (
+    <li>
+      <a
+        href={`/module/${teil.weg}`}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", teil.weg);
+        }}
+      >
+        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
+        {teil.titel}
+        <span className="modul-stand">{zahl === undefined ? "" : `${zahl} ${zahl === 1 ? "Phase" : "Phasen"}`}</span>
         <Zeichen name="zeiger" klasse="modul-zeiger" />
       </a>
     </li>
