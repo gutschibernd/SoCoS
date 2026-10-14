@@ -66,6 +66,8 @@ NAMEN = {
     "socos.Foerderposten": ("m", "Kostenposten eines Antrags", "Kostenposten eines Antrags"),
     "socos.Foerderabschnitt": ("m", "Textabschnitt eines Antrags", "Textabschnitte eines Antrags"),
     "socos.Foerderkapazitaet": ("f", "Förderkapazität", "Förderkapazitäten"),
+    "socos.Runwayplan": ("m", "Runway-Plan", "Runway-Pläne"),
+    "socos.Planposten": ("m", "Posten der Runway-Planung", "Posten der Runway-Planung"),
 }
 UNBEKANNT = ("m", "Eintrag", "Einträge")
 

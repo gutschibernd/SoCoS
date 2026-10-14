@@ -25,7 +25,10 @@ export type Foerderteil = { weg: string; titel: string; schluessel: "foerderung"
 /** Die Projektplanung: die Phasen als Liste, je Phase eine eigene Seite darunter. */
 export type Planungsteil = { weg: string; titel: string; schluessel: "planung" };
 
-export type Teil = Themenliste | Kartenteil | Foerderteil | Planungsteil;
+/** Die Runway-Planung: eine Seite, keine Unterseiten. */
+export type Runwayteil = { weg: string; titel: string; schluessel: "runway" };
+
+export type Teil = Themenliste | Kartenteil | Foerderteil | Planungsteil | Runwayteil;
 
 export type Modul = {
   /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
@@ -71,6 +74,16 @@ export const MODULE: Modul[] = [
     wozu: "Eine Phase mit Paketen, Aufgaben und Antrag im Gantt planen",
     zeichen: "gantt",
     teile: [{ weg: "planung", titel: "Phasen", schluessel: "planung" }],
+  },
+  {
+    // Ein Modul neben der Kennzahl auf dem Dashboard, nicht an ihrer Stelle
+    // (Bernd, 2026-10-14: „mal zum Testen"). Bewährt es sich, kommt die
+    // Runway des Dashboards von hier.
+    weg: "runway",
+    titel: "Runway-Planung",
+    wozu: "Was herein- und hinausgeht und wie lange das Geld reicht",
+    zeichen: "kurve",
+    teile: [{ weg: "runway", titel: "Plan, Posten, Verlauf", schluessel: "runway" }],
   },
 ];
 

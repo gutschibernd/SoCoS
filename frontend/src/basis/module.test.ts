@@ -15,7 +15,7 @@ import {
 
 describe("die Wege der Module", () => {
   it("kennt die Praktikantenstellen, Thoughts, die Förderungen und die Planung", () => {
-    expect(MODULWEGE).toEqual(["praktikum", "praktikum-ideen", "thoughts", "foerderungen", "planung"]);
+    expect(MODULWEGE).toEqual(["praktikum", "praktikum-ideen", "thoughts", "foerderungen", "planung", "runway"]);
     expect(teilZuWeg("thoughts")?.teil.schluessel).toBe("thoughts");
     expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikantenstellen");
     expect(teilZuWeg("praktikum")?.teil.titel).toBe("Haupt-Aufgabenstellungen");

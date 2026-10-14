@@ -44,6 +44,7 @@ from socos.models import (
     Nutzer,
     Organisation,
     Pensum,
+    Planposten,
     Praktikumsthema,
     Foerderantrag,
     Foerdergeber,
@@ -58,12 +59,14 @@ from socos.models import (
     Projektphase,
     Protokolleintrag,
     Rueckmeldung,
+    Runwayplan,
     Unteraufgabe,
     Verlaufseintrag,
     Zeitbuchung,
     auffangpaket,
 )
 from socos.services import aktivitaet, auswertung, finanzen, foerderung, planung as planungsdienst
+from socos.services import runway as runwaydienst
 from socos.services import zeit as zeitdienst
 
 logger = logging.getLogger(__name__)
@@ -765,6 +768,52 @@ class MonatskostenViewSet(SocosViewSet):
     serializer_class = ser.MonatskostenSerializer
     queryset = Monatskosten.objects.all()
     schreiben_nur_admin = True
+
+
+# --- Module: Runway-Planung -------------------------------------------------
+#
+# Geld, also dieselbe Regel wie oben: sehen alle, eintragen nur der Admin.
+
+
+class RunwayplanViewSet(SocosViewSet):
+    """Die Einstellungen des einen Plans. Entfernt wird er nicht — nur geändert."""
+
+    serializer_class = ser.RunwayplanSerializer
+    queryset = Runwayplan.objects.all()
+    schreiben_nur_admin = True
+    http_method_names = ["get", "post", "patch", "head", "options"]
+
+
+class PlanpostenViewSet(SocosViewSet):
+    serializer_class = ser.PlanpostenSerializer
+    queryset = Planposten.objects.all()
+    schreiben_nur_admin = True
+
+
+@api_view(["GET"])
+@permission_classes([berechtigung.SocosBerechtigung])
+def runway(request):
+    """
+    Der Plan, seine Posten und die Rechnung dazu (`services/runway.py`) in
+    einer Antwort — die Seite zeigt alles zusammen, und eine Kennzahl, die vor
+    ihren Posten ankommt, stünde neben einer veralteten Liste.
+
+    `?szenario=konservativ|basis|optimistisch`, ohne Angabe `basis`. Geändert
+    wird über `/runwayplaene/` und `/planposten/`.
+    """
+    szenario = request.query_params.get("szenario", "basis")
+    if szenario not in runwaydienst.SZENARIEN:
+        raise ValidationError(
+            {"szenario": f"Dieses Szenario gibt es nicht: {szenario}. Möglich: {', '.join(runwaydienst.SZENARIEN)}."}
+        )
+    plan = Runwayplan.objects.first()
+    return Response(
+        {
+            "plan": ser.RunwayplanSerializer(plan).data if plan else None,
+            "posten": ser.PlanpostenSerializer(Planposten.objects.all(), many=True).data,
+            "rechnung": runwaydienst.rechnen(szenario),
+        }
+    )
 
 
 # --- Nutzer und Protokoll ---------------------------------------------------

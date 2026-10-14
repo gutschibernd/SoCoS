@@ -3609,3 +3609,129 @@ a.gantt-wahl { text-decoration: none; }
   }
   .pl-aufgabenzeile .feld { font-size: 16px; min-height: var(--griff); }
 }
+
+/* --- Module · Runway-Planung ---------------------------------------------- */
+/*
+ * Die Lage steht oben in einem Satz, ihre Farbe kommt aus `data-lage` — an
+ * der Karte, an der Kennzahl und am Stand eines Monats dieselben drei Werte.
+ * Eine Lücke trägt die linke Warnkante (`.karte-achtung`), wie jede Karte, die
+ * etwas von einem will; durchfinanziert ist still.
+ */
+.rw-kopf .spanne-hinweis { margin-left: auto; }
+.rw-lage > h2 { margin-bottom: 6px; }
+.rw-lage p { margin: 0; font-size: 14.5px; line-height: 1.55; max-width: 72ch; }
+.rw-lage[data-lage="gut"] { border-left: 3px solid var(--gut); }
+.rw-lage[data-lage="puffer"] { border-left-color: var(--akzent); background: var(--akzent-hell); }
+.kennzahl[data-lage="luecke"] .wert { color: var(--warnung); }
+.kennzahl[data-lage="puffer"] .wert { color: var(--akzent); }
+[data-negativ] { color: var(--warnung); }
+.rw-leise { color: var(--text-sehr-leise); }
+
+/* Die Linie. Aufbau wie die Kontostandlinie des Dashboards: das SVG wird
+   gezogen, Striche bleiben gleich dick, Beschriftung steht als HTML daneben. */
+.rw-legende { display: flex; gap: 14px; flex-wrap: wrap; margin-left: auto; }
+.rw-legende span { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-leise); }
+.rw-legende span::before { content: ""; width: 16px; border-top: 2px solid var(--marke); }
+.rw-legende span[data-muster="ohne"]::before { border-top: 2px dashed var(--text-sehr-leise); }
+.rw-legende span[data-muster="puffer"]::before { height: 9px; border: 1px solid var(--rand); background: var(--warnung-hell); }
+
+.rw-flaeche {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-areas: "y bild" ". x";
+}
+.rw-y { grid-area: y; position: relative; }
+.rw-y span {
+  position: absolute; right: 8px; transform: translateY(-50%);
+  font-size: 11px; color: var(--text-sehr-leise); white-space: nowrap;
+}
+.rw-bild { grid-area: bild; position: relative; height: 220px; }
+.rw-bild svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.rw-bild path { fill: none; vector-effect: non-scaling-stroke; }
+.rw-zone-puffer { fill: var(--warnung-hell); }
+.rw-zone-minus { fill: var(--warnung-hell); }
+.rw-raster { stroke: var(--rand); stroke-width: 1; }
+.rw-null { stroke: var(--rand-stark); stroke-width: 1; }
+.rw-heute { stroke: var(--rand-stark); stroke-width: 1; stroke-dasharray: 3 3; }
+.rw-gewaehlt { stroke: var(--akzent); stroke-width: 1; }
+.rw-linie { stroke: var(--marke); stroke-width: 2; stroke-linejoin: round; }
+.rw-linie-ohne { stroke: var(--text-sehr-leise); stroke-width: 1.5; stroke-dasharray: 5 4; stroke-linejoin: round; }
+.rw-treffer { position: absolute; inset: 0; display: flex; }
+.rw-treffer button { flex: 1 1 0; min-width: 0; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.rw-x { grid-area: x; display: grid; margin-top: 6px; }
+.rw-x span { font-size: 11px; color: var(--text-sehr-leise); white-space: nowrap; overflow: visible; }
+
+/* Ein Monat ausgeschrieben — unter der Linie, eine Haarlinie darüber. */
+.rw-monat { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--rand); }
+.rw-monatkopf { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; }
+.rw-monatkopf b { font-size: 15px; font-weight: 600; }
+.rw-monatkopf > .zahl { font-size: 18px; font-weight: 500; }
+.rw-monatkopf em { font-style: normal; font-size: 12.5px; color: var(--text-leise); }
+.rw-monatzahlen { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 20px; margin: 10px 0 0; }
+.rw-monatzahlen dt { font-size: 12px; color: var(--text-leise); }
+.rw-monatzahlen dd { margin: 2px 0 0; font-size: 14px; }
+.rw-ereignisse { list-style: none; margin: 10px 0 0; padding: 0; }
+.rw-ereignisse li {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 6px 0; border-top: 1px solid var(--flaeche-leise); font-size: 13.5px;
+}
+
+.rw-knoepfe { display: flex; justify-content: flex-end; margin-top: 12px; }
+.rw-seite .rechts { text-align: right; }
+
+/* Die Posten: Register oben, darunter die Tabelle der Art und das Anlegen. */
+.rw-register { flex-wrap: wrap; margin-bottom: 14px; }
+.rw-register button { min-height: var(--griff); }
+.rw-register .zahl { margin-left: 4px; color: inherit; opacity: 0.8; }
+.rw-tabelle td { padding: 4px 8px; vertical-align: middle; }
+.rw-tabelle td.rechts { white-space: nowrap; }
+.rw-tabelle th { padding: 8px; }
+.rw-tabelle .feld { min-height: 38px; padding: 4px 8px; }
+.rw-tabelle select.feld { width: auto; min-width: 120px; }
+.rw-tabelle input[type="date"].feld { width: 150px; }
+.rw-tabelle .inline-aendern { text-align: inherit; }
+.rw-klein { min-height: 38px; padding: 6px 10px; }
+.rw-neu {
+  display: grid; grid-template-columns: minmax(0, 1fr) 160px 170px auto;
+  gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rand);
+}
+.rw-einstellungen {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; max-width: 760px;
+}
+.rw-haken {
+  display: flex; align-items: center; gap: 10px; min-height: var(--griff);
+  grid-column: 1 / -1; font-size: 14px; cursor: pointer;
+}
+.rw-haken input { width: 18px; height: 18px; accent-color: var(--akzent); }
+
+.rw-monate .tabelle { margin-top: 10px; }
+.rw-monate td { white-space: nowrap; }
+.rw-monate td.rw-was { white-space: normal; font-size: 13px; color: var(--text-leise); }
+.rw-ist { font-size: 11px; color: var(--marke); font-weight: 600; }
+
+@media (max-width: 960px) {
+  .rw-monatzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rw-einstellungen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .rw-kopf .spanne-hinweis { margin-left: 0; flex-basis: 100%; }
+  /* Vier Kennzahlen untereinander schöben die Linie zwei Bildschirme tief.
+     Zwei mal zwei passt: der längste Wert („20.000 €") hat in einer halben
+     Breite Platz, wenn die Zahl etwas kleiner steht. */
+  .rw-seite .raster-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .rw-seite .kennzahl { padding: 14px; }
+  .rw-seite .kennzahl .wert { font-size: 21px; }
+  /* Die Beschriftung einer Zahlenzelle erbt sonst die Zahlenschrift. */
+  .rw-seite .tabelle td::before { font-family: var(--schrift); letter-spacing: 0; }
+  .rw-flaeche { grid-template-columns: 40px minmax(0, 1fr); }
+  .rw-bild { height: 180px; }
+  .rw-x span[data-neben] { visibility: hidden; }
+  .rw-register button { flex: 1 1 auto; }
+  .rw-tabelle .feld, .rw-neu .feld { font-size: 16px; min-height: var(--griff); }
+  .rw-tabelle select.feld, .rw-tabelle input[type="date"].feld { width: auto; min-width: 0; }
+  .rw-tabelle td { align-items: center; }
+  .rw-neu { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .rw-neu > :first-child, .rw-neu > .knopf-still { grid-column: 1 / -1; }
+  .rw-einstellungen { grid-template-columns: minmax(0, 1fr); }
+  .rw-knoepfe .knopf { width: 100%; }
+}

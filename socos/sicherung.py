@@ -37,6 +37,8 @@ MODELLE_IM_ARCHIV = [
     "socos.Kontostand",
     "socos.Fixkosten",
     "socos.Monatskosten",
+    "socos.Runwayplan",
+    "socos.Planposten",
     "socos.Rueckmeldung",
     "socos.Aufgabe",
     "socos.Praktikumsthema",
@@ -103,6 +105,9 @@ LOESCHREIHENFOLGE = [
     "socos.Kontostand",
     "socos.Fixkosten",
     "socos.Monatskosten",
+    # Zeigen auf nichts und auf sie zeigt nichts.
+    "socos.Planposten",
+    "socos.Runwayplan",
     "socos.Rueckmeldung",
     # Zeigt auf den Nutzer und steht deshalb vor ihm.
     "socos.Aufgabe",

@@ -7,6 +7,72 @@ betrifft.
 
 ---
 
+## 2026-10-14 — Modul Runway-Planung (Migration 0051)
+
+**Wunsch Bernd:** Den eigenständigen Runway-Planer (eine HTML-Datei, Daten im
+`localStorage` des Browsers) als SoCoS-Modul, „mal zum Testen". Bewährt es
+sich, kommt die Runway des Dashboards von hier. Bis dahin stehen beide
+nebeneinander: Das Dashboard rechnet weiter Kontostand ÷ erwartete
+Monatskosten (`services/finanzen.py`), das Modul Monat für Monat aus Posten.
+**Kein Eintrag in `aenderungen.py`**, solange es ein Test ist (Bernd).
+
+**Bewusst klein (Bernd, „schlanker Kern"):** Förderungen in Tranchen, Umsätze
+mit Wahrscheinlichkeit, Team, Kosten, Gesellschafterdarlehen endfällig, drei
+Szenarien, Überbrückungsvorschlag. **Nicht** übernommen aus dem Planer:
+Umsatzsteuer/UVA, NeuFöG, Forschungsprämie, Kredite mit Raten, Investments,
+Gehaltsanpassung, Sicherheitszuschlag, Zahlungsziel, Vergleichsstand, Export
+(den deckt die Sicherung). Kommt eines dazu, gehört es in `services/runway.py`.
+
+**Schema (0051):**
+
+- `Runwayplan` — **genau einer** (Serializer verweigert den zweiten, `DELETE`
+  gibt es nicht). Varianten laufen über die Szenarien, nicht über zweite Pläne
+  mit eigenen Posten (Bernd).
+- `Planposten` — **ein Modell für alle fünf Arten** (`art`), nicht fünf.
+  Umsatz und Kosten haben dieselbe Form, Tranche und Darlehen sind ein
+  Eingang an einem Tag; fünf Modelle hießen fünf Serializer, Wege und
+  Sicherungseinträge für Felder, die sich zu vier Fünfteln decken. Was je Art
+  gilt (Rhythmus, keine Tranche mit Ende), prüft `Planposten.clean()` —
+  **dort**, damit der Einspielbefehl dieselben Regeln prüft wie die API. DRF
+  ruft `clean()` nicht selbst; der Serializer tut es (`_modellpruefung`).
+  Eine Förderung mit drei Tranchen sind drei Posten mit demselben Namen.
+
+**Rechnung (`services/runway.py`), was nicht offensichtlich ist:**
+
+- **Ist aus dem Dashboard, kein zweites Feld.** Ein `Kontostand`-Stichtag im
+  Plan ersetzt den Plan **bis zu seinem Tag**; was im selben Monat danach
+  fällig ist, kommt dazu. Ein Stichtag vom 14. als Monatsende genommen ließe
+  die Zahlungen der zweiten Monatshälfte verschwinden. Gehälter gehen am
+  Monatsende hinaus. Lokal liegt ein Kontostand vom 1.10. (10.000 €) — der
+  ersetzt den Startkontostand des Plans (5.000 €) samt Darlehen vom selben Tag.
+- **„Ohne Gesellschafterdarlehen" ist herausgerechnet, kein zweiter Lauf:** Ein
+  Ist-Kontostand enthält das Darlehen längst; ein zweiter Lauf setzte es dort
+  wieder hinein.
+- **Gehalt tageweise im Eintritts- und Austrittsmonat.** Der Planer zählte
+  volle Monate — 15.1. bis 15.7. waren sieben Gehälter statt sechs.
+- **Rhythmus ab dem eigenen Beginn**, nicht ab dem Planbeginn (Quartal ab
+  August bleibt im November).
+- **„Ausgaben je Monat" statt Burn mit Umsatz dagegen.** Der Planer zog den
+  Umsatz ab, und ein einziger Auftrag im Februar machte „positiv" daraus.
+- **Abrufe ab dem laufenden Monat**, auf 5.000 € gerundet, je `abruf_monate`
+  voraus — wie im Planer. „Als Gesellschafterdarlehen übernehmen" legt sie als
+  Darlehen-Posten an.
+
+**Einspielen:** `manage.py runway_einspielen` liest `daten/finance.json`
+(Export des Planers). Was die Datei kennt und das Modul nicht rechnet, lässt
+ihn **abbrechen**, wenn dabei Geld verloren ginge (Investments,
+Förder-Rückzahlungen, Ratenkredite); reine Einstellungen (USt, NeuFöG …)
+werden nur gemeldet. Gibt es schon einen Plan, nur mit `--ersetzen`.
+
+**Oberfläche:** eine Seite unter Module · Runway-Planung. Register je Art mit
+`.tabelle` (am Handy Karten über `data-spalte`), Felder an Ort und Stelle
+(`Feldtext`, `Betragsfeld` aus den Förderungen, `Datumsfeld`). Die Linie ist
+selbst gezeichnet wie die Kontostandlinie; ein Monat wird mit Maus oder
+Finger gewählt und darunter ausgeschrieben. Rechte wie Kontostand und
+Fixkosten: sehen alle, schreiben nur der Admin (`darf_finanzen_eintragen`).
+
+---
+
 ## 2026-10-13 — Projektseite als Gantt, Modul Projektplanung (Migration 0050)
 
 **Wunsch Bernd:** Für die KWF-Umsetzung F&E&I ein eigenes Werkzeug, um die

@@ -24,6 +24,8 @@ router.register("meetinganhaenge", api.MeetinganhangViewSet, basename="meetingan
 router.register("kontostaende", api.KontostandViewSet, basename="kontostand")
 router.register("fixkosten", api.FixkostenViewSet, basename="fixkosten")
 router.register("monatskosten", api.MonatskostenViewSet, basename="monatskosten")
+router.register("runwayplaene", api.RunwayplanViewSet, basename="runwayplan")
+router.register("planposten", api.PlanpostenViewSet, basename="planposten")
 router.register("aufgaben", api.AufgabeViewSet, basename="aufgabe")
 router.register("praktikumsthemen", api.PraktikumsthemaViewSet, basename="praktikumsthema")
 router.register("foerdergeber", api.FoerdergeberViewSet, basename="foerdergeber")
@@ -52,6 +54,7 @@ urlpatterns = [
     path("zeitnachweis/", api.zeitnachweis, name="zeitnachweis"),
     path("foerderauslastung/", api.foerderauslastung, name="foerderauslastung"),
     path("planung/<int:phase>/", api.planung, name="planung"),
+    path("runway/", api.runway, name="runway"),
     # Zwei Pfade und nicht ein GET/POST-Paar: Das Einspielen ersetzt den
     # gesamten Bestand. Dass es einen eigenen, aussprechbaren Pfad hat, ist an
     # dieser Stelle mehr wert als die kürzere Tabelle.

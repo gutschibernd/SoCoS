@@ -214,7 +214,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, nach Fälligkeit." },
-            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die Praktikantenstellen, Thoughts, die Förderungen und die Projektplanung." },
+            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die Praktikantenstellen, Thoughts, die Förderungen, die Projektplanung und die Runway-Planung." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
@@ -1049,6 +1049,70 @@ function ModuleDoku() {
             {
               begriff: "Wer was darf",
               text: "Sehen dürfen alle. Aufgaben anlegen, planen und abhaken dürfen Admin und Bearbeiter; eine Aufgabe entfernen nur der Admin — milder ist, sie abzuhaken.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="kurve"
+        titel="Runway-Planung: wie lange das Geld reicht"
+        vorspann="Förderungen, Umsätze, Team, Kosten und Gesellschafterdarlehen über die nächsten Monate eintragen und sehen, ab wann das Konto unter den Puffer oder ins Minus fällt — und wie viel dann nachgeschossen werden muss."
+      >
+        <Schritte
+          schritte={[
+            "Unter Module · Runway-Planung oben das Szenario wählen. Die Seite geht im Basis-Szenario auf.",
+            "Unten in den Registern die Posten eintragen: Bezeichnung, Betrag, Datum und „+“. Alles Weitere — Rhythmus, Ende, Status, Wahrscheinlichkeit — steht danach in der Zeile und wird mit einem Klick geändert.",
+            "Unter „Einstellungen“ stehen der erste Monat, wie viele Monate der Plan reicht, der Kontostand zu Beginn, der Mindestpuffer und die Lohnnebenkosten.",
+            "Mit der Maus über die Linie fahren oder darauf tippen zeigt einen Monat ausgeschrieben: Stand am Monatsende, was herein- und hinausgeht, was in diesem Monat passiert.",
+            "Fehlt Geld, steht darunter die Überbrückung. „Als Gesellschafterdarlehen übernehmen“ trägt die Abrufe als Darlehen ein; danach können Name, Rückzahlung und Zins in der Zeile angepasst werden.",
+          ]}
+        />
+        <Begriffe
+          paare={[
+            {
+              begriff: "Szenarien",
+              text: "Optimistisch rechnet jeden Umsatz voll. Basis gewichtet jeden Umsatz mit seiner Wahrscheinlichkeit. Konservativ nimmt die halbe Wahrscheinlichkeit und zählt nur Förderungen, die zugesagt oder erhalten sind.",
+            },
+            {
+              begriff: "Kontostand am Monatsende",
+              text: "Ausgerechnet ab dem Kontostand zu Beginn. Steht auf dem Dashboard ein Kontostand für einen Tag im Plan, gilt ab diesem Tag der echte Stand: Was im selben Monat danach noch fällig ist, kommt dazu, und ab dem nächsten Monat wird von dort aus weitergerechnet. Oben steht dann „ab Kontostand vom …“.",
+            },
+            {
+              begriff: "Team",
+              text: "Brutto je Monat, dazu die Lohnnebenkosten — der Satz aus den Einstellungen, oder ein eigener in der Zeile. Mit 14 Gehältern zählen Juni und November doppelt. Im Monat des Eintritts und des Austritts zählen nur die Tage: 15.1. bis 15.7. sind sechs Gehälter, nicht sieben.",
+            },
+            {
+              begriff: "Rhythmus",
+              text: "Einmalig, monatlich, quartalsweise oder jährlich, gezählt ab dem eigenen Beginn: Eine Quartalszahlung ab August fällt im November, Februar und Mai an. Ohne Ende läuft sie bis zum Planende.",
+            },
+            {
+              begriff: "Gesellschafterdarlehen",
+              text: "Fließt am Tag der Auszahlung herein und mit dem Zins am Tag der Rückzahlung wieder hinaus; ohne Rückzahlung bleibt es stehen. Die gestrichelte Linie zeigt den Verlauf ohne alle Gesellschafterdarlehen.",
+            },
+            {
+              begriff: "Überbrückung",
+              text: "Wann wie viel nachgeschossen werden muss, damit der Stand nie unter den Mindestpuffer fällt. Ein Abruf deckt den tiefsten Stand der nächsten Monate ab (unter Einstellungen: 1, 3, 6 oder 12) und ist auf 5.000 € gerundet. Vorgeschlagen wird ab dem laufenden Monat.",
+            },
+            {
+              begriff: "Runway",
+              text: "Wie viele Monate ab dem laufenden noch bleiben, bis das Konto im gewählten Szenario ins Minus fällt.",
+            },
+            {
+              begriff: "Ausgaben je Monat",
+              text: "Personal und Kosten im Schnitt der nächsten sechs Monate, ohne Umsatz dagegen. Ein einzelner großer Auftrag soll nicht so aussehen, als flösse kein Geld mehr ab.",
+            },
+            {
+              begriff: "Im Plan",
+              text: "Was ein Posten über den ganzen Planzeitraum ausmacht, im gewählten Szenario.",
+            },
+            {
+              begriff: "Was nicht gerechnet wird",
+              text: "Umsatzsteuer und UVA, NeuFöG, Forschungsprämie, Bankkredite mit Raten und Investments. Kommt eines davon dazu, wird es im Modul ergänzt.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen dürfen alle. Eintragen und ändern darf — wie bei Kontostand und Fixkosten — nur der Admin. Milder als Entfernen ist bei laufenden Posten „Zum Monatsende beenden“.",
             },
           ]}
         />

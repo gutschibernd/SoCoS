@@ -60,6 +60,7 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   "module/thoughts": { titel: "Thoughts", unter: "Was frei ist, was wartet" },
   "module/foerderungen": { titel: "Förderungen", unter: "Fördergeber, Programme, Anträge" },
   "module/planung": { titel: "Projektplanung", unter: "Phasen mit Paketen und Aufgaben" },
+  "module/runway": { titel: "Runway-Planung", unter: "Wie lange das Geld reicht" },
 };
 
 export function App() {

@@ -54,7 +54,8 @@ export type ZeichenName =
   | "lupe"
   | "saeulen"
   | "archiv"
-  | "gantt";
+  | "gantt"
+  | "kurve";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -161,6 +162,10 @@ const PFADE: Record<ZeichenName, string> = {
   // Drei Balken, nach rechts versetzt, an einer Zeitlinie — der Gantt. Die
   // Balken sind Rahmen und keine Striche: Als Striche läse man eine Liste.
   gantt: "M4 4v16M7 5.5h6v3H7zM10 10.5h7v3h-7zM14 15.5h6v3h-6z",
+  // Eine Linie, die fällt, wieder steigt und dann ausläuft, über einer
+  // Grundlinie — der Kontostand über die Monate. Keine Säulen: die stehen
+  // schon für die Auswertung („saeulen").
+  kurve: "M4 20h16M4 7l4 5 3-2 4 5 5-3",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

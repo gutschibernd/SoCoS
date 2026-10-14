@@ -38,11 +38,13 @@ from socos.models import (
     Nutzer,
     Organisation,
     Pensum,
+    Planposten,
     Praktikumsthema,
     Projekt,
     Projektphase,
     Protokolleintrag,
     Rueckmeldung,
+    Runwayplan,
     Unteraufgabe,
     Verlaufseintrag,
     Zeitbuchung,
@@ -656,6 +658,67 @@ class MonatskostenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Monatskosten
         fields = ["id", "monat", "betrag"]
+
+
+# --- Runway-Planung ---------------------------------------------------------
+
+
+def _modellpruefung(modell, instanz, daten):
+    """
+    Die Regeln aus `clean()` des Modells — **dort** stehen sie, damit der
+    Einspielbefehl dieselben prüft wie die Oberfläche. DRF ruft `clean()`
+    nicht von selbst.
+    """
+    from django.core.exceptions import ValidationError as ModellFehler
+
+    felder = {f.attname: getattr(instanz, f.attname) for f in modell._meta.concrete_fields} if instanz else {}
+    probe = modell(**{**felder, **daten})
+    try:
+        probe.clean()
+    except ModellFehler as fehler:
+        raise serializers.ValidationError(fehler.message_dict)
+
+
+class RunwayplanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Runwayplan
+        fields = [
+            "id", "beginn", "monate", "startkontostand", "puffer",
+            "lohnnebenkosten", "vierzehn_gehaelter", "abruf_monate",
+        ]
+
+    def validate(self, daten):
+        # Es gibt genau einen Plan. Ein zweiter wäre eine Variante mit eigenen
+        # Posten — dafür sind die Szenarien da.
+        if self.instance is None and Runwayplan.objects.exists():
+            raise serializers.ValidationError("Es gibt schon einen Plan.")
+        # Der Startkontostand darf negativ sein — ein überzogenes Konto ist
+        # ein Stand, kein Eingabefehler.
+        for feld in ("puffer", "lohnnebenkosten"):
+            if feld in daten and daten[feld] < 0:
+                raise serializers.ValidationError({feld: "Der Wert ist nicht negativ."})
+        return daten
+
+
+class PlanpostenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Planposten
+        fields = [
+            "id", "art", "name", "gruppe", "notiz", "betrag", "rhythmus", "von", "bis",
+            "status", "wahrscheinlichkeit", "lohnnebenkosten", "zins",
+        ]
+
+    def validate(self, daten):
+        if self.instance is not None and "art" in daten and daten["art"] != self.instance.art:
+            raise serializers.ValidationError(
+                {"art": "Die Art eines Postens bleibt. Für eine andere Art einen neuen anlegen."}
+            )
+        # Eine Person wird monatlich bezahlt — ohne Angabe ist das der
+        # Rhythmus, nicht der „einmalig" des Modells, der für sie nicht gilt.
+        if self.instance is None and "rhythmus" not in daten and daten.get("art") == Planposten.Art.PERSON:
+            daten["rhythmus"] = Planposten.Rhythmus.MONATLICH
+        _modellpruefung(Planposten, self.instance, daten)
+        return daten
 
 
 # --- Protokoll --------------------------------------------------------------

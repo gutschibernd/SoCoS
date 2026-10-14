@@ -6,7 +6,7 @@
  * `/module/foerderungen` und `/module/planung` je eine eigene Seite.
  */
 
-import { useFoerderungen, useLagekarte, usePraktikumsthemen, useProjekte, type Ich } from "../basis/daten";
+import { useFoerderungen, useLagekarte, usePraktikumsthemen, useProjekte, useRunway, type Ich } from "../basis/daten";
 import {
   MODULE,
   themenZahl,
@@ -17,6 +17,7 @@ import {
   planungAusWeg,
   type Foerderteil,
   type Planungsteil,
+  type Runwayteil,
   type Kartenteil,
   type Modul,
   type Teil,
@@ -29,6 +30,8 @@ import { Praktikum, Themenseite } from "./Praktikum";
 import { Foerderauslastung } from "./Foerderauslastung";
 import { Antragsseite, Foerderungen, Geberseite, Programmseite } from "./Foerderungen";
 import { Planungsliste, Planungsseite } from "./Planung";
+import { Runway } from "./Runway";
+import { monatLang } from "../basis/runway";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
@@ -58,6 +61,7 @@ export function Module({
   if (teil.schluessel === "thoughts") return <Thoughts ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "foerderung") return <Foerderungen ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "planung") return <Planungsliste wechseln={wechseln} />;
+  if (teil.schluessel === "runway") return <Runway ich={ich} />;
   return (
     <Praktikum
       key={teil.weg}
@@ -106,6 +110,8 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
                 <Kartenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "planung" ? (
                 <Planungszeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
+              ) : teil.schluessel === "runway" ? (
+                <Runwayzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : (
                 <Foerderzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ),
@@ -258,5 +264,31 @@ function Teilwahl({ modul, teil, wechseln }: { modul: Modul; teil: Teil; wechsel
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * Eine Zeile der Kachel für die Runway-Planung: ab wann das Konto im Minus ist
+ * — im Basis-Szenario, demselben, mit dem die Seite aufgeht.
+ */
+function Runwayzeile({ teil, stelle, wechseln }: { teil: Runwayteil; stelle: number; wechseln: Wechseln }) {
+  const runway = useRunway("basis");
+  const k = runway.data?.rechnung?.kennzahlen;
+  const stand = !runway.data ? "" : !k ? "noch kein Plan" : k.minus_ab ? `Minus ab ${monatLang(k.minus_ab)}` : "durchfinanziert";
+  return (
+    <li>
+      <a
+        href={`/module/${teil.weg}`}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", teil.weg);
+        }}
+      >
+        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
+        {teil.titel}
+        <span className="modul-stand">{stand}</span>
+        <Zeichen name="zeiger" klasse="modul-zeiger" />
+      </a>
+    </li>
   );
 }

@@ -845,6 +845,103 @@ export type Planung = {
 export const usePlanung = (phase: number) =>
   useQuery({ queryKey: ["planung", phase], queryFn: () => hole<Planung>(`/planung/${phase}/`) });
 
+/* --- Runway-Planung -------------------------------------------------------- */
+
+export type Szenario = "konservativ" | "basis" | "optimistisch";
+export type Postenart = "foerderung" | "umsatz" | "person" | "kosten" | "darlehen";
+export type Rhythmus = "einmalig" | "monatlich" | "quartal" | "jaehrlich";
+
+/** Der eine Plan. Geld als Zeichenkette — Decimal, siehe CLAUDE.md. */
+export type Runwayplan = {
+  id: number;
+  /** Der Erste des ersten Monats. */
+  beginn: string;
+  monate: number;
+  startkontostand: string;
+  puffer: string;
+  lohnnebenkosten: string;
+  vierzehn_gehaelter: boolean;
+  abruf_monate: number;
+};
+
+/**
+ * Eine Zeile der Planung. Die Felder heißen je Art anders (siehe
+ * `Planposten` in socos/models.py): `gruppe` ist Fördergeber, Rolle oder
+ * Kategorie, `von` Zahlung, Eintritt oder Auszahlung, `bis` Austritt oder
+ * Rückzahlung.
+ */
+export type Planposten = {
+  id: number;
+  art: Postenart;
+  name: string;
+  gruppe: string;
+  notiz: string;
+  betrag: string;
+  rhythmus: Rhythmus;
+  von: string;
+  bis: string | null;
+  status: "geplant" | "zugesagt" | "erhalten";
+  wahrscheinlichkeit: number;
+  /** Leer heißt: der Satz aus dem Plan. */
+  lohnnebenkosten: string | null;
+  zins: string;
+};
+
+/** Ein Monat der Rechnung, „2027-02". Alles Geld als Zeichenkette. */
+export type Runwaymonat = {
+  monat: string;
+  foerderung: string;
+  umsatz: string;
+  darlehen: string;
+  personal: string;
+  kosten: string;
+  rueckzahlung: string;
+  ein: string;
+  aus: string;
+  netto: string;
+  anfang: string;
+  /** Am Monatsende — ab einem Ist-Kontostand von dort aus gerechnet. */
+  stand: string;
+  ohne_darlehen: string;
+  ist: string | null;
+  ist_datum: string | null;
+  /** Was in diesem Monat Besonderes passiert, mit Vorzeichen. */
+  ereignisse: { text: string; betrag: string }[];
+};
+
+/** Gerechnet in socos/services/runway.py — die Seite rechnet nichts davon nach. */
+export type Runwayrechnung = {
+  szenario: Szenario;
+  heute: string;
+  monate: Runwaymonat[];
+  kennzahlen: {
+    minus_ab: string | null;
+    unter_puffer_ab: string | null;
+    tiefster_stand: string;
+    tiefster_monat: string;
+    ueberbrueckung: string;
+    burn: string;
+    burn_ab: string;
+    ohne_darlehen_minus_ab: string | null;
+    darlehen_summe: string;
+    letzter_ist: string | null;
+  };
+  abrufe: { monat: string; vorher: string; betrag: string }[];
+  /** Was jeder Posten im Planzeitraum ausmacht, nach Kennung. */
+  je_posten: Record<string, string>;
+};
+
+export type Runway = { plan: Runwayplan | null; posten: Planposten[]; rechnung: Runwayrechnung | null };
+
+/* Beim Umschalten des Szenarios bleibt die vorige Antwort stehen, bis die
+   neue da ist — sonst verschwände mit den Zahlen auch der Schalter. */
+export const useRunway = (szenario: Szenario) =>
+  useQuery({
+    queryKey: ["runway", szenario],
+    queryFn: () => hole<Runway>(`/runway/?szenario=${szenario}`),
+    placeholderData: keepPreviousData,
+  });
+
 /**
  * Nach jeder Änderung werden **alle** betroffenen Abrufe verworfen.
  *
@@ -858,7 +955,7 @@ export function useNeuLaden() {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
       "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
-      "praktikumsthemen", "lagekarte", "foerderungen", "planung",
+      "praktikumsthemen", "lagekarte", "foerderungen", "planung", "runway",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

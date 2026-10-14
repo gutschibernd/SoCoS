@@ -54,7 +54,7 @@ def darf_loeschen(nutzer):
 
 
 def darf_finanzen_eintragen(nutzer):
-    """Kontostand, Fixkosten, Monatskosten. Sehen dürfen sie alle."""
+    """Kontostand, Fixkosten, Monatskosten, Runway-Planung. Sehen dürfen sie alle."""
     return ist_admin(nutzer)
 
 
