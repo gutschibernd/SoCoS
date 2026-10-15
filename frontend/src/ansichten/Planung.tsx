@@ -590,7 +590,11 @@ function Aufgabenzeile({
         onChange={(e) => aendern({ erledigt: e.target.checked })}
       />
       <span className="pl-aufgabentitel" data-feld="Aufgabe">
-        <Feldtext wert={a.titel} aendern={darf} speichern={(titel) => aendern({ titel })} />
+        <Feldtext
+          wert={a.titel}
+          aendern={darf}
+          speichern={(titel) => versuchen(() => speichern(`/unteraufgaben/${a.id}/`, { titel }))}
+        />
       </span>
       <span className="pl-lagefeld">
         <span className="pl-lage" data-lage={a.lage}>
