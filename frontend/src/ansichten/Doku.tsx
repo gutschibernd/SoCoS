@@ -214,7 +214,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, nach Fälligkeit." },
-            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die Praktikantenstellen, Thoughts, die Förderungen, die Projektplanung und die Runway-Planung." },
+            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die Praktikantenstellen, Thoughts, die Förderungen, die Projektplanung, die Runway-Planung und die Designentscheidungen." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
@@ -1051,6 +1051,58 @@ function ModuleDoku() {
             {
               begriff: "Wer was darf",
               text: "Sehen dürfen alle. Pakete und Aufgaben anlegen, ändern, verschieben und abhaken dürfen Admin und Bearbeiter; eine Aufgabe entfernen nur der Admin — milder ist, sie abzuhaken. Ein Paket entfernt man auf der Projektseite.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="schild"
+        titel="Designentscheidungen: begründen, warum das Produkt sicher ist"
+        vorspann="Hier halten wir fest, wie das Produkt gestaltet wird und warum — und was jede Entscheidung für die Sicherheit bedeutet. Daraus entsteht ein PDF für die technische Dokumentation nach ISO 13485."
+      >
+        <Schritte
+          schritte={[
+            "„+ Entscheidung“ legt eine an. Ein Titel genügt für den Anfang; sie steht dann als Entwurf da und bekommt ihre Nummer, etwa DE-007.",
+            "Ein Klick auf die Zeile öffnet die Entscheidung, „Bearbeiten“ das Fenster mit allen Feldern. Schreib Ausgangslage, Alternativen, Entscheidung, Begründung und die Auswirkung auf die Sicherheit dazu, sobald sie feststehen.",
+            "Ist sie getroffen, stell den Stand auf „Entschieden“. Datum, Entscheidung, Begründung und Sicherheit müssen dann dastehen — sonst lehnt „Speichern“ ab und sagt, was fehlt.",
+            "„PDF“ auf der Seite einer Entscheidung lädt sie allein, auch als Entwurf (dann deutlich so gekennzeichnet). „PDF für die Akte“ über der Liste lädt alle entschiedenen und ersetzten auf einmal, mit Übersicht vorn.",
+          ]}
+        />
+        <Merke>
+          Eine Entscheidung, die nicht mehr gilt, wird nicht umgeschrieben, sondern ersetzt: Leg eine neue an,
+          stell die alte auf „Ersetzt“ und schreib unter ihre Verweise, wodurch. So bleibt nachvollziehbar, wie
+          es zum heutigen Stand kam — genau das fragt ein Audit.
+        </Merke>
+        <Begriffe
+          paare={[
+            {
+              begriff: "Die Nummer",
+              text: "DE-001, DE-002 … vergibt SoCoS beim Anlegen. Eine Nummer wird nie zweimal vergeben, auch nicht nach dem Entfernen — ein Dokument, das auf DE-007 verweist, zeigt immer auf dieselbe Entscheidung.",
+            },
+            {
+              begriff: "Auswirkung auf die Sicherheit",
+              text: "Welches Risiko die Entscheidung senkt oder neu schafft, am besten mit der Nummer aus der Risikoanalyse (ISO 14971). Hat sie keine Auswirkung, schreib das mit einem Satz Begründung hin — ein leeres Feld lässt offen, ob jemand darüber nachgedacht hat.",
+            },
+            {
+              begriff: "Betrachtete Alternativen",
+              text: "Die Wege, die zur Wahl standen und nicht genommen wurden. Zeilen mit einem - davor werden im PDF zu Punkten.",
+            },
+            {
+              begriff: "Verweise",
+              text: "Einer je Zeile: Anforderungen, Risiken, Normen, Prüfberichte, und bei einer ersetzten Entscheidung die, die sie ablöst.",
+            },
+            {
+              begriff: "Änderungsverlauf",
+              text: "Jedes PDF zeigt unter jeder Entscheidung, wer sie wann angelegt und welche Felder er geändert hat. Das kommt aus dem Änderungsprotokoll, du musst nichts nachtragen.",
+            },
+            {
+              begriff: "Was in die Akte kommt",
+              text: "Das Gesamt-PDF enthält keine Entwürfe — es sagt auf dem Deckblatt, wie viele fehlen. Ersetzte stehen drin, gekennzeichnet, weil sie zur Begründungskette gehören.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen und PDFs laden dürfen alle. Anlegen und ändern dürfen Admin und Bearbeiter. Entfernen darf nur der Admin; milder ist, eine Entscheidung als ersetzt zu führen.",
             },
           ]}
         />

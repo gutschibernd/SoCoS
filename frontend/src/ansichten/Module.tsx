@@ -3,18 +3,30 @@
  *
  * `/module` ist die Übersicht aller Module, `/module/praktikum` die
  * Praktikantenstellen (in `Praktikum.tsx`), `/module/thoughts`,
- * `/module/foerderungen` und `/module/planung` je eine eigene Seite.
+ * `/module/foerderungen`, `/module/planung` und `/module/design` je eine
+ * eigene Seite.
  */
 
-import { useFoerderungen, useLagekarte, usePraktikumsthemen, useProjekte, useRunway, type Ich } from "../basis/daten";
+import {
+  useDesignentscheidungen,
+  useFoerderungen,
+  useLagekarte,
+  usePraktikumsthemen,
+  useProjekte,
+  useRunway,
+  type Ich,
+} from "../basis/daten";
 import {
   MODULE,
+  designAusWeg,
+  entscheidungsZahl,
   themenZahl,
   teilZuWeg,
   themaAusWeg,
   foerderauslastungAusWeg,
   foerderungAusWeg,
   planungAusWeg,
+  type Designteil,
   type Foerderteil,
   type Planungsteil,
   type Runwayteil,
@@ -31,6 +43,7 @@ import { Foerderauslastung } from "./Foerderauslastung";
 import { Antragsseite, Foerderungen, Geberseite, Programmseite } from "./Foerderungen";
 import { Planungsliste, Planungsseite } from "./Planung";
 import { Runway } from "./Runway";
+import { Designliste, Entscheidungsseite } from "./Design";
 import { Achse } from "../basis/runway";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
@@ -49,6 +62,9 @@ export function Module({
   if (foerderauslastungAusWeg(unter)) return <Foerderauslastung ich={ich} wechseln={wechseln} />;
   const planung = planungAusWeg(unter);
   if (planung) return <Planungsseite key={planung.phase} ich={ich} id={planung.phase} wechseln={wechseln} />;
+  const entscheidung = designAusWeg(unter);
+  if (entscheidung)
+    return <Entscheidungsseite key={entscheidung.id} ich={ich} id={entscheidung.id} wechseln={wechseln} />;
   const foerderung = foerderungAusWeg(unter);
   if (foerderung?.antrag)
     return <Antragsseite key={foerderung.antrag} ich={ich} id={foerderung.antrag} wechseln={wechseln} />;
@@ -62,6 +78,7 @@ export function Module({
   if (teil.schluessel === "foerderung") return <Foerderungen ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "planung") return <Planungsliste wechseln={wechseln} />;
   if (teil.schluessel === "runway") return <Runway ich={ich} />;
+  if (teil.schluessel === "design") return <Designliste ich={ich} wechseln={wechseln} />;
   return (
     <Praktikum
       key={teil.weg}
@@ -112,6 +129,8 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
                 <Planungszeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "runway" ? (
                 <Runwayzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
+              ) : teil.schluessel === "design" ? (
+                <Designzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : (
                 <Foerderzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ),
@@ -281,6 +300,30 @@ function Runwayzeile({ teil, stelle, wechseln }: { teil: Runwayteil; stelle: num
       : d.rechnung.kpi.neg !== null
         ? `Minus ab ${new Achse(d.plan.settings.start).labL(d.rechnung.kpi.neg)}`
         : "durchfinanziert";
+  return (
+    <li>
+      <a
+        href={`/module/${teil.weg}`}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", teil.weg);
+        }}
+      >
+        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
+        {teil.titel}
+        <span className="modul-stand">{stand}</span>
+        <Zeichen name="zeiger" klasse="modul-zeiger" />
+      </a>
+    </li>
+  );
+}
+
+/** Eine Zeile der Kachel für die Designentscheidungen: wie viele, wie viele davon Entwurf. */
+function Designzeile({ teil, stelle, wechseln }: { teil: Designteil; stelle: number; wechseln: Wechseln }) {
+  const liste = useDesignentscheidungen();
+  const d = liste.data;
+  const entwuerfe = d?.filter((e) => e.stand === "entwurf").length ?? 0;
+  const stand = !d ? "" : `${entscheidungsZahl(d.length)}${entwuerfe ? ` · ${entwuerfe} ${entwuerfe === 1 ? "Entwurf" : "Entwürfe"}` : ""}`;
   return (
     <li>
       <a

@@ -7,6 +7,47 @@ betrifft.
 
 ---
 
+## 2026-10-15 — Modul Designentscheidungen (Migration 0053)
+
+**Wunsch Bernd:** Designentscheidungen mit Beschreibung festhalten und als PDF
+erzeugen — für die ISO-13485-Dokumentation, damit sich am Ende begründen
+lässt, warum das Produkt so gebaut ist und warum die Sicherheit damit gegeben
+ist. Die Entscheidungen prägen die technische Dokumentation.
+
+**Ein Modell, `Designentscheidung`**, mit Freitext je Abschnitt:
+Ausgangslage, betrachtete Alternativen, Entscheidung, Begründung,
+Auswirkung auf die Sicherheit, Verweise (einer je Zeile). Dazu Stand
+(Entwurf · Entschieden · Ersetzt), Datum und „entschieden von" als **Text**
+— mitentscheiden kann auch, wer kein Konto hat.
+
+- **Die Nummer (DE-007) wird beim Anlegen vergeben und nie wieder**, auch
+  nicht nach dem Entfernen (`save()` zählt weich Entfernte mit). Auf sie
+  verweisen Risikoakte und Prüfberichte; eine wiederverwendete zeigte still
+  auf die falsche Entscheidung.
+- **„Entschieden" verlangt Datum, Entscheidung, Begründung und Sicherheit**
+  (`DesignentscheidungSerializer.validate`, auch bei einem PATCH, der nur den
+  Stand schickt). Zur Sicherheit wird ein Satz verlangt, auch wenn er „keine
+  Auswirkung" lautet — ein leeres Feld lässt offen, ob jemand nachgedacht hat.
+- **Ersetzen statt umschreiben.** Eine abgelöste Entscheidung bleibt mit Stand
+  „ersetzt" stehen; welche sie ablöst, steht unter den Verweise. **Bewusst
+  kein Feld `ersetzt_durch`** und **keine Bindung an ein Projekt** — solange
+  es ein Produkt gibt und ein Satz genügt. Kommt ein zweites Produkt, gehört
+  ein Projektbezug dazu.
+
+**Das PDF** (`services/designentscheidung.py`, reportlab): Briefkopf, Schriften
+und Farben aus dem Aushang (`services/ausschreibung.py`) — beides Blätter der
+Firma nach außen. Jede Entscheidung auf eigener Seite, leere Abschnitte als
+„—", „Seite x von y" (der Fuß wird gezeichnet, wenn alle Seiten stehen). Der
+**Änderungsverlauf kommt aus dem Änderungsprotokoll** — kein zweites,
+von Hand gepflegtes Revisionsfeld. Das Gesamt-PDF (`/gesamt/`) nimmt **keine
+Entwürfe** und sagt auf dem Deckblatt, wie viele fehlen; Ersetzte gehen mit,
+gekennzeichnet. Das Einzel-PDF geht auch für einen Entwurf, mit Schild.
+
+Rechte wie üblich: sehen alle, schreiben Bearbeiter, entfernen Admin (milder:
+als ersetzt führen). In der Sicherung, mit Rundlauftest.
+
+---
+
 ## 2026-10-15 — Projektplanung neu: drei Ansichten, eigene Optik (kein Schema)
 
 **Bernd:** „sehr unübersichtlich … geh von mir aus in diesem Modul vom

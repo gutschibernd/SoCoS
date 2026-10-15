@@ -1989,6 +1989,35 @@ a.mini { text-decoration: none; }
 .themenidee-link:hover b { color: var(--akzent); }
 .themenideen .knopf-still { flex: 0 0 auto; }
 
+/* --- Designentscheidungen ------------------------------------------------- */
+/*
+ * Eine Zeile je Entscheidung: Kennung in Ziffernschrift vorn, damit die
+ * Nummern untereinander stehen, der Stand rechts. Eine ersetzte ist grau —
+ * sie bleibt in der Liste, tritt aber zurück.
+ */
+.entscheidungen { list-style: none; margin: 0; padding: 0 16px; }
+.entscheidungen li { border-bottom: 1px solid var(--rand); }
+.entscheidungen li:last-child { border-bottom: 0; }
+.entscheidung-link {
+  display: flex; align-items: center; gap: 12px; min-height: var(--griff);
+  padding: 10px 0; color: var(--text); text-decoration: none;
+}
+.entscheidung-link .stand { flex: 0 0 auto; }
+.entscheidung-kennung { font-family: var(--schrift-zahl); font-size: 13px; color: var(--text-leise); flex: 0 0 auto; }
+.entscheidung-titel { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.entscheidung-titel b { font-weight: 600; font-size: 14.5px; overflow-wrap: anywhere; }
+.entscheidung-titel span { font-size: 13px; color: var(--text-leise); }
+.entscheidung-link:hover b { color: var(--akzent); }
+.entscheidungen li[data-stand="ersetzt"] .entscheidung-titel b { color: var(--text-leise); font-weight: 400; }
+.entscheidung-felder-reihe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; }
+.thema-felder .spannenwahl { margin-top: 4px; width: fit-content; max-width: 100%; }
+@media (max-width: 640px) {
+  .entscheidung-felder-reihe { grid-template-columns: minmax(0, 1fr); }
+}
+@media (pointer: coarse) {
+  .thema-felder .spannenwahl button { min-height: var(--griff); }
+}
+
 /* Die Seite eines Themas. */
 .thema-titel { overflow-wrap: anywhere; }
 .thema-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }

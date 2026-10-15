@@ -42,6 +42,7 @@ describe("ausPfad", () => {
     expect(ausPfad("/module/praktikum-ideen/7")).toEqual({ seite: "module", unter: "praktikum-ideen/7" });
     expect(ausPfad("/module/praktikum/quatsch")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/spg/12")).toEqual({ seite: "module", unter: null });
+    expect(ausPfad("/module/design/7")).toEqual({ seite: "module", unter: "design/7" });
     expect(ausPfad("/module/planung/28")).toEqual({ seite: "module", unter: "planung/28" });
     // Die dritte Stufe gilt nur, wo sie vorgesehen ist.
     expect(ausPfad("/kontakte/12/34")).toEqual({ seite: "kontakte", unter: null });

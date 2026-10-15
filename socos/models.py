@@ -2195,3 +2195,73 @@ class Foerderkapazitaet(Basismodell):
 
     def __str__(self):
         return f"{self.nutzer.name}: {self.stunden_je_monat} h je Monat"
+
+
+# --- Module: Designentscheidungen ------------------------------------------------------
+
+
+class Entscheidungsstand(models.TextChoices):
+    ENTWURF = "entwurf", "Entwurf"
+    ENTSCHIEDEN = "entschieden", "Entschieden"
+    ERSETZT = "ersetzt", "Ersetzt"
+
+
+class Designentscheidung(Basismodell):
+    """
+    Eine begründete Designentscheidung — der Rohstoff der technischen
+    Dokumentation nach ISO 13485 (Designlenkung, 7.3): was entschieden wurde,
+    welche Wege es noch gab, warum dieser, und **warum das Produkt damit
+    sicherer ist**.
+
+    **Die Nummer wird vergeben, nicht gerechnet, und nie wieder vergeben.**
+    Auf „DE-007" verweisen Risikoakte, Prüfberichte und die Akte selbst. Eine
+    Nummer aus der Reihenfolge der Liste verschöbe sich beim ersten Entfernen,
+    und eine wiederverwendete zeigte in einem alten Dokument still auf die
+    falsche Entscheidung. Deshalb zählt `save()` auch weich Entfernte mit.
+
+    **Ersetzt wird nicht überschrieben.** Ändert sich eine Entscheidung, bleibt
+    die alte mit Stand „ersetzt" stehen und die neue bekommt eine eigene
+    Nummer — welche die alte ablöst, steht unter den Verweisen. Ein eigenes
+    Feld dafür gibt es nicht, solange ein Satz genügt.
+
+    Was zu einem „entschieden" mindestens dastehen muss, prüft der Serializer
+    (`DesignentscheidungSerializer.validate`) — dort, wo auch die Meldung an
+    den Nutzer entsteht.
+    """
+
+    nummer = models.PositiveIntegerField("Nummer", unique=True, editable=False)
+    titel = models.CharField("Titel", max_length=200)
+    stand = models.CharField(
+        "Stand", max_length=12, choices=Entscheidungsstand.choices, default=Entscheidungsstand.ENTWURF
+    )
+    entschieden_am = models.DateField("entschieden am", null=True, blank=True)
+    # Text und kein Verweis auf Nutzer: Mitentscheiden kann auch, wer kein
+    # Konto hat — die QM-Beratung, ein Arzt aus dem Pilotprojekt.
+    entschieden_von = models.CharField("entschieden von", max_length=200, blank=True)
+
+    ausgangslage = models.TextField("Ausgangslage", blank=True)
+    alternativen = models.TextField("Betrachtete Alternativen", blank=True)
+    entscheidung = models.TextField("Entscheidung", blank=True)
+    begruendung = models.TextField("Begründung", blank=True)
+    sicherheit = models.TextField("Auswirkung auf die Sicherheit", blank=True)
+    verweise = models.TextField(
+        "Verweise", blank=True, help_text="Anforderungen, Risiken, Normen, Dokumente — einer je Zeile."
+    )
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Designentscheidung"
+        verbose_name_plural = "Designentscheidungen"
+        ordering = ["nummer"]
+
+    def __str__(self):
+        return f"{self.kennung} {self.titel}"
+
+    @property
+    def kennung(self):
+        return f"DE-{self.nummer:03d}" if self.nummer else "DE-neu"
+
+    def save(self, *args, **kwargs):
+        if not self.nummer:
+            hoechste = Designentscheidung.alle_objekte.aggregate(n=models.Max("nummer"))["n"]
+            self.nummer = (hoechste or 0) + 1
+        super().save(*args, **kwargs)

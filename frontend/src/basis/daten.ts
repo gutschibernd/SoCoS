@@ -486,6 +486,39 @@ export const usePraktikumsthemen = () =>
     queryFn: () => hole<Praktikumsthema[]>("/praktikumsthemen/"),
   });
 
+/* --- Designentscheidungen ------------------------------------------------- */
+
+export type Entscheidungsstand = "entwurf" | "entschieden" | "ersetzt";
+
+/**
+ * Eine begründete Designentscheidung. `nummer` vergibt der Server und gibt
+ * sie nie ein zweites Mal aus; `kennung` ist „DE-007".
+ */
+export type Designentscheidung = {
+  id: number;
+  nummer: number;
+  kennung: string;
+  titel: string;
+  stand: Entscheidungsstand;
+  /** `"JJJJ-MM-TT"` oder null. */
+  entschieden_am: string | null;
+  entschieden_von: string;
+  ausgangslage: string;
+  alternativen: string;
+  entscheidung: string;
+  begruendung: string;
+  sicherheit: string;
+  /** Ein Verweis je Zeile. */
+  verweise: string;
+  geaendert_am: string;
+};
+
+export const useDesignentscheidungen = () =>
+  useQuery({
+    queryKey: ["designentscheidungen"],
+    queryFn: () => hole<Designentscheidung[]>("/designentscheidungen/"),
+  });
+
 /* --- Thoughts (im Code: die Lagekarte) ----------------------------------- */
 
 /**
@@ -939,7 +972,7 @@ export function useNeuLaden() {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
       "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
-      "praktikumsthemen", "lagekarte", "foerderungen", "planung", "runway",
+      "praktikumsthemen", "designentscheidungen", "lagekarte", "foerderungen", "planung", "runway",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

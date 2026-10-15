@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   MODULWEGE,
   alsEuro,
+  designAusWeg,
+  entscheidungsZahl,
   betragAusEingabe,
   betragZumBearbeiten,
   planungAusWeg,
@@ -15,7 +17,7 @@ import {
 
 describe("die Wege der Module", () => {
   it("kennt die Praktikantenstellen, Thoughts, die Förderungen und die Planung", () => {
-    expect(MODULWEGE).toEqual(["praktikum", "praktikum-ideen", "thoughts", "foerderungen", "planung", "runway"]);
+    expect(MODULWEGE).toEqual(["praktikum", "praktikum-ideen", "thoughts", "foerderungen", "planung", "runway", "design"]);
     expect(teilZuWeg("thoughts")?.teil.schluessel).toBe("thoughts");
     expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikantenstellen");
     expect(teilZuWeg("praktikum")?.teil.titel).toBe("Haupt-Aufgabenstellungen");
@@ -40,6 +42,21 @@ describe("die Wege der Module", () => {
     // Ein Thema der Praktika ist keine Phase — und umgekehrt.
     expect(planungAusWeg("praktikum/12")).toBeNull();
     expect(themaAusWeg("planung/28")).toBeNull();
+  });
+
+  it("findet die Designentscheidung hinter dem Weg", () => {
+    expect(designAusWeg("design/7")?.id).toBe(7);
+    expect(designAusWeg("design")).toBeNull();
+    expect(designAusWeg("design/7/1")).toBeNull();
+    // Eine Phase der Planung ist keine Entscheidung — und umgekehrt.
+    expect(designAusWeg("planung/7")).toBeNull();
+    expect(planungAusWeg("design/7")).toBeNull();
+    expect(themaAusWeg("design/7")).toBeNull();
+  });
+
+  it("zählt Entscheidungen", () => {
+    expect(entscheidungsZahl(1)).toBe("1 Entscheidung");
+    expect(entscheidungsZahl(0)).toBe("0 Entscheidungen");
   });
 
   it("zählt Themen und Ideen", () => {

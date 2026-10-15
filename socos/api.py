@@ -31,6 +31,7 @@ from socos.models import (
     Anhangart,
     Arbeitspaket,
     Aufgabe,
+    Designentscheidung,
     Event,
     Eventanhang,
     Eventziel,
@@ -699,6 +700,50 @@ class PraktikumsthemaViewSet(SocosViewSet):
         antwort = HttpResponse(daten, content_type="application/zip")
         antwort["Content-Disposition"] = f'attachment; filename="{ausschreibung.sammelname()}"'
         return antwort
+
+
+# --- Module: Designentscheidungen ---------------------------------------------------
+
+
+class DesignentscheidungViewSet(SocosViewSet):
+    """
+    Die gewöhnliche Regel: sehen alle, anlegen und ändern Admin und
+    Bearbeiter, entfernen nur der Admin. Entfernen ist der Ausnahmefall — der
+    gewöhnliche Weg für eine überholte Entscheidung ist der Stand „ersetzt".
+    """
+
+    serializer_class = ser.DesignentscheidungSerializer
+    queryset = Designentscheidung.objects.all()
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        """Eine Entscheidung allein — auch ein Entwurf, dann als solcher gekennzeichnet."""
+        from socos.services import designentscheidung as dienst
+
+        entscheidung = self.get_object()
+        return _pdf_antwort(dienst.erzeugen([entscheidung]), dienst.dateiname(entscheidung))
+
+    @action(detail=False, methods=["get"])
+    def gesamt(self, request):
+        """
+        Alle Entscheidungen in einem Dokument, für die technische
+        Dokumentation. **Ohne Entwürfe** — was nicht entschieden ist, gehört
+        nicht in die Akte. Wie viele fehlen, sagt das PDF selbst.
+        """
+        from socos.services import designentscheidung as dienst
+
+        alle = list(self.get_queryset())
+        fertig = [e for e in alle if e.stand != "entwurf"]
+        if not fertig:
+            raise ValidationError({"stand": "Noch keine Entscheidung ist entschieden — es gibt nichts für die Akte."})
+        daten = dienst.erzeugen(fertig, entwuerfe_ausgelassen=len(alle) - len(fertig))
+        return _pdf_antwort(daten, dienst.sammelname())
+
+
+def _pdf_antwort(daten, dateiname):
+    antwort = HttpResponse(daten, content_type="application/pdf")
+    antwort["Content-Disposition"] = content_disposition_header(True, dateiname)
+    return antwort
 
 
 # --- Module: Thoughts (die Lagekarte) -------------------------------------------------------

@@ -12,6 +12,8 @@ from rest_framework import serializers
 from socos import berechtigung
 from socos.models import (
     Arbeitspaket,
+    Designentscheidung,
+    Entscheidungsstand,
     Lageschritt,
     Lagethema,
     Lageverbindung,
@@ -838,6 +840,58 @@ class PraktikumsthemaSerializer(serializers.ModelSerializer):
                 "Kürze sie — oder bitte das LLM darum."
             )
         return text
+
+
+# --- Module: Designentscheidungen ---------------------------------------------------
+
+
+class DesignentscheidungSerializer(serializers.ModelSerializer):
+    """
+    Ein Entwurf darf halb leer sein — an ihm wird gedacht. **Was als
+    entschieden gilt, muss sich selbst tragen**: das Datum, die Entscheidung,
+    ihre Begründung und ein Satz zur Sicherheit. Das ist genau, wonach ein
+    Auditor fragt, und eine Lücke hier fiele erst im Audit auf.
+
+    Zur Sicherheit wird ein Satz verlangt, auch wenn er „keine Auswirkung"
+    lautet: Ein leeres Feld lässt offen, ob jemand darüber nachgedacht hat.
+    """
+
+    PFLICHT_WENN_ENTSCHIEDEN = {
+        "entschieden_am": "Wann wurde entschieden?",
+        "entscheidung": "Was wurde entschieden?",
+        "begruendung": "Warum so? Ohne Begründung ist es keine nachvollziehbare Entscheidung.",
+        "sicherheit": "Was bedeutet das für die Sicherheit? Auch „keine Auswirkung, weil …“ ist eine Antwort.",
+    }
+
+    kennung = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Designentscheidung
+        fields = [
+            "id", "nummer", "kennung", "titel", "stand", "entschieden_am", "entschieden_von",
+            "ausgangslage", "alternativen", "entscheidung", "begruendung", "sicherheit", "verweise",
+            "geaendert_am",
+        ]
+        read_only_fields = ["nummer", "geaendert_am"]
+
+    def validate(self, daten):
+        # Bei einem PATCH steht nur das Geschickte in `daten`; geprüft wird
+        # der Stand, der danach gespeichert wäre.
+        def wert(feld):
+            if feld in daten:
+                return daten[feld]
+            return getattr(self.instance, feld, None) if self.instance else None
+
+        if wert("stand") in (None, Entscheidungsstand.ENTWURF):
+            return daten
+        fehler = {
+            feld: meldung
+            for feld, meldung in self.PFLICHT_WENN_ENTSCHIEDEN.items()
+            if not (str(wert(feld)).strip() if wert(feld) is not None else "")
+        }
+        if fehler:
+            raise serializers.ValidationError(fehler)
+        return daten
 
 
 # --- Module: Thoughts (die Lagekarte) ------------------------------------------------------

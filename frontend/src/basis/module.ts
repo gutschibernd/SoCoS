@@ -28,7 +28,10 @@ export type Planungsteil = { weg: string; titel: string; schluessel: "planung" }
 /** Die Runway-Planung: eine Seite, keine Unterseiten. */
 export type Runwayteil = { weg: string; titel: string; schluessel: "runway" };
 
-export type Teil = Themenliste | Kartenteil | Foerderteil | Planungsteil | Runwayteil;
+/** Die Designentscheidungen: eine Liste, je Entscheidung eine eigene Seite darunter. */
+export type Designteil = { weg: string; titel: string; schluessel: "design" };
+
+export type Teil = Themenliste | Kartenteil | Foerderteil | Planungsteil | Runwayteil | Designteil;
 
 export type Modul = {
   /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
@@ -84,6 +87,15 @@ export const MODULE: Modul[] = [
     wozu: "Was herein- und hinausgeht und wie lange das Geld reicht",
     zeichen: "kurve",
     teile: [{ weg: "runway", titel: "Plan, Posten, Verlauf", schluessel: "runway" }],
+  },
+  {
+    // Für die technische Dokumentation nach ISO 13485: Was hier entschieden
+    // und begründet ist, geht als PDF in die Akte.
+    weg: "design",
+    titel: "Designentscheidungen",
+    wozu: "Entscheidungen begründen, Sicherheit belegen, als PDF in die Akte",
+    zeichen: "schild",
+    teile: [{ weg: "design", titel: "Entscheidungen", schluessel: "design" }],
   },
 ];
 
@@ -148,6 +160,23 @@ export function planungAusWeg(unter: string | null): { modul: Modul; teil: Planu
   const gefunden = treffer && teilZuWeg(treffer[1]);
   if (!treffer || !gefunden || gefunden.teil.schluessel !== "planung") return null;
   return { modul: gefunden.modul, teil: gefunden.teil, phase: Number(treffer[2]) };
+}
+
+/**
+ * Eine Designentscheidung hinter `design/7` — oder nichts. Die Nummer im Weg
+ * ist die `id`, nicht die Kennung DE-007: Die id ändert sich nie, und der
+ * Server findet sie ohne Umweg.
+ */
+export function designAusWeg(unter: string | null): { modul: Modul; teil: Designteil; id: number } | null {
+  const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
+  const gefunden = treffer && teilZuWeg(treffer[1]);
+  if (!treffer || !gefunden || gefunden.teil.schluessel !== "design") return null;
+  return { modul: gefunden.modul, teil: gefunden.teil, id: Number(treffer[2]) };
+}
+
+/** „1 Entscheidung", „3 Entscheidungen". */
+export function entscheidungsZahl(zahl: number): string {
+  return `${zahl} ${zahl === 1 ? "Entscheidung" : "Entscheidungen"}`;
 }
 
 /** „3 Themen", „1 Idee" — wie die Zeile auf der Übersicht und die Leiste zählen. */

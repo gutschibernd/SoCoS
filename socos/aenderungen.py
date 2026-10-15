@@ -22,6 +22,22 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-10-15",
+        "titel": "Neues Modul: Designentscheidungen",
+        "punkte": [
+            {
+                "titel": "Designentscheidungen festhalten",
+                "text": (
+                    "Unter Module · Designentscheidungen hältst du fest, was am Produkt wie entschieden "
+                    "wurde, warum, welche Wege es noch gab und was das für die Sicherheit heißt. Jede "
+                    "Entscheidung bekommt eine feste Nummer wie DE-007. „PDF für die Akte“ lädt alle "
+                    "entschiedenen als ein Dokument für die technische Dokumentation."
+                ),
+                "wo": "module/design",
+            },
+        ],
+    },
+    {
         "version": "2026-10-13",
         "titel": "Projekte als Gantt, Projektplanung",
         "punkte": [

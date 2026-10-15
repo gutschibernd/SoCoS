@@ -54,6 +54,7 @@ NAMEN = {
     "socos.Rueckmeldung": ("f", "Meldung", "Meldungen"),
     "socos.Aufgabe": ("f", "Aufgabe", "Aufgaben"),
     "socos.Praktikumsthema": ("n", "Praktikumsthema", "Praktikumsthemen"),
+    "socos.Designentscheidung": ("f", "Designentscheidung", "Designentscheidungen"),
     "socos.Lagethema": ("n", "Thema in Thoughts", "Themen in Thoughts"),
     "socos.Lageschritt": ("m", "Schritt in Thoughts", "Schritte in Thoughts"),
     "socos.Lageverbindung": ("f", "Verbindung in Thoughts", "Verbindungen in Thoughts"),

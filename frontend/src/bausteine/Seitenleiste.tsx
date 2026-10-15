@@ -2,7 +2,7 @@ import { Fragment, useState } from "react";
 
 import { csrfWert } from "../basis/api";
 import { useLaufend, useNeuLaden, useProjekte, type Ich } from "../basis/daten";
-import { MODULE, teilZuWeg, themaAusWeg } from "../basis/module";
+import { MODULE, designAusWeg, teilZuWeg, themaAusWeg } from "../basis/module";
 import type { Ort, Seite } from "../basis/router";
 import { paketgruppen } from "../basis/start";
 import { clockIn, clockOut } from "../basis/uhr";
@@ -352,7 +352,7 @@ function Modulzweig({
   hin: (s: Seite, unter?: string | null) => void;
 }) {
   const offen = ort.seite === "module";
-  const modul = offen ? (teilZuWeg(ort.unter) ?? themaAusWeg(ort.unter))?.modul : undefined;
+  const modul = offen ? (teilZuWeg(ort.unter) ?? themaAusWeg(ort.unter) ?? designAusWeg(ort.unter))?.modul : undefined;
 
   return (
     <>

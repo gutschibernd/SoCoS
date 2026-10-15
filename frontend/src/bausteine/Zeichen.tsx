@@ -56,7 +56,8 @@ export type ZeichenName =
   | "saeulen"
   | "archiv"
   | "gantt"
-  | "kurve";
+  | "kurve"
+  | "schild";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -171,6 +172,9 @@ const PFADE: Record<ZeichenName, string> = {
   // Grundlinie — der Kontostand über die Monate. Keine Säulen: die stehen
   // schon für die Auswertung („saeulen").
   kurve: "M4 20h16M4 7l4 5 3-2 4 5 5-3",
+  // Ein Schild mit Haken — die Designentscheidungen: begründet, warum das
+  // Produkt sicher ist. Kein Schloss: das hieße „gesperrt" oder „Passwort".
+  schild: "M12 4l7 2.5V12c0 4-3 6.8-7 8-4-1.2-7-4-7-8V6.5zM9 12l2.2 2.2L15.5 10",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {
