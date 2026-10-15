@@ -38,7 +38,6 @@ MODELLE_IM_ARCHIV = [
     "socos.Fixkosten",
     "socos.Monatskosten",
     "socos.Runwayplan",
-    "socos.Planposten",
     "socos.Rueckmeldung",
     "socos.Aufgabe",
     "socos.Praktikumsthema",
@@ -105,8 +104,7 @@ LOESCHREIHENFOLGE = [
     "socos.Kontostand",
     "socos.Fixkosten",
     "socos.Monatskosten",
-    # Zeigen auf nichts und auf sie zeigt nichts.
-    "socos.Planposten",
+    # Zeigt auf nichts, und auf ihn zeigt nichts.
     "socos.Runwayplan",
     "socos.Rueckmeldung",
     # Zeigt auf den Nutzer und steht deshalb vor ihm.
@@ -140,7 +138,8 @@ LOESCHREIHENFOLGE = [
 # Entfernung wäre wertlos, auch für alles andere, was darin steht.
 #
 # Die SPG Academy (Migration 0047): entfernt, weil sie nicht genutzt wurde.
-ENTFERNTE_MODELLE = {"socos.vorhaben", "socos.canvaspunkt", "socos.persona"}
+# Die Planposten (Migration 0052): stehen seitdem im Dokument des Runway-Plans.
+ENTFERNTE_MODELLE = {"socos.vorhaben", "socos.canvaspunkt", "socos.persona", "socos.planposten"}
 
 DATENBANK_IM_ARCHIV = "datenbank.json"
 MEDIEN_IM_ARCHIV = "medien"

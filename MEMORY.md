@@ -7,7 +7,63 @@ betrifft.
 
 ---
 
+## 2026-10-15 — Runway-Planung 1:1 wie der Planer (Migration 0052)
+
+**Bernd zum ersten Anlauf (0051):** „super unübersichtlich und nicht wirklich
+gut nutzbar" — er will den Runway-Planer **1:1**, samt Zeitachse unter der
+Linie, **in dessen Farbwelt, poliert**. Was der erste Anlauf weggelassen hatte
+(USt/UVA, NeuFöG, Forschungsprämie, Investments, Ratenkredite,
+Förder-Rückzahlungen, Zahlungsziel, Gehaltsanpassung, Sicherheitszuschlag,
+Vergleichsstand, Notizen, Export/Import, Rückgängig), ist jetzt da.
+
+**Der Plan ist ein Dokument** (`Runwayplan.daten`, Format des Planers v2),
+nicht mehr Zeilen je Posten. Speichern beim Tippen, Rückgängig und Import sind
+damit je *ein* Schreibvorgang. 0052 überführt die Zeilen aus 0051 verlustfrei;
+`socos.planposten` steht in `ENTFERNTE_MODELLE`. Gespeichert wird per `PUT
+/api/runway/` mit dem Stand, auf dem die Seite aufbaut — abweichend gibt es
+**409** statt still zu überschreiben (`basis/runwaydokument.ts` lädt dann neu).
+
+**Protokoll Feld für Feld trotz Dokument:** `daten` steht in `protokoll_ohne`;
+`services/runway.unterschiede` schreibt Pfade wie `kosten[Overhead].amount`
+mit alt/neu. **Die Notizen nicht** — sie speichern sich beim Tippen (dieselbe
+Ausnahme wie die Mitschrift eines Meetings). Gespeichert wird jede Änderung,
+auch eine reine Notiz (ein Test hat gefunden, dass sie sonst verloren ging).
+
+**Die Rechnung ist eine Übertragung von `compute()`** nach
+`services/runway.py`, mit `Decimal`. Beim Bau gegen den Planer selbst
+geprüft (Node, derselbe Plan, drei Szenarien, alle Töpfe, 24 und 36 Monate,
+ein Plan mit jeder Funktion): **keine Abweichung**. Mit Absicht anders:
+Ist aus `Kontostand` ab seinem Tag (am Monatsletzten wie die Ist-Zelle des
+Planers), Wiederkehrendes zählt ab dem eigenen Beginn (der Planer begann beim
+Planstart neu zu zählen). Die Abweichungen des ersten Anlaufs (Gehalt
+tageweise, „Ausgaben" statt Burn, Abrufe ab heute) sind zurückgenommen —
+1:1 heißt hier auch: dieselben Zahlen.
+
+**Die Ist-Zeile schreibt `Kontostand`** (`POST /api/runway/ist/`): gibt es im
+Monat einen, wird er geändert (sein Tag bleibt), sonst entsteht einer am
+Monatsletzten; ein weich entfernter am selben Tag wird zurückgeholt, weil das
+Datum eindeutig ist.
+
+**Was hier gegen die allgemeinen Regeln steht, auf Bernds Wunsch:** eigene
+Farbwelt (`--rw-*` in farben.css, hell und dunkel, Kontraste nachgerechnet —
+`--rw-faint` dunkler als im Planer, der lag bei 2,78:1), runde Ecken und
+Schatten, erklärende Absätze in den Registern, Löschen ohne Nachfrage mit
+„Rückgängig" statt Dialog. Schriften bleiben die lokalen (Archivo statt IBM
+Plex Sans, kein Google-Fonts-Verweis).
+
+**Aufbau im Frontend:** `Runway.tsx` (Zusammenbau, Import, Export, Toast),
+`RunwayKopf.tsx`, `RunwayVerlauf.tsx` (Linie, Zeitachse, Tooltip),
+`RunwayEditor.tsx`, `RunwayTabellen.tsx`; Darstellungshelfer in
+`basis/runway.ts`. Die Eingabefelder sind ungesteuert und beginnen neu, wenn
+der Plan von außen ersetzt wird (`version`).
+
+---
+
 ## 2026-10-14 — Modul Runway-Planung (Migration 0051)
+
+*Überholt am 2026-10-15 (siehe oben): Modell, Rechnung und Oberfläche sind
+ersetzt. Stehen geblieben ist: ein Plan, Ist aus `Kontostand`, Rechte wie die
+Finanzen, kein Eintrag in `aenderungen.py`, solange es ein Test ist.*
 
 **Wunsch Bernd:** Den eigenständigen Runway-Planer (eine HTML-Datei, Daten im
 `localStorage` des Browsers) als SoCoS-Modul, „mal zum Testen". Bewährt es

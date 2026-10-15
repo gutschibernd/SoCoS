@@ -106,6 +106,39 @@
   --f8: #e7e9ee; --t8: #4a5263;   /* Schiefer */
   --auf-ton: #ffffff;
 
+  /* Runway-Planung (Modul). Eine eigene Farbwelt — die des Runway-Planers,
+     aus dem das Modul stammt (Bernd, 2026-10-14: „Farbwelt des HTML,
+     poliert"). Je Art ein Ton, damit Förderung, Team, Kosten und Darlehen in
+     Linie, Zeitachse und Registern sofort auseinanderzuhalten sind.
+     Gerechnet: --rw-muted ≥ 5,29 · --rw-faint ≥ 4,87 auf Fläche und
+     Fläche-2 (im Planer 2,78 — dort heller) · --rw-warn ≥ 5,02, --rw-ok ≥
+     5,2, --rw-bad ≥ 4,82 auch auf ihrer eigenen hellen Fläche. */
+  --rw-surface: #ffffff;
+  --rw-surface-2: #f5f7f6;
+  --rw-line: #d5dcd9;
+  --rw-line-2: #e6ebe9;
+  --rw-ink: #13201e;
+  --rw-muted: #5a6a66;
+  --rw-faint: #626f6b;
+  --rw-accent: #0d6660;
+  --rw-accent-soft: rgba(13, 102, 96, 0.1);
+  --rw-on-accent: #ffffff;
+  --rw-c-foerd: #0f8579;
+  --rw-c-inv: #2c5fb3;
+  --rw-c-ums: #4a8526;
+  --rw-c-team: #9a5f22;
+  --rw-c-kost: #9b6b78;
+  --rw-c-darl: #6d45b0;
+  --rw-c-tax: #6b7a2a;
+  --rw-ok: #25713e;
+  --rw-warn: #8a5d00;
+  --rw-bad: #bf3527;
+  --rw-ok-soft: rgba(37, 113, 62, 0.11);
+  --rw-warn-soft: rgba(168, 114, 7, 0.11);
+  --rw-bad-soft: rgba(191, 53, 39, 0.09);
+  --rw-schatten: 0 1px 2px rgba(19, 32, 30, 0.06), 0 6px 20px rgba(19, 32, 30, 0.05);
+  --rw-tipp-schatten: 0 10px 32px rgba(19, 32, 30, 0.18);
+
   /* Maße */
   --kante: 2px;          /* eckige Kanten, verbindlich aus dem Entwurf */
   --griff: 44px;         /* was der Finger trifft, ist mindestens so hoch */
@@ -175,6 +208,33 @@
     --f7: #271e2b; --t7: #bd96cb;
     --f8: #202329; --t8: #a8b0c2;
     --auf-ton: #14171a;
+
+    /* Runway-Planung: --rw-faint auf #839590 statt #6F817C (4,02 → 5,24). */
+    --rw-surface: #16211f;
+    --rw-surface-2: #1b2826;
+    --rw-line: #2b3b38;
+    --rw-line-2: #22302d;
+    --rw-ink: #e4ecea;
+    --rw-muted: #9db0ab;
+    --rw-faint: #839590;
+    --rw-accent: #4fc2b6;
+    --rw-accent-soft: rgba(79, 194, 182, 0.14);
+    --rw-on-accent: #06201d;
+    --rw-c-foerd: #3fbfaf;
+    --rw-c-inv: #6f9cf0;
+    --rw-c-ums: #8cc760;
+    --rw-c-team: #dc9a55;
+    --rw-c-kost: #cf9aa8;
+    --rw-c-darl: #a98af0;
+    --rw-c-tax: #c2cf6a;
+    --rw-ok: #5cc47e;
+    --rw-warn: #e2a93a;
+    --rw-bad: #f07264;
+    --rw-ok-soft: rgba(92, 196, 126, 0.14);
+    --rw-warn-soft: rgba(226, 169, 58, 0.12);
+    --rw-bad-soft: rgba(240, 114, 100, 0.12);
+    --rw-schatten: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.2);
+    --rw-tipp-schatten: 0 10px 32px rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -234,4 +294,31 @@
   --f7: #271e2b; --t7: #bd96cb;
   --f8: #202329; --t8: #a8b0c2;
   --auf-ton: #14171a;
+
+  /* Runway-Planung: --rw-faint auf #839590 statt #6F817C (4,02 → 5,24). */
+  --rw-surface: #16211f;
+  --rw-surface-2: #1b2826;
+  --rw-line: #2b3b38;
+  --rw-line-2: #22302d;
+  --rw-ink: #e4ecea;
+  --rw-muted: #9db0ab;
+  --rw-faint: #839590;
+  --rw-accent: #4fc2b6;
+  --rw-accent-soft: rgba(79, 194, 182, 0.14);
+  --rw-on-accent: #06201d;
+  --rw-c-foerd: #3fbfaf;
+  --rw-c-inv: #6f9cf0;
+  --rw-c-ums: #8cc760;
+  --rw-c-team: #dc9a55;
+  --rw-c-kost: #cf9aa8;
+  --rw-c-darl: #a98af0;
+  --rw-c-tax: #c2cf6a;
+  --rw-ok: #5cc47e;
+  --rw-warn: #e2a93a;
+  --rw-bad: #f07264;
+  --rw-ok-soft: rgba(92, 196, 126, 0.14);
+  --rw-warn-soft: rgba(226, 169, 58, 0.12);
+  --rw-bad-soft: rgba(240, 114, 100, 0.12);
+  --rw-schatten: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.2);
+  --rw-tipp-schatten: 0 10px 32px rgba(0, 0, 0, 0.45);
 }

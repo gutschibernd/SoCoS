@@ -1,131 +1,90 @@
 import { describe, expect, it } from "vitest";
 
-import type { Planposten, Runwayplan, Runwayrechnung } from "./daten";
-import { achse, euro, euroKurz, lage, monatKurz, monatLang, monatsabstand, monatsende, runwayText, sortiert, vorschlaege } from "./runway";
+import type { Runwayplan, Runwayrechnung } from "./daten";
+import { Achse, kfmt, lanes, niceStep, parseDe, slug, x0, zelle, zusammenfassen } from "./runway";
 
-const plan: Runwayplan = {
-  id: 1,
-  beginn: "2026-10-01",
-  monate: 3,
-  startkontostand: "5000.00",
-  puffer: "15000.00",
-  lohnnebenkosten: "30.00",
-  vierzehn_gehaelter: true,
-  abruf_monate: 3,
-};
-
-const monat = (m: string, stand: string) => ({
-  monat: m, foerderung: "0", umsatz: "0", darlehen: "0", personal: "0", kosten: "0", rueckzahlung: "0",
-  ein: "0", aus: "0", netto: "0", anfang: "0", stand, ohne_darlehen: stand, ist: null, ist_datum: null, ereignisse: [],
-});
-
-const rechnung = (k: Partial<Runwayrechnung["kennzahlen"]>, abrufe: Runwayrechnung["abrufe"] = []): Runwayrechnung => ({
-  szenario: "basis",
-  heute: "2026-10-14",
-  monate: [monat("2026-10", "20000"), monat("2026-11", "18000"), monat("2026-12", "16000")],
-  kennzahlen: {
-    minus_ab: null, unter_puffer_ab: null, tiefster_stand: "16000", tiefster_monat: "2026-12",
-    ueberbrueckung: "0", burn: "2000", burn_ab: "2026-10", ohne_darlehen_minus_ab: null,
-    darlehen_summe: "0", letzter_ist: null, ...k,
+const plan = (teile: Partial<Runwayplan> = {}): Runwayplan => ({
+  v: 2,
+  settings: {
+    company: "", start: "2026-10-01", months: 12, cash: 0, buffer: 0, lnk: 30, sonder: true, raise: 0,
+    bridgeGroup: 3, ust: false, uva: "monat", contingency: 0, rebase: true,
   },
-  abrufe,
-  je_posten: {},
+  neufoeg: { aktiv: false, gruendung: "", satz: 5.6, check: {} },
+  fp: { aktiv: false, satz: 14, monat: 9 },
+  baseline: null,
+  notes: "",
+  foerderungen: [], investments: [], umsaetze: [], team: [], kosten: [], darlehen: [],
+  ...teile,
 });
 
-const posten = (id: number, teile: Partial<Planposten>): Planposten => ({
-  id, art: "foerderung", name: "", gruppe: "", notiz: "", betrag: "0", rhythmus: "einmalig", von: "2026-10-01",
-  bis: null, status: "geplant", wahrscheinlichkeit: 100, lohnnebenkosten: null, zins: "0", ...teile,
-});
+const rechnung = (teile: Partial<Runwayrechnung> = {}): Runwayrechnung =>
+  ({ A: [], sug: [], ...teile }) as unknown as Runwayrechnung;
 
-describe("Monate", () => {
-  it("heißen österreichisch", () => {
-    expect(monatLang("2027-01")).toBe("Jänner 2027");
-    expect(monatKurz("2027-02")).toBe("Feb 27");
+describe("Beträge", () => {
+  it("kurz für Achse und Zeitachse", () => {
+    expect([kfmt(60000), kfmt(-2500), kfmt(1_500_000), kfmt(420)]).toEqual(["60k", "−2,5k", "1,5 Mio", "420"]);
   });
 
-  it("zählen über den Jahreswechsel", () => {
-    expect(monatsabstand("2026-10", "2027-01")).toBe(3);
-    expect(monatsabstand("2027-01", "2027-01")).toBe(0);
+  it("Zellen: ganze Euro, null als Strich", () => {
+    expect(zelle("0.4")).toBe("–");
+    expect(zelle("-1234.6")).toMatch(/^−1.235$/);
   });
 
-  it("enden am richtigen Tag", () => {
-    expect(monatsende("2027-02-10")).toBe("2027-02-28");
-    expect(monatsende("2028-02-01")).toBe("2028-02-29");
-    expect(monatsende("2026-12-31")).toBe("2026-12-31");
-  });
-});
-
-describe("Euro", () => {
-  it("ganz und mit echtem Minus", () => {
-    expect(euro("16679.35")).toMatch(/^16.679\s€$/);
-    expect(euro("-740.65")).toBe("−741\u00a0€");
+  it("deutsche Eingabe", () => {
+    expect([parseDe("1.250,50"), parseDe("1250.5"), parseDe("12.000"), parseDe(""), parseDe("abc")]).toEqual([1250.5, 1250.5, 12000, null, NaN]);
   });
 
-  it("kurz für die Achse", () => {
-    expect([euroKurz(60000), euroKurz(-20000), euroKurz(2500), euroKurz(0)]).toEqual(["60k", "−20k", "2,5k", "0"]);
-  });
-});
-
-describe("Lage", () => {
-  it("Minus geht vor Puffer", () => {
-    const l = lage(rechnung({ minus_ab: "2027-01", unter_puffer_ab: "2026-10", ueberbrueckung: "20000" }, [
-      { monat: "2026-10", vorher: "8600", betrag: "15000" },
-    ]), plan);
-    expect(l.art).toBe("luecke");
-    expect(l.satz).toContain("ab Jänner 2027 im Minus");
-    expect(l.satz).toContain("erstmals im Oktober 2026");
+  it("leer heißt Ersatz, 0 bleibt 0", () => {
+    expect([x0("", 30), x0(0, 30), x0("12", 30)]).toEqual([30, 0, 12]);
   });
 
-  it("unter dem Puffer", () => {
-    expect(lage(rechnung({ unter_puffer_ab: "2026-12" }), plan).art).toBe("puffer");
-  });
-
-  it("durchfinanziert, und sagt, wenn es am Darlehen hängt", () => {
-    const l = lage(rechnung({ ohne_darlehen_minus_ab: "2026-11" }), plan);
-    expect(l.art).toBe("gut");
-    expect(l.satz).toContain("bis Dezember 2026");
-    expect(l.satz).toContain("ohne es wäre das Konto ab November 2026 im Minus");
-  });
-});
-
-describe("Runway", () => {
-  it("Monate bis zum ersten Minus, ab dem laufenden Monat", () => {
-    expect(runwayText(rechnung({ minus_ab: "2027-01" }))).toEqual({ wert: "3 Mon.", hinweis: "Minus ab Jänner 2027" });
-  });
-
-  it("ohne Minus mehr als der Rest des Plans", () => {
-    expect(runwayText(rechnung({})).wert).toBe("> 3 Mon.");
+  it("runde Achsenschritte", () => {
+    expect([niceStep(13000), niceStep(2200), niceStep(4100)]).toEqual([20000, 2500, 5000]);
   });
 });
 
 describe("Achse", () => {
-  it("hat Null und Puffer drinnen und runde Schritte", () => {
-    const a = achse([8600, 61359, -740], 15000);
-    expect(a.unten).toBeLessThanOrEqual(-740);
-    expect(a.oben).toBeGreaterThanOrEqual(61359);
-    expect([10000, 20000, 25000]).toContain(a.schritt);
-    expect(Math.abs(a.unten % a.schritt)).toBe(0);
-  });
-
-  it("steht auch ohne Ausschlag", () => {
-    const a = achse([0, 0], 0);
-    expect(a.oben).toBeGreaterThan(a.unten);
+  const a = new Achse("2026-10-01");
+  it("zählt über den Jahreswechsel", () => {
+    expect([a.idx("2027-01-15"), a.idx(""), a.moy(3), a.yr(3), a.key(3)]).toEqual([3, null, 0, 2027, "2027-01"]);
+    expect([a.lab(3), a.labL(0)]).toEqual(["Jän 27", "Oktober 2026"]);
   });
 });
 
-describe("Posten", () => {
-  it("Tranchen einer Förderung stehen beisammen", () => {
-    const liste = [
-      posten(1, { name: "KWF", von: "2027-03-15" }),
-      posten(2, { name: "FFG", von: "2027-07-01" }),
-      posten(3, { name: "KWF", von: "2026-12-01" }),
-      posten(4, { art: "kosten", name: "Miete" }),
-    ];
-    expect(sortiert(liste, "foerderung").map((p) => p.id)).toEqual([2, 3, 1]);
+describe("Zeitachse", () => {
+  it("Tranchen einer Förderung, Personen als Balken, Darlehen als Rauten", () => {
+    const S = plan({
+      foerderungen: [{ id: "f", name: "KWF", geber: "KWF", tranchen: [{ id: "t", date: "2027-03-15", amount: 49260, status: "zugesagt" }] }],
+      team: [{ id: "p", name: "Niki", gross: 1600, start: "2027-01-15", end: "2027-07-15" }],
+      darlehen: [{ id: "d", name: "GF", typ: "gesellschafter", amount: 10000, date: "2026-10-01", repay: "2027-04-01", zins: 0 }],
+    });
+    const z = lanes(S, rechnung());
+    expect(z.map((r) => r.l)).toEqual(["KWF", "Niki", "Gesellschafterdarlehen"]);
+    expect(z[0].pts).toEqual([{ i: 5, v: 49260, st: "zugesagt" }]);
+    expect(z[1].rng).toEqual([3, 9]);
+    expect(z[2].pts?.map((p) => [p.i, p.v, p.dia])).toEqual([[0, 10000, true], [6, -10000, true]]);
   });
 
-  it("schlagen vor, was es schon gibt — ohne Leerzeichen und doppelt", () => {
-    const liste = [posten(1, { gruppe: "FFG" }), posten(2, { gruppe: " FFG" }), posten(3, { gruppe: "" })];
-    expect(vorschlaege(liste, "foerderung", "gruppe")).toEqual(["FFG"]);
+  it("ein Vorschlag zur Überbrückung steht als eigene Zeile", () => {
+    const z = lanes(plan(), rechnung({ sug: [{ i: 2, amount: "15000.00", before: "8600" }] }));
+    expect(z).toEqual([{ g: "Vorschlag", l: "Überbrückung nötig", farbe: "bad", pts: [{ i: 2, v: 15000, st: "geplant", dia: true }] }]);
+  });
+
+  it("Punkte im selben Monat werden einer — mit dem unsichersten Status", () => {
+    const p = zusammenfassen(
+      [
+        { i: 3, v: 100, st: "erhalten" },
+        { i: 3, v: 50, st: "geplant" },
+        { i: 20, v: 1, st: "geplant" },
+      ],
+      12,
+    );
+    expect(p).toEqual([{ i: 3, v: 150, st: "geplant", cnt: 2 }]);
+  });
+});
+
+describe("Dateiname", () => {
+  it("ohne Umlaute und Sonderzeichen", () => {
+    expect(slug("Sopharmis GmbH & Co")).toBe("sopharmis-gmbh-co");
   });
 });

@@ -31,7 +31,7 @@ import { Foerderauslastung } from "./Foerderauslastung";
 import { Antragsseite, Foerderungen, Geberseite, Programmseite } from "./Foerderungen";
 import { Planungsliste, Planungsseite } from "./Planung";
 import { Runway } from "./Runway";
-import { monatLang } from "../basis/runway";
+import { Achse } from "../basis/runway";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
@@ -273,8 +273,14 @@ function Teilwahl({ modul, teil, wechseln }: { modul: Modul; teil: Teil; wechsel
  */
 function Runwayzeile({ teil, stelle, wechseln }: { teil: Runwayteil; stelle: number; wechseln: Wechseln }) {
   const runway = useRunway("basis");
-  const k = runway.data?.rechnung?.kennzahlen;
-  const stand = !runway.data ? "" : !k ? "noch kein Plan" : k.minus_ab ? `Minus ab ${monatLang(k.minus_ab)}` : "durchfinanziert";
+  const d = runway.data;
+  const stand = !d
+    ? ""
+    : d.rechnung.leer
+      ? "noch kein Plan"
+      : d.rechnung.kpi.neg !== null
+        ? `Minus ab ${new Achse(d.plan.settings.start).labL(d.rechnung.kpi.neg)}`
+        : "durchfinanziert";
   return (
     <li>
       <a

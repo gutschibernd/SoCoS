@@ -848,90 +848,74 @@ export const usePlanung = (phase: number) =>
 /* --- Runway-Planung -------------------------------------------------------- */
 
 export type Szenario = "konservativ" | "basis" | "optimistisch";
-export type Postenart = "foerderung" | "umsatz" | "person" | "kosten" | "darlehen";
-export type Rhythmus = "einmalig" | "monatlich" | "quartal" | "jaehrlich";
 
-/** Der eine Plan. Geld als Zeichenkette — Decimal, siehe CLAUDE.md. */
-export type Runwayplan = {
-  id: number;
-  /** Der Erste des ersten Monats. */
-  beginn: string;
-  monate: number;
-  startkontostand: string;
-  puffer: string;
-  lohnnebenkosten: string;
-  vierzehn_gehaelter: boolean;
-  abruf_monate: number;
-};
+/** Eine Zahl, wie sie im Plan steht: als Zahl, oder leer aus einem geleerten Feld. */
+export type Planzahl = number | "";
 
 /**
- * Eine Zeile der Planung. Die Felder heißen je Art anders (siehe
- * `Planposten` in socos/models.py): `gruppe` ist Fördergeber, Rolle oder
- * Kategorie, `von` Zahlung, Eintritt oder Auszahlung, `bis` Austritt oder
- * Rückzahlung.
+ * Der Plan — ein Dokument im Format des Runway-Planers, aus dem das Modul
+ * stammt (siehe `Runwayplan` in socos/models.py). Die Feldnamen sind die des
+ * Planers, damit Export und Import zwischen beiden gehen.
  */
-export type Planposten = {
-  id: number;
-  art: Postenart;
-  name: string;
-  gruppe: string;
-  notiz: string;
-  betrag: string;
-  rhythmus: Rhythmus;
-  von: string;
-  bis: string | null;
-  status: "geplant" | "zugesagt" | "erhalten";
-  wahrscheinlichkeit: number;
-  /** Leer heißt: der Satz aus dem Plan. */
-  lohnnebenkosten: string | null;
-  zins: string;
+export type Runwayplan = {
+  v: 2;
+  settings: {
+    company: string; start: string; months: number; cash: Planzahl; buffer: Planzahl; lnk: Planzahl;
+    sonder: boolean; raise: Planzahl; bridgeGroup: number; ust: boolean; uva: "monat" | "quartal";
+    contingency: Planzahl; rebase: boolean;
+  };
+  neufoeg: { aktiv: boolean; gruendung: string; satz: Planzahl; check: Record<string, boolean> };
+  fp: { aktiv: boolean; satz: Planzahl; monat: number };
+  baseline: { savedAt: string; scenario: string; keys: string[]; cash: number[] } | null;
+  notes: string;
+  foerderungen: { id: string; name: string; geber: string; tranchen: Planeintrag[] }[];
+  investments: Planeintrag[];
+  umsaetze: Planeintrag[];
+  team: Planeintrag[];
+  kosten: Planeintrag[];
+  darlehen: Planeintrag[];
 };
 
-/** Ein Monat der Rechnung, „2027-02". Alles Geld als Zeichenkette. */
+/** Ein Eintrag einer Liste — die Felder je Art stehen in ansichten/Runway.tsx. */
+export type Planeintrag = { id: string; [feld: string]: unknown };
+
+/** Ein Monat der Rechnung. Geld als Zeichenkette (Decimal), siehe CLAUDE.md. */
 export type Runwaymonat = {
-  monat: string;
-  foerderung: string;
-  umsatz: string;
-  darlehen: string;
-  personal: string;
-  kosten: string;
-  rueckzahlung: string;
-  ein: string;
-  aus: string;
-  netto: string;
-  anfang: string;
-  /** Am Monatsende — ab einem Ist-Kontostand von dort aus gerechnet. */
-  stand: string;
-  ohne_darlehen: string;
+  i: number;
+  key: string;
+  foerd: string; fp: string; inv: string; ums: string; ustIn: string; darl: string; kredit: string; uvaIn: string;
+  team: string; kosten: string; vst: string; foerdBack: string; tilg: string; uvaOut: string;
+  neuf: string; neufPot: string;
+  inSum: string; outSum: string; net: string; open: string; planCash: string; cash: string;
+  kostCat: Record<string, string>;
+  head: number;
   ist: string | null;
   ist_datum: string | null;
-  /** Was in diesem Monat Besonderes passiert, mit Vorzeichen. */
-  ereignisse: { text: string; betrag: string }[];
+  ev: { t: string; v: string }[];
 };
 
 /** Gerechnet in socos/services/runway.py — die Seite rechnet nichts davon nach. */
 export type Runwayrechnung = {
   szenario: Szenario;
-  heute: string;
-  monate: Runwaymonat[];
-  kennzahlen: {
-    minus_ab: string | null;
-    unter_puffer_ab: string | null;
-    tiefster_stand: string;
-    tiefster_monat: string;
-    ueberbrueckung: string;
-    burn: string;
-    burn_ab: string;
-    ohne_darlehen_minus_ab: string | null;
-    darlehen_summe: string;
-    letzter_ist: string | null;
+  leer: boolean;
+  A: Runwaymonat[];
+  /** Der Kontostand ohne Gesellschafterdarlehen, je Monat. */
+  Z: string[];
+  sug: { i: number; amount: string; before: string }[];
+  fpBase: Record<string, string>;
+  kpi: {
+    neg: number | null; low: number | null; negZ: number | null; need: string; mi: number;
+    burn: string; be: number | null; gdSum: string; gdN: number; hasGD: boolean;
   };
-  abrufe: { monat: string; vorher: string; betrag: string }[];
-  /** Was jeder Posten im Planzeitraum ausmacht, nach Kennung. */
-  je_posten: Record<string, string>;
+  jahre: {
+    y: number; von: number; bis: number; monate: number; sum: Record<string, string>;
+    cat: Record<string, string>; end: string; head: number; vat: string;
+  }[];
+  neufoeg: { G: number | null; personen: { id: string; mo: number; sum: string; first: boolean }[] };
+  abgeleitet: { foerderung: Record<string, string>; agKosten: Record<string, string>; teamJahr: string };
 };
 
-export type Runway = { plan: Runwayplan | null; posten: Planposten[]; rechnung: Runwayrechnung | null };
+export type Runway = { plan: Runwayplan; stand: string | null; darf_schreiben: boolean; rechnung: Runwayrechnung };
 
 /* Beim Umschalten des Szenarios bleibt die vorige Antwort stehen, bis die
    neue da ist — sonst verschwände mit den Zahlen auch der Schalter. */

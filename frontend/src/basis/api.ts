@@ -49,6 +49,9 @@ export function lesbarerGrund(fehler: ApiFehler): string {
   if (fehler.istVerwehrt) return "Dafür fehlt dir die Berechtigung.";
   // Kommt von Caddy, nicht von Django — ohne JSON und ohne Grund darin.
   if (fehler.status === 413) return "Die Datei ist zu groß für den Server (höchstens 12 MB).";
+  // Ein 409 heißt sonst „wird noch verwendet". Beim Runway-Plan heißt es: Jemand
+  // anderes hat inzwischen gespeichert — und das sagt der Server selbst.
+  if (fehler.code === "veraltet") return fehler.message;
   if (fehler.istInVerwendung) {
     const verwendet = (fehler.daten as { verwendet_von?: string[] })?.verwendet_von;
     return verwendet?.length

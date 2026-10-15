@@ -1429,150 +1429,41 @@ class Monatskosten(Basismodell):
 
 
 # --- Runway-Planung (Modul) --------------------------------------------------
-#
-# Was in den nächsten Monaten herein- und hinausgeht, und wie lange das Geld
-# damit reicht. Gerechnet wird in `services/runway.py` — hier steht nur, was
-# eingetragen ist.
 
 
 class Runwayplan(Basismodell):
     """
-    Die Einstellungen der Planung. **Es gibt genau einen Plan** (Bernd,
-    2026-10-14): Varianten laufen über die drei Szenarien, nicht über zweite
-    Pläne mit eigenen Posten, die beim nächsten neuen Posten auseinanderliefen.
+    Die Runway-Planung — **ein Dokument**, genau so aufgebaut wie der Plan des
+    eigenständigen Runway-Planers (`daten`, Format „runway-planer" v2), aus dem
+    das Modul hervorgegangen ist.
+
+    **Warum ein Dokument und keine Zeilen je Posten** (Bernd, 2026-10-14: „1:1
+    wie im HTML"): Der Planer speichert beim Tippen, macht ein Löschen mit
+    „Rückgängig" ungeschehen und lädt einen ganzen Plan aus einer Datei. Alle
+    drei sind mit einem Dokument ein Schreibvorgang; mit Zeilen je Posten wären
+    es Dutzende, und ein halb geschriebenes „Rückgängig" ließe einen Plan
+    zurück, den es nie gab. Ein erster Anlauf mit Zeilen (Migration 0051) ist
+    mit 0052 hierher übergegangen.
+
+    **Das Protokoll bleibt Feld für Feld.** `daten` steht in `protokoll_ohne`,
+    sonst stünde bei jedem Speichern der ganze Plan zweimal im Protokoll. Den
+    Unterschied schreibt `services/runway.unterschiede` — Pfad, alt, neu —
+    beim Speichern über die API.
+
+    Es gibt genau einen Plan. Ist-Kontostände stehen **nicht** hier, sondern
+    als `Kontostand` — dieselben, die das Dashboard zeigt.
     """
 
-    beginn = models.DateField("Erster Monat", help_text="Es zählt der Monat; gespeichert wird der Erste.")
-    monate = models.PositiveSmallIntegerField(
-        "Monate", default=24, validators=[MinValueValidator(6), MaxValueValidator(72)]
-    )
-    startkontostand = models.DecimalField("Kontostand zu Beginn", max_digits=12, decimal_places=2, default=0)
-    puffer = models.DecimalField("Mindestpuffer", max_digits=12, decimal_places=2, default=0)
-    lohnnebenkosten = models.DecimalField(
-        "Lohnnebenkosten in %", max_digits=5, decimal_places=2, default=30
-    )
-    vierzehn_gehaelter = models.BooleanField("14 Gehälter (Juni, November)", default=True)
-    # Wie viele Monate ein vorgeschlagener Abruf vorausdeckt. Ein Abruf je
-    # Monat wäre genau, aber niemand überweist sich jeden Monat 3.000 € —
-    # drei Monate auf einmal sind, wie es tatsächlich gemacht wird.
-    abruf_monate = models.PositiveSmallIntegerField(
-        "Abruf deckt Monate", default=3, validators=[MinValueValidator(1), MaxValueValidator(12)]
-    )
+    protokoll_ohne = ("daten",)
+
+    daten = models.JSONField("Plan", default=dict)
 
     class Meta(Basismodell.Meta):
         verbose_name = "Runway-Plan"
         verbose_name_plural = "Runway-Plan"
 
     def __str__(self):
-        return f"Runway-Plan ab {self.beginn:%m/%Y}"
-
-    def save(self, *args, **kwargs):
-        if self.beginn:
-            self.beginn = self.beginn.replace(day=1)
-        super().save(*args, **kwargs)
-
-
-class Planposten(Basismodell):
-    """
-    Eine Zeile der Planung — eine Förder-Tranche, ein Umsatz, eine Person, eine
-    Kostenposition oder ein Gesellschafterdarlehen.
-
-    **Ein Modell für alle fünf Arten und nicht fünf Modelle**: Umsatz und Kosten
-    haben dieselbe Form (Betrag, Rhythmus, von, bis), Tranche und Darlehen sind
-    ein einzelner Eingang an einem Tag, die Person ist ein monatlicher Betrag
-    mit Aufschlag. Fünf Modelle hießen fünf Serializer, fünf Wege, fünf
-    Einträge in der Sicherung — für Felder, die sich zu vier Fünfteln decken.
-    Was je Art gilt, prüft `clean()`.
-
-    Die Felder heißen je Art anders, sind aber dieselben:
-
-    ============  =============  ===========  ==============  =============
-    Art           gruppe         von          bis             betrag
-    ============  =============  ===========  ==============  =============
-    Förderung     Fördergeber    Zahlung      —               Tranche
-    Umsatz        —              ab / am      bis             netto
-    Person        Rolle          Eintritt     Austritt        brutto/Monat
-    Kosten        Kategorie      ab / am      bis             netto
-    Darlehen      —              Auszahlung   Rückzahlung     Betrag
-    ============  =============  ===========  ==============  =============
-
-    Eine Förderung mit drei Tranchen sind drei Posten mit demselben Namen. Die
-    Seite stellt sie zusammen.
-    """
-
-    class Art(models.TextChoices):
-        FOERDERUNG = "foerderung", "Förderung"
-        UMSATZ = "umsatz", "Umsatz"
-        PERSON = "person", "Person"
-        KOSTEN = "kosten", "Kosten"
-        DARLEHEN = "darlehen", "Gesellschafterdarlehen"
-
-    class Rhythmus(models.TextChoices):
-        EINMALIG = "einmalig", "einmalig"
-        MONATLICH = "monatlich", "monatlich"
-        QUARTAL = "quartal", "quartalsweise"
-        JAEHRLICH = "jaehrlich", "jährlich"
-
-    class Status(models.TextChoices):
-        GEPLANT = "geplant", "geplant"
-        ZUGESAGT = "zugesagt", "zugesagt"
-        ERHALTEN = "erhalten", "erhalten"
-
-    art = models.CharField("Art", max_length=12, choices=Art.choices)
-    name = models.CharField("Bezeichnung", max_length=160)
-    gruppe = models.CharField("Gruppe", max_length=120, blank=True)
-    notiz = models.CharField("Notiz", max_length=250, blank=True)
-    betrag = models.DecimalField("Betrag", max_digits=12, decimal_places=2)
-    rhythmus = models.CharField("Rhythmus", max_length=10, choices=Rhythmus.choices, default=Rhythmus.EINMALIG)
-    von = models.DateField("von")
-    bis = models.DateField("bis", null=True, blank=True)
-    # Nur die Förderung: Im konservativen Szenario zählt, was zugesagt ist.
-    status = models.CharField("Status", max_length=10, choices=Status.choices, default=Status.GEPLANT)
-    # Nur der Umsatz. Ganze Prozent — eine Wahrscheinlichkeit von 37,5 % ist
-    # eine Genauigkeit, die es nicht gibt.
-    wahrscheinlichkeit = models.PositiveSmallIntegerField(
-        "Wahrscheinlichkeit in %", default=100, validators=[MaxValueValidator(100)]
-    )
-    # Nur die Person. Leer heißt: der Satz aus dem Plan.
-    lohnnebenkosten = models.DecimalField(
-        "Lohnnebenkosten in %", max_digits=5, decimal_places=2, null=True, blank=True
-    )
-    # Nur das Darlehen. Einfache Zinsen bis zur Rückzahlung.
-    zins = models.DecimalField("Zins in % p. a.", max_digits=5, decimal_places=2, default=0)
-
-    class Meta(Basismodell.Meta):
-        verbose_name = "Planposten"
-        verbose_name_plural = "Planposten"
-        ordering = ["art", "von", "id"]
-
-    def __str__(self):
-        return self.name
-
-    #: Welcher Rhythmus bei welcher Art erlaubt ist. Eine Tranche und ein
-    #: Darlehen fließen einmal, ein Gehalt jeden Monat.
-    RHYTHMEN = {
-        Art.FOERDERUNG: {Rhythmus.EINMALIG},
-        Art.DARLEHEN: {Rhythmus.EINMALIG},
-        Art.PERSON: {Rhythmus.MONATLICH},
-        Art.UMSATZ: {Rhythmus.EINMALIG, Rhythmus.MONATLICH, Rhythmus.QUARTAL, Rhythmus.JAEHRLICH},
-        Art.KOSTEN: {Rhythmus.EINMALIG, Rhythmus.MONATLICH, Rhythmus.QUARTAL, Rhythmus.JAEHRLICH},
-    }
-
-    def clean(self):
-        from django.core.exceptions import ValidationError
-
-        fehler = {}
-        if self.betrag is not None and self.betrag < 0:
-            fehler["betrag"] = "Ein Betrag ist nicht negativ. Ob er herein- oder hinausgeht, sagt die Art."
-        if self.art in self.RHYTHMEN and self.rhythmus not in self.RHYTHMEN[self.art]:
-            erlaubt = ", ".join(sorted(self.RHYTHMEN[self.art]))
-            fehler["rhythmus"] = f"{self.get_art_display()} geht nur {erlaubt}."
-        if self.bis and self.von and self.bis < self.von:
-            fehler["bis"] = "Das Ende liegt vor dem Anfang."
-        if self.art == self.Art.FOERDERUNG and self.bis:
-            fehler["bis"] = "Eine Tranche fließt an einem Tag; für mehrere Zahlungen je eine Tranche."
-        if fehler:
-            raise ValidationError(fehler)
+        return "Runway-Plan"
 
 
 # --- Wünsche und Fehlermeldungen --------------------------------------------

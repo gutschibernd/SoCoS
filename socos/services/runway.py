@@ -2,330 +2,649 @@
 Runway-Planung: Monat für Monat, was herein- und hinausgeht, und wie lange das
 Geld damit reicht.
 
-Nichts davon wird gespeichert, alles hier gerechnet. Geld ist durchgehend
-`Decimal`; jeder einzelne Betrag wird auf den Cent gerundet, **bevor** er in
-eine Summe geht — sonst stünde in der Monatssumme ein Cent, den keine Zeile
-darüber erklärt.
+**Eine Übertragung der Rechnung des eigenständigen Runway-Planers** (Bernd,
+2026-10-14: „1:1 wie im HTML"), Zeile für Zeile — `compute`, `nfCtx`,
+`bridge`, die Kennzahlen aus `renderTop` und die Summen aus `renderYears`.
+Die Namen der Töpfe (`foerd`, `ums`, `team` …) sind die des Planers, damit
+man beide nebeneinander lesen kann.
 
-**Was es bewusst nicht gibt** (Bernd, 2026-10-14, „schlanker Kern"): Umsatzsteuer
-und UVA, NeuFöG, Forschungsprämie, Kredite mit Raten, Investments. Kommt eines
-davon, gehört es hier dazu und nicht in die Seite.
+Anders als im Planer, mit Absicht:
 
-**Die Szenarien** stehen als ausdrücklicher Parameter im Aufruf, nicht als
-Einstellung des Plans:
-
-- *optimistisch*: jeder Umsatz voll, jede Förderung.
-- *basis*: Umsätze mit ihrer Wahrscheinlichkeit gewichtet, jede Förderung.
-- *konservativ*: Umsätze mit der halben Wahrscheinlichkeit, nur zugesagte
-  und erhaltene Förderungen.
+- **`Decimal` statt Gleitkomma.** Gerundet wird erst beim Ausgeben, auf den
+  Cent; JSON kennt nur Gleitkomma, deshalb gehen Beträge als Zeichenkette
+  hinaus (siehe CLAUDE.md).
+- **Der Ist-Kontostand kommt aus `Kontostand`** — demselben, den das
+  Dashboard zeigt — und gilt **ab seinem Tag**: Was im selben Monat danach
+  fällig ist, kommt noch dazu. Ein Stichtag am Monatsletzten verhält sich
+  genau wie die Ist-Zelle des Planers; ein Stichtag vom 1. ist kein
+  Monatsende und wird nicht als solches genommen.
+- **Wiederkehrendes zählt ab dem eigenen Beginn.** Der Planer begann eine
+  Quartalszahlung, die vor dem Planstart anfing, beim Planstart neu zu zählen
+  — August, November, Februar wurde dort zu Oktober, Jänner, April.
 """
 
+import re
 from calendar import monthrange
-from dataclasses import dataclass
 from datetime import date
-from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal
+from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal, InvalidOperation
 
 from django.utils import timezone
 
-from socos.models import Kontostand, Planposten, Runwayplan
-
 SZENARIEN = ("konservativ", "basis", "optimistisch")
 
-NULL = Decimal("0")
-HUNDERT = Decimal("100")
+NULL = Decimal(0)
+EINS = Decimal(1)
+HUNDERT = Decimal(100)
 CENT = Decimal("0.01")
+ABRUF_STUFE = Decimal(5000)
+DATUM = re.compile(r"^\d{4}-\d{2}")
 
-# Ein Abruf wird auf volle 5.000 € gerundet. Niemand überweist sich
-# 13.427,18 €, und eine Zahl mit Cent täte so, als wäre der Plan so genau.
-ABRUF_STUFE = Decimal("5000")
+#: Was hereinkommt und was hinausgeht — die Töpfe eines Monats.
+EIN = ("foerd", "fp", "inv", "ums", "ustIn", "darl", "kredit", "uvaIn")
+AUS = ("team", "kosten", "vst", "foerdBack", "tilg", "uvaOut")
+WEITERE = ("neuf", "neufPot")
 
-# Juni und November: dort kommt in Österreich das 13. und 14. Gehalt.
-SONDERMONATE = (6, 11)
+LISTEN = ("foerderungen", "investments", "umsaetze", "team", "kosten", "darlehen")
 
-# Der Burn ist der Schnitt der nächsten sechs Monate. Ein einzelner Monat mit
-# einer großen Anschaffung verdoppelte ihn sonst, und der nächste halbierte ihn.
-#
-# **Nur was hinausgeht, ohne Umsatz dagegen.** Der Planer vor dem Modul zog
-# den Umsatz ab — und ein einziger Auftrag im Februar machte daraus „positiv",
-# während jeden Monat Gehälter abgehen. Was hereinkommt, steht in der Linie.
-BURN_MONATE = 6
 
-SCHRITT = {
-    Planposten.Rhythmus.MONATLICH: 1,
-    Planposten.Rhythmus.QUARTAL: 3,
-    Planposten.Rhythmus.JAEHRLICH: 12,
-}
+# --- Kleine Helfer (num, x0, idx … aus dem Planer) ------------------------------
 
-#: Die Töpfe, in die gebucht wird — die ersten drei herein, die anderen hinaus.
-EIN = ("foerderung", "umsatz", "darlehen")
-AUS = ("personal", "kosten", "rueckzahlung")
+
+def zahl(wert):
+    """`num()` des Planers: eine Zahl, sonst 0."""
+    if wert is None or wert == "" or isinstance(wert, bool):
+        return NULL
+    try:
+        d = Decimal(str(wert).strip())
+    except InvalidOperation:
+        return NULL
+    return d if d.is_finite() else NULL
+
+
+def oder(wert, ersatz):
+    """`x0()` des Planers: leer heißt Ersatzwert, 0 bleibt 0."""
+    return Decimal(str(ersatz)) if wert in (None, "") else zahl(wert)
 
 
 def _cent(wert):
     return wert.quantize(CENT, rounding=ROUND_HALF_UP)
 
 
-def _monat(beginn, i):
-    """Der Erste des i-ten Monats ab `beginn`."""
-    jahr, rest = divmod(beginn.month - 1 + i, 12)
-    return date(beginn.year + jahr, rest + 1, 1)
+def _tag(datum, ersatz=1):
+    """Der Tag eines „JJJJ-MM-TT" — für den Abgleich mit einem Stichtag."""
+    text = str(datum or "")
+    return int(text[8:10]) if len(text) >= 10 and text[8:10].isdigit() else ersatz
 
 
-def _index(beginn, tag):
-    return (tag.year - beginn.year) * 12 + (tag.month - beginn.month)
+class Achse:
+    """Die Monatsachse ab dem Planstart — `base`, `idx`, `moy`, `yr` des Planers."""
+
+    def __init__(self, start, monate):
+        self.jahr = int(start[:4])
+        self.monat = int(start[5:7])
+        self.n = monate
+
+    def idx(self, datum):
+        text = str(datum or "")
+        if not DATUM.match(text):
+            return None
+        return (int(text[:4]) - self.jahr) * 12 + (int(text[5:7]) - self.monat)
+
+    def moy(self, i):
+        """Monat im Jahr, 0 = Jänner."""
+        return (self.monat - 1 + i) % 12
+
+    def yr(self, i):
+        return self.jahr + (self.monat - 1 + i) // 12
+
+    def schluessel(self, i):
+        return f"{self.yr(i)}-{self.moy(i) + 1:02d}"
+
+    def erster(self, i):
+        return date(self.yr(i), self.moy(i) + 1, 1)
+
+    def drin(self, i):
+        return i is not None and 0 <= i < self.n
+
+    def spanne(self, start, ende):
+        """`range()` des Planers: erster und letzter Monat im Plan."""
+        a = self.idx(start)
+        b = self.idx(ende)
+        return max(0, a if a is not None else 0), min(self.n - 1, b if b is not None else self.n - 1)
 
 
-def _tag_im_monat(erster, tag):
-    """Derselbe Tag in einem anderen Monat — der 31. ist im Februar der 28."""
-    return erster.replace(day=min(tag, monthrange(erster.year, erster.month)[1]))
+def _schritt(rhythmus):
+    return {"monatlich": 1, "quartal": 3, "jaehrlich": 12}.get(rhythmus, 1)
 
 
-def _letzter(erster):
-    return _tag_im_monat(erster, 31)
-
-
-@dataclass
-class Buchung:
-    monat: int
-    datum: date
-    topf: str
-    betrag: Decimal
-    posten: int | None = None
-    ereignis: str = ""
-
-    @property
-    def vorzeichen(self):
-        return self.betrag if self.topf in EIN else -self.betrag
-
-
-def _termine(beginn, n, posten):
+def _termine(achse, start, ende, rhythmus):
     """
-    Wann ein Posten fällig ist: (Monatsnummer, Tag). Gezählt wird ab seinem
-    eigenen Anfang, nicht ab dem Planbeginn — eine Quartalszahlung, die im
-    August anfing, bleibt im November, auch wenn der Plan im Oktober beginnt.
+    Die Monate eines wiederkehrenden Postens im Plan — gezählt ab seinem
+    eigenen Beginn (siehe Kopf der Datei).
     """
-    i0 = _index(beginn, posten.von)
-    if posten.rhythmus == Planposten.Rhythmus.EINMALIG:
-        yield i0, posten.von
-        return
-    ende = min(n - 1, _index(beginn, posten.bis) if posten.bis else n - 1)
-    i = i0
-    while i <= ende:
-        if i >= 0:
-            yield i, _tag_im_monat(_monat(beginn, i), posten.von.day)
-        i += SCHRITT[posten.rhythmus]
+    a, b = achse.spanne(start, ende)
+    i0 = achse.idx(start)
+    i = i0 if i0 is not None else 0
+    schritt = _schritt(rhythmus)
+    while i <= b:
+        if i >= a:
+            yield i
+        i += schritt
 
 
-def _beschaeftigt(erster, eintritt, austritt):
+# --- Leeres Dokument und Normalisieren ---------------------------------------------
+
+
+def heute_monat(heute=None):
+    heute = heute or timezone.localdate()
+    return f"{heute.year}-{heute.month:02d}-01"
+
+
+def leerer_plan(heute=None):
+    """`emptyState()` des Planers."""
+    return {
+        "v": 2,
+        "settings": {
+            "company": "", "start": heute_monat(heute), "months": 36, "cash": 0, "buffer": 25000,
+            "lnk": 30, "sonder": True, "raise": 0, "bridgeGroup": 3, "ust": True, "uva": "monat",
+            "contingency": 0, "rebase": True,
+        },
+        "neufoeg": {"aktiv": False, "gruendung": "", "satz": 5.6, "check": {}},
+        "fp": {"aktiv": False, "satz": 14, "monat": 9},
+        "baseline": None,
+        "notes": "",
+        **{liste: [] for liste in LISTEN},
+    }
+
+
+def normalisieren(roh, heute=None):
     """
-    Welcher Anteil eines Monats bezahlt wird — tageweise im Monat des Eintritts
-    und des Austritts. Ein Praktikum vom 15.1. bis 15.7. sind sechs Gehälter,
-    nicht sieben.
+    `normalize()` des Planers: was immer ankommt, wird ein vollständiger Plan.
+    Ist-Werte (`actuals`) fallen weg — sie stehen als `Kontostand`.
     """
-    letzter = _letzter(erster)
-    von = max(erster, eintritt)
-    bis = min(letzter, austritt) if austritt else letzter
-    if bis < von:
-        return NULL
-    if von == erster and bis == letzter:
-        return Decimal(1)
-    return Decimal((bis - von).days + 1) / Decimal(letzter.day)
+    import secrets
+
+    leer = leerer_plan(heute)
+    if not isinstance(roh, dict):
+        return leer
+    # Ein Export des Planers trägt den Plan in einer Hülle.
+    if roh.get("format") == "runway-planer" and isinstance(roh.get("plan"), dict):
+        roh = roh["plan"]
+
+    def kennung():
+        return secrets.token_hex(4)
+
+    s = {**leer["settings"], **(roh.get("settings") if isinstance(roh.get("settings"), dict) else {})}
+    try:
+        s["months"] = min(72, max(6, round(float(s.get("months") or 36))))
+    except (TypeError, ValueError):
+        s["months"] = 36
+    if not DATUM.match(str(s.get("start") or "")):
+        s["start"] = leer["settings"]["start"]
+    s["start"] = f"{str(s['start'])[:7]}-01"
+
+    def liste(name):
+        werte = roh.get(name)
+        if not isinstance(werte, list):
+            return []
+        return [{**x, "id": str(x.get("id") or kennung())} for x in werte if isinstance(x, dict)]
+
+    plan = {
+        "v": 2,
+        "settings": s,
+        "neufoeg": {**leer["neufoeg"], **(roh.get("neufoeg") if isinstance(roh.get("neufoeg"), dict) else {})},
+        "fp": {**leer["fp"], **(roh.get("fp") if isinstance(roh.get("fp"), dict) else {})},
+        "baseline": None,
+        "notes": roh.get("notes") if isinstance(roh.get("notes"), str) else "",
+        **{name: liste(name) for name in LISTEN},
+    }
+    if not isinstance(plan["neufoeg"].get("check"), dict):
+        plan["neufoeg"]["check"] = {}
+    b = roh.get("baseline")
+    if isinstance(b, dict) and isinstance(b.get("keys"), list) and isinstance(b.get("cash"), list):
+        plan["baseline"] = b
+    for f in plan["foerderungen"]:
+        tranchen = f.get("tranchen")
+        f["tranchen"] = [
+            {**t, "id": str(t.get("id") or kennung())} for t in (tranchen if isinstance(tranchen, list) else []) if isinstance(t, dict)
+        ]
+    return plan
 
 
-def buchungen(plan, posten, szenario, mit_darlehen=True):
-    """Alle Zahlungen im Planzeitraum, je eine Zeile."""
-    n = plan.monate
-    beginn = plan.beginn
-    ergebnis = []
-
-    def buchen(i, datum, topf, betrag, p, ereignis=""):
-        betrag = _cent(betrag)
-        if 0 <= i < n and betrag:
-            ergebnis.append(Buchung(i, datum, topf, betrag, p.pk, ereignis))
-
-    for p in posten:
-        if p.art == Planposten.Art.FOERDERUNG:
-            if szenario == "konservativ" and p.status == Planposten.Status.GEPLANT:
-                continue
-            buchen(_index(beginn, p.von), p.von, "foerderung", p.betrag, p, f"{p.name} · Tranche")
-
-        elif p.art == Planposten.Art.UMSATZ:
-            anteil = Decimal(p.wahrscheinlichkeit) / HUNDERT
-            faktor = {"optimistisch": Decimal(1), "basis": anteil, "konservativ": anteil / 2}[szenario]
-            einmalig = p.rhythmus == Planposten.Rhythmus.EINMALIG
-            for i, tag in _termine(beginn, n, p):
-                buchen(i, tag, "umsatz", p.betrag * faktor, p, p.name if einmalig else "")
-
-        elif p.art == Planposten.Art.KOSTEN:
-            einmalig = p.rhythmus == Planposten.Rhythmus.EINMALIG
-            for i, tag in _termine(beginn, n, p):
-                buchen(i, tag, "kosten", p.betrag, p, p.name if einmalig else "")
-
-        elif p.art == Planposten.Art.PERSON:
-            satz = p.lohnnebenkosten if p.lohnnebenkosten is not None else plan.lohnnebenkosten
-            aufschlag = 1 + satz / HUNDERT
-            erster_monat = max(0, _index(beginn, p.von))
-            letzter_monat = min(n - 1, _index(beginn, p.bis) if p.bis else n - 1)
-            for i in range(erster_monat, letzter_monat + 1):
-                erster = _monat(beginn, i)
-                brutto = p.betrag * _beschaeftigt(erster, p.von, p.bis)
-                if plan.vierzehn_gehaelter and erster.month in SONDERMONATE:
-                    brutto *= 2
-                # Das Gehalt geht am Monatsende hinaus — wichtig für den
-                # Abgleich mit einem Kontostand mitten im Monat.
-                ereignis = f"Eintritt {p.name}" if erster <= p.von <= _letzter(erster) else ""
-                buchen(i, _letzter(erster), "personal", brutto * aufschlag, p, ereignis)
-
-        elif p.art == Planposten.Art.DARLEHEN:
-            if not mit_darlehen:
-                continue
-            a = _index(beginn, p.von)
-            buchen(a, p.von, "darlehen", p.betrag, p, f"{p.name} · Auszahlung")
-            if p.bis:
-                r = _index(beginn, p.bis)
-                zinsen = p.betrag * p.zins / HUNDERT * Decimal(max(0, r - a)) / 12
-                buchen(r, p.bis, "rueckzahlung", p.betrag + zinsen, p, f"{p.name} · Rückzahlung")
-
-    return ergebnis
+def ist_leer(plan):
+    """`isEmpty()` des Planers."""
+    return not zahl(plan["settings"].get("cash")) and not any(plan[liste] for liste in LISTEN)
 
 
-def iststaende(plan):
+# --- NeuFöG --------------------------------------------------------------------------
+
+
+class NeuFoeG:
+    """`nfCtx()` des Planers."""
+
+    def __init__(self, plan, achse):
+        nfo = plan["neufoeg"]
+        self.G = achse.idx(nfo.get("gruendung")) if DATUM.match(str(nfo.get("gruendung") or "")) else None
+        waehlbar = []
+        for k, p in enumerate(plan["team"]):
+            s = achse.idx(p.get("start"))
+            s = s if s is not None else 0
+            if p.get("neufoeg") is not False and self.G is not None and s <= self.G + 35:
+                waehlbar.append((s, k, p["id"]))
+        waehlbar.sort()
+        self.erste_drei = {kennung for _, _, kennung in waehlbar[:3]}
+
+    def befreit(self, p, i, s0):
+        G = self.G
+        if G is None or p.get("neufoeg") is False or i < G or i > G + 35:
+            return False
+        if i <= G + 11:
+            return True  # Jahr 1: alle Dienstnehmer:innen
+        return p["id"] in self.erste_drei and i < s0 + 12  # Monat 13–36: erste drei, je 12 Monate ab Eintritt
+
+
+# --- Rechnung ------------------------------------------------------------------------
+
+
+def _bruttogehalt(plan, achse, p, i):
+    s = plan["settings"]
+    g = zahl(p.get("gross")) * (EINS + zahl(s.get("raise")) / HUNDERT) ** (achse.yr(i) - achse.yr(0))
+    if s.get("sonder") and achse.moy(i) in (5, 10):
+        g *= 2  # 13. und 14. Gehalt: Juni, November
+    return g
+
+
+def berechnen(plan, szenario, mit_gesellschafterdarlehen=True, ist=None):
     """
-    Je Monat der letzte erfasste Kontostand — aus dem Dashboard, kein zweites
-    Feld dafür. Zwei Stellen, an denen ein Kontostand steht, liefen beim
-    ersten vergessenen Nachtrag auseinander.
+    `compute()` des Planers — ein Monat je Eintrag. `ist` ordnet einer
+    Monatsnummer einen `Kontostand` zu.
     """
-    bis = _letzter(_monat(plan.beginn, plan.monate - 1))
-    staende = {}
-    for k in Kontostand.objects.filter(datum__gte=plan.beginn, datum__lte=bis).order_by("datum"):
-        staende[_index(plan.beginn, k.datum)] = k
-    return staende
+    s = plan["settings"]
+    achse = Achse(s["start"], s["months"])
+    n = achse.n
+    M = [
+        {"i": i, **{k: NULL for k in EIN + AUS + WEITERE}, "kostCat": {}, "head": 0, "ev": [], "_zahlungen": []}
+        for i in range(n)
+    ]
 
+    def buchen(i, topf, betrag, ereignis=None, tag=1):
+        if achse.drin(i) and betrag:
+            M[i][topf] += betrag
+            M[i]["_zahlungen"].append((tag, betrag if topf in EIN else -betrag))
+            if ereignis:
+                M[i]["ev"].append(ereignis)
 
-def verlauf(plan, alle, ist=None):
-    """
-    Die Monate mit ihren Summen und dem Kontostand am Monatsende.
+    def zaehlt(status):
+        return szenario != "konservativ" or status in ("zugesagt", "erhalten")
 
-    **Ein Ist-Kontostand ersetzt den Plan bis zu seinem Tag.** Was im selben
-    Monat danach noch fällig ist, kommt dazu; ab dem nächsten Monat wird von
-    dort aus weitergerechnet. Ein Kontostand vom 14. ist kein Monatsende — ihn
-    als solches zu nehmen, ließe die Zahlungen der zweiten Monatshälfte
-    verschwinden.
-    """
-    ist = ist or {}
-    monate = []
-    stand = plan.startkontostand
-    for i in range(plan.monate):
-        hier = [b for b in alle if b.monat == i]
-        summen = {topf: sum((b.betrag for b in hier if b.topf == topf), NULL) for topf in EIN + AUS}
-        ein = sum((summen[t] for t in EIN), NULL)
-        aus = sum((summen[t] for t in AUS), NULL)
-        anfang = stand
-        stand = anfang + ein - aus
-        k = ist.get(i)
-        if k is not None:
-            stand = k.betrag + sum((b.vorzeichen for b in hier if b.datum > k.datum), NULL)
-        monate.append(
-            {
-                "monat": _monat(plan.beginn, i).strftime("%Y-%m"),
-                **summen,
-                "ein": ein,
-                "aus": aus,
-                "netto": ein - aus,
-                "anfang": anfang,
-                "stand": stand,
-                "ist": k.betrag if k else None,
-                "ist_datum": k.datum if k else None,
-                "ereignisse": [
-                    {"text": b.ereignis, "betrag": b.vorzeichen}
-                    for b in sorted(hier, key=lambda b: (b.datum, b.topf))
-                    if b.ereignis
-                ],
-            }
-        )
-    return monate
+    ust_an = bool(s.get("ust"))
+    ust_schuld = [NULL] * n
+    vorsteuer = [NULL] * n
+    fp_basis = {}
 
+    def fp_dazu(i, betrag):
+        if achse.drin(i) and betrag:
+            fp_basis[achse.yr(i)] = fp_basis.get(achse.yr(i), NULL) + betrag
 
-def ueberbrueckung(monate, puffer, abruf_monate, ab=0):
-    """
-    Wann und wie viel per Gesellschafterdarlehen nachgeschossen werden muss,
-    damit der Kontostand nie unter den Puffer fällt.
+    for f in plan["foerderungen"]:
+        name = f.get("name") or "Förderung"
+        for t in f["tranchen"]:
+            v, i = zahl(t.get("amount")), achse.idx(t.get("date"))
+            if t.get("art") == "rueckzahlung":
+                buchen(i, "foerdBack", v, {"t": f"{name} · Rückzahlung", "v": -v}, _tag(t.get("date")))
+            elif zaehlt(t.get("status")):
+                buchen(i, "foerd", v, {"t": f"{name} · Tranche", "v": v}, _tag(t.get("date")))
 
-    Ein Abruf deckt den tiefsten Stand der nächsten `abruf_monate` Monate ab,
-    nicht nur den einen — sonst käme jeden Monat ein neuer. Vorgeschlagen wird
-    erst ab dem laufenden Monat (`ab`): Ein Abruf im vergangenen März ist kein
-    Vorschlag mehr, sondern ein Versäumnis.
-    """
-    abrufe = []
-    nachgeschossen = NULL
-    for i in range(ab, len(monate)):
-        if monate[i]["stand"] + nachgeschossen >= puffer:
+    for x in plan["investments"]:
+        if zaehlt(x.get("status")):
+            v = zahl(x.get("amount"))
+            buchen(achse.idx(x.get("date")), "inv", v, {"t": x.get("name") or "Investment", "v": v}, _tag(x.get("date")))
+
+    for u in plan["umsaetze"]:
+        p = min(HUNDERT, max(NULL, oder(u.get("prob"), 100))) / HUNDERT
+        faktor = EINS if szenario == "optimistisch" else p / 2 if szenario == "konservativ" else p
+        v = zahl(u.get("amount")) * faktor
+        if not v:
             continue
-        tiefster = min(m["stand"] for m in monate[i : i + abruf_monate]) + nachgeschossen
-        betrag = ((puffer - tiefster) / ABRUF_STUFE).to_integral_value(rounding=ROUND_CEILING) * ABRUF_STUFE
-        abrufe.append({"monat": monate[i]["monat"], "vorher": monate[i]["stand"] + nachgeschossen, "betrag": betrag})
-        nachgeschossen += betrag
+        verschiebung = int((max(NULL, zahl(u.get("ziel"))) / 30).quantize(EINS, rounding=ROUND_HALF_UP))
+        satz = oder(u.get("ust"), 20) / HUNDERT if ust_an else NULL
+        tag = _tag(u.get("start"))
+
+        def umsatz(i, ereignis=None):
+            buchen(i + verschiebung, "ums", v, ereignis, tag)
+            buchen(i + verschiebung, "ustIn", v * satz, None, tag)
+            if achse.drin(i):
+                ust_schuld[i] += v * satz
+
+        if u.get("interval") == "einmalig":
+            i = achse.idx(u.get("start"))
+            umsatz(i if i is not None else 0, {"t": u.get("name") or "Umsatz", "v": v})
+        else:
+            for i in _termine(achse, u.get("start"), u.get("end"), u.get("interval")):
+                umsatz(i)
+
+    nf = NeuFoeG(plan, achse)
+    nf_an = bool(plan["neufoeg"].get("aktiv"))
+    nf_satz = zahl(plan["neufoeg"].get("satz"))
+    for p in plan["team"]:
+        s0 = achse.idx(p.get("start"))
+        s0 = s0 if s0 is not None else 0
+        a, b = achse.spanne(p.get("start"), p.get("end"))
+        lnk = oder(p.get("lnk"), zahl(s.get("lnk"))) / HUNDERT
+        for i in range(a, b + 1):
+            g = _bruttogehalt(plan, achse, p, i)
+            moeglich = g * nf_satz / HUNDERT if nf.befreit(p, i, s0) else NULL
+            gespart = moeglich if nf_an else NULL
+            kosten = g * (EINS + lnk) - gespart
+            # Das Gehalt geht am Monatsende hinaus.
+            M[i]["team"] += kosten
+            M[i]["_zahlungen"].append((31, -kosten))
+            M[i]["neuf"] += gespart
+            M[i]["neufPot"] += moeglich
+            M[i]["head"] += 1
+            fp_dazu(i, kosten * zahl(p.get("fe")) / HUNDERT)
+        if achse.drin(s0):
+            M[s0]["ev"].append({"t": f"Eintritt {p.get('name') or 'Mitarbeiter:in'}", "v": -zahl(p.get("gross")) * (EINS + lnk)})
+
+    zuschlag = EINS + zahl(s.get("contingency")) / HUNDERT
+    for k in plan["kosten"]:
+        netto = zahl(k.get("amount"))
+        v = netto * zuschlag
+        if not v:
+            continue
+        satz = oder(k.get("ust"), 20) / HUNDERT if ust_an else NULL
+        kategorie = str(k.get("cat") or "").strip() or "Ohne Kategorie"
+        tag = _tag(k.get("start"))
+
+        def ausgabe(i, ereignis=None):
+            if not achse.drin(i):
+                return
+            buchen(i, "kosten", v, ereignis, tag)
+            M[i]["kostCat"][kategorie] = M[i]["kostCat"].get(kategorie, NULL) + v
+            buchen(i, "vst", v * satz, None, tag)
+            vorsteuer[i] += v * satz
+            if k.get("fe"):
+                fp_dazu(i, netto)
+
+        if k.get("interval") == "einmalig":
+            i = achse.idx(k.get("start"))
+            ausgabe(i if i is not None else 0, {"t": k.get("name") or "Ausgabe", "v": -v})
+        else:
+            for i in _termine(achse, k.get("start"), k.get("end"), k.get("interval")):
+                ausgabe(i)
+
+    for d in plan["darlehen"]:
+        gd = (d.get("typ") or "gesellschafter") == "gesellschafter"
+        if gd and not mit_gesellschafterdarlehen:
+            continue
+        a, betrag, zins = achse.idx(d.get("date")), zahl(d.get("amount")), zahl(d.get("zins")) / HUNDERT
+        if a is None or not betrag:
+            continue
+        name = d.get("name") or ("Gesellschafterdarlehen" if gd else "Kredit")
+        buchen(a, "darl" if gd else "kredit", betrag, {"t": f"{name} · Auszahlung", "v": betrag}, _tag(d.get("date")))
+        if d.get("tilgung") == "raten":
+            try:
+                raten = max(1, round(float(zahl(d.get("raten")) or 12)))
+            except (TypeError, ValueError):
+                raten = 12
+            ts = achse.idx(d.get("tilgStart"))
+            ts = ts if ts is not None else a + 1
+            tag = _tag(d.get("tilgStart"), _tag(d.get("date")))
+            offen = betrag
+            rate = betrag / raten
+            i = a + 1
+            while i < n and offen > CENT:
+                tilgung = rate if ts <= i < ts + raten else NULL
+                buchen(i, "tilg", offen * zins / 12 + tilgung, None, tag)
+                offen -= tilgung
+                i += 1
+            if achse.drin(ts):
+                M[ts]["ev"].append({"t": f"{name} · Tilgungsbeginn", "v": -rate})
+        else:
+            r = achse.idx(d.get("repay"))
+            if r is not None and r > a:
+                zurueck = betrag * (EINS + zins * (r - a) / 12)
+                buchen(r, "tilg", zurueck, {"t": f"{name} · Rückzahlung", "v": -zurueck}, _tag(d.get("repay")))
+
+    if ust_an:
+        # Fällig am 15. des zweitfolgenden Monats — nach dem Monat, bei
+        # vierteljährlicher UVA nach dem Quartal.
+        faellig = {}
+        for i in range(n):
+            ende = i + (2 - achse.moy(i) % 3) if s.get("uva") == "quartal" else i
+            faellig[ende + 2] = faellig.get(ende + 2, NULL) + ust_schuld[i] - vorsteuer[i]
+        for i, saldo in sorted(faellig.items()):
+            if abs(saldo) < Decimal("0.5"):
+                continue
+            if saldo > 0:
+                buchen(i, "uvaOut", saldo, {"t": "UVA-Zahlung ans Finanzamt", "v": -saldo}, 15)
+            else:
+                buchen(i, "uvaIn", -saldo, {"t": "UVA-Gutschrift (Vorsteuerüberhang)", "v": -saldo}, 15)
+
+    if plan["fp"].get("aktiv"):
+        auszahlung = int(zahl(plan["fp"].get("monat")) or 9)
+        for jahr, basis in sorted(fp_basis.items()):
+            betrag = basis * zahl(plan["fp"].get("satz")) / HUNDERT
+            buchen(achse.idx(f"{jahr + 1}-{auszahlung:02d}"), "fp", betrag, {"t": f"Forschungsprämie {jahr}", "v": betrag})
+
+    stand = zahl(s.get("cash"))
+    ist = ist or {}
+    for m in M:
+        m["inSum"] = sum((m[k] for k in EIN), NULL)
+        m["outSum"] = sum((m[k] for k in AUS), NULL)
+        m["net"] = m["inSum"] - m["outSum"]
+        m["open"] = stand
+        stand += m["net"]
+        m["planCash"] = stand
+        k = ist.get(m["i"])
+        m["ist"] = k.betrag if k else None
+        m["ist_datum"] = k.datum if k else None
+        if k is not None and s.get("rebase") is not False:
+            stand = k.betrag + sum((v for tag, v in m["_zahlungen"] if tag > k.datum.day), NULL)
+        m["cash"] = stand
+    return M, fp_basis
+
+
+def ueberbrueckung(M, puffer, gruppe):
+    """`bridge()` des Planers: Abrufe, damit der Stand nie unter den Puffer fällt."""
+    gruppe = max(1, gruppe)
+    nachgeschossen = NULL
+    abrufe = []
+    for i in range(len(M)):
+        if M[i]["cash"] + nachgeschossen < puffer - Decimal("0.5"):
+            tiefster = min(m["cash"] for m in M[i : i + gruppe]) + nachgeschossen
+            betrag = ((puffer - tiefster) / ABRUF_STUFE).to_integral_value(rounding=ROUND_CEILING) * ABRUF_STUFE
+            abrufe.append({"i": i, "amount": betrag, "before": M[i]["cash"] + nachgeschossen})
+            nachgeschossen += betrag
     return abrufe
 
 
-def _erster(monate, bedingung):
-    return next((m["monat"] for m in monate if bedingung(m)), None)
+# --- Was die Seite außerdem zeigt --------------------------------------------------
 
 
-def rechnen(szenario="basis", heute=None):
-    """
-    Die ganze Planung für ein Szenario — oder `None`, solange es keinen Plan
-    gibt. `heute` steht als Parameter da, damit ein Test einen Tag festhalten
-    kann; die Seite bekommt es in der Antwort zurück.
-    """
+def _kennzahlen(plan, A, Z, abrufe):
+    """Die Zahlen hinter Status und Kennzahlen (`renderTop` des Planers)."""
+    puffer = zahl(plan["settings"].get("buffer"))
+    erster = lambda reihe, bedingung: next((m["i"] for m in reihe if bedingung(m)), None)  # noqa: E731
+    tief = 0
+    for i, m in enumerate(A):
+        if m["cash"] < A[tief]["cash"]:
+            tief = i
+    vorne = A[:6]
+    gd = [d for d in plan["darlehen"] if (d.get("typ") or "gesellschafter") == "gesellschafter"]
+    return {
+        "neg": erster(A, lambda m: m["cash"] < 0),
+        "low": erster(A, lambda m: m["cash"] < puffer),
+        "negZ": erster(Z, lambda m: m["cash"] < 0),
+        "need": sum((a["amount"] for a in abrufe), NULL),
+        "mi": tief,
+        "burn": sum((m["team"] + m["kosten"] - m["ums"] for m in vorne), NULL) / max(1, len(vorne)),
+        "be": erster(A, lambda m: m["ums"] > 0 and m["ums"] >= m["team"] + m["kosten"]),
+        "gdSum": sum((zahl(d.get("amount")) for d in gd), NULL),
+        "gdN": len(gd),
+        "hasGD": bool(gd),
+    }
+
+
+def _jahre(achse, A):
+    """Die Summen je Kalenderjahr (`renderYears` des Planers)."""
+    jahre = []
+    for jahr in sorted({achse.yr(m["i"]) for m in A}):
+        ms = [m for m in A if achse.yr(m["i"]) == jahr]
+        summe = {k: sum((m[k] for m in ms), NULL) for k in EIN + AUS + WEITERE + ("net",)}
+        kategorien = {}
+        for m in ms:
+            for k, v in m["kostCat"].items():
+                kategorien[k] = kategorien.get(k, NULL) + v
+        jahre.append(
+            {
+                "y": jahr,
+                "von": achse.moy(ms[0]["i"]),
+                "bis": achse.moy(ms[-1]["i"]),
+                "monate": len(ms),
+                "sum": summe,
+                "cat": kategorien,
+                "end": ms[-1]["cash"],
+                "head": ms[-1]["head"],
+                "vat": summe["ustIn"] + summe["uvaIn"] - summe["vst"] - summe["uvaOut"],
+            }
+        )
+    return jahre
+
+
+def _neufoeg_personen(plan, achse):
+    """Je Person die befreiten Monate und die Ersparnis (`renderAnsprueche`)."""
+    nf = NeuFoeG(plan, achse)
+    if nf.G is None:
+        return {"G": None, "personen": []}
+    satz = zahl(plan["neufoeg"].get("satz"))
+    personen = []
+    for p in plan["team"]:
+        s0 = achse.idx(p.get("start"))
+        s0 = s0 if s0 is not None else 0
+        ende = achse.idx(p.get("end"))
+        monate, summe = 0, NULL
+        for i in range(max(0, s0), achse.n):
+            if ende is not None and i > ende:
+                break
+            if nf.befreit(p, i, s0):
+                monate += 1
+                summe += _bruttogehalt(plan, achse, p, i) * satz / HUNDERT
+        personen.append({"id": p["id"], "mo": monate, "sum": summe, "first": p["id"] in nf.erste_drei})
+    return {"G": nf.G, "personen": personen}
+
+
+def _abgeleitet(plan):
+    """Die Werte, die im Planer neben den Feldern stehen (`updateDerived`)."""
+    s = plan["settings"]
+    lnk = lambda p: EINS + oder(p.get("lnk"), zahl(s.get("lnk"))) / HUNDERT  # noqa: E731
+    return {
+        "foerderung": {
+            f["id"]: sum(((-1 if t.get("art") == "rueckzahlung" else 1) * zahl(t.get("amount")) for t in f["tranchen"]), NULL)
+            for f in plan["foerderungen"]
+        },
+        "agKosten": {p["id"]: zahl(p.get("gross")) * lnk(p) for p in plan["team"]},
+        "teamJahr": sum((zahl(p.get("gross")) * lnk(p) * (14 if s.get("sonder") else 12) for p in plan["team"]), NULL),
+    }
+
+
+def _ausgeben(wert):
+    """Für JSON: Geld auf den Cent, alles andere, wie es ist."""
+    if isinstance(wert, Decimal):
+        return _cent(wert)
+    if isinstance(wert, dict):
+        return {str(k): _ausgeben(v) for k, v in wert.items() if not str(k).startswith("_")}
+    if isinstance(wert, list):
+        return [_ausgeben(v) for v in wert]
+    return wert
+
+
+def iststaende(achse):
+    """Je Monat der letzte `Kontostand` darin — die Ist-Zeile der Monatsübersicht."""
+    from socos.models import Kontostand
+
+    bis = date(achse.yr(achse.n - 1), achse.moy(achse.n - 1) + 1, 1)
+    bis = bis.replace(day=monthrange(bis.year, bis.month)[1])
+    staende = {}
+    for k in Kontostand.objects.filter(datum__gte=achse.erster(0), datum__lte=bis).order_by("datum", "id"):
+        staende[achse.idx(k.datum.isoformat())] = k
+    return staende
+
+
+def rechnen(plan, szenario="basis"):
+    """Alles, was die Seite zeichnet, für ein Szenario."""
     if szenario not in SZENARIEN:
         raise ValueError(f"Unbekanntes Szenario: {szenario}")
-    plan = Runwayplan.objects.first()
-    if plan is None:
-        return None
-    heute = heute or timezone.localdate()
-    posten = list(Planposten.objects.all())
-    alle = buchungen(plan, posten, szenario)
-    monate = verlauf(plan, alle, iststaende(plan))
+    achse = Achse(plan["settings"]["start"], plan["settings"]["months"])
+    ist = iststaende(achse)
+    A, fp_basis = berechnen(plan, szenario, True, ist)
+    Z, _ = berechnen(plan, szenario, False, ist)
+    abrufe = ueberbrueckung(A, zahl(plan["settings"].get("buffer")), int(zahl(plan["settings"].get("bridgeGroup")) or 3))
+    for m in A:
+        m["key"] = achse.schluessel(m["i"])
+    return _ausgeben(
+        {
+            "szenario": szenario,
+            "leer": ist_leer(plan),
+            "A": A,
+            "Z": [m["cash"] for m in Z],
+            "sug": abrufe,
+            "fpBase": {str(k): v for k, v in fp_basis.items()},
+            "kpi": _kennzahlen(plan, A, Z, abrufe),
+            "jahre": _jahre(achse, A),
+            "neufoeg": _neufoeg_personen(plan, achse),
+            "abgeleitet": _abgeleitet(plan),
+        }
+    )
 
-    # Ohne Gesellschafterdarlehen: derselbe Verlauf, nur deren Ein- und
-    # Rückzahlungen herausgerechnet. **Nicht** ein zweiter Lauf ohne sie: Ein
-    # Ist-Kontostand enthält das Darlehen längst, und ein zweiter Lauf setzte
-    # ihn an dieser Stelle wieder hinein.
-    darlehen = NULL
-    for m in monate:
-        darlehen += m["darlehen"] - m["rueckzahlung"]
-        m["ohne_darlehen"] = m["stand"] - darlehen
 
-    jetzt = min(max(0, _index(plan.beginn, heute)), plan.monate - 1)
-    vorne = monate[jetzt : jetzt + BURN_MONATE]
-    burn = sum((m["personal"] + m["kosten"] for m in vorne), NULL) / len(vorne)
-    tiefster = min(monate, key=lambda m: m["stand"])
-    abrufe = ueberbrueckung(monate, plan.puffer, plan.abruf_monate, ab=jetzt)
+# --- Protokoll -------------------------------------------------------------------------
 
-    je_posten = {}
-    for b in alle:
-        je_posten[b.posten] = je_posten.get(b.posten, NULL) + b.betrag
 
-    return {
-        "szenario": szenario,
-        "heute": heute,
-        "monate": monate,
-        "kennzahlen": {
-            "minus_ab": _erster(monate, lambda m: m["stand"] < 0),
-            "unter_puffer_ab": _erster(monate, lambda m: m["stand"] < plan.puffer),
-            "tiefster_stand": tiefster["stand"],
-            "tiefster_monat": tiefster["monat"],
-            "ueberbrueckung": sum((a["betrag"] for a in abrufe), NULL),
-            "burn": _cent(burn),
-            "burn_ab": monate[jetzt]["monat"],
-            "ohne_darlehen_minus_ab": _erster(monate, lambda m: m["ohne_darlehen"] < 0),
-            "darlehen_summe": sum((m["darlehen"] for m in monate), NULL),
-            "letzter_ist": max(
-                (m["ist_datum"] for m in monate if m["ist_datum"]), default=None
-            ),
-        },
-        "abrufe": abrufe,
-        # Was jeder Posten im Planzeitraum ausmacht — im gewählten Szenario.
-        "je_posten": {str(k): v for k, v in je_posten.items()},
-    }
+def unterschiede(alt, neu):
+    """
+    Was sich zwischen zwei Ständen des Plans geändert hat — Pfad, alt, neu —
+    für das Änderungsprotokoll. Posten werden an ihrer Kennung erkannt und mit
+    ihrem Namen genannt; ein Pfad wie `kosten[Overhead].amount` liest sich in
+    zwei Jahren noch.
+    """
+    alt = alt or {}
+    ergebnis = {}
+
+    def merken(pfad, a, b):
+        if a != b:
+            ergebnis[pfad] = {"alt": a, "neu": b}
+
+    for teil in ("settings", "neufoeg", "fp"):
+        a, b = alt.get(teil) or {}, neu.get(teil) or {}
+        for k in sorted(set(a) | set(b)):
+            merken(f"{teil}.{k}", a.get(k), b.get(k))
+    # Die Notizen fehlen mit Absicht: Sie speichern sich beim Tippen, und jede
+    # Pause schriebe den ganzen alten und neuen Text ins Protokoll — dieselbe
+    # Ausnahme wie bei der Mitschrift eines Meetings (`protokoll_ohne`).
+    merken(
+        "baseline",
+        (alt.get("baseline") or {}).get("savedAt"),
+        (neu.get("baseline") or {}).get("savedAt"),
+    )
+
+    def posten(pfad, a_liste, b_liste):
+        a_map = {x.get("id"): x for x in a_liste or []}
+        b_map = {x.get("id"): x for x in b_liste or []}
+        for kennung in list(a_map) + [k for k in b_map if k not in a_map]:
+            x, y = a_map.get(kennung), b_map.get(kennung)
+            name = (y or x).get("name") or (y or x).get("date") or kennung
+            ort = f"{pfad}[{name}]"
+            if x is None:
+                merken(ort, None, {k: v for k, v in y.items() if k != "tranchen"})
+            elif y is None:
+                merken(ort, {k: v for k, v in x.items() if k != "tranchen"}, None)
+            else:
+                for k in sorted((set(x) | set(y)) - {"id", "tranchen"}):
+                    merken(f"{ort}.{k}", x.get(k), y.get(k))
+            if pfad == "foerderungen":
+                posten(f"{ort}.tranchen", (x or {}).get("tranchen"), (y or {}).get("tranchen"))
+
+    for liste in LISTEN:
+        posten(liste, alt.get(liste), neu.get(liste))
+    return ergebnis

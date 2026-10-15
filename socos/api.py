@@ -44,7 +44,6 @@ from socos.models import (
     Nutzer,
     Organisation,
     Pensum,
-    Planposten,
     Praktikumsthema,
     Foerderantrag,
     Foerdergeber,
@@ -770,50 +769,126 @@ class MonatskostenViewSet(SocosViewSet):
     schreiben_nur_admin = True
 
 
-# --- Module: Runway-Planung -------------------------------------------------
+# --- Module: Runway-Planung ---------------------------------------------------
 #
-# Geld, also dieselbe Regel wie oben: sehen alle, eintragen nur der Admin.
+# Ein Dokument, gespeichert wie im Planer, aus dem das Modul stammt: Die Seite
+# schickt nach jeder Eingabe den ganzen Plan, der Server rechnet und schickt
+# die Rechnung zurück. Geld, also: sehen alle, schreiben nur der Admin.
 
 
-class RunwayplanViewSet(SocosViewSet):
-    """Die Einstellungen des einen Plans. Entfernt wird er nicht — nur geändert."""
-
-    serializer_class = ser.RunwayplanSerializer
-    queryset = Runwayplan.objects.all()
-    schreiben_nur_admin = True
-    http_method_names = ["get", "post", "patch", "head", "options"]
-
-
-class PlanpostenViewSet(SocosViewSet):
-    serializer_class = ser.PlanpostenSerializer
-    queryset = Planposten.objects.all()
-    schreiben_nur_admin = True
-
-
-@api_view(["GET"])
-@permission_classes([berechtigung.SocosBerechtigung])
-def runway(request):
-    """
-    Der Plan, seine Posten und die Rechnung dazu (`services/runway.py`) in
-    einer Antwort — die Seite zeigt alles zusammen, und eine Kennzahl, die vor
-    ihren Posten ankommt, stünde neben einer veralteten Liste.
-
-    `?szenario=konservativ|basis|optimistisch`, ohne Angabe `basis`. Geändert
-    wird über `/runwayplaene/` und `/planposten/`.
-    """
+def _runway_antwort(request, plan_zeile):
     szenario = request.query_params.get("szenario", "basis")
     if szenario not in runwaydienst.SZENARIEN:
         raise ValidationError(
             {"szenario": f"Dieses Szenario gibt es nicht: {szenario}. Möglich: {', '.join(runwaydienst.SZENARIEN)}."}
         )
-    plan = Runwayplan.objects.first()
+    plan = runwaydienst.normalisieren(plan_zeile.daten) if plan_zeile else runwaydienst.leerer_plan()
     return Response(
         {
-            "plan": ser.RunwayplanSerializer(plan).data if plan else None,
-            "posten": ser.PlanpostenSerializer(Planposten.objects.all(), many=True).data,
-            "rechnung": runwaydienst.rechnen(szenario),
+            "plan": plan,
+            # Woran die Seite beim Speichern zeigt, auf welchem Stand sie war.
+            "stand": plan_zeile.geaendert_am.isoformat() if plan_zeile else None,
+            "darf_schreiben": berechtigung.darf_finanzen_eintragen(request.user),
+            "rechnung": runwaydienst.rechnen(plan, szenario),
         }
     )
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([berechtigung.SocosBerechtigung])
+def runway(request):
+    """
+    `GET`: der Plan und die Rechnung (`services/runway.py`) im Szenario
+    `?szenario=konservativ|basis|optimistisch`, ohne Angabe `basis`. Gibt es
+    noch keinen Plan, kommt ein leerer — angelegt wird er beim ersten Speichern.
+
+    `PUT {plan, stand}`: ersetzt den Plan. **`stand` muss der sein, den die
+    Seite geladen hat** — sonst 409: Zwei Admins am selben Plan überschrieben
+    einander sonst still, und der zweite merkte nicht einmal, dass der erste da
+    war. Ins Protokoll geht der Unterschied, Pfad für Pfad.
+    """
+    plan_zeile = Runwayplan.objects.first()
+    if request.method == "GET":
+        return _runway_antwort(request, plan_zeile)
+
+    if not berechtigung.darf_finanzen_eintragen(request.user):
+        raise PermissionDenied("Die Runway-Planung ändern darf nur ein Admin.")
+    roh = request.data.get("plan")
+    if not isinstance(roh, dict):
+        raise ValidationError({"plan": "Es kam kein Plan an."})
+    stand = plan_zeile.geaendert_am.isoformat() if plan_zeile else None
+    if request.data.get("stand") != stand:
+        return Response(
+            {"detail": "Der Plan wurde inzwischen woanders geändert. Die Seite lädt den neuen Stand.", "code": "veraltet"},
+            status=409,
+        )
+
+    neu = runwaydienst.normalisieren(roh)
+    with transaction.atomic():
+        if plan_zeile is None:
+            plan_zeile = Runwayplan.objects.create(daten=neu)
+        else:
+            alt = runwaydienst.normalisieren(plan_zeile.daten)
+            if neu != alt:
+                plan_zeile.daten = neu
+                plan_zeile.save()
+                # Gespeichert wird jede Änderung, protokolliert, was einen
+                # Pfad hat — die Notizen nicht (siehe `unterschiede`).
+                unterschied = runwaydienst.unterschiede(alt, neu)
+                if unterschied:
+                    Protokolleintrag.schreiben(plan_zeile, Protokolleintrag.Aktion.GEAENDERT, unterschied)
+    return _runway_antwort(request, plan_zeile)
+
+
+@api_view(["POST"])
+@permission_classes([berechtigung.SocosBerechtigung])
+def runway_ist(request):
+    """
+    Die Ist-Zelle der Monatsübersicht: `{monat: "2026-10", betrag: "8600.00"}`
+    — oder `betrag: null` zum Leeren.
+
+    **Sie schreibt einen `Kontostand`**, denselben, den das Dashboard zeigt —
+    kein zweiter Ort für den Bankstand. Gibt es im Monat schon einen, wird er
+    geändert (sein Tag bleibt); sonst entsteht einer am Monatsletzten. Ein
+    weich entfernter am selben Tag wird zurückgeholt: Der Tag ist eindeutig,
+    und ein neuer daneben scheiterte daran.
+    """
+    from calendar import monthrange
+    from decimal import Decimal, InvalidOperation
+
+    if not berechtigung.darf_finanzen_eintragen(request.user):
+        raise PermissionDenied("Kontostände trägt nur ein Admin ein.")
+    monat = str(request.data.get("monat") or "")
+    try:
+        erster = date.fromisoformat(f"{monat}-01")
+    except ValueError:
+        raise ValidationError({"monat": f"„{monat}“ ist kein Monat im Format JJJJ-MM."})
+    letzter = erster.replace(day=monthrange(erster.year, erster.month)[1])
+    roh = request.data.get("betrag")
+    betrag = None
+    if roh not in (None, ""):
+        try:
+            betrag = Decimal(str(roh)).quantize(Decimal("0.01"))
+        except InvalidOperation:
+            raise ValidationError({"betrag": f"„{roh}“ ist kein Betrag."})
+
+    vorhanden = Kontostand.objects.filter(datum__gte=erster, datum__lte=letzter).order_by("-datum", "-id").first()
+    with transaction.atomic():
+        if betrag is None:
+            if vorhanden:
+                vorhanden.delete()
+        elif vorhanden:
+            vorhanden.betrag = betrag
+            vorhanden.save()
+        else:
+            alt = Kontostand.alle_objekte.filter(datum=letzter).first()
+            if alt:
+                alt.betrag = betrag
+                alt.geloescht_am = None
+                alt.save()
+            else:
+                Kontostand.objects.create(datum=letzter, betrag=betrag)
+    return _runway_antwort(request, Runwayplan.objects.first())
 
 
 # --- Nutzer und Protokoll ---------------------------------------------------
