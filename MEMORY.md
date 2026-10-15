@@ -7,6 +7,28 @@ betrifft.
 
 ---
 
+## 2026-10-15 — Designentscheidungen: mit KI überarbeiten (kein Schema)
+
+**Bernd:** alle ausgefüllten Felder als LLM-Befehl kopieren, Rechtschreibung
+und Formulierung von einer KI machen lassen und die Antwort in **ein** Feld
+zurückkopieren, das sie auf die Felder verteilt.
+
+- **Über die Zwischenablage, keine Anbindung an einen KI-Dienst.** Kein Text
+  verlässt SoCoS, ohne dass jemand ihn selbst irgendwo einfügt; kein
+  Schlüssel, kein Dienst zu pflegen. Welche KI, entscheidet der Nutzer.
+- **Getrennt wird an `=== Titel ===`-Zeilen** (`basis/designtext.ts`), mit
+  `=== ENDE ===` am Schluss: Plauderei der KI davor und danach fällt weg,
+  ebenso Fettdruck, `#` und Codezäune um die Trenner.
+- **Ein leerer oder fehlender Abschnitt ändert nichts** — eine KI, die einen
+  verschluckt, löscht damit keinen Text. Unbekannte Abschnitte werden genannt
+  und nicht übernommen.
+- **Übernommen wird in einem PATCH**, nur was sich unterscheidet. Damit steht
+  im Änderungsprotokoll ein Eintrag mit alt → neu je Feld; der Text vor der KI
+  ist dort nachlesbar. Die Pflichtregel für „entschieden" prüft der Server
+  wie immer.
+
+---
+
 ## 2026-10-15 — Designentscheidungen in der zweiten Optik; Regel zur Abweichung
 
 **Bernd:** „geh weg ein bisschen von diesem Werkbank-Design, ich hab das

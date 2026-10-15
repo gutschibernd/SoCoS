@@ -4168,6 +4168,21 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
 .de-feld .inline-aendern { text-align: left; }
 .de-entfernen { align-self: flex-start; }
 
+.de-kopfknoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Die Antwort der KI: auf der Fläche, nicht auf --rw-surface-2 — dort fiele
+   --rw-bad dunkel unter 4,5. Gerechnet auf --rw-surface: --rw-accent 6,8 ·
+   --rw-bad 5,59 · --rw-muted 5,69 (dunkel 7,65 · 5,74 · 7,26). */
+.de-ki { display: flex; flex-direction: column; gap: 10px; margin: 16px 0 4px; padding: 12px 14px 14px; border: 1px solid var(--rw-accent); border-radius: 10px; background: var(--rw-surface); }
+.de-ki-kopf { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.de-ki-kopf h2 { font-size: 13px; font-weight: 700; color: var(--rw-accent); }
+.de-ki .feld { width: 100%; font-size: 16px; line-height: 1.5; border-radius: 8px; resize: vertical; }
+.de-ki-felder { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; color: var(--rw-ink); }
+.de-ki-felder li { display: flex; justify-content: space-between; gap: 12px; }
+.de-ki-felder li span { color: var(--rw-muted); }
+.de-ki-felder li[data-ton="neu"] span { color: var(--rw-accent); font-weight: 600; }
+.de-ki-felder li[data-ton="schlecht"], .de-ki-felder li[data-ton="schlecht"] span { color: var(--rw-bad); }
+.de-ki-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
+
 @media (max-width: 900px) {
   .de-raster { grid-template-columns: minmax(0, 1fr); grid-template-areas: "haupt" "seite"; }
   .de-seite { position: static; }
@@ -4181,5 +4196,5 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
   .de .pl-seg-klein button { padding: 5px 8px; }
 }
 @media (pointer: coarse) {
-  .de-standwahl button, .de .pl-knopf, .de .pl-knopf-leise, .de-pruefliste li button { min-height: var(--griff); }
+  .de-standwahl button, .de .pl-knopf, .de .pl-knopf-leise, .de-pruefliste li button, .de-ki-kopf .de-textknopf { min-height: var(--griff); }
 }

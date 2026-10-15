@@ -35,6 +35,7 @@ import {
   type Entscheidungsstand,
   type Ich,
 } from "../basis/daten";
+import { ABSCHNITTE, kiAbgleich, kiAntwortLesen, kiBefehl } from "../basis/designtext";
 import { melden } from "../basis/meldungen";
 import { entscheidungsZahl } from "../basis/module";
 import type { Seite } from "../basis/router";
@@ -52,26 +53,6 @@ const STAENDE: { wert: Entscheidungsstand; text: string; mehrzahl: string }[] = 
   { wert: "entwurf", text: "Entwurf", mehrzahl: "Entwürfe" },
   { wert: "entschieden", text: "Entschieden", mehrzahl: "Entschieden" },
   { wert: "ersetzt", text: "Ersetzt", mehrzahl: "Ersetzt" },
-];
-
-type Textfeld = "ausgangslage" | "alternativen" | "entscheidung" | "begruendung" | "sicherheit" | "verweise";
-
-/**
- * Die Abschnitte in der Reihenfolge des PDF — dort steht dieselbe Folge. Die
- * Frage steht im leeren Feld: Sie sagt, was hineingehört, und verschwindet,
- * sobald etwas dasteht.
- */
-const ABSCHNITTE: { feld: Textfeld; titel: string; frage: string }[] = [
-  { feld: "ausgangslage", titel: "Ausgangslage", frage: "Welches Problem, welche Anforderung, welcher Befund?" },
-  { feld: "alternativen", titel: "Betrachtete Alternativen", frage: "Welche Wege standen zur Wahl? Einer je Zeile, mit - davor." },
-  { feld: "entscheidung", titel: "Entscheidung", frage: "Was wird so gemacht?" },
-  { feld: "begruendung", titel: "Begründung", frage: "Warum dieser Weg und nicht die anderen?" },
-  {
-    feld: "sicherheit",
-    titel: "Auswirkung auf die Sicherheit",
-    frage: "Welches Risiko sinkt, welches entsteht? Auch „keine, weil …“ ist eine Antwort.",
-  },
-  { feld: "verweise", titel: "Verweise", frage: "Einer je Zeile: Risiko R-12, Anforderung A-3, ISO 14971, Prüfbericht …" },
 ];
 
 /** Wie ein fehlendes Pflichtfeld in der Liste daneben heißt. Die Regel selbst steht am Server. */
@@ -318,6 +299,17 @@ export function Entscheidungsseite({ ich, id, wechseln }: { ich: Ich; id: number
 function Entscheidung({ e, ich, wechseln }: { e: Designentscheidung; ich: Ich; wechseln: Wechseln }) {
   const speichern = useSpeichern(e);
   const darf = ich.darf.bearbeiten;
+  const [kiOffen, setKiOffen] = useState(false);
+
+  async function fuerKiKopieren() {
+    try {
+      await navigator.clipboard.writeText(kiBefehl(e));
+      melden("gut", "Kopiert. In die KI einfügen, ihre Antwort unten zurück.");
+      setKiOffen(true);
+    } catch {
+      melden("fehler", "Der Browser hat das Kopieren nicht erlaubt.");
+    }
+  }
 
   return (
     <div className="pl de">
@@ -342,16 +334,25 @@ function Entscheidung({ e, ich, wechseln }: { e: Designentscheidung; ich: Ich; w
             Zuletzt geändert {new Date(e.geaendert_am).toLocaleDateString("de-AT")}
           </span>
         </div>
-        <a className="pl-knopf-leise" href={`/api/designentscheidungen/${e.id}/pdf/`}>
-          <Zeichen name="pdf" />
-          PDF
-        </a>
+        <div className="de-kopfknoepfe">
+          {darf && (
+            <button type="button" className="pl-knopf-leise" onClick={fuerKiKopieren}>
+              <Zeichen name="kopie" />
+              Mit KI überarbeiten
+            </button>
+          )}
+          <a className="pl-knopf-leise" href={`/api/designentscheidungen/${e.id}/pdf/`}>
+            <Zeichen name="pdf" />
+            PDF
+          </a>
+        </div>
       </header>
 
       <div className="de-raster">
         <Standtafel e={e} ich={ich} wechseln={wechseln} />
 
         <section className="pl-tafel de-haupt">
+          {kiOffen && <KiAntwort e={e} erneutKopieren={fuerKiKopieren} schliessen={() => setKiOffen(false)} />}
           {ABSCHNITTE.map((a) => (
             <div key={a.feld} id={`de-${a.feld}`} className="de-abschnitt" data-feld={a.feld}>
               <h2>{a.titel}</h2>
@@ -367,6 +368,96 @@ function Entscheidung({ e, ich, wechseln }: { e: Designentscheidung; ich: Ich; w
             </div>
           ))}
         </section>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Das Feld für die Antwort der KI. Was es erkennt, steht darunter, bevor
+ * man übernimmt — eine KI, die einen Trenner verschluckt hat, soll man sehen,
+ * nicht erst im PDF. Übernommen wird in **einem** PATCH: Im Änderungsprotokoll
+ * steht damit ein Eintrag mit alt → neu je Feld, und wer zurück will, findet
+ * den alten Text dort.
+ */
+function KiAntwort({
+  e,
+  erneutKopieren,
+  schliessen,
+}: {
+  e: Designentscheidung;
+  erneutKopieren: () => void;
+  schliessen: () => void;
+}) {
+  const neuLaden = useNeuLaden();
+  const [text, setText] = useState("");
+  const [laeuft, setLaeuft] = useState(false);
+
+  const { felder, unbekannt } = kiAntwortLesen(text);
+  const abgleich = kiAbgleich(e, felder);
+  const geaendert = abgleich.filter((z) => z.geaendert);
+
+  async function uebernehmen() {
+    if (geaendert.length === 0 || laeuft) return;
+    setLaeuft(true);
+    try {
+      await hole(`/designentscheidungen/${e.id}/`, {
+        method: "PATCH",
+        body: JSON.stringify(Object.fromEntries(geaendert.map((z) => [z.feld, z.neu]))),
+      });
+      neuLaden();
+      melden("gut", geaendert.length === 1 ? "Ein Feld übernommen." : `${geaendert.length} Felder übernommen.`);
+      schliessen();
+    } catch {
+      // `hole` hat den Grund gemeldet; der Text bleibt zum Nachbessern stehen.
+      setLaeuft(false);
+    }
+  }
+
+  return (
+    <div className="de-ki">
+      <div className="de-ki-kopf">
+        <h2>Antwort der KI</h2>
+        <button type="button" className="de-textknopf" onClick={erneutKopieren}>
+          Nochmal kopieren
+        </button>
+      </div>
+      <textarea
+        className="feld"
+        rows={8}
+        value={text}
+        autoFocus
+        placeholder="Antwort der KI hier einfügen, samt der Zeilen mit ==="
+        aria-label="Antwort der KI"
+        onChange={(ev) => setText(ev.target.value)}
+      />
+      {text.trim() && (
+        <ul className="de-ki-felder">
+          {abgleich.length === 0 && (
+            <li data-ton="schlecht">Keine Abschnitte erkannt. Die Zeilen mit === müssen in der Antwort stehen.</li>
+          )}
+          {abgleich.map((z) => (
+            <li key={z.feld} data-ton={z.geaendert ? "neu" : undefined}>
+              {z.titel}
+              <span>{z.geaendert ? "wird ersetzt" : "unverändert"}</span>
+            </li>
+          ))}
+          {unbekannt.map((n) => (
+            <li key={n} data-ton="schlecht">
+              {n}
+              <span>gibt es nicht, bleibt weg</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="de-ki-knoepfe">
+        <button type="button" className="pl-knopf" disabled={geaendert.length === 0 || laeuft} onClick={uebernehmen}>
+          <Zeichen name="haken" />
+          {geaendert.length > 1 ? `${geaendert.length} Felder übernehmen` : "Übernehmen"}
+        </button>
+        <button type="button" className="pl-knopf-leise" onClick={schliessen}>
+          Schließen
+        </button>
       </div>
     </div>
   );

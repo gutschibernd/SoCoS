@@ -1065,6 +1065,7 @@ function ModuleDoku() {
           schritte={[
             "In der letzten Zeile der Liste den Titel eintippen und Enter: Die Entscheidung steht als Entwurf da, bekommt ihre Nummer, etwa DE-007, und ihre Seite geht auf.",
             "Auf der Seite schreibst du direkt hinein: ein Klick auf einen Abschnitt, schreiben, daneben klicken — gespeichert ist es. Escape nimmt zurück. Das leere Feld sagt, was hineingehört.",
+            "Rechtschreibung und Formulierung von einer KI glätten lassen: „Mit KI überarbeiten“ kopiert alle ausgefüllten Felder samt Arbeitsauftrag. In ChatGPT, Claude o. Ä. einfügen, die Antwort komplett kopieren und in das Feld einfügen, das sich auf der Seite geöffnet hat. Darunter steht, welche Felder sich ändern; „Übernehmen“ verteilt sie zurück. Die Zeilen mit === müssen in der Antwort bleiben, daran wird getrennt.",
             "Rechts (am Handy oben) steht der Stand. Solange sie Entwurf ist, steht dort, was zum Entscheiden noch fehlt; ein Klick darauf springt zum Abschnitt.",
             "Ist alles da, „Entschieden“ wählen. Das Datum wird auf heute gesetzt, wenn noch keines dasteht.",
             "„PDF“ auf der Seite lädt die Entscheidung allein, auch als Entwurf (dann deutlich so gekennzeichnet). „PDF für die Akte“ über der Liste lädt alle entschiedenen und ersetzten auf einmal, mit Übersicht vorn.",
