@@ -1063,10 +1063,12 @@ function ModuleDoku() {
       >
         <Schritte
           schritte={[
-            "„+ Entscheidung“ legt eine an. Ein Titel genügt für den Anfang; sie steht dann als Entwurf da und bekommt ihre Nummer, etwa DE-007.",
-            "Ein Klick auf die Zeile öffnet die Entscheidung, „Bearbeiten“ das Fenster mit allen Feldern. Schreib Ausgangslage, Alternativen, Entscheidung, Begründung und die Auswirkung auf die Sicherheit dazu, sobald sie feststehen.",
-            "Ist sie getroffen, stell den Stand auf „Entschieden“. Datum, Entscheidung, Begründung und Sicherheit müssen dann dastehen — sonst lehnt „Speichern“ ab und sagt, was fehlt.",
-            "„PDF“ auf der Seite einer Entscheidung lädt sie allein, auch als Entwurf (dann deutlich so gekennzeichnet). „PDF für die Akte“ über der Liste lädt alle entschiedenen und ersetzten auf einmal, mit Übersicht vorn.",
+            "In der letzten Zeile der Liste den Titel eintippen und Enter: Die Entscheidung steht als Entwurf da, bekommt ihre Nummer, etwa DE-007, und ihre Seite geht auf.",
+            "Auf der Seite schreibst du direkt hinein: ein Klick auf einen Abschnitt, schreiben, daneben klicken — gespeichert ist es. Escape nimmt zurück. Das leere Feld sagt, was hineingehört.",
+            "Rechts (am Handy oben) steht der Stand. Solange sie Entwurf ist, steht dort, was zum Entscheiden noch fehlt; ein Klick darauf springt zum Abschnitt.",
+            "Ist alles da, „Entschieden“ wählen. Das Datum wird auf heute gesetzt, wenn noch keines dasteht.",
+            "„PDF“ auf der Seite lädt die Entscheidung allein, auch als Entwurf (dann deutlich so gekennzeichnet). „PDF für die Akte“ über der Liste lädt alle entschiedenen und ersetzten auf einmal, mit Übersicht vorn.",
+            "Über der Liste filterst du nach Stand und suchst — auch in Texten und Verweisen. Wer „R-12“ sucht, findet jede Entscheidung, die auf dieses Risiko verweist.",
           ]}
         />
         <Merke>
@@ -1102,7 +1104,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Wer was darf",
-              text: "Sehen und PDFs laden dürfen alle. Anlegen und ändern dürfen Admin und Bearbeiter. Entfernen darf nur der Admin; milder ist, eine Entscheidung als ersetzt zu führen.",
+              text: "Sehen und PDFs laden dürfen alle. Anlegen und ändern dürfen Admin und Bearbeiter. Entfernen darf nur der Admin, unten im Stand der Entscheidung; milder ist, sie als ersetzt zu führen.",
             },
           ]}
         />

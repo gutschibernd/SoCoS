@@ -510,6 +510,8 @@ export type Designentscheidung = {
   sicherheit: string;
   /** Ein Verweis je Zeile. */
   verweise: string;
+  /** Die Pflichtfelder, die für „entschieden" noch leer sind — die Regel steht am Server. */
+  fehlt: string[];
   geaendert_am: string;
 };
 

@@ -2,17 +2,29 @@
  * Module · Designentscheidungen: die begründeten Entscheidungen für die
  * technische Dokumentation (ISO 13485, Designlenkung).
  *
- * Eine Liste, je Entscheidung eine Seite (`/module/design/7`), bearbeitet
- * wird in einem Fenster. Das PDF zeichnet der Server
- * (`socos/services/designentscheidung.py`) — einzeln für jede Entscheidung,
- * gesamt für die Akte, dort ohne Entwürfe.
+ * Eine Liste, je Entscheidung eine Seite (`/module/design/7`). Das PDF
+ * zeichnet der Server (`socos/services/designentscheidung.py`) — einzeln für
+ * jede Entscheidung, gesamt für die Akte, dort ohne Entwürfe.
  *
- * **Eine ersetzte Entscheidung bleibt in der Liste**, grau. Sie ist kein
+ * **Eigene Optik wie die Projektplanung** (`.pl`, Farben `--rw-*`; Bernd,
+ * 2026-10-15: weg vom Werkbank-Stil, wo er die Arbeit schlechter macht).
+ * Daraus folgt mehr als die Farbe:
+ *
+ * - **Bearbeitet wird an Ort und Stelle**, nicht in einem Fenster. Eine
+ *   Begründung wächst über Wochen, Satz für Satz — wer für jeden Satz ein
+ *   Fenster mit zehn Feldern öffnet, schreibt ihn irgendwann nicht mehr hin.
+ * - **Was zu „entschieden" fehlt, steht neben dem Stand**, bevor man umstellt.
+ *   Die Liste kommt vom Server (`fehlt`), aus derselben Regel, mit der er
+ *   abweist.
+ * - **Eine neue Entscheidung entsteht in der Liste**: Titel tippen, Enter —
+ *   und man steht auf ihrer Seite.
+ *
+ * **Eine ersetzte Entscheidung bleibt in der Liste.** Sie ist kein
  * Archivstück, sondern Teil der Begründungskette: Wer fragt, warum DE-012
  * so ist, will auch DE-004 sehen, die sie abgelöst hat.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { hole } from "../basis/api";
 import { datumIn } from "../basis/aufgaben";
@@ -24,9 +36,11 @@ import {
   type Ich,
 } from "../basis/daten";
 import { melden } from "../basis/meldungen";
-import { entscheidungsZahl, punkteAusText } from "../basis/module";
+import { entscheidungsZahl } from "../basis/module";
 import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
+import { Datumsfeld } from "../bausteine/Datumsfeld";
+import { Feldtext } from "../bausteine/Feldtext";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 
@@ -34,16 +48,22 @@ type Wechseln = (seite: Seite, unter?: string | null) => void;
 
 const WEG = "design";
 
-const STAENDE: { wert: Entscheidungsstand; text: string; klasse: string }[] = [
-  { wert: "entwurf", text: "Entwurf", klasse: "stand-offen" },
-  { wert: "entschieden", text: "Entschieden", klasse: "stand-getroffen" },
-  { wert: "ersetzt", text: "Ersetzt", klasse: "stand-leer" },
+const STAENDE: { wert: Entscheidungsstand; text: string; mehrzahl: string }[] = [
+  { wert: "entwurf", text: "Entwurf", mehrzahl: "Entwürfe" },
+  { wert: "entschieden", text: "Entschieden", mehrzahl: "Entschieden" },
+  { wert: "ersetzt", text: "Ersetzt", mehrzahl: "Ersetzt" },
 ];
 
-/** Die Abschnitte in der Reihenfolge des PDF — dort steht dieselbe Liste. */
+type Textfeld = "ausgangslage" | "alternativen" | "entscheidung" | "begruendung" | "sicherheit" | "verweise";
+
+/**
+ * Die Abschnitte in der Reihenfolge des PDF — dort steht dieselbe Folge. Die
+ * Frage steht im leeren Feld: Sie sagt, was hineingehört, und verschwindet,
+ * sobald etwas dasteht.
+ */
 const ABSCHNITTE: { feld: Textfeld; titel: string; frage: string }[] = [
   { feld: "ausgangslage", titel: "Ausgangslage", frage: "Welches Problem, welche Anforderung, welcher Befund?" },
-  { feld: "alternativen", titel: "Betrachtete Alternativen", frage: "Welche Wege standen zur Wahl? Einer je Zeile mit - davor." },
+  { feld: "alternativen", titel: "Betrachtete Alternativen", frage: "Welche Wege standen zur Wahl? Einer je Zeile, mit - davor." },
   { feld: "entscheidung", titel: "Entscheidung", frage: "Was wird so gemacht?" },
   { feld: "begruendung", titel: "Begründung", frage: "Warum dieser Weg und nicht die anderen?" },
   {
@@ -51,108 +71,222 @@ const ABSCHNITTE: { feld: Textfeld; titel: string; frage: string }[] = [
     titel: "Auswirkung auf die Sicherheit",
     frage: "Welches Risiko sinkt, welches entsteht? Auch „keine, weil …“ ist eine Antwort.",
   },
+  { feld: "verweise", titel: "Verweise", frage: "Einer je Zeile: Risiko R-12, Anforderung A-3, ISO 14971, Prüfbericht …" },
 ];
 
-type Textfeld = "ausgangslage" | "alternativen" | "entscheidung" | "begruendung" | "sicherheit";
+/** Wie ein fehlendes Pflichtfeld in der Liste daneben heißt. Die Regel selbst steht am Server. */
+const PFLICHTNAME: Record<string, string> = {
+  entschieden_am: "Datum der Entscheidung",
+  entscheidung: "Entscheidung",
+  begruendung: "Begründung",
+  sicherheit: "Auswirkung auf die Sicherheit",
+};
+
+/**
+ * Was zum Entscheiden noch fehlt, ohne das Datum: Das setzt „Entschieden"
+ * selbst auf heute. Liste und Seite zählen damit dasselbe.
+ */
+const offenZumEntscheiden = (e: Designentscheidung) =>
+  e.stand === "entwurf" ? e.fehlt.filter((f) => f !== "entschieden_am") : [];
 
 const tagText = (d: string) => d.split("-").map(Number).reverse().join(".");
-const stand = (wert: Entscheidungsstand) => STAENDE.find((s) => s.wert === wert) ?? STAENDE[0];
+const standText = (wert: Entscheidungsstand) => STAENDE.find((s) => s.wert === wert)?.text ?? wert;
 
-function Standmarke({ wert }: { wert: Entscheidungsstand }) {
-  const s = stand(wert);
-  return <span className={`stand ${s.klasse}`}>{s.text}</span>;
+function Standpille({ wert }: { wert: Entscheidungsstand }) {
+  return (
+    <span className="de-stand" data-stand={wert}>
+      {standText(wert)}
+    </span>
+  );
+}
+
+/** Speichert einen Teil einer Entscheidung. Wirft, wenn der Server ablehnt — `Feldtext` setzt dann zurück. */
+function useSpeichern(e: Designentscheidung) {
+  const neuLaden = useNeuLaden();
+  return async (teil: Partial<Designentscheidung>) => {
+    await hole(`/designentscheidungen/${e.id}/`, { method: "PATCH", body: JSON.stringify(teil) });
+    neuLaden();
+  };
 }
 
 /* --- Die Liste -------------------------------------------------------------- */
 
+type Filter = "alle" | Entscheidungsstand;
+
+/** Findet in Kennung, Titel und allen Texten — wer „R-12" sucht, findet jede Entscheidung, die darauf verweist. */
+function passt(e: Designentscheidung, suche: string) {
+  const s = suche.trim().toLowerCase();
+  if (!s) return true;
+  return [e.kennung, e.titel, ...ABSCHNITTE.map((a) => e[a.feld])].some((t) => t.toLowerCase().includes(s));
+}
+
 export function Designliste({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }) {
   const liste = useDesignentscheidungen();
-  const [neu, setNeu] = useState(false);
+  const [filter, setFilter] = useState<Filter>("alle");
+  const [suche, setSuche] = useState("");
 
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
   if (!liste.data) return <Zustand abfrage={liste} erneut={() => liste.refetch()} />;
 
   const alle = liste.data;
-  const oeffnen = (e: Designentscheidung) => wechseln("module", `${WEG}/${e.id}`);
-
-  const neuKnopf = ich.darf.bearbeiten && (
-    <button type="button" className="knopf" onClick={() => setNeu(true)}>
-      <Zeichen name="plus" />
-      Entscheidung
-    </button>
-  );
+  const zahl = (f: Filter) => (f === "alle" ? alle.length : alle.filter((e) => e.stand === f).length);
+  const gezeigt = alle.filter((e) => (filter === "alle" || e.stand === filter) && passt(e, suche));
+  const entwuerfe = zahl("entwurf");
+  const fuerAkte = alle.length - entwuerfe;
+  const oeffnen = (e: { id: number }) => wechseln("module", `${WEG}/${e.id}`);
 
   return (
-    <div className="spalte">
-      <div className="vorhabenleiste">
-        <div className="vorhaben-kopf">
-          <b>Designentscheidungen</b>
-          <span>{entscheidungsZahl(alle.length)}</span>
+    <div className="pl de">
+      <header className="pl-kopf">
+        <div className="pl-marke">
+          <span className="pl-eyebrow">Technische Dokumentation</span>
+          <h1 className="pl-titel">Designentscheidungen</h1>
+          <span className="pl-sub">
+            {entscheidungsZahl(alle.length)}
+            {entwuerfe > 0 && ` · ${entwuerfe} ${entwuerfe === 1 ? "Entwurf" : "Entwürfe"}`}
+          </span>
         </div>
+        {/* Ein Link und kein fetch: Das PDF soll im Download-Ordner landen.
+            Ohne eine entschiedene gäbe es nichts für die Akte. */}
+        {fuerAkte > 0 ? (
+          <a className="pl-knopf" href="/api/designentscheidungen/gesamt/">
+            <Zeichen name="pdf" />
+            PDF für die Akte
+          </a>
+        ) : (
+          alle.length > 0 && (
+            <button type="button" className="pl-knopf" disabled title="Noch keine Entscheidung ist entschieden.">
+              <Zeichen name="pdf" />
+              PDF für die Akte
+            </button>
+          )
+        )}
+      </header>
+
+      <section className="pl-tafel">
         {alle.length > 0 && (
-          <div className="vorhaben-aktionen">
-            {/* Ein Link und kein fetch: Das PDF soll im Download-Ordner
-                landen. Ohne eine entschiedene gäbe es nichts für die Akte. */}
-            {alle.some((e) => e.stand !== "entwurf") ? (
-              <a className="knopf-still" href="/api/designentscheidungen/gesamt/">
-                <Zeichen name="pdf" />
-                PDF für die Akte
-              </a>
-            ) : (
-              <button type="button" className="knopf-still" disabled>
-                <Zeichen name="pdf" />
-                PDF für die Akte
-              </button>
-            )}
-            {neuKnopf}
+          <div className="pl-leiste">
+            <div className="pl-seg pl-seg-klein" role="group" aria-label="Stand">
+              {(["alle", ...STAENDE.map((s) => s.wert)] as Filter[]).map((f) => (
+                <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>
+                  {f === "alle" ? "Alle" : STAENDE.find((s) => s.wert === f)?.mehrzahl}{" "}
+                  <span className="zahl">{zahl(f)}</span>
+                </button>
+              ))}
+            </div>
+            <label className="de-suche">
+              <Zeichen name="lupe" />
+              <input
+                type="search"
+                value={suche}
+                placeholder="Suchen, auch in den Texten"
+                aria-label="Suchen"
+                onChange={(ev) => setSuche(ev.target.value)}
+              />
+            </label>
           </div>
         )}
-      </div>
 
-      {alle.length === 0 ? (
-        <div className="karte leerstelle">
-          <b>Noch keine Entscheidung</b>
-          <p>Ein Titel genügt für den Anfang. Entschieden ist sie, wenn Begründung und Sicherheit dastehen.</p>
-          {neuKnopf}
-        </div>
-      ) : (
-        <ul className="karte entscheidungen">
-          {alle.map((e) => (
-            <li key={e.id} data-stand={e.stand}>
-              <a
-                className="entscheidung-link"
-                href={`/module/${WEG}/${e.id}`}
-                onClick={(ev) => {
-                  ev.preventDefault();
-                  oeffnen(e);
-                }}
-              >
-                <span className="entscheidung-kennung">{e.kennung}</span>
-                <span className="entscheidung-titel">
-                  <b>{e.titel}</b>
-                  {e.entschieden_am && (
+        {alle.length === 0 ? (
+          <p className="pl-leer">Noch keine Entscheidung. Ein Titel genügt für den Anfang.</p>
+        ) : gezeigt.length === 0 ? (
+          <p className="pl-leer">
+            Nichts gefunden.{" "}
+            <button
+              type="button"
+              className="de-textknopf"
+              onClick={() => {
+                setFilter("alle");
+                setSuche("");
+              }}
+            >
+              Alle zeigen
+            </button>
+          </p>
+        ) : (
+          <ul className="de-liste">
+            {gezeigt.map((e) => (
+              <li key={e.id}>
+                <a
+                  className="de-zeile"
+                  data-stand={e.stand}
+                  href={`/module/${WEG}/${e.id}`}
+                  onClick={(ev) => {
+                    ev.preventDefault();
+                    oeffnen(e);
+                  }}
+                >
+                  <span className="pl-nr">{e.kennung}</span>
+                  <span className="de-zeilentitel">
+                    <b>{e.titel}</b>
                     <span>
-                      {tagText(e.entschieden_am)}
-                      {e.entschieden_von && ` · ${e.entschieden_von}`}
+                      {e.entscheidung.trim()
+                        ? e.entscheidung.trim().split("\n")[0]
+                        : "Noch keine Entscheidung eingetragen"}
                     </span>
-                  )}
-                </span>
-                <Standmarke wert={e.stand} />
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
+                  </span>
+                  <span className="de-zeilenstand">
+                    <Standpille wert={e.stand} />
+                    <span className="de-zeilendatum">
+                      {e.entschieden_am
+                        ? tagText(e.entschieden_am)
+                        : offenZumEntscheiden(e).length > 0 && `noch ${offenZumEntscheiden(e).length} offen`}
+                    </span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {neu && (
-        <Entscheidungsfenster
-          entscheidung={null}
-          darfLoeschen={false}
-          schliessen={() => setNeu(false)}
-          angelegt={oeffnen}
-        />
-      )}
+        {ich.darf.bearbeiten && <NeueEntscheidung angelegt={oeffnen} />}
+      </section>
     </div>
+  );
+}
+
+/** Die letzte Zeile der Liste: Titel tippen, Enter — und man steht auf der neuen Seite. */
+function NeueEntscheidung({ angelegt }: { angelegt: (e: Designentscheidung) => void }) {
+  const neuLaden = useNeuLaden();
+  const [titel, setTitel] = useState("");
+  const [laeuft, setLaeuft] = useState(false);
+
+  async function anlegen() {
+    const t = titel.trim();
+    if (!t || laeuft) return;
+    setLaeuft(true);
+    try {
+      const neu = await hole<Designentscheidung>("/designentscheidungen/", {
+        method: "POST",
+        body: JSON.stringify({ titel: t }),
+      });
+      neuLaden();
+      melden("gut", `${neu.kennung} „${neu.titel}“ ist angelegt.`);
+      angelegt(neu);
+    } catch {
+      // `hole` hat den Grund schon gemeldet; der Titel bleibt stehen.
+      setLaeuft(false);
+    }
+  }
+
+  return (
+    <form
+      className="pl-neu"
+      onSubmit={(ev) => {
+        ev.preventDefault();
+        anlegen();
+      }}
+    >
+      <Zeichen name="plus" />
+      <input
+        value={titel}
+        maxLength={200}
+        placeholder="Neue Entscheidung: Titel eintippen, Enter"
+        aria-label="Titel einer neuen Entscheidung"
+        disabled={laeuft}
+        onChange={(ev) => setTitel(ev.target.value)}
+      />
+    </form>
   );
 }
 
@@ -160,353 +294,225 @@ export function Designliste({ ich, wechseln }: { ich: Ich; wechseln: Wechseln })
 
 export function Entscheidungsseite({ ich, id, wechseln }: { ich: Ich; id: number; wechseln: Wechseln }) {
   const liste = useDesignentscheidungen();
-  const [bearbeiten, setBearbeiten] = useState(false);
 
   if (!liste.data) return <Zustand abfrage={liste} erneut={() => liste.refetch()} />;
 
   const e = liste.data.find((x) => x.id === id);
   if (!e) {
     return (
-      <div className="karte leerstelle">
-        <b>Diese Entscheidung gibt es nicht mehr</b>
-        <p>Sie wurde entfernt. Ein Admin kann sie wiederherstellen.</p>
-        <button type="button" className="knopf-still" onClick={() => wechseln("module", WEG)}>
-          Zu den Designentscheidungen
-        </button>
+      <div className="pl de">
+        <section className="pl-tafel">
+          <h2>Diese Entscheidung gibt es nicht mehr</h2>
+          <p className="pl-leer">Sie wurde entfernt. Ein Admin kann sie wiederherstellen.</p>
+          <button type="button" className="pl-knopf-leise" onClick={() => wechseln("module", WEG)}>
+            Zu den Designentscheidungen
+          </button>
+        </section>
       </div>
     );
   }
 
-  const verweise = punkteAusText(e.verweise);
+  return <Entscheidung key={e.id} e={e} ich={ich} wechseln={wechseln} />;
+}
+
+function Entscheidung({ e, ich, wechseln }: { e: Designentscheidung; ich: Ich; wechseln: Wechseln }) {
+  const speichern = useSpeichern(e);
+  const darf = ich.darf.bearbeiten;
 
   return (
-    <div className="spalte">
-      <div className="vorhabenleiste">
-        <div className="vorhaben-kopf">
-          <b className="thema-titel">
-            <span className="entscheidung-kennung">{e.kennung}</span> {e.titel}
-          </b>
-          <span>
-            {stand(e.stand).text}
-            {e.entschieden_am && ` · entschieden am ${tagText(e.entschieden_am)}`}
-            {e.entschieden_von && ` von ${e.entschieden_von}`}
+    <div className="pl de">
+      <header className="pl-kopf">
+        <div className="pl-marke">
+          <a
+            className="pl-eyebrow"
+            href={`/module/${WEG}`}
+            onClick={(ev) => {
+              ev.preventDefault();
+              wechseln("module", WEG);
+            }}
+          >
+            Designentscheidungen
+          </a>
+          <h1 className="pl-titel de-titel">
+            <span className="de-kennung">{e.kennung}</span>
+            <Feldtext wert={e.titel} aendern={darf} speichern={(titel) => speichern({ titel })} />
+          </h1>
+          <span className="pl-sub de-kopfstand">
+            <Standpille wert={e.stand} />
+            Zuletzt geändert {new Date(e.geaendert_am).toLocaleDateString("de-AT")}
           </span>
         </div>
-        <div className="vorhaben-aktionen">
-          <a className="knopf-still" href={`/api/designentscheidungen/${e.id}/pdf/`}>
-            <Zeichen name="pdf" />
-            PDF
-          </a>
-          {ich.darf.bearbeiten && (
-            <button type="button" className="knopf-still" onClick={() => setBearbeiten(true)}>
-              <Zeichen name="stift" />
-              Bearbeiten
-            </button>
-          )}
-        </div>
+        <a className="pl-knopf-leise" href={`/api/designentscheidungen/${e.id}/pdf/`}>
+          <Zeichen name="pdf" />
+          PDF
+        </a>
+      </header>
+
+      <div className="de-raster">
+        <Standtafel e={e} ich={ich} wechseln={wechseln} />
+
+        <section className="pl-tafel de-haupt">
+          {ABSCHNITTE.map((a) => (
+            <div key={a.feld} id={`de-${a.feld}`} className="de-abschnitt" data-feld={a.feld}>
+              <h2>{a.titel}</h2>
+              <Feldtext
+                wert={e[a.feld]}
+                aendern={darf}
+                mehrzeilig
+                zeilen={a.feld === "verweise" ? 4 : 7}
+                platzhalter={a.frage}
+                klasse="de-text"
+                speichern={(text) => speichern({ [a.feld]: text } as Partial<Designentscheidung>)}
+              />
+            </div>
+          ))}
+        </section>
       </div>
-
-      <section className="karte thema">
-        {ABSCHNITTE.map((a, i) => (
-          <div key={a.feld}>
-            <h2 className={i === 0 ? "beschriftung-klein" : "beschriftung-klein thema-zwischentitel"}>{a.titel}</h2>
-            {e[a.feld].trim() ? <p className="thema-text">{e[a.feld]}</p> : <p className="thema-leer">Noch nichts.</p>}
-          </div>
-        ))}
-        <h2 className="beschriftung-klein thema-zwischentitel">Verweise</h2>
-        {verweise.length > 0 ? (
-          <ul className="thema-punkte">
-            {verweise.map((v, i) => (
-              <li key={i}>{v}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="thema-leer">Noch keine.</p>
-        )}
-      </section>
-
-      {bearbeiten && (
-        <Entscheidungsfenster
-          entscheidung={e}
-          darfLoeschen={ich.darf.loeschen}
-          schliessen={() => setBearbeiten(false)}
-          nachLoeschen={() => wechseln("module", WEG)}
-        />
-      )}
     </div>
   );
 }
 
-/* --- Anlegen und bearbeiten -------------------------------------------------- */
-
-type Entwurf = Pick<
-  Designentscheidung,
-  "titel" | "stand" | "entschieden_von" | "verweise" | Textfeld
-> & { entschieden_am: string };
-
-function anfangVon(e: Designentscheidung | null): Entwurf {
-  return {
-    titel: e?.titel ?? "",
-    stand: e?.stand ?? "entwurf",
-    entschieden_am: e?.entschieden_am ?? "",
-    entschieden_von: e?.entschieden_von ?? "",
-    ausgangslage: e?.ausgangslage ?? "",
-    alternativen: e?.alternativen ?? "",
-    entscheidung: e?.entscheidung ?? "",
-    begruendung: e?.begruendung ?? "",
-    sicherheit: e?.sicherheit ?? "",
-    verweise: e?.verweise ?? "",
-  };
-}
-
 /**
- * Alle Felder in einem Fenster, mit einem Speichern. Was zu „entschieden"
- * fehlt, sagt der Server beim Speichern — dort steht die Regel, und das
- * Fenster bleibt dann offen, damit nichts verloren geht.
+ * Stand, Datum, wer — und was zu „entschieden" noch fehlt. Steht am Rand,
+ * damit man beim Schreiben sieht, wie weit die Entscheidung ist.
  */
-function Entscheidungsfenster({
-  entscheidung,
-  darfLoeschen,
-  schliessen,
-  angelegt,
-  nachLoeschen,
-}: {
-  entscheidung: Designentscheidung | null;
-  darfLoeschen: boolean;
-  schliessen: () => void;
-  /** Nach dem Anlegen: auf die Seite der neuen Entscheidung. */
-  angelegt?: (e: Designentscheidung) => void;
-  /** Auf der Seite der Entscheidung: wohin danach, denn die Seite gibt es dann nicht mehr. */
-  nachLoeschen?: () => void;
-}) {
+function Standtafel({ e, ich, wechseln }: { e: Designentscheidung; ich: Ich; wechseln: Wechseln }) {
+  const speichern = useSpeichern(e);
   const neuLaden = useNeuLaden();
-  const anfang = anfangVon(entscheidung);
-  const [entwurf, setEntwurf] = useState<Entwurf>(anfang);
+  const darf = ich.darf.bearbeiten;
   const [laeuft, setLaeuft] = useState(false);
-  const [fragtVerwerfen, setFragtVerwerfen] = useState(false);
   const [fragtLoeschen, setFragtLoeschen] = useState(false);
 
-  const setze = (teil: Partial<Entwurf>) => setEntwurf((alt) => ({ ...alt, ...teil }));
-  const geaendert = (Object.keys(anfang) as (keyof Entwurf)[]).some((k) => anfang[k] !== entwurf[k]);
-  const bereit = entwurf.titel.trim() !== "" && geaendert;
-
-  async function speichern() {
-    if (!bereit) return;
+  async function standSetzen(stand: Entscheidungsstand) {
+    if (stand === e.stand || laeuft) return;
     setLaeuft(true);
-    const daten = {
-      ...Object.fromEntries(Object.entries(entwurf).map(([k, v]) => [k, v.trim()])),
-      entschieden_am: entwurf.entschieden_am || null,
-    };
     try {
-      const antwort = await hole<Designentscheidung>(
-        entscheidung ? `/designentscheidungen/${entscheidung.id}/` : "/designentscheidungen/",
-        { method: entscheidung ? "PATCH" : "POST", body: JSON.stringify(daten) },
-      );
-      neuLaden();
-      melden("gut", `${antwort.kennung} „${antwort.titel}“ ist gespeichert.`);
-      schliessen();
-      if (!entscheidung) angelegt?.(antwort);
+      // Wer auf „entschieden" stellt, hat meist heute entschieden.
+      await speichern({ stand, ...(stand !== "entwurf" && !e.entschieden_am ? { entschieden_am: datumIn(0) } : {}) });
+      melden("gut", `${e.kennung} steht jetzt auf „${standText(stand)}“.`);
     } catch {
-      // Das Fenster bleibt offen — sonst wäre mit der Fehlermeldung auch der Text weg.
+      // `hole` hat gesagt, was fehlt; die Liste darunter zeigt es auch.
+    } finally {
       setLaeuft(false);
     }
   }
 
   async function loeschen() {
-    if (!entscheidung) return;
     setLaeuft(true);
     try {
-      await hole(`/designentscheidungen/${entscheidung.id}/`, { method: "DELETE" });
+      await hole(`/designentscheidungen/${e.id}/`, { method: "DELETE" });
       neuLaden();
-      schliessen();
-      nachLoeschen?.();
+      wechseln("module", WEG);
     } catch {
       setLaeuft(false);
       setFragtLoeschen(false);
     }
   }
 
-  async function alsErsetzt() {
-    if (!entscheidung) return;
-    setLaeuft(true);
-    try {
-      await hole(`/designentscheidungen/${entscheidung.id}/`, {
-        method: "PATCH",
-        body: JSON.stringify({ stand: "ersetzt" }),
-      });
-      neuLaden();
-      melden("gut", `${entscheidung.kennung} steht jetzt als ersetzt da.`);
-      schliessen();
-    } catch {
-      setLaeuft(false);
-      setFragtLoeschen(false);
-    }
-  }
-
-  const zurueck = () => (geaendert ? setFragtVerwerfen(true) : schliessen());
-
-  useEffect(() => {
-    const beiEscape = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || fragtLoeschen) return;
-      if (fragtVerwerfen) setFragtVerwerfen(false);
-      else if (!laeuft) zurueck();
-    };
-    window.addEventListener("keydown", beiEscape);
-    return () => window.removeEventListener("keydown", beiEscape);
-  });
+  // Eine entschiedene kann nichts mehr fehlen — der Server hätte sie nicht angenommen.
+  const fehlt = offenZumEntscheiden(e);
 
   return (
-    <>
-      <div className="dialog-grund" role="dialog" aria-modal="true" aria-label="Designentscheidung" onClick={zurueck}>
-        <div className="dialog dialog-arbeit" onClick={(e) => e.stopPropagation()}>
-          <div className="dialog-kopf">
-            <div className="dialog-kopf-text">
-              <h2>{entscheidung ? `${entscheidung.kennung} ${entscheidung.titel}` : "Neue Entscheidung"}</h2>
-              {geaendert && <span className="dialog-offen">Nicht gespeichert</span>}
-            </div>
-            <div className="dialog-knoepfe">
-              <button type="button" className="knopf-still" onClick={zurueck} disabled={laeuft}>
-                Abbrechen
-              </button>
-              <button type="button" className="knopf" onClick={speichern} disabled={laeuft || !bereit}>
-                Speichern
-              </button>
-            </div>
-          </div>
-
-          <div className="dialog-koerper thema-felder">
-            <label className="profilfeld">
-              <span className="beschriftung-klein">Titel</span>
-              <input
-                className="feld"
-                value={entwurf.titel}
-                maxLength={200}
-                autoFocus={!entscheidung}
-                placeholder="z. B. Dosierkammer aus PP statt PET"
-                onChange={(e) => setze({ titel: e.target.value })}
-              />
-            </label>
-
-            <div className="profilfeld">
-              <span className="beschriftung-klein">Stand</span>
-              <div className="spannenwahl" role="group" aria-label="Stand">
-                {STAENDE.map((s) => (
-                  <button
-                    key={s.wert}
-                    type="button"
-                    aria-pressed={entwurf.stand === s.wert}
-                    onClick={() =>
-                      setze({
-                        stand: s.wert,
-                        // Wer auf „entschieden" stellt, hat meist heute entschieden.
-                        ...(s.wert !== "entwurf" && !entwurf.entschieden_am ? { entschieden_am: datumIn(0) } : {}),
-                      })
-                    }
-                  >
-                    {s.text}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="entscheidung-felder-reihe">
-              <label className="profilfeld">
-                <span className="beschriftung-klein">Entschieden am</span>
-                <input
-                  type="date"
-                  className="feld"
-                  value={entwurf.entschieden_am}
-                  onChange={(e) => setze({ entschieden_am: e.target.value })}
-                />
-              </label>
-              <label className="profilfeld">
-                <span className="beschriftung-klein">Entschieden von</span>
-                <input
-                  className="feld"
-                  value={entwurf.entschieden_von}
-                  maxLength={200}
-                  placeholder="Namen, auch ohne Konto"
-                  onChange={(e) => setze({ entschieden_von: e.target.value })}
-                />
-              </label>
-            </div>
-
-            {ABSCHNITTE.map((a) => (
-              <label key={a.feld} className="profilfeld">
-                <span className="beschriftung-klein">{a.titel}</span>
-                <textarea
-                  className="feld"
-                  rows={a.feld === "entscheidung" ? 3 : 4}
-                  value={entwurf[a.feld]}
-                  placeholder={a.frage}
-                  onChange={(e) => setze({ [a.feld]: e.target.value })}
-                />
-              </label>
-            ))}
-
-            <label className="profilfeld">
-              <span className="beschriftung-klein">Verweise</span>
-              <textarea
-                className="feld"
-                rows={3}
-                value={entwurf.verweise}
-                placeholder={"Einer je Zeile\nRisiko R-12, Anforderung A-3, ISO 14971, Prüfbericht …"}
-                onChange={(e) => setze({ verweise: e.target.value })}
-              />
-            </label>
-
-            {entscheidung && darfLoeschen && (
-              <div className="persona-fuss">
-                <button type="button" className="knopf-still" onClick={() => setFragtLoeschen(true)}>
-                  <Zeichen name="korb" />
-                  Entscheidung entfernen
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+    <aside className="pl-tafel de-seite">
+      <h2>Stand</h2>
+      <div className="pl-seg de-standwahl" role="group" aria-label="Stand">
+        {STAENDE.map((s) => (
+          <button
+            key={s.wert}
+            type="button"
+            aria-pressed={e.stand === s.wert}
+            data-stand={s.wert}
+            disabled={!darf || laeuft}
+            onClick={() => standSetzen(s.wert)}
+          >
+            {s.text}
+          </button>
+        ))}
       </div>
 
-      {fragtLoeschen && entscheidung && (
+      {e.stand === "entwurf" && (
+        <div className="de-pruefliste">
+          {fehlt.length === 0 ? (
+            <p className="de-bereit">
+              <Zeichen name="haken" />
+              Alles da, um sie zu entscheiden.
+            </p>
+          ) : (
+            <>
+              <span className="pl-eyebrow">Fehlt zum Entscheiden</span>
+              <ul>
+                {fehlt.map((f) => (
+                  <li key={f}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        document.getElementById(`de-${f}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+                      }
+                    >
+                      {PFLICHTNAME[f] ?? f}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+
+      <label className="de-feld">
+        <span className="pl-eyebrow">Entschieden am</span>
+        <Datumsfeld
+          wert={e.entschieden_am}
+          beschriftung="Entschieden am"
+          darf={darf}
+          speichern={async (entschieden_am) => {
+            try {
+              await speichern({ entschieden_am });
+            } catch {
+              // Gemeldet hat `hole`; das Feld springt mit dem nächsten Laden zurück.
+            }
+          }}
+        />
+      </label>
+      <div className="de-feld">
+        <span className="pl-eyebrow">Entschieden von</span>
+        <Feldtext
+          wert={e.entschieden_von}
+          aendern={darf}
+          platzhalter="Namen, auch ohne Konto"
+          speichern={(entschieden_von) => speichern({ entschieden_von })}
+        />
+      </div>
+
+      {ich.darf.loeschen && (
+        <button type="button" className="pl-knopf-leise de-entfernen" data-ton="schlecht" onClick={() => setFragtLoeschen(true)}>
+          <Zeichen name="korb" />
+          Entfernen
+        </button>
+      )}
+
+      {fragtLoeschen && (
         <Loeschdialog
-          name={`${entscheidung.kennung} ${entscheidung.titel}`}
+          name={`${e.kennung} ${e.titel}`}
           was="Die Entscheidung samt ihrer Begründung"
           // Der mildere Weg: Eine überholte Entscheidung ist nicht falsch,
           // sondern abgelöst — und die Akte soll zeigen, wovon.
-          milder={entscheidung.stand === "entschieden" ? { text: "Als ersetzt führen", tun: alsErsetzt } : undefined}
+          milder={
+            e.stand === "entschieden"
+              ? {
+                  text: "Als ersetzt führen",
+                  tun: async () => {
+                    await standSetzen("ersetzt");
+                    setFragtLoeschen(false);
+                  },
+                }
+              : undefined
+          }
           laeuft={laeuft}
           abbrechen={() => setFragtLoeschen(false)}
           loeschen={loeschen}
         />
       )}
-
-      {fragtVerwerfen && (
-        <div className="dialog-grund" role="dialog" aria-modal="true">
-          <div className="dialog">
-            <h2>Noch nicht gespeichert</h2>
-            <p>An der Entscheidung ist etwas geändert. Wer jetzt schließt, hat wieder den Stand von vorher.</p>
-            <div className="dialog-knoepfe">
-              <button type="button" className="knopf-still" onClick={() => setFragtVerwerfen(false)}>
-                Weiter bearbeiten
-              </button>
-              <button type="button" className="knopf-still" onClick={schliessen}>
-                Verwerfen
-              </button>
-              <button
-                type="button"
-                className="knopf"
-                disabled={laeuft || !bereit}
-                onClick={() => {
-                  setFragtVerwerfen(false);
-                  speichern();
-                }}
-              >
-                Speichern
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </aside>
   );
 }

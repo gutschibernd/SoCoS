@@ -1989,35 +1989,6 @@ a.mini { text-decoration: none; }
 .themenidee-link:hover b { color: var(--akzent); }
 .themenideen .knopf-still { flex: 0 0 auto; }
 
-/* --- Designentscheidungen ------------------------------------------------- */
-/*
- * Eine Zeile je Entscheidung: Kennung in Ziffernschrift vorn, damit die
- * Nummern untereinander stehen, der Stand rechts. Eine ersetzte ist grau —
- * sie bleibt in der Liste, tritt aber zurück.
- */
-.entscheidungen { list-style: none; margin: 0; padding: 0 16px; }
-.entscheidungen li { border-bottom: 1px solid var(--rand); }
-.entscheidungen li:last-child { border-bottom: 0; }
-.entscheidung-link {
-  display: flex; align-items: center; gap: 12px; min-height: var(--griff);
-  padding: 10px 0; color: var(--text); text-decoration: none;
-}
-.entscheidung-link .stand { flex: 0 0 auto; }
-.entscheidung-kennung { font-family: var(--schrift-zahl); font-size: 13px; color: var(--text-leise); flex: 0 0 auto; }
-.entscheidung-titel { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.entscheidung-titel b { font-weight: 600; font-size: 14.5px; overflow-wrap: anywhere; }
-.entscheidung-titel span { font-size: 13px; color: var(--text-leise); }
-.entscheidung-link:hover b { color: var(--akzent); }
-.entscheidungen li[data-stand="ersetzt"] .entscheidung-titel b { color: var(--text-leise); font-weight: 400; }
-.entscheidung-felder-reihe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; }
-.thema-felder .spannenwahl { margin-top: 4px; width: fit-content; max-width: 100%; }
-@media (max-width: 640px) {
-  .entscheidung-felder-reihe { grid-template-columns: minmax(0, 1fr); }
-}
-@media (pointer: coarse) {
-  .thema-felder .spannenwahl button { min-height: var(--griff); }
-}
-
 /* Die Seite eines Themas. */
 .thema-titel { overflow-wrap: anywhere; }
 .thema-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -4104,4 +4075,111 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
   .rw-kpi .v { font-size: 18px; }
   .rw-seg { width: 100%; }
   .rw-seg button { flex: 1; padding-inline: 6px; }
+}
+
+/* --- Designentscheidungen (ansichten/Design.tsx) ---------------------------- */
+/*
+ * Dieselbe Optik wie die Projektplanung — `.pl` mit den Farben `--rw-*`
+ * (Bernd, 2026-10-15: weg vom Werkbank-Stil, wo er die Arbeit schlechter
+ * macht). Hier steht nur, was die Entscheidungen zusätzlich brauchen.
+ */
+.de-suche {
+  display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 0; min-height: 36px;
+  padding: 0 10px; border: 1px solid var(--rw-line); border-radius: 8px; background: var(--rw-surface); color: var(--rw-faint);
+}
+.de-suche svg { width: 15px; height: 15px; flex: none; }
+/* 16 px, sonst zoomt iOS beim Hineintippen. */
+.de-suche input { flex: 1; min-width: 0; min-height: 34px; border: 0; background: transparent; outline: none; font-size: 16px; color: var(--rw-ink); }
+.de-suche:focus-within { border-color: var(--rw-accent); }
+.de-textknopf { border: 0; background: none; padding: 0; color: var(--rw-accent); font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+.de-liste { list-style: none; margin: 0; padding: 0; }
+.de-zeile {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  min-height: 60px; padding: 8px; margin: 0 -8px; border-top: 1px solid var(--rw-line-2); border-radius: 8px;
+  color: var(--rw-ink); text-decoration: none;
+}
+.de-liste li:first-child .de-zeile { border-top-color: transparent; }
+.de-zeile:hover { background: var(--rw-surface-2); }
+.de-zeile:hover b { color: var(--rw-accent); }
+.de-zeilentitel { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.de-zeilentitel b { font-weight: 650; font-size: 14.5px; overflow-wrap: anywhere; }
+.de-zeilentitel span { font-size: 12.5px; color: var(--rw-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.de-zeile[data-stand="ersetzt"] b { color: var(--rw-muted); font-weight: 500; }
+.de-zeilenstand { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.de-zeilendatum { font-size: 12px; color: var(--rw-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Die Pille des Stands. Die hellen Töne liegen auf der Fläche, nicht
+   durchsichtig auf der Zeile — sonst gälte über einer überfahrenen Zeile
+   ein anderer Kontrast als der in farben.css gerechnete (wie `.pl-lage`). */
+.de-stand {
+  display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; white-space: nowrap;
+  background: var(--rw-surface-2); color: var(--rw-muted);
+}
+.de-stand[data-stand="entwurf"] { background: linear-gradient(var(--rw-warn-soft), var(--rw-warn-soft)), var(--rw-surface); color: var(--rw-warn); }
+.de-stand[data-stand="entschieden"] { background: linear-gradient(var(--rw-ok-soft), var(--rw-ok-soft)), var(--rw-surface); color: var(--rw-ok); }
+
+/* Die Seite: Text links, Stand rechts. Am Handy steht der Text zuerst und
+   die Tafel mit dem Stand darunter — sonst füllte sie den ersten Bildschirm,
+   und gelesen wird hier öfter als umgestellt. Den Stand selbst trägt die
+   Pille im Kopf. */
+.de-kopfstand { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.de-titel { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.de-titel .inline-aendern { font: inherit; letter-spacing: inherit; text-align: left; }
+.de-titel .feld { font-size: 20px; font-weight: 700; min-width: min(480px, 100%); }
+.de-kennung { font-size: 15px; font-weight: 700; color: var(--rw-faint); font-variant-numeric: tabular-nums; }
+.de-raster { display: grid; grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "haupt seite"; gap: 16px; align-items: start; }
+.de-haupt { grid-area: haupt; padding-bottom: 18px; }
+.de-seite { grid-area: seite; display: flex; flex-direction: column; gap: 14px; padding-bottom: 16px; position: sticky; top: 16px; }
+.de-seite > h2 { padding-top: 14px; }
+
+.de-abschnitt { padding: 16px 0 4px; border-top: 1px solid var(--rw-line-2); }
+.de-abschnitt:first-child { border-top: 0; }
+.de-abschnitt > h2 { font-size: 13px; font-weight: 700; color: var(--rw-muted); margin-bottom: 6px; }
+.de-abschnitt[data-feld="sicherheit"] > h2 { color: var(--rw-accent); }
+.de-abschnitt .inline-aendern.de-text,
+.de-abschnitt span.de-text {
+  display: block; width: 100%; text-align: left; white-space: pre-wrap; font-size: 14.5px; line-height: 1.6;
+  margin: 0 -8px; padding: 6px 8px; width: calc(100% + 16px); border-radius: 8px;
+}
+.de-abschnitt .inline-aendern.de-text:hover { background: var(--rw-surface-2); border-color: var(--rw-line); }
+.de-abschnitt .feld { width: 100%; font-size: 16px; line-height: 1.55; border-radius: 8px; resize: vertical; }
+
+.de-standwahl { display: flex; box-shadow: none; }
+.de-standwahl button { flex: 1; padding: 7px 8px; }
+.de-standwahl button:disabled { cursor: default; }
+.de-standwahl button[aria-pressed="true"][data-stand="entwurf"] { background: var(--rw-warn); }
+.de-standwahl button[aria-pressed="true"][data-stand="entschieden"] { background: var(--rw-ok); }
+.de-standwahl button[aria-pressed="true"][data-stand="ersetzt"] { background: var(--rw-muted); }
+
+.de-pruefliste { padding: 10px 12px; border-radius: 10px; background: var(--rw-surface-2); }
+.de-pruefliste ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.de-pruefliste li button {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 0;
+  border: 0; background: none; cursor: pointer; text-align: left; font-size: 13.5px; color: var(--rw-ink);
+}
+.de-pruefliste li button::before { content: ""; width: 8px; height: 8px; border-radius: 99px; background: var(--rw-warn); flex: none; }
+.de-pruefliste li button:hover { color: var(--rw-accent); text-decoration: underline; }
+.de-bereit { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13.5px; font-weight: 600; color: var(--rw-ok); }
+.de-bereit svg { width: 16px; height: 16px; }
+
+.de-feld { display: flex; flex-direction: column; gap: 4px; }
+.de-feld .feld { width: 100%; min-height: 40px; border-radius: 8px; font-size: 16px; }
+.de-feld .inline-aendern { text-align: left; }
+.de-entfernen { align-self: flex-start; }
+
+@media (max-width: 900px) {
+  .de-raster { grid-template-columns: minmax(0, 1fr); grid-template-areas: "haupt" "seite"; }
+  .de-seite { position: static; }
+}
+@media (max-width: 640px) {
+  .de-zeile { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nr stand" "titel titel"; gap: 4px 12px; }
+  .de-zeile > .pl-nr { grid-area: nr; }
+  .de-zeile > .de-zeilentitel { grid-area: titel; }
+  .de-zeile > .de-zeilenstand { grid-area: stand; flex-direction: row; align-items: center; gap: 8px; }
+  .de-zeilentitel span { white-space: normal; }
+  .de .pl-seg-klein button { padding: 5px 8px; }
+}
+@media (pointer: coarse) {
+  .de-standwahl button, .de .pl-knopf, .de .pl-knopf-leise, .de-pruefliste li button { min-height: var(--griff); }
 }

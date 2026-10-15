@@ -854,6 +854,10 @@ class DesignentscheidungSerializer(serializers.ModelSerializer):
 
     Zur Sicherheit wird ein Satz verlangt, auch wenn er „keine Auswirkung"
     lautet: Ein leeres Feld lässt offen, ob jemand darüber nachgedacht hat.
+
+    **`fehlt` geht mit hinaus**, damit die Seite vor dem Umstellen zeigen
+    kann, was noch fehlt — aus derselben Liste, mit der hier abgewiesen wird.
+    Eine zweite Liste im Frontend liefe beim nächsten Pflichtfeld auseinander.
     """
 
     PFLICHT_WENN_ENTSCHIEDEN = {
@@ -864,15 +868,28 @@ class DesignentscheidungSerializer(serializers.ModelSerializer):
     }
 
     kennung = serializers.CharField(read_only=True)
+    fehlt = serializers.SerializerMethodField()
 
     class Meta:
         model = Designentscheidung
         fields = [
             "id", "nummer", "kennung", "titel", "stand", "entschieden_am", "entschieden_von",
             "ausgangslage", "alternativen", "entscheidung", "begruendung", "sicherheit", "verweise",
-            "geaendert_am",
+            "fehlt", "geaendert_am",
         ]
         read_only_fields = ["nummer", "geaendert_am"]
+
+    @classmethod
+    def _fehlende(cls, wert):
+        """Die Pflichtfelder, die für „entschieden" leer sind. `wert(feld)` liefert den Stand."""
+        return {
+            feld: meldung
+            for feld, meldung in cls.PFLICHT_WENN_ENTSCHIEDEN.items()
+            if not (str(wert(feld)).strip() if wert(feld) is not None else "")
+        }
+
+    def get_fehlt(self, entscheidung):
+        return list(self._fehlende(lambda feld: getattr(entscheidung, feld)))
 
     def validate(self, daten):
         # Bei einem PATCH steht nur das Geschickte in `daten`; geprüft wird
@@ -884,12 +901,7 @@ class DesignentscheidungSerializer(serializers.ModelSerializer):
 
         if wert("stand") in (None, Entscheidungsstand.ENTWURF):
             return daten
-        fehler = {
-            feld: meldung
-            for feld, meldung in self.PFLICHT_WENN_ENTSCHIEDEN.items()
-            if not (str(wert(feld)).strip() if wert(feld) is not None else "")
-        }
-        if fehler:
+        if fehler := self._fehlende(wert):
             raise serializers.ValidationError(fehler)
         return daten
 

@@ -7,6 +7,32 @@ betrifft.
 
 ---
 
+## 2026-10-15 — Designentscheidungen in der zweiten Optik; Regel zur Abweichung
+
+**Bernd:** „geh weg ein bisschen von diesem Werkbank-Design, ich hab das
+Gefühl, das macht es künstlich UX-technisch schlechter … wenn eine Änderung
+weg von dem Design einen UX-Vorteil bringt, soll diese gemacht werden."
+Die Regel steht jetzt in CLAUDE.md (Visuelle Sprache): **Abweichen, wenn es
+die Bedienung besser macht, und dann die zweite Optik nehmen (`.pl`,
+`--rw-*`), keine dritte.**
+
+**Was das bei den Designentscheidungen heißt (kein Schema):**
+
+- **An Ort und Stelle bearbeiten statt Fenster.** Jeder Abschnitt ist ein
+  `Feldtext`, gespeichert beim Verlassen. Eine Begründung wächst Satz für
+  Satz; ein Fenster mit zehn Feldern je Satz hält davon ab.
+- **Was zu „entschieden" fehlt, steht neben dem Stand.** Der Serializer gibt
+  `fehlt` mit — aus `PFLICHT_WENN_ENTSCHIEDEN`, derselben Liste, mit der er
+  abweist. Das Frontend kennt nur die Namen dazu, nicht die Regel.
+- **Anlegen in der letzten Zeile der Liste** (Titel, Enter), dann geht die
+  Seite auf. Filter nach Stand und Suche über alle Texte („R-12" findet jede
+  Entscheidung, die auf das Risiko verweist).
+- Stand als Segment mit vollem Ton, Pillen wie in der Projektplanung;
+  Kontraste in `farben.css`. Die Klassen `.pl-*` werden mitbenutzt, nur was
+  fehlt, steht unter `.de-*`.
+
+---
+
 ## 2026-10-15 — Modul Designentscheidungen (Migration 0053)
 
 **Wunsch Bernd:** Designentscheidungen mit Beschreibung festhalten und als PDF

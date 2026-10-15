@@ -174,25 +174,38 @@ im Ernstfall, unter Zeitdruck, wenn das Original schon weg ist.
 **Jede Änderung an der Oberfläche wird an beiden Größen geprüft, bevor sie committet
 wird — 1280×800 und 375×812, hell und dunkel.**
 
-### Visuelle Sprache (verbindlich, Entwurf „Werkbank" 2026-09-12)
+### Visuelle Sprache: „Werkbank" als Grundlage, nicht als Käfig
 
-Eckige Kanten (2 px Radius) · Seitengrund `#FAFAF7`, Fläche `#FFFFFF`, Kante
-`#D2CCBC` · Akzent `#A2552C` (Kupfer — **das ist die Handlung**), Marke
-`#0D4E52` (Verweise und „läuft"), Leiste `#0B2A2C` (in **beiden** Themen dunkel)
-· **Archivo** für Text, **IBM Plex Mono** für Zahlen und Zeiten, Grundgröße
-14 px · Trennung durch Haarlinien, **keine Schatten** · 4-Spalten-Raster,
-Abstände in Vierern.
+Der Entwurf „Werkbank" (2026-09-12) ist der Ausgangspunkt: Eckige Kanten (2 px
+Radius) · Seitengrund `#FAFAF7`, Fläche `#FFFFFF`, Kante `#D2CCBC` · Akzent
+`#A2552C` (Kupfer — **das ist die Handlung**), Marke `#0D4E52` (Verweise und
+„läuft"), Leiste `#0B2A2C` (in **beiden** Themen dunkel) · **Archivo** für Text,
+**IBM Plex Mono** für Zahlen und Zeiten, Grundgröße 14 px · Trennung durch
+Haarlinien, keine Schatten · 4-Spalten-Raster, Abstände in Vierern.
 
-Die Entwürfe liegen in `entwurf/redesign/`. **Layout und Beschriftungen** kommen
-weiterhin aus `entwurf/Sopharmis Internal v6 leer.dc.html` — nur Farbe, Schrift
-und Raum nicht mehr. Wenn etwas fehlt: nachfragen.
+Die Entwürfe liegen in `entwurf/redesign/`, Layout und Beschriftungen als
+Ausgangspunkt in `entwurf/Sopharmis Internal v6 leer.dc.html`.
 
-**Ausnahme: die Module Runway-Planung und Projektplanung.** Sie sind eigene
-Werkzeuge mit eigener Optik — runde Ecken, leise Schatten, Pillen, Kacheln —,
-alles unter `.rw` bzw. `.pl`, beide in den Farben `--rw-*`. Das ist Bernds
-Entscheidung (2026-10-14 und -15), kein Versehen: nicht auf „Werkbank"
-zurückbauen. Die übrigen Regeln (Farben nur in `farben.css`, Kontraste
-gerechnet, 44 px, beide Größen prüfen) gelten dort genauso.
+**Bringt eine Abweichung von diesem Design einen Vorteil für die Bedienung,
+wird sie gemacht** (Bernd, 2026-10-15: „Werkbank" hat einzelne Seiten
+künstlich schlechter bedienbar gemacht). Vorteil heißt konkret: weniger Klicks,
+an Ort und Stelle bearbeiten statt in einem Fenster, übersichtlicher, schneller
+zu erfassen, besser am Handy. Nicht vorher fragen, ob man darf — **im Bericht
+sagen, welcher Vorteil es ist**, und in einem Satz am CSS-Abschnitt festhalten,
+warum die Stelle anders aussieht. Eine Abweichung nur aus Geschmack ist kein
+Vorteil.
+
+**Wer abweicht, nimmt die zweite Optik, die es schon gibt — keine dritte:**
+runde Ecken, leise Schatten, Pillen, Tafeln unter `.pl` (bzw. `.rw`), Farben
+`--rw-*`. So sehen heute die Runway-Planung, die Projektplanung und die
+Designentscheidungen aus (Bernd, 2026-10-14/-15) — nicht auf „Werkbank"
+zurückbauen. Eine dritte Palette liefe auseinander, und ihre Kontraste müsste
+jemand neu rechnen.
+
+**Was bei jeder Optik gilt, auch abweichend:** Farben nur in `farben.css`,
+hell und dunkel; Kontraste gerechnet (siehe unten); was der Finger trifft
+44 px, Eingabefelder 16 px; kein CSS-Rahmenwerk, keine Icon-Bibliothek,
+Schriften lokal; beide Größen, beide Themen prüfen.
 
 **Jeder Textton wird gegen jeden Untergrund gerechnet, auf dem er steht** — nicht
 nur gegen Weiß. Genau daran ist die Palette schon zweimal gescheitert: ein Ton,

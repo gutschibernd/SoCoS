@@ -94,6 +94,15 @@ class TestPflichtangaben:
         assert "entscheidung" not in antwort.json()
         assert "begruendung" in antwort.json()
 
+    def test_die_antwort_sagt_was_noch_fehlt(self, client, bearbeiter):
+        """Dieselbe Liste, mit der abgewiesen wird — die Seite zeigt sie vor dem Umstellen."""
+        client.force_login(bearbeiter)
+        e = Designentscheidung.objects.create(titel="Entwurf", entscheidung="So.")
+
+        daten = client.get(f"/api/designentscheidungen/{e.pk}/").json()
+
+        assert daten["fehlt"] == ["entschieden_am", "begruendung", "sicherheit"]
+
     def test_vollstaendig_geht_es(self, client, bearbeiter):
         client.force_login(bearbeiter)
 
