@@ -28,6 +28,7 @@ export type ZeichenName =
   | "hoch"
   | "runter"
   | "zeiger"
+  | "punkte"
   | "stift"
   | "korb"
   | "start"
@@ -115,6 +116,10 @@ const PFADE: Record<ZeichenName, string> = {
   /* Nur am Handy: der fünfte Platz in der Fußleiste, hinter dem steht, was
      dort nicht mehr hinpasst. */
   mehr: "M4 6.5h16M4 12h16M4 17.5h16",
+  /* „…" an einer Zeile: das Seltene dahinter. Nicht „mehr" — die drei
+     Striche sind am Handy schon das Menü der Fußleiste. Mit eckigem
+     Linienende werden die kurzen Striche zu Punkten. */
+  punkte: "M5 12h1M11.5 12h1M18 12h1",
   /* Ein aufgeschlagenes Buch, zwei Seiten am Falz. Kein „i" im Kreis: Das
      stand bis hierher als Fragezeichen neben jeder Beschriftung und heißt
      „eine Erklärung an dieser Stelle" — hier geht es zu allen. */

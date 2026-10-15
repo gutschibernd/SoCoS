@@ -112,7 +112,14 @@
      Linie, Zeitachse und Registern sofort auseinanderzuhalten sind.
      Gerechnet: --rw-muted ≥ 5,29 · --rw-faint ≥ 4,87 auf Fläche und
      Fläche-2 (im Planer 2,78 — dort heller) · --rw-warn ≥ 5,02, --rw-ok ≥
-     5,2, --rw-bad ≥ 4,82 auch auf ihrer eigenen hellen Fläche. */
+     5,2, --rw-bad ≥ 4,82 auch auf ihrer eigenen hellen Fläche.
+
+     Dieselbe Farbwelt trägt die Projektplanung (`.pl`, seit 2026-10-15) —
+     zwei eigenständige Werkzeuge, eine Palette. Dort dazugerechnet, als Pille
+     auf der hellen Fläche ihres Tons über --rw-surface: --rw-accent 5,85 ·
+     --rw-ok 5,12 · --rw-warn 5,05 · --rw-bad 4,88 (dunkel 5,85 · 5,82 · 6,28 ·
+     4,87). Über --rw-surface-2 fiele --rw-bad dunkel auf 4,49 — deshalb liegen
+     die Pillen dort auf der Fläche, nicht durchsichtig auf der Zeile. */
   --rw-surface: #ffffff;
   --rw-surface-2: #f5f7f6;
   --rw-line: #d5dcd9;

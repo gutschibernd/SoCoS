@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import type { Planungsaufgabe, Planungspaket } from "./daten";
-import { aufgabenImPlan, alsH, lageText, standGegenPlan, startOffen, stundenAusEingabe } from "./planung";
+import {
+  aufgabenImPlan,
+  alsH,
+  gefiltert,
+  lageText,
+  OHNE_FILTER,
+  passt,
+  personenMitAufgaben,
+  standGegenPlan,
+  stundenAusEingabe,
+  type Filter,
+} from "./planung";
 
 const aufgabe = (id: number, teile: Partial<Planungsaufgabe> = {}): Planungsaufgabe => ({
   id,
@@ -74,20 +85,35 @@ describe("lageText", () => {
   });
 });
 
-describe("startOffen", () => {
-  const zeit = new Map([[71, { von: "2026-10-01", bis: "2026-10-31" }]]);
+describe("passt", () => {
+  const offen = aufgabe(1, { verantwortlich: 7, lage: "steht_an", von: "2026-11-01", bis: "2026-11-02" });
+  const laeuft = aufgabe(2, { lage: "laeuft", von: "2026-10-01", bis: "2026-10-31" });
+  const ueber = aufgabe(3, { verantwortlich: 7, lage: "ueberfaellig", von: "2026-10-01", bis: "2026-10-02" });
+  const fertig = aufgabe(4, { erledigt: true, lage: "erledigt" });
+  const alle = [offen, laeuft, ueber, fertig];
+  const ids = (f: Filter) => alle.filter((a) => passt(a, f)).map((a) => a.id);
 
-  it("was läuft oder im Antragszeitraum liegt", () => {
-    const pakete = [
-      paket(1),
-      paket(2, { aufgaben: [aufgabe(9, { lage: "ueberfaellig", von: "2026-10-01", bis: "2026-10-02" })] }),
-      paket(3, { foerderpaket: 71 }),
-    ];
-    expect([...startOffen(pakete, zeit, "2026-10-13")]).toEqual([2, 3]);
+  it("ohne Filter alles", () => expect(ids(OHNE_FILTER)).toEqual([1, 2, 3, 4]));
+  it("offen ist alles, was nicht abgehakt ist", () => expect(ids({ zeige: "offen", person: null })).toEqual([1, 2, 3]));
+  it("jetzt dran ist, was läuft oder überfällig ist", () =>
+    expect(ids({ zeige: "jetzt", person: null })).toEqual([2, 3]));
+  it("Person und Lage zusammen", () => expect(ids({ zeige: "jetzt", person: 7 })).toEqual([3]));
+  it("gefiltert erkennt jede Abweichung", () => {
+    expect(gefiltert(OHNE_FILTER)).toBe(false);
+    expect(gefiltert({ zeige: "alle", person: 7 })).toBe(true);
   });
+});
 
-  it("sonst das erste", () => {
-    expect([...startOffen([paket(1), paket(2)], zeit, "2027-01-01")]).toEqual([1]);
+describe("personenMitAufgaben", () => {
+  it("jede Person einmal, nach Namen", () => {
+    const pakete = [
+      paket(1, { aufgaben: [aufgabe(1, { verantwortlich: 2, verantwortlich_name: "FD" }), aufgabe(2)] }),
+      paket(2, { aufgaben: [aufgabe(3, { verantwortlich: 1, verantwortlich_name: "BG" }), aufgabe(4, { verantwortlich: 2, verantwortlich_name: "FD" })] }),
+    ];
+    expect(personenMitAufgaben(pakete)).toEqual([
+      { id: 1, name: "BG" },
+      { id: 2, name: "FD" },
+    ]);
   });
 });
 

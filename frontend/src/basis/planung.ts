@@ -52,22 +52,32 @@ export function lageText(aufgabe: Pick<Planungsaufgabe, "lage" | "von" | "bis">)
 }
 
 /**
- * Welche Pakete beim Öffnen aufgeklappt sind: die, an denen jetzt gearbeitet
- * wird — eine Aufgabe läuft oder ist überfällig, oder heute liegt im Zeitraum
- * des Antrags. Ist es keines, das erste: Eine Seite, auf der alles zu ist,
- * sieht leer aus.
+ * Was die Liste und der Zeitplan zeigen. „Jetzt dran" ist, was läuft oder
+ * überfällig ist — die Frage, mit der man morgens auf die Seite kommt.
  */
-export function startOffen(
-  pakete: Planungspaket[],
-  antragszeit: Map<number, { von: string | null; bis: string | null }>,
-  heute: string,
-): Set<number> {
-  const offen = pakete.filter((p) => {
-    if (p.aufgaben.some((a) => a.lage === "laeuft" || a.lage === "ueberfaellig")) return true;
-    const zeit = p.foerderpaket === null ? undefined : antragszeit.get(p.foerderpaket);
-    return !!zeit?.von && !!zeit.bis && zeit.von <= heute && heute <= zeit.bis;
-  });
-  return new Set((offen.length ? offen : pakete.slice(0, 1)).map((p) => p.id));
+export type Zeige = "alle" | "offen" | "jetzt";
+export type Filter = { zeige: Zeige; person: number | null };
+export const OHNE_FILTER: Filter = { zeige: "alle", person: null };
+
+export function passt(aufgabe: Planungsaufgabe, filter: Filter): boolean {
+  if (filter.person !== null && aufgabe.verantwortlich !== filter.person) return false;
+  if (filter.zeige === "offen") return !aufgabe.erledigt;
+  if (filter.zeige === "jetzt") return aufgabe.lage === "laeuft" || aufgabe.lage === "ueberfaellig";
+  return true;
+}
+
+export const gefiltert = (filter: Filter) => filter.zeige !== "alle" || filter.person !== null;
+
+/**
+ * Wer in dieser Phase Aufgaben hat, nach Namen — für die Wahl „wessen
+ * Aufgaben". Nur die: Eine Person ohne Aufgabe zu wählen ergäbe eine leere
+ * Liste, die nach einem Fehler aussieht.
+ */
+export function personenMitAufgaben(pakete: Planungspaket[]): { id: number; name: string }[] {
+  const personen = new Map<number, string>();
+  for (const p of pakete)
+    for (const a of p.aufgaben) if (a.verantwortlich !== null) personen.set(a.verantwortlich, a.verantwortlich_name);
+  return [...personen].map(([id, name]) => ({ id, name })).sort((x, y) => x.name.localeCompare(y.name, "de"));
 }
 
 /**

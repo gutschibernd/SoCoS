@@ -1008,16 +1008,18 @@ function ModuleDoku() {
 
       <Abschnitt
         zeichen="gantt"
-        titel="Projektplanung: eine Phase mit Aufgaben im Gantt"
-        vorspann="Für eine Phase planen, welche Aufgaben in welchem Paket anstehen und wann — und, wenn die Phase aus einem Förderantrag bezahlt wird, daneben sehen, was beantragt ist."
+        titel="Projektplanung: eine Phase mit Paketen und Aufgaben"
+        vorspann="Für eine Phase planen, welche Aufgaben in welchem Paket anstehen, wer sie macht und wann — und, wenn die Phase aus einem Förderantrag bezahlt wird, daneben sehen, was beantragt ist. Der Plan darf sich ändern: Pakete und Aufgaben legst du hier an, benennst sie um und schiebst sie herum."
       >
         <Schritte
           schritte={[
             "Hin kommst du mit einem Klick auf eine Phase im Gantt der Projektseite oder unter Module · Projektplanung. Von der Projektseite aus führt „Zurück“ wieder ins Projekt.",
-            "Oben rechts unter „Bezahlt aus“ den Förderantrag wählen, aus dem die Phase bezahlt wird. Dann in jedem Paket unter „Im Antrag“ das Antragspaket wählen, in das seine Stunden gehören.",
-            "Ein Paket im Gantt aufklappen und darunter Aufgaben anlegen: Titel, Enter. Beginn, Ende, geplante Stunden und wer sie macht stehen in der Zeile.",
-            "Im Gantt in die leere Zeile einer Aufgabe klicken gibt ihr eine Woche ab diesem Tag; den Balken ziehen verschiebt, an einem Rand ziehen verlängert.",
-            "„Als Nächstes“ zeigt, was überfällig ist, was gerade läuft und die nächsten fünf, die anstehen. Abhaken geht dort, im Gantt und in der Liste.",
+            "Oben rechts wählst du die Ansicht: „Aufgaben“ ist die Arbeitsliste, „Zeitplan“ der Gantt, „Stunden & Antrag“ alles zum Nachschlagen. Die Seite merkt sich die Wahl.",
+            "Unter „Aufgaben“ steht jedes Paket mit seinen Aufgaben. In die letzte Zeile eines Pakets tippen und Enter legt eine Aufgabe an. Titel, wer, Beginn, Ende und Stunden änderst du direkt in der Zeile; über „…“ schiebst du eine Aufgabe in ein anderes Paket.",
+            "Ein Paket benennst du mit einem Klick auf seinen Namen um, daneben setzt du seinen Status. Ganz unten legst du ein neues Paket an.",
+            "„Offen“, „Jetzt dran“ und die Wahl einer Person filtern Liste und Zeitplan. Ist eine Person gewählt, gehört ihr eine neu angelegte Aufgabe gleich. Ein Klick auf die Kachel „Jetzt dran“ zeigt, was läuft und was überfällig ist.",
+            "Im Zeitplan in die leere Zeile einer Aufgabe klicken gibt ihr eine Woche ab diesem Tag; den Balken ziehen verschiebt, an einem Rand ziehen verlängert.",
+            "Unter „Stunden & Antrag“ wählst du den Förderantrag, aus dem die Phase bezahlt wird, und je Paket das Antragspaket, in das seine Stunden gehören.",
           ]}
         />
         <Begriffe
@@ -1028,7 +1030,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Soll bis heute",
-              text: "Was laut Antrag bis heute gearbeitet sein sollte — die Stunden jedes Pakets gleichmäßig über die Tage seiner Monate verteilt. Das ist eine Annahme, der Antrag sagt nicht, wann im Paket gearbeitet wird. Darunter steht, wie viel über oder unter diesem Plan gebucht ist; im Gantt ist es der kupferne Strich im Balken rechts.",
+              text: "Was laut Antrag bis heute gearbeitet sein sollte — die Stunden jedes Pakets gleichmäßig über die Tage seiner Monate verteilt. Das ist eine Annahme, der Antrag sagt nicht, wann im Paket gearbeitet wird. Darunter steht, wie viel über oder unter diesem Plan gebucht ist; am Stundenbalken jedes Pakets ist es der kleine Strich.",
             },
             {
               begriff: "Die zwei Balken eines Pakets",
@@ -1044,11 +1046,11 @@ function ModuleDoku() {
             },
             {
               begriff: "Ziele und Ergebnisse",
-              text: "Unten stehen die Ergebnisse der Antragspakete mit ihrem Termin. „Erreicht“ heißt: Das zugeordnete Arbeitspaket steht auf „fertig“. Die Texte des Antrags sind darunter zum Nachlesen.",
+              text: "Unter „Stunden & Antrag“ stehen die Ergebnisse der Antragspakete mit ihrem Termin. „Erreicht“ heißt: Das zugeordnete Arbeitspaket steht auf „fertig“. Die Texte des Antrags sind darunter zum Nachlesen.",
             },
             {
               begriff: "Wer was darf",
-              text: "Sehen dürfen alle. Aufgaben anlegen, planen und abhaken dürfen Admin und Bearbeiter; eine Aufgabe entfernen nur der Admin — milder ist, sie abzuhaken.",
+              text: "Sehen dürfen alle. Pakete und Aufgaben anlegen, ändern, verschieben und abhaken dürfen Admin und Bearbeiter; eine Aufgabe entfernen nur der Admin — milder ist, sie abzuhaken. Ein Paket entfernt man auf der Projektseite.",
             },
           ]}
         />

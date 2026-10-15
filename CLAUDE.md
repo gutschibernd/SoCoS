@@ -187,6 +187,13 @@ Die Entwürfe liegen in `entwurf/redesign/`. **Layout und Beschriftungen** komme
 weiterhin aus `entwurf/Sopharmis Internal v6 leer.dc.html` — nur Farbe, Schrift
 und Raum nicht mehr. Wenn etwas fehlt: nachfragen.
 
+**Ausnahme: die Module Runway-Planung und Projektplanung.** Sie sind eigene
+Werkzeuge mit eigener Optik — runde Ecken, leise Schatten, Pillen, Kacheln —,
+alles unter `.rw` bzw. `.pl`, beide in den Farben `--rw-*`. Das ist Bernds
+Entscheidung (2026-10-14 und -15), kein Versehen: nicht auf „Werkbank"
+zurückbauen. Die übrigen Regeln (Farben nur in `farben.css`, Kontraste
+gerechnet, 44 px, beide Größen prüfen) gelten dort genauso.
+
 **Jeder Textton wird gegen jeden Untergrund gerechnet, auf dem er steht** — nicht
 nur gegen Weiß. Genau daran ist die Palette schon zweimal gescheitert: ein Ton,
 der auf Weiß 4,66:1 hält, fällt auf dem Seitengrund auf 4,46. Und ein Ton, der

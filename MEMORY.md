@@ -7,6 +7,54 @@ betrifft.
 
 ---
 
+## 2026-10-15 — Projektplanung neu: drei Ansichten, eigene Optik (kein Schema)
+
+**Bernd:** „sehr unübersichtlich … geh von mir aus in diesem Modul vom
+Werkbank-Stil weg, damit das für reale Projektplanung auch machbar ist. Wie in
+der realen Welt ist vieles agil und nicht so wie in dem Angebot — die Dinge
+müssen bearbeitbar und übersichtlich sein, aber leicht zu bedienen."
+
+**Was unübersichtlich war:** Jedes Paket stand zweimal da — im Gantt und
+darunter als Karte, die zum größten Teil aus den Antragstexten bestand. Eine
+Aufgabe ließ sich nur in dieser Karte bearbeiten, weit unter dem Gantt; im
+Gantt selbst nur abhaken und ziehen. „Als Nächstes" zeigte dieselben
+Aufgaben ein drittes Mal.
+
+**Jetzt drei Ansichten** (`ansichten/Planung.tsx`), gemerkt im Browser:
+
+- **Aufgaben** — die Arbeitsliste. Je Paket eine Kopfzeile (Name an Ort und
+  Stelle änderbar, Status als Pille, erledigt/gesamt, Stunden gegen Soll),
+  darunter die Aufgaben, jede Zeile ganz bearbeitbar. Hinter „…" das Seltene:
+  in ein anderes Paket schieben, entfernen. Ein neues Paket wird unten
+  angelegt — **hier, nicht nur auf der Projektseite**, weil die Arbeit sich
+  nicht an die Pakete aus dem Antrag hält.
+- **Zeitplan** — der Gantt-Baustein wie bisher, mit allen Aufgaben der
+  offenen Pakete.
+- **Stunden & Antrag** — woraus die Phase bezahlt wird, welches Arbeitspaket
+  in welches Antragspaket abrechnet, Stunden je Person, Ziele und Texte.
+  Nachschlagen, nicht täglich lesen.
+
+**Filter statt „Als Nächstes":** Alle · Offen · Jetzt dran (läuft oder
+überfällig) und eine Person, für Liste und Zeitplan zugleich. Die Kachel
+„Jetzt dran" setzt den Filter. Ist eine Person gewählt, bekommt eine neue
+Aufgabe sie gleich als Verantwortliche. `naechste` liefert der Server
+weiterhin; die Seite liest es nicht mehr.
+
+**Kein Schema, kein neuer Endpunkt:** Aufgabe verschieben ist `PATCH
+/unteraufgaben/<id>/ {paket}`, Paket anlegen `POST /pakete/` — beides gab es.
+Entfernen eines Pakets bleibt auf der Projektseite (dort hängen Zeit und
+Pensum dran, und der Dialog dafür steht dort).
+
+**Optik:** wie die Runway-Planung — `.pl` statt `.rw`, aber **dieselben
+`--rw-*`-Farben**; eine zweite Palette liefe auseinander. Die Felder einer
+Zeile zeigen ihren Rand erst beim Darüberfahren (am Handy immer), sonst wird
+aus der Liste ein Formular. Die Lage-Pillen liegen auf der Fläche statt
+durchsichtig auf der Zeile: über dem Grau einer überfahrenen Zeile fiel
+„überfällig" im dunklen Thema auf 4,49:1 (Zahlen in `farben.css`). In
+CLAUDE.md steht die Ausnahme vom Werkbank-Stil jetzt für beide Module.
+
+---
+
 ## 2026-10-15 — Runway-Planung 1:1 wie der Planer (Migration 0052)
 
 **Bernd zum ersten Anlauf (0051):** „super unübersichtlich und nicht wirklich
