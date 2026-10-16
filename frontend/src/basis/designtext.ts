@@ -60,8 +60,16 @@ export function kiBefehl(e: Pick<Designentscheidung, KiFeld>): string {
   return `${BEFEHL}\n\n${teile.join("\n\n")}\n\n=== ${ENDE} ===\n`;
 }
 
-/** `**=== Begründung: ===**` → „begründung" — was eine KI um die Zeile herum anstellt, fällt weg. */
-const TRENNER = /^[\s#*_>`]*={3,}\s*(.*?)\s*:?\s*={3,}[\s*_`]*$/;
+/**
+ * `**=== Begründung: ===**` → „begründung" — was eine KI um den Trenner herum
+ * anstellt, fällt weg.
+ *
+ * **Gesucht wird überall, nicht nur am Zeilenanfang:** Die Chat-Oberflächen
+ * zeigen die Antwort als Markdown, und dort ist ein einzelner Zeilenumbruch
+ * kein Umbruch. Wer den angezeigten Text kopiert, bekommt
+ * `=== Titel === Karussell …` in einer Zeile.
+ */
+const TRENNER = /[#*_>` \t]*={3,}[ \t]*([^=\n]*?)[ \t]*:?[ \t]*={3,}[*_`]*/g;
 const ZAUN = /^\s*```[\w-]*\s*$/;
 
 const normal = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
@@ -79,32 +87,25 @@ export function kiAntwortLesen(text: string): { felder: Partial<Record<KiFeld, s
   const nachName = new Map(KI_FELDER.map((f) => [normal(f.titel), f.feld]));
   const felder: Partial<Record<KiFeld, string>> = {};
   const unbekannt: string[] = [];
-  let aktuell: KiFeld | null = null;
-  let zeilen: string[] = [];
+  const ohneZaun = text
+    .split(/\r?\n/)
+    .filter((zeile) => !ZAUN.test(zeile))
+    .join("\n");
 
-  const abschliessen = () => {
-    const inhalt = zeilen.join("\n").trim();
-    if (aktuell && inhalt) felder[aktuell] = inhalt;
-    zeilen = [];
-  };
-
-  for (const zeile of text.split(/\r?\n/)) {
-    if (ZAUN.test(zeile)) continue;
-    const treffer = TRENNER.exec(zeile);
-    if (!treffer) {
-      zeilen.push(zeile);
+  // Zwischen zwei Trennern steht der Inhalt des ersten.
+  const treffer = [...ohneZaun.matchAll(TRENNER)];
+  for (const [i, t] of treffer.entries()) {
+    const name = normal(t[1]);
+    if (name === normal(ENDE)) break;
+    const feld = nachName.get(name);
+    if (!feld) {
+      unbekannt.push(t[1]);
       continue;
     }
-    abschliessen();
-    const name = normal(treffer[1]);
-    if (name === normal(ENDE)) {
-      aktuell = null;
-      break;
-    }
-    aktuell = nachName.get(name) ?? null;
-    if (!aktuell) unbekannt.push(treffer[1]);
+    const ende = treffer[i + 1]?.index ?? ohneZaun.length;
+    const inhalt = ohneZaun.slice(t.index + t[0].length, ende).trim();
+    if (inhalt) felder[feld] = inhalt;
   }
-  abschliessen();
 
   return { felder, unbekannt };
 }

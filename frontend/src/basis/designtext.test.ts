@@ -54,6 +54,28 @@ describe("kiAntwortLesen", () => {
     expect(felder).toEqual({ titel: "Neu", sicherheit: "Zeile eins\n\nZeile zwei" });
   });
 
+  it("liest Trenner, hinter denen der Text in derselben Zeile weitergeht", () => {
+    // So kommt es aus einer Chat-Oberfläche, die Markdown anzeigt: Der
+    // einzelne Umbruch nach dem Trenner wird beim Kopieren zum Leerzeichen.
+    const { felder, unbekannt } = kiAntwortLesen(
+      "=== Titel === Karussell Swap\n\n=== Ausgangslage === Der Prototyp ist zu groß.\n\n" +
+        "=== Entscheidung === Das ganze Karussell wird entnommen.\n\n=== ENDE ===",
+    );
+
+    expect(unbekannt).toEqual([]);
+    expect(felder).toEqual({
+      titel: "Karussell Swap",
+      ausgangslage: "Der Prototyp ist zu groß.",
+      entscheidung: "Das ganze Karussell wird entnommen.",
+    });
+  });
+
+  it("liest auch alles in einer einzigen Zeile", () => {
+    const { felder } = kiAntwortLesen("=== Titel === Neu === Entscheidung === So. === ENDE === Gern geschehen!");
+
+    expect(felder).toEqual({ titel: "Neu", entscheidung: "So." });
+  });
+
   it("ein leerer Abschnitt leert kein Feld", () => {
     const { felder } = kiAntwortLesen("=== Begründung ===\n\n=== Entscheidung ===\nSo.\n=== ENDE ===");
 
