@@ -3566,12 +3566,27 @@ button.pl-kennzahl:hover { border-color: var(--rw-accent); }
 .pl-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 0; }
 .pl-leiste > .pl-knopf-leise { margin-left: auto; }
 
-/* Ein Paket: Kopfzeile, darunter seine Aufgaben */
-.pl-gruppe { border-top: 1px solid var(--rw-line); }
+/* Ein Paket: Kopfzeile, darunter seine Aufgaben.
+   Jedes Paket ist eine eigene Karte mit getöntem Kopf (Bernd, 2026-10-17:
+   „man sieht extrem schlecht die Trennung der Arbeitspakete"). Vorher trennte
+   nur eine Haarlinie, kaum kräftiger als die zwischen zwei Aufgaben — wo ein
+   Paket aufhört, sieht man jetzt auf einen Blick. */
+.pl-gruppe { border: 1px solid var(--rw-line); border-radius: 12px; margin-bottom: 12px; background: var(--rw-surface); }
 .pl-gruppenkopf {
   display: grid; grid-template-columns: 32px auto minmax(0, 1fr) auto auto 168px;
-  align-items: center; gap: 10px; min-height: 56px; padding: 6px 0;
+  align-items: center; gap: 10px; min-height: 56px; padding: 6px 14px 6px 8px;
+  background: var(--rw-surface-2); border-radius: 11px;
 }
+.pl-gruppe[data-offen] > .pl-gruppenkopf { border-radius: 11px 11px 0 0; border-bottom: 1px solid var(--rw-line); }
+/* Die Nummer als Marke: das Erste, woran das Auge ein Paket findet.
+   --rw-accent auf seiner hellen Fläche über --rw-surface-2: 5,44 (dunkel 5,35). */
+.pl-gruppenkopf > .pl-nr {
+  min-width: 30px; padding: 3px 7px; border-radius: 7px; text-align: center;
+  background: var(--rw-accent-soft); color: var(--rw-accent); font-size: 12.5px; font-weight: 700;
+}
+.pl-gruppenkopf .pl-klappe:hover { background: var(--rw-surface); }
+.pl-gruppenkopf .pl-balken { background: var(--rw-line); }
+.pl-gruppe > .fehlerzeile { margin: 0 14px 10px; }
 .pl-klappe {
   width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 8px;
   background: transparent; cursor: pointer; color: var(--rw-muted);
@@ -3587,9 +3602,12 @@ button.pl-kennzahl:hover { border-color: var(--rw-accent); }
   background: var(--rw-surface-2); color: var(--rw-muted);
 }
 span.pl-paketstatus { cursor: default; }
-.pl-paketstatus[data-status="laeuft"] { background: var(--rw-accent-soft); color: var(--rw-accent); }
-.pl-paketstatus[data-status="fertig"] { background: var(--rw-ok-soft); color: var(--rw-ok); }
-.pl-paketstatus[data-status="offene_frage"] { background: var(--rw-warn-soft); color: var(--rw-warn); }
+/* Status und Zähler stehen auf dem grauen Kopf — deshalb auf der Fläche,
+   und die hellen Töne über der Fläche statt durchsichtig auf dem Grau. */
+.pl-gruppenkopf .pl-paketstatus, .pl-gruppenkopf .pl-zaehler { background: var(--rw-surface); }
+.pl-paketstatus[data-status="laeuft"] { background: linear-gradient(var(--rw-accent-soft), var(--rw-accent-soft)), var(--rw-surface); color: var(--rw-accent); }
+.pl-paketstatus[data-status="fertig"] { background: linear-gradient(var(--rw-ok-soft), var(--rw-ok-soft)), var(--rw-surface); color: var(--rw-ok); }
+.pl-paketstatus[data-status="offene_frage"] { background: linear-gradient(var(--rw-warn-soft), var(--rw-warn-soft)), var(--rw-surface); color: var(--rw-warn); }
 .pl-paketstatus[data-status="verworfen"] { text-decoration: line-through; }
 .pl-zaehler {
   font-size: 12px; font-weight: 600; color: var(--rw-muted); font-variant-numeric: tabular-nums;
@@ -3604,7 +3622,9 @@ span.pl-paketstatus { cursor: default; }
 .pl-balken[data-ueber] > i { background: var(--rw-bad); }
 .pl-balken > b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--rw-warn); border-radius: 1px; }
 
-.pl-zeilen { padding: 0 0 6px 42px; }
+.pl-zeilen { padding: 0 14px 6px 56px; }
+/* Die erste Aufgabe liegt am Rand des Kopfs, eine zweite Linie wäre doppelt. */
+.pl-zeilen > :first-child { border-top: 0; }
 .pl-zeile {
   display: grid; grid-template-columns: 22px minmax(0, 1fr) 140px 64px 132px 132px 64px 34px;
   align-items: center; gap: 0 8px; min-height: 44px; border-top: 1px solid var(--rw-line-2);
@@ -3665,7 +3685,7 @@ span.pl-paketstatus { cursor: default; }
 .pl-neu:focus-within { background: var(--rw-surface-2); }
 /* Der Fokus zeigt sich an der ganzen Zeile, nicht als Rahmen ums Feld darin. */
 .pl-neu > input:focus-visible { outline: none; }
-.pl-neues-paket { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 0 4px; border-top: 1px solid var(--rw-line); }
+.pl-neues-paket { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 2px 0 4px; }
 .pl-neues-paket > .pl-wahl { flex: 0 1 420px; min-width: 0; }
 .pl-neues-paket > .fehlerzeile { flex-basis: 100%; }
 
@@ -3673,6 +3693,8 @@ span.pl-paketstatus { cursor: default; }
 .pl .gantt-rollbar { margin: 0 -18px; padding: 0 18px; }
 .pl .gantt-etikett, .pl .gantt-heute-marke { background: var(--rw-surface); }
 .pl .gantt-zeile { border-top-color: var(--rw-line-2); }
+/* Wo ein Paket anfängt, zeigt eine kräftige Linie — dieselbe Trennung wie in der Liste. */
+.pl .gantt-zeile[data-art="paket"] { border-top: 2px solid var(--rw-line); }
 .pl .gantt-zeile[data-gewaehlt], .pl .gantt-zeile[data-gewaehlt] .gantt-etikett { background: var(--rw-surface-2); }
 .pl .gantt-balken { border-radius: 5px; }
 .pl .gantt-balken[data-art="antrag"] { border-radius: 3px; }
@@ -3718,7 +3740,7 @@ span.pl-paketstatus { cursor: default; }
 @media (max-width: 960px) {
   .pl-kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pl-zeile { grid-template-columns: 22px minmax(0, 1fr) 120px 60px 124px 124px 56px 34px; }
-  .pl-zeilen { padding-left: 0; }
+  .pl-zeilen { padding-left: 14px; }
 }
 
 @media (max-width: 720px) {
@@ -3735,8 +3757,9 @@ span.pl-paketstatus { cursor: default; }
   .pl-gruppenkopf {
     grid-template-columns: 32px auto auto minmax(0, 1fr);
     grid-template-areas: "klappe nr titel titel" ". status zaehler stand";
-    gap: 6px 8px;
+    gap: 6px 8px; padding: 6px 12px 8px 8px;
   }
+  .pl-zeilen { padding: 0 12px 4px; }
   .pl-gruppenkopf > .pl-klappe { grid-area: klappe; width: var(--griff); height: var(--griff); margin-left: -6px; }
   .pl-gruppenkopf > .pl-nr { grid-area: nr; }
   .pl-gruppenkopf > .pl-pakettitel { grid-area: titel; white-space: normal; }
