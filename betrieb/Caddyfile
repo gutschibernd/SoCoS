@@ -32,6 +32,15 @@ socos.test.sopharmis.com {
 		max_size 13MB
 	}
 
+	# PROVISORIUM: AMS-Fernmonitor fuer Patient 0 (Repo MVP-UI, fernmonitor/).
+	# Eigener Stack `ams-monitor` am proxy-netz; SoCoS weiss nichts davon.
+	# Ohne Subdomain, weil der Monitor in wenigen Monaten wieder wegkommt —
+	# dann diese vier Zeilen loeschen und Caddy neu erzeugen.
+	redir /ams-monitor /ams-monitor/
+	handle /ams-monitor/* {
+		reverse_proxy ams-monitor:8000
+	}
+
 	reverse_proxy socos:8000
 
 	log {
