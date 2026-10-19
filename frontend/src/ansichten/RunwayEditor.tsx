@@ -14,6 +14,7 @@ import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import type { Planeintrag, Runwayplan, Runwayrechnung } from "../basis/daten";
 import { Achse, MON, MONL, fmtE, neueTranche, neuerEintrag, num, x0 } from "../basis/runway";
+import { Hinweis } from "../bausteine/Hinweis";
 
 type Liste = "foerderungen" | "investments" | "umsaetze" | "team" | "kosten" | "darlehen";
 type Register = Liste | "ansprueche" | "settings";
@@ -106,7 +107,7 @@ export function Editor({
       <input type="checkbox" checked={it[f] === undefined ? dflt : !!it[f]} onChange={(e) => aendern(mitFeld(S, l, it.id, f, e.target.checked))} /> {label}
     </label>
   );
-  const cell = (label: string, inhalt: ReactNode, cls = "") => (
+  const cell = (label: ReactNode, inhalt: ReactNode, cls = "") => (
     <div className={`rw-cell ${cls}`}>
       <span className="rw-cell-l">{label}</span>
       {inhalt}
@@ -194,15 +195,16 @@ export function Editor({
 
   /* --- Die Register --- */
   let inhalt: ReactNode = null;
+  // Was das Register rechnet. Stand bis 2026-10-19 als Absatz über jedem
+  // Register; jetzt hinter dem ⓘ rechts neben den Reitern (Bernd: „zu viel
+  // Text"). Wer es einmal gelesen hat, muss es nicht jedesmal überfahren.
+  let erklaerung: ReactNode = null;
 
+  if (t === "foerderungen") erklaerung =
+    "Jede Förderung mit ihren Tranchen und dem erwarteten Zahlungsdatum. Rückzahlungen (z. B. der Darlehensanteil einer FFG-Förderung) als Tranche der Art „Rückzahlung“. Konservativ zählen nur zugesagte und erhaltene Auszahlungen.";
   if (t === "foerderungen")
     inhalt = (
       <>
-        <p className="rw-ed-intro">
-          Jede Förderung mit ihren Tranchen und dem erwarteten Zahlungsdatum. Rückzahlungen (z. B. der Darlehensanteil einer
-          FFG-Förderung oder eine Rückforderung) trägst du als Tranche mit der Art „Rückzahlung“ ein. Im konservativen Szenario
-          zählen nur zugesagte und erhaltene Auszahlungen.
-        </p>
         {S.foerderungen.length === 0 && <div className="rw-rows"><div className="rw-empty-rows">Noch keine Förderung erfasst.</div></div>}
         {S.foerderungen.map((f) => (
           <div key={f.id} className="rw-card" data-foerderung={f.id}>
@@ -234,10 +236,10 @@ export function Editor({
       </>
     );
 
+  if (t === "investments") erklaerung = "Eigenkapital- und Wandeldarlehensrunden mit dem Datum, an dem das Geld am Konto ist.";
   if (t === "investments")
     inhalt = (
       <>
-        <p className="rw-ed-intro">Eigenkapital- und Wandeldarlehensrunden mit dem Datum, an dem das Geld am Konto ist.</p>
         {tabelle(
           "minmax(0,1.8fr) minmax(0,1fr) minmax(132px,1fr) minmax(0,1fr) minmax(0,.9fr) 30px",
           ["Investor / Runde", { t: "Betrag (€)", r: true }, "Datum", "Art", "Status"],
@@ -257,14 +259,11 @@ export function Editor({
       </>
     );
 
+  if (t === "umsaetze") erklaerung =
+    "Netto mit Rechnungsdatum. Das Zahlungsziel verschiebt den Geldeingang (30 Tage ≈ 1 Monat), die Umsatzsteuer gilt ab dem Rechnungsmonat. Basis gewichtet mit der Wahrscheinlichkeit, Konservativ mit der Hälfte davon, Optimistisch mit 100 %.";
   if (t === "umsaetze")
     inhalt = (
       <>
-        <p className="rw-ed-intro">
-          Umsätze netto mit Rechnungsdatum. Das Zahlungsziel verschiebt den Geldeingang (30 Tage ≈ 1 Monat); die Umsatzsteuer
-          schuldet ihr trotzdem ab dem Rechnungsmonat. Basis rechnet mit der Wahrscheinlichkeit gewichtet, Konservativ mit der
-          Hälfte davon, Optimistisch mit 100 %.
-        </p>
         {tabelle(
           `minmax(0,1.4fr) minmax(0,.9fr) minmax(0,.9fr) minmax(132px,.95fr) minmax(132px,.95fr) minmax(0,.6fr)${ustOn ? " minmax(0,.6fr)" : ""} minmax(0,.6fr) 30px`,
           ["Umsatz", { t: "Betrag netto", r: true }, "Intervall", "Ab / am", "Bis", { t: "Ziel Tage", r: true }, ...(ustOn ? ["USt"] : []), { t: "Wahrsch. %", r: true }],
@@ -290,21 +289,23 @@ export function Editor({
   if (t === "team") {
     const nfSave = r.A.reduce((s, m) => s + num(m.neuf), 0);
     const nfPot = r.A.reduce((s, m) => s + num(m.neufPot), 0);
+    erklaerung = (
+      <>
+        Bruttogehalt pro Monat. Arbeitgeberkosten = Brutto × (1 + {komma(st.lnk)} % Lohnnebenkosten)
+        {st.sonder ? ", 14 Gehälter (Juni, November)" : ""}
+        {num(st.raise) ? `, jährlich +${komma(st.raise)} % im Jänner` : ""}. Ein eigener Satz je Person überschreibt den Standard, z. B.
+        für Gesellschafter-Geschäftsführer:innen. Der F&E-Anteil fließt in die Forschungsprämie.
+      </>
+    );
     inhalt = (
       <>
-        <p className="rw-ed-intro">
-          Bruttogehalt pro Monat. Arbeitgeberkosten = Brutto × (1 + {komma(st.lnk)} % Lohnnebenkosten)
-          {st.sonder ? ", 14 Gehälter (Juni, November)" : ""}
-          {num(st.raise) ? `, jährliche Anpassung +${komma(st.raise)} % im Jänner` : ""}. Ein eigener Lohnnebenkosten-Satz pro Person
-          überschreibt den Standard, z. B. für Gesellschafter-Geschäftsführer:innen. Der F&E-Anteil fließt in die Forschungsprämie.
-        </p>
         {S.neufoeg.aktiv && nfSave > 0 && (
-          <div className="rw-callout good"><p><strong>NeuFöG eingeplant:</strong> {fmtE(nfSave)} weniger Lohnnebenkosten im Planzeitraum. Details im Register „NeuFöG & Forschungsprämie“.</p></div>
+          <div className="rw-callout good"><p><strong>NeuFöG eingeplant:</strong> {fmtE(nfSave)} weniger Lohnnebenkosten im Planzeitraum.</p></div>
         )}
         {!S.neufoeg.aktiv && nfPot > 0 && (
           <div className="rw-callout">
             <p>
-              <strong>Option NeuFöG:</strong> Mit der Lohnnebenkostenbefreiung würdet ihr im Planzeitraum rund {fmtE(nfPot)} sparen.{" "}
+              <strong>Option NeuFöG:</strong> rund {fmtE(nfPot)} weniger Lohnnebenkosten im Planzeitraum.{" "}
               <button type="button" className="rw-btn sm" onClick={() => setTab("ansprueche")}>Ansehen</button>
             </p>
           </div>
@@ -334,17 +335,17 @@ export function Editor({
     );
   }
 
+  if (t === "kosten") erklaerung = (
+    <>
+      Laufende Fixkosten und einmalige Ausgaben netto. Quartals- und Jahreszahlungen fallen ab dem Startmonat im jeweiligen Rhythmus an.{" "}
+      {ustOn && "Die Vorsteuer kommt über die UVA zurück; für Reverse Charge aus dem Ausland (viele Software-Abos) 0 % wählen. "}
+      „F&E“ markiert Kosten für die Forschungsprämie.
+      {num(st.contingency) ? ` Auf alle Positionen kommen ${komma(st.contingency)} % Sicherheitszuschlag.` : ""}
+    </>
+  );
   if (t === "kosten")
     inhalt = (
       <>
-        <p className="rw-ed-intro">
-          Laufende Fixkosten und einmalige Ausgaben netto. Quartals- und Jahreszahlungen fallen ab dem Startmonat im jeweiligen
-          Rhythmus an.{" "}
-          {ustOn &&
-            "Die Vorsteuer zahlt ihr mit und bekommt sie über die UVA zurück; für Leistungen aus dem Ausland mit Reverse Charge (z. B. viele Software-Abos) 0 % wählen. "}
-          „F&E“ markiert Kosten, die in die Forschungsprämie einfließen.
-          {num(st.contingency) ? ` Auf alle Positionen wird ein Sicherheitszuschlag von ${komma(st.contingency)} % gerechnet.` : ""}
-        </p>
         {tabelle(
           `minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,.9fr) minmax(0,.95fr) minmax(132px,.95fr) minmax(132px,.95fr)${ustOn ? " minmax(0,.6fr)" : ""} minmax(0,.5fr) 30px`,
           ["Position", "Kategorie", { t: "Betrag netto", r: true }, "Intervall", "Ab / am", "Bis", ...(ustOn ? ["USt"] : []), "F&E"],
@@ -368,14 +369,11 @@ export function Editor({
       </>
     );
 
+  if (t === "darlehen") erklaerung =
+    "Endfällig: Rückzahlung samt Zinsen am Rückzahlungsdatum, ohne Datum bleibt das Darlehen stehen. Monatsraten: gleich hohe Tilgung ab Tilgungsbeginn, Zinsen monatlich auf den offenen Betrag. Die gestrichelte Linie im Chart ist der Verlauf ohne Gesellschafterdarlehen.";
   if (t === "darlehen")
     inhalt = (
       <>
-        <p className="rw-ed-intro">
-          Gesellschafterdarlehen, Bankkredite und Förderdarlehen. Endfällig: Rückzahlung samt Zinsen am Rückzahlungsdatum (ohne Datum
-          bleibt das Darlehen stehen). Monatsraten: gleich hohe Tilgung ab Tilgungsbeginn, Zinsen laufend monatlich auf den offenen
-          Betrag. Die gestrichelte Linie im Chart zeigt den Verlauf ohne Gesellschafterdarlehen.
-        </p>
         {tabelle(
           "minmax(0,1.3fr) minmax(0,1.1fr) minmax(0,.9fr) minmax(132px,.95fr) minmax(0,.9fr) minmax(132px,.95fr) minmax(0,.55fr) minmax(0,.55fr) 30px",
           ["Bezeichnung", "Typ", { t: "Betrag (€)", r: true }, "Auszahlung", "Tilgung", "Rückzahlung / Beginn", { t: "Raten", r: true }, { t: "Zins %", r: true }],
@@ -413,19 +411,19 @@ export function Editor({
           <h3>Allgemein</h3>
           <div className="rw-settings-grid">
             {cell("Firma", sf("settings", "company", "text", { placeholder: "Firmenname" }))}
-            {cell("Planungsstart", <>{sf("settings", "start", "date")}<span className="rw-hint">Es zählt der Monat.</span></>)}
-            {cell("Planungszeitraum (Monate)", <>{sf("settings", "months", "number", { min: 6, max: 72, step: 1 })}<span className="rw-hint">6 bis 72 Monate</span></>)}
+            {cell(<>Planungsstart <Hinweis text="Es zählt der Monat." /></>, sf("settings", "start", "date"))}
+            {cell(<>Planungszeitraum (Monate) <Hinweis text="6 bis 72 Monate" /></>, sf("settings", "months", "number", { min: 6, max: 72, step: 1 }))}
             {cell("Kontostand zum Start (€)", sf("settings", "cash", "number"))}
-            {cell("Mindestpuffer (€)", <>{sf("settings", "buffer", "number")}<span className="rw-hint">Reserve, die nicht unterschritten werden soll, z. B. 2–3 Monate Burn</span></>)}
-            {cell("Sicherheitszuschlag Kosten (%)", <>{sf("settings", "contingency", "number", { min: 0 })}<span className="rw-hint">Für Unvorhergesehenes, üblich 5–10 %</span></>)}
+            {cell(<>Mindestpuffer (€) <Hinweis text="Reserve, die nicht unterschritten werden soll, z. B. 2–3 Monate Burn" /></>, sf("settings", "buffer", "number"))}
+            {cell(<>Sicherheitszuschlag Kosten (%) <Hinweis text="Für Unvorhergesehenes, üblich 5–10 %" /></>, sf("settings", "contingency", "number", { min: 0 }))}
             {cell("Ist-Werte", sc("settings", "rebase", "Prognose ab letztem Ist-Kontostand fortschreiben"))}
           </div>
         </div>
         <div className="rw-section">
           <h3>Personal</h3>
           <div className="rw-settings-grid">
-            {cell("Lohnnebenkosten Arbeitgeber (%)", <>{sf("settings", "lnk", "number")}<span className="rw-hint">Österreich: rund 29–31 % für Angestellte</span></>)}
-            {cell("Gehaltsanpassung pro Jahr (%)", <>{sf("settings", "raise", "number")}<span className="rw-hint">Wirkt jeweils ab Jänner (z. B. KV-Erhöhung)</span></>)}
+            {cell(<>Lohnnebenkosten Arbeitgeber (%) <Hinweis text="Österreich: rund 29–31 % für Angestellte" /></>, sf("settings", "lnk", "number"))}
+            {cell(<>Gehaltsanpassung pro Jahr (%) <Hinweis text="Wirkt jeweils ab Jänner (z. B. KV-Erhöhung)" /></>, sf("settings", "raise", "number"))}
             {cell("Gehaltsschema", sc("settings", "sonder", "14 Gehälter (Juni + November)"))}
           </div>
         </div>
@@ -433,7 +431,7 @@ export function Editor({
           <h3>Umsatzsteuer</h3>
           <div className="rw-settings-grid">
             {cell("Berechnung", sc("settings", "ust", "Umsatzsteuer und Vorsteuer im Cashflow abbilden"))}
-            {cell("UVA-Zeitraum", <>{ss("settings", "uva", [["monat", "monatlich"], ["quartal", "vierteljährlich"]])}<span className="rw-hint">Zahlung bzw. Gutschrift am 15. des zweitfolgenden Monats</span></>)}
+            {cell(<>UVA-Zeitraum <Hinweis text="Zahlung bzw. Gutschrift am 15. des zweitfolgenden Monats" /></>, ss("settings", "uva", [["monat", "monatlich"], ["quartal", "vierteljährlich"]]))}
           </div>
         </div>
         <div className="rw-section">
@@ -477,15 +475,18 @@ export function Editor({
 
   return (
     <section className="rw-panel">
-      <nav className="rw-tabs" role="tablist" aria-label="Planungsbereiche">
-        {REGISTER.map((x) => (
-          <button key={x.k} type="button" role="tab" aria-selected={t === x.k} onClick={() => setTab(x.k)}>
-            <span className={`sw ${x.farbe}`} />
-            {x.t}
-            {zaehler(x.k) !== "" && <span className="cnt">{zaehler(x.k)}</span>}
-          </button>
-        ))}
-      </nav>
+      <div className="rw-tabs-zeile">
+        <nav className="rw-tabs" role="tablist" aria-label="Planungsbereiche">
+          {REGISTER.map((x) => (
+            <button key={x.k} type="button" role="tab" aria-selected={t === x.k} onClick={() => setTab(x.k)}>
+              <span className={`sw ${x.farbe}`} />
+              {x.t}
+              {zaehler(x.k) !== "" && <span className="cnt">{zaehler(x.k)}</span>}
+            </button>
+          ))}
+        </nav>
+        {erklaerung && <Hinweis worum={`Was „${REGISTER.find((x) => x.k === t)!.t}“ rechnet`} text={erklaerung} />}
+      </div>
       {/* Ein Leser sieht alles, ändert nichts — ein `fieldset` legt alle Felder auf einmal still. */}
       <fieldset className="rw-editor" ref={ed as never} disabled={!darf}>
         {inhalt}
@@ -517,7 +518,7 @@ function Ansprueche({
   const fpb = r.fpBase;
   const jahre = Object.keys(fpb).sort();
   const monatFp = num(S.fp.monat) || 9;
-  const cell = (label: string, inhalt: ReactNode) => (
+  const cell = (label: ReactNode, inhalt: ReactNode) => (
     <div className="rw-cell">
       <span className="rw-cell-l">{label}</span>
       {inhalt}
@@ -526,20 +527,27 @@ function Ansprueche({
   return (
     <>
       <div className="rw-section">
-        <h3>NeuFöG – Lohnnebenkostenbefreiung</h3>
-        <p className="rw-ed-intro">
-          Nach dem Neugründungs-Förderungsgesetz entfallen für Dienstnehmer:innen neu gegründeter Betriebe der Dienstgeberbeitrag zum
-          FLAF (DB), der Zuschlag zum DB (DZ), der Wohnbauförderungsbeitrag und der Unfallversicherungsbeitrag. Kommunalsteuer und die
-          übrigen Sozialversicherungsbeiträge bleiben. Die Befreiung gilt in den ersten 12 Kalendermonaten ab der Neugründung für alle
-          Dienstnehmer:innen, danach bis zum 36. Monat nur für die ersten drei, jeweils für die ersten 12 Monate ab ihrem Eintritt.
-        </p>
+        <h3>
+          NeuFöG – Lohnnebenkostenbefreiung{" "}
+          <Hinweis
+            worum="Was NeuFöG befreit"
+            text={
+              <>
+                Für Dienstnehmer:innen neu gegründeter Betriebe entfallen DB, DZ, Wohnbauförderungs- und Unfallversicherungsbeitrag;
+                Kommunalsteuer und übrige SV-Beiträge bleiben. In den ersten 12 Kalendermonaten ab Neugründung für alle, bis zum 36. Monat
+                nur für die ersten drei, je 12 Monate ab Eintritt. Die einmaligen Gebührenbefreiungen bei der Gründung sind nicht
+                liquiditätsrelevant und deshalb nicht abgebildet.
+              </>
+            }
+          />
+        </h3>
         <div className="rw-settings-grid">
           {cell("Anspruch", sc("neufoeg", "aktiv", "NeuFöG-Befreiung im Plan berücksichtigen"))}
-          {cell("Kalendermonat der Neugründung", <>{sf("neufoeg", "gruendung", "date")}<span className="rw-hint">Monat, in dem ihr erstmals werbend tätig wurdet</span></>)}
-          {cell("Befreiter Anteil vom Brutto (%)", <>{sf("neufoeg", "satz", "number")}<span className="rw-hint">DB 3,7 % + DZ ca. 0,3–0,4 % (je Bundesland) + WBF 0,5 % + UV 1,1 %</span></>)}
+          {cell(<>Kalendermonat der Neugründung <Hinweis text="Monat, in dem ihr erstmals werbend tätig wurdet" /></>, sf("neufoeg", "gruendung", "date"))}
+          {cell(<>Befreiter Anteil vom Brutto (%) <Hinweis text="DB 3,7 % + DZ ca. 0,3–0,4 % (je Bundesland) + WBF 0,5 % + UV 1,1 %" /></>, sf("neufoeg", "satz", "number"))}
         </div>
         {G === null ? (
-          <div className="rw-callout"><p>Trage den Monat der Neugründung ein, dann rechnet der Plan aus, für welche Personen und Monate die Befreiung greift.</p></div>
+          <div className="rw-callout"><p>Mit dem Monat der Neugründung rechnet der Plan, für wen und wann die Befreiung greift.</p></div>
         ) : (
           <>
             <div className={`rw-callout${nfo.aktiv && pot ? " good" : ""}`}>
@@ -589,20 +597,25 @@ function Ansprueche({
             </label>
           ))}
         </div>
-        <p className="rw-hint">Die einmaligen Gebührenbefreiungen des NeuFöG bei der Gründung (z. B. Firmenbuch-Eintragung) sind nicht liquiditätsrelevant für den Plan und daher nicht abgebildet.</p>
       </div>
 
       <div className="rw-section">
-        <h3>Forschungsprämie</h3>
-        <p className="rw-ed-intro">
-          {komma(S.fp.satz)} % der Aufwendungen für Forschung und experimentelle Entwicklung eines Kalenderjahres. Beantragung nach
-          Jahresende über FinanzOnline mit Jahresgutachten der FFG; die Prämie wird dem Abgabenkonto gutgeschrieben und kann ausbezahlt
-          werden. Grundlage hier: Personalkosten × F&E-Anteil (Register Team) plus als F&E markierte Kosten.
-        </p>
+        <h3>
+          Forschungsprämie{" "}
+          <Hinweis
+            worum="Wie die Forschungsprämie gerechnet wird"
+            text={
+              <>
+                {komma(S.fp.satz)} % der F&E-Aufwendungen eines Kalenderjahres, beantragt nach Jahresende über FinanzOnline mit
+                Jahresgutachten der FFG. Grundlage hier: Personalkosten × F&E-Anteil (Register Team) plus als F&E markierte Kosten.
+              </>
+            }
+          />
+        </h3>
         <div className="rw-settings-grid">
           {cell("Anspruch", sc("fp", "aktiv", "Forschungsprämie im Plan berücksichtigen"))}
           {cell("Prämiensatz (%)", sf("fp", "satz", "number"))}
-          {cell("Erwartete Auszahlung im Folgejahr", <>{ss("fp", "monat", MONL.map((m, i) => [String(i + 1), m]))}<span className="rw-hint">Abhängig von Gutachten und Bescheid</span></>)}
+          {cell(<>Erwartete Auszahlung im Folgejahr <Hinweis text="Abhängig von Gutachten und Bescheid" /></>, ss("fp", "monat", MONL.map((m, i) => [String(i + 1), m])))}
         </div>
         {jahre.length ? (
           <table className="rw-mini">
@@ -625,7 +638,7 @@ function Ansprueche({
             </tbody>
           </table>
         ) : (
-          <div className="rw-callout"><p>Noch keine F&E-Aufwendungen markiert. Trage im Register Team einen F&E-Anteil ein oder markiere Kosten als F&E.</p></div>
+          <div className="rw-callout"><p>Noch keine F&E-Aufwendungen — F&E-Anteil im Team oder Kosten als F&E markieren.</p></div>
         )}
       </div>
     </>

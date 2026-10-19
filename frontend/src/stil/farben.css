@@ -49,6 +49,7 @@
   --marke: #0d4e52;
   --marke-dunkel: #0a3e41;
   --marke-tiefer: #072b2d;
+  /* Trägt die laufende Uhr der Zeitseite: --text 14,83 · --text-leise 5,79 · --marke 7,96. */
   --marke-hell: #e4eeed;
   --marke-rand: #8fb6b4;
   --akzent: #a2552c;
@@ -193,6 +194,7 @@
     --marke: #66b9b6;
     --marke-dunkel: #8fd0cd;
     --marke-tiefer: #072b2d;
+    /* Laufende Uhr: --text 12,02 · --text-leise 6,40 · --marke 6,13. */
     --marke-hell: #16302f;
     --marke-rand: #3a6361;
     --akzent: #d98c5c;

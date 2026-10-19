@@ -150,7 +150,7 @@ export function Runway(_: { ich: Ich }) {
             <strong>{importFrage.name}</strong>
             {importFrage.wann && ` · exportiert am ${importFrage.wann}`}
             <br />
-            <span className="rw-hint">{importFrage.satz}. Der aktuelle Plan wird ersetzt; Ist-Werte aus der Datei werden nicht übernommen.</span>
+            <span className="rw-hint">{importFrage.satz}. Ersetzt den aktuellen Plan; Ist-Werte aus der Datei bleiben draußen.</span>
           </p>
           <button
             type="button"
@@ -169,7 +169,7 @@ export function Runway(_: { ich: Ich }) {
         </div>
       )}
 
-      <Lage S={S} r={r} szenario={ansicht.szenario} />
+      <Lage S={S} r={r} />
       <Verlauf
         S={S}
         r={r}
@@ -228,17 +228,10 @@ export function Runway(_: { ich: Ich }) {
       <Jahre S={S} r={r} szenario={ansicht.szenario} />
       <Monate S={S} r={r} szenario={ansicht.szenario} darf={dok.darf} ist={dok.ist} />
 
-      <footer className="rw-footer">
-        <p>
-          Beträge in Euro. Förderungen, Investments und Darlehen sind umsatzsteuerfrei; Umsätze und Kosten werden netto erfasst, die
-          Umsatzsteuer läuft über eigene Zeilen und die UVA (Fälligkeit am 15. des zweitfolgenden Monats). Zahlungen werden dem Monat
-          ihres Datums zugeordnet; was vor dem Planungsstart liegt, steckt bereits im Kontostand zum Start.
-        </p>
-        <p>
-          Personalkosten = Bruttogehalt × (1 + Lohnnebenkosten-Satz) abzüglich NeuFöG-Befreiung. NeuFöG, Forschungsprämie und
-          Umsatzsteuer sind vereinfacht abgebildet; Sätze und Anspruch bitte mit der Steuerberatung abstimmen.
-        </p>
-      </footer>
+      {/* Die Rechenannahmen (netto, Umsatzsteuer, Personalkosten, NeuFöG)
+          standen hier als zwei Absätze unter allem. Sie stehen jetzt in der
+          Doku unter „Was der Plan vereinfacht“ — hier las sie niemand ein
+          zweites Mal. */}
 
       <input
         ref={datei}

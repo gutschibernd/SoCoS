@@ -1,9 +1,16 @@
 /**
  * Runway-Planung, oben: Szenario, Daten, Speicherstand — darunter die Lage in
  * einem Satz und sechs Kennzahlen. Wie `renderTop` des Runway-Planers.
+ *
+ * Seit 2026-10-19 mit weniger Worten (Bernd: „da ist einfach zu viel Text"):
+ * Jede Kennzahl trägt ein Zeichen für das, was sie misst, und was sie meint,
+ * steht hinter ihrem ⓘ statt als Zeile unter der Zahl. Unter der Zahl bleibt
+ * nur, was sich mit dem Plan ändert (der Monat, die Zahl der Abrufe).
  */
 
 import type { Runwayplan, Runwayrechnung, Szenario } from "../basis/daten";
+import { Hinweis } from "../bausteine/Hinweis";
+import { Zeichen, type ZeichenName } from "../bausteine/Zeichen";
 import type { Speicherstand } from "../basis/runwaydokument";
 import { Achse, fmtE, num } from "../basis/runway";
 
@@ -56,12 +63,26 @@ export function Kopf({
             </button>
           ))}
         </div>
+        <Hinweis
+          worum="Was die Szenarien rechnen"
+          text={
+            <>
+              {SZENARIEN.map((s) => (
+                <span key={s.wert} className="hinweis-zeile">
+                  <b>{s.text}:</b> {s.titel}
+                </span>
+              ))}
+            </>
+          }
+        />
         <button type="button" className="rw-btn" onClick={exportieren} title="Kompletten Plan als JSON-Datei sichern">
-          Daten exportieren
+          <Zeichen name="herunter" />
+          Export
         </button>
         {darf && (
           <button type="button" className="rw-btn" onClick={importieren} title="Gesicherte JSON-Datei laden (oder Datei auf die Seite ziehen)">
-            Daten importieren
+            <Zeichen name="hinauf" />
+            Import
           </button>
         )}
         <span className="rw-save" data-s={speicher}>
@@ -72,9 +93,37 @@ export function Kopf({
   );
 }
 
-const NAMEN = ["Runway", "Tiefster Kontostand", "Überbrückungsbedarf", "Burn Ø 6 Monate", "Break-even", "Gesellschafterdarlehen"];
+const KENNZAHLEN: { name: string; zeichen: ZeichenName; meint: string }[] = [
+  { name: "Runway", zeichen: "event", meint: "Wie viele Monate das Konto im Plus bleibt." },
+  { name: "Tiefster Stand", zeichen: "tief", meint: "Der niedrigste Stand an einem Monatsende im ganzen Planzeitraum." },
+  {
+    name: "Überbrückung",
+    zeichen: "bruecke",
+    meint: "Was zusätzlich hereinkommen muss, damit der Stand nie unter den Mindestpuffer fällt.",
+  },
+  { name: "Burn Ø 6 Monate", zeichen: "flamme", meint: "Personal und Kosten minus Umsatz je Monat, gemittelt über die ersten sechs Monate." },
+  { name: "Break-even", zeichen: "waage", meint: "Der erste Monat, in dem der Umsatz Personal und laufende Kosten deckt." },
+  // Abgekürzt: „Gesellschafterdarlehen" ist in Versalien breiter als eine
+  // halbe Handybreite und lässt sich nicht sinnvoll trennen.
+  { name: "Ges.-Darlehen", zeichen: "muenze", meint: "Was an Gesellschafterdarlehen eingeplant ist — von Hand oder aus der Überbrückung übernommen." },
+];
 
-export function Lage({ S, r, szenario }: { S: Runwayplan; r: Runwayrechnung; szenario: Szenario }) {
+function Kennzahlkopf({ k }: { k: (typeof KENNZAHLEN)[number] }) {
+  return (
+    <span className="rw-kpi-kopf">
+      <Zeichen name={k.zeichen} />
+      <span className="rw-eyebrow">{k.name}</span>
+      <Hinweis worum={`Was „${k.name}“ meint`} text={k.meint} />
+    </span>
+  );
+}
+
+/**
+ * Das Szenario steht nicht mehr im Satz: Es ist oben im Umschalter markiert,
+ * und „Im Basis-Szenario …" vorneweg war das, was man beim zweiten Lesen
+ * überspringt.
+ */
+export function Lage({ S, r }: { S: Runwayplan; r: Runwayrechnung }) {
   const a = new Achse(S.settings.start);
   const buf = num(S.settings.buffer);
   const n = r.A.length;
@@ -86,12 +135,12 @@ export function Lage({ S, r, szenario }: { S: Runwayplan; r: Runwayrechnung; sze
       <>
         <section className="rw-status" data-s="empty" aria-live="polite">
           <span className="rw-pill empty">Keine Daten</span>
-          <p>Sobald Kontostand, Förderungen und Kosten erfasst sind, siehst du hier, wie lange das Geld reicht.</p>
+          <p>Kontostand, Förderungen und Kosten eintragen — dann steht hier, wie lange das Geld reicht.</p>
         </section>
         <section className="rw-kpis">
-          {NAMEN.map((t) => (
-            <div key={t} className="rw-kpi">
-              <span className="rw-eyebrow">{t}</span>
+          {KENNZAHLEN.map((t) => (
+            <div key={t.name} className="rw-kpi">
+              <Kennzahlkopf k={t} />
               <span className="v">—</span>
               <span className="s">&nbsp;</span>
             </div>
@@ -100,35 +149,33 @@ export function Lage({ S, r, szenario }: { S: Runwayplan; r: Runwayrechnung; sze
       </>
     );
 
-  const sc = { konservativ: "konservativen ", basis: "Basis-", optimistisch: "optimistischen " }[szenario];
   let status;
   if (k.neg !== null)
     status = (
       <section className="rw-status" data-s="bad" aria-live="polite">
-        <span className="rw-pill bad">Liquiditätslücke</span>
+        <span className="rw-pill bad"><Zeichen name="achtung" />Liquiditätslücke</span>
         <p>
-          Im {sc}Szenario ist das Konto ab <strong>{a.labL(k.neg)}</strong> im Minus. Um den Mindestpuffer von {fmtE(buf)} zu
-          halten, fehlen insgesamt <strong>{fmtE(need)}</strong>, erstmals im {a.labL(r.sug[0]?.i ?? k.neg)}.
+          Ab <strong>{a.labL(k.neg)}</strong> im Minus. Für den Puffer von {fmtE(buf)} fehlen <strong>{fmtE(need)}</strong>,
+          erstmals im {a.labL(r.sug[0]?.i ?? k.neg)}.
         </p>
       </section>
     );
   else if (k.low !== null)
     status = (
       <section className="rw-status" data-s="warn" aria-live="polite">
-        <span className="rw-pill warn">Unter Puffer</span>
+        <span className="rw-pill warn"><Zeichen name="achtung" />Unter Puffer</span>
         <p>
-          Im {sc}Szenario bleibt das Konto im Plus, unterschreitet aber ab <strong>{a.labL(k.low)}</strong> den Mindestpuffer von{" "}
-          {fmtE(buf)}. Zum Auffüllen: {fmtE(need)}.
+          Im Plus, aber ab <strong>{a.labL(k.low)}</strong> unter dem Puffer von {fmtE(buf)}. Zum Auffüllen: <strong>{fmtE(need)}</strong>.
         </p>
       </section>
     );
   else
     status = (
       <section className="rw-status" data-s="ok" aria-live="polite">
-        <span className="rw-pill ok">Durchfinanziert</span>
+        <span className="rw-pill ok"><Zeichen name="haken" />Durchfinanziert</span>
         <p>
-          Im {sc}Szenario bleibt der Kontostand bis {a.labL(n - 1)} über dem Mindestpuffer von {fmtE(buf)}
-          {k.gdN > 0 && k.negZ !== null && ` – dank der eingeplanten Gesellschafterdarlehen (ohne sie: Minus ab ${a.labL(k.negZ)})`}.
+          Bis {a.labL(n - 1)} über dem Puffer von {fmtE(buf)}
+          {k.gdN > 0 && k.negZ !== null && ` — mit den Gesellschafterdarlehen; ohne sie Minus ab ${a.labL(k.negZ)}`}.
         </p>
       </section>
     );
@@ -147,10 +194,10 @@ export function Lage({ S, r, szenario }: { S: Runwayplan; r: Runwayrechnung; sze
       s: need ? `${r.sug.length} Abruf${r.sug.length > 1 ? "e" : ""}, erster ${a.lab(r.sug[0].i)}` : "kein Bedarf",
       c: need ? "bad" : "ok",
     },
-    { v: burn > 0 ? fmtE(burn) : "positiv", s: burn > 0 ? "Kosten minus Umsatz pro Monat" : "Umsatz deckt die Kosten", c: "" },
+    { v: burn > 0 ? fmtE(burn) : "positiv", s: burn > 0 ? "je Monat" : "Umsatz deckt die Kosten", c: "" },
     {
       v: k.be !== null ? a.lab(k.be) : "nicht im Plan",
-      s: k.be !== null ? "Umsatz deckt Personal + Kosten" : "Umsatz < laufende Kosten",
+      s: k.be !== null ? "\u00a0" : "Umsatz unter den Kosten",
       c: k.be !== null ? "ok" : "",
     },
     { v: fmtE(k.gdSum), s: k.gdN ? `${k.gdN} eingeplant` : "noch keine", c: "darl" },
@@ -161,8 +208,8 @@ export function Lage({ S, r, szenario }: { S: Runwayplan; r: Runwayrechnung; sze
       {status}
       <section className="rw-kpis">
         {kp.map((x, j) => (
-          <div key={NAMEN[j]} className={`rw-kpi ${x.c}`}>
-            <span className="rw-eyebrow">{NAMEN[j]}</span>
+          <div key={KENNZAHLEN[j].name} className={`rw-kpi ${x.c}`}>
+            <Kennzahlkopf k={KENNZAHLEN[j]} />
             <span className="v" title={x.v}>
               {x.v}
             </span>

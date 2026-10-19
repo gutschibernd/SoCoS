@@ -152,12 +152,13 @@ im Ernstfall, unter Zeitdruck, wenn das Original schon weg ist.
   Feld vergessen.
 - **Was der Finger trifft, ist mindestens 44 px hoch**, Eingabefelder 16 px (darunter
   zoomt iOS beim Hineintippen), Ränder achten auf `env(safe-area-*)`.
-- **Keine erklärenden Absätze in der Seite.** Das `?` daneben, das es dafür einmal
-  gab, ist weg: Es war die richtige Form für „was heißt dieses Feld" und die falsche
-  für „wie arbeite ich damit" — wer die Frage stellt, bevor er auf der Seite steht,
-  findet die Antwort dort nicht, und wer sie zweimal gelesen hat, überfährt sie nie
-  wieder. Erklärungen stehen unter **Software · Doku** (`ansichten/Doku.tsx`), und wer
-  ein Feld einführt, das Erklärung braucht, schreibt sie **dort** hin.
+- **Keine erklärenden Absätze in der Seite.** „Wie arbeite ich damit" steht unter
+  **Software · Doku** (`ansichten/Doku.tsx`) — wer die Frage stellt, bevor er auf der
+  Seite steht, findet die Antwort dort nicht, und wer sie zweimal gelesen hat,
+  überfährt sie nie wieder. **„Was heißt dieses Feld, diese Zahl"** steht hinter
+  einem ⓘ daneben (`bausteine/Hinweis.tsx`: Überfahren oder Antippen) — seit
+  2026-10-19 zuerst in der Runway-Planung (Bernd: „da ist einfach zu viel Text").
+  Ein ⓘ trägt einen bis drei Sätze, keine Anleitung.
 - **Vor jedem Löschen eine Nachfrage, die den Namen nennt und den milderen Weg
   vorschlägt** (beenden, stilllegen, als abgeschlossen führen). Kein `window.confirm`.
 - **Eine leere Liste ist kein Fehler**, sondern eine Leerstelle mit einem Satz dazu,

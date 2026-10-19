@@ -135,3 +135,38 @@ export function wannKurz(iso: string, jetzt = new Date()): string {
   const zwei = (n: number) => String(n).padStart(2, "0");
   return `${zwei(d.getDate())}.${zwei(d.getMonth() + 1)}. ${uhrzeitAusZeitpunkt(iso)}`;
 }
+
+/** Ein Monat `2026-10` um `um` Monate verschoben — über Jahresgrenzen hinweg. */
+export function monatVerschieben(monat: string, um: number): string {
+  const [jahr, nr] = monat.split("-").map(Number);
+  const d = new Date(jahr, nr - 1 + um, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Buchungen nach Kalendertag, neuester Tag zuerst, je Tag mit seiner Summe.
+ *
+ * Der Tag ist der des **Beginns** an der Wand: Wer um 23:30 anfängt und bis
+ * 0:30 arbeitet, findet die Buchung an dem Abend, an dem er sich hingesetzt
+ * hat — so steht sie auch im Zeitnachweis.
+ *
+ * Entwürfe zählen nicht mit (siehe `Zeitbuchung.ist_entwurf`); die Seite
+ * führt sie ohnehin getrennt.
+ */
+export function nachTagen<T extends { start: string; sekunden: number; ist_entwurf: boolean }>(
+  buchungen: T[],
+): { tag: string; sekunden: number; buchungen: T[] }[] {
+  const tage = new Map<string, T[]>();
+  for (const b of buchungen) {
+    if (b.ist_entwurf) continue;
+    const tag = tagAusZeitpunkt(b.start);
+    tage.set(tag, [...(tage.get(tag) ?? []), b]);
+  }
+  return [...tage.entries()]
+    .sort(([a], [z]) => z.localeCompare(a))
+    .map(([tag, liste]) => ({
+      tag,
+      sekunden: liste.reduce((s, b) => s + b.sekunden, 0),
+      buchungen: [...liste].sort((a, z) => z.start.localeCompare(a.start)),
+    }));
+}

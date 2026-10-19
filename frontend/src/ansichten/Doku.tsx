@@ -269,9 +269,11 @@ function ZeitDoku() {
       >
         <Schritte
           schritte={[
-            "Im Baustein „Zeit buchen“ der Übersicht (über „Anpassen“ dazunehmen) oder auf der Projektseite ein Paket wählen. Solange die Uhr läuft, steht sie unten links in der Leiste, am Handy über der Fußleiste.",
+            "Oben auf der Zeitseite (oder im Baustein „Zeit buchen“ der Übersicht) das Paket wählen und „Start“ drücken. Die zuletzt bebuchten stehen darunter mit ▶ — ein Klick, und die Uhr läuft dort.",
+            "Solange die Uhr läuft, steht sie oben auf der Zeitseite mit ihrem Clock-out, unten links in der Leiste und am Handy über der Fußleiste.",
+            "In der Liste trägt jede eigene Buchung ein ▶: Es startet die Uhr noch einmal auf demselben Paket.",
             "Beim Clock-out fragt SoCoS nach einer Notiz. Sie ist freiwillig und in einem halben Jahr das, was die Zeile erklärt.",
-            "Startet man eine zweite Buchung, während eine läuft, wird die erste beendet — ohne Notiz. Wer eine mitgeben will, macht vorher den Clock-out.",
+            "Läuft schon etwas, heißt der Knopf „Wechseln“: Die laufende Buchung endet — ohne Notiz —, und die Uhr läuft auf dem neuen Paket. Wer eine Notiz mitgeben will, macht vorher den Clock-out.",
           ]}
         />
       </Abschnitt>
@@ -279,7 +281,7 @@ function ZeitDoku() {
       <Abschnitt
         zeichen="start"
         titel="„Ohne Paket“ — erst aufzeichnen, dann einsortieren"
-        vorspann="Den Knopf gibt es zweimal: im Baustein „Zeit buchen“ der Übersicht und über der Buchungsliste. Er startet die Uhr, ohne vorher nach dem Paket zu fragen."
+        vorspann="Ist kein Paket gewählt, heißt der Knopf „Ohne Paket starten“. Er startet die Uhr, ohne vorher nach dem Paket zu fragen."
       >
         <Schritte
           schritte={[
@@ -316,7 +318,7 @@ function ZeitDoku() {
       >
         <Schritte
           schritte={[
-            "„Zeit nachtragen“ auf der Zeitseite. Vorgewählt ist das Paket, auf das du zuletzt gebucht hast.",
+            "Oben auf der Zeitseite von „Uhr“ auf „Nachtragen“ umschalten. Vorgewählt ist das Paket, auf das du zuletzt gebucht hast.",
             "Ins Paketfeld tippen filtert die Liste — Projekt und Paket, die Wörter in beliebiger Reihenfolge. Return nimmt den ersten Treffer.",
             "Tag eintragen, „von“ eintragen, dann entweder „bis“ tippen oder einen der Dauerknöpfe drücken. Darunter steht, wie lang die Buchung wird.",
             "Unter „Für wen“ anhaken, wer dabei war. Jede angehakte Person bekommt ihre eigene Buchung über dieselbe Zeit.",
@@ -344,12 +346,12 @@ function ZeitDoku() {
         <Begriffe
           paare={[
             {
-              begriff: "Zeitraum",
-              text: "„Von“ und „bis“ stehen über den Zahlen. Ohne Angabe kommt alles — es gibt keinen Filter auf den laufenden Monat.",
+              begriff: "Monat und Person",
+              text: "Die Liste zeigt einen Monat, nach Tagen mit der Tagessumme; ‹ und › blättern. Vorgewählt ist deine eigene Zeit, daneben lassen sich das ganze Team oder eine Person wählen.",
             },
             {
               begriff: "Arbeitspaket ändern",
-              text: "„Ändern“ an einer Buchung öffnet auch das Arbeitspaket — für jede Buchung, nicht nur für die von Overhead. Ein Fehlgriff beim Start ist damit eine Auswahl und kein Löschen.",
+              text: "Der Stift an einer Buchung öffnet auch das Arbeitspaket — für jede Buchung, nicht nur für die von Overhead. Ein Fehlgriff beim Start ist damit eine Auswahl und kein Löschen.",
             },
             {
               begriff: "Fremde Buchungen",
@@ -357,7 +359,7 @@ function ZeitDoku() {
             },
             {
               begriff: "Zeitnachweis",
-              text: "Ein Monat als PDF — für eine Person oder fürs ganze Team. Entwürfe bleiben draußen.",
+              text: "„Mein Nachweis“ und „Team“ laden den Monat, der über der Liste steht, als PDF. Entwürfe bleiben draußen; das PDF sagt, wenn welche fehlen.",
             },
           ]}
         />
@@ -1140,12 +1142,12 @@ function ModuleDoku() {
       >
         <Schritte
           schritte={[
-            "Oben das Szenario wählen. Darunter steht die Lage in einem Satz und sechs Kennzahlen.",
+            "Oben das Szenario wählen. Darunter steht die Lage in einem Satz und sechs Kennzahlen. Was eine Kennzahl meint, steht hinter ihrem ⓘ — ebenso bei jedem Register und bei den Einstellungen.",
             "Unter „Kontostand und Zeitachse“ zeigt die Linie den Stand am Monatsende, darunter steht Zeile für Zeile, was wann fließt. Mit der Maus darüberfahren oder antippen zeigt den Monat im Detail.",
             "In den Registern eintragen. Jedes Feld lässt sich gleich beschreiben, gespeichert wird von selbst — oben rechts steht „Gespeichert“. Ein gelöschter Eintrag lässt sich sieben Sekunden lang rückgängig machen.",
-            "Fehlt Geld, schlägt „Überbrückung“ Abrufe vor; „Vorschläge als Gesellschafterdarlehen übernehmen“ trägt sie als Darlehen ein.",
+            "Fehlt Geld, schlägt „Überbrückung“ Abrufe vor; „Als Gesellschafterdarlehen übernehmen“ trägt sie als Darlehen ein.",
             "In der Monatsübersicht den echten Bankstand in die Ist-Zeile tippen. Er steht dann auch als Kontostand im Baustein „Geld“ der Übersicht.",
-            "„Daten exportieren“ lädt den Plan als Datei, „Daten importieren“ (oder die Datei auf die Seite ziehen) ersetzt ihn — dasselbe Format wie der Runway-Planer.",
+            "„Export“ lädt den Plan als Datei, „Import“ (oder die Datei auf die Seite ziehen) ersetzt ihn — dasselbe Format wie der Runway-Planer.",
           ]}
         />
         <Begriffe
@@ -1165,6 +1167,10 @@ function ModuleDoku() {
             {
               begriff: "Vergleichsstand",
               text: "„Aktuellen Stand als Vergleich merken“ behält den heutigen Verlauf als gepunktete Linie — damit sieht man nach einer Änderung, was sie bewirkt hat.",
+            },
+            {
+              begriff: "Was der Plan vereinfacht",
+              text: "Beträge in Euro. Förderungen, Investments und Darlehen sind umsatzsteuerfrei; Umsätze und Kosten werden netto erfasst, die Umsatzsteuer läuft über eigene Zeilen und die UVA (fällig am 15. des zweitfolgenden Monats). Zahlungen zählen im Monat ihres Datums; was vor dem Planungsstart liegt, steckt im Kontostand zum Start. Personalkosten sind Brutto × (1 + Lohnnebenkosten) abzüglich NeuFöG. NeuFöG, Forschungsprämie und Umsatzsteuer sind vereinfacht — Sätze und Anspruch mit der Steuerberatung abstimmen.",
             },
             {
               begriff: "Wer was darf",

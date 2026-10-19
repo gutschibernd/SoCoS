@@ -12,7 +12,7 @@ import {
   type Projekt,
   type Teammitglied,
 } from "../basis/daten";
-import { letztePakete, paketgruppen } from "../basis/start";
+import { buchbarePakete, letztePakete, paketgruppen } from "../basis/start";
 import { Zustand } from "../basis/Zustand";
 import { clockIn } from "../basis/uhr";
 import {
@@ -20,6 +20,8 @@ import {
   alsStunden,
   alsZeitpunkt,
   heuteAlsDatum,
+  monatVerschieben,
+  nachTagen,
   plusMinuten,
   spanne,
   tagAusZeitpunkt,
@@ -30,6 +32,7 @@ import { Leerstelle } from "../bausteine/Leerstelle";
 import { Paketwahl } from "../bausteine/Paketwahl";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
+import { Uhrstart } from "../bausteine/Uhrstart";
 
 const TAG = new Intl.DateTimeFormat("de-AT", { weekday: "short", day: "2-digit", month: "2-digit" });
 const UHRZEIT = new Intl.DateTimeFormat("de-AT", { hour: "2-digit", minute: "2-digit" });
@@ -166,45 +169,72 @@ function Zeitfelder({
   );
 }
 
+const MONATSNAME = new Intl.DateTimeFormat("de-AT", { month: "long", year: "numeric" });
+
+/** Vor dreißig Tagen als JJJJ-MM-TT — der ausdrückliche Zeitraum für „zuletzt gebucht". */
+function vorDreissigTagen() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return heuteAlsDatum(d);
+}
+
+/**
+ * Die Zeitseite: oben die Zeitleiste, darunter die Buchungen nach Tagen.
+ *
+ * **Warum so und nicht mehr wie bis 2026-10-19:** Oben standen Monat, Person,
+ * „Alle Monate", ein Satz über den Zeitnachweis und vier gleich große Knöpfe —
+ * „Ohne Paket starten", „Zeit nachtragen", zwei PDFs —, darunter eine
+ * Tabelle. Was man buchen will und wohin, stand nirgends zusammen (Bernd:
+ * „etwas unübersichtlich mit dem Buchen, was wann auf was").
+ *
+ * Jetzt wie in Toggl, Clockify und Harvest, die das über Jahre ausprobiert
+ * haben: **eine Zeile zum Buchen** ganz oben, mit einem Umschalter zwischen
+ * Uhr und Nachtragen — dieselbe Frage („auf welches Paket?") steht in beiden
+ * an derselben Stelle. Darunter die Buchungen **nach Tag gruppiert, mit der
+ * Tagessumme**; jede eigene trägt ein ▶, das auf demselben Paket weitermacht.
+ *
+ * Vorgewählt ist **die eigene Zeit**, nicht die des Teams: Die Seite
+ * beantwortet zuerst „was habe ich gebucht", und das Team ist eine Wahl weg.
+ * „Alle Monate" ist weg — es gab dabei keinen Zeitnachweis, und ein Monat ist
+ * mit ‹ › einen Klick entfernt.
+ */
 export function Zeit({ ich }: { ich: Ich }) {
   const [monat, setMonat] = useState(aktuellerMonat);
-  const [person, setPerson] = useState("alle");
-  const [alleMonate, setAlleMonate] = useState(false);
+  const [person, setPerson] = useState(String(ich.id));
+  const [modus, setModus] = useState<"uhr" | "nachtragen">("uhr");
 
   const grenzen = monatsgrenzen(monat);
-  const filter: Record<string, string> = alleMonate ? {} : { von: grenzen.von, bis: grenzen.bis };
+  const filter: Record<string, string> = { von: grenzen.von, bis: grenzen.bis };
   if (person !== "alle") filter.person = person;
 
   const buchungen = useBuchungen(filter);
+  // Die eigenen der letzten dreißig Tage, für „zuletzt gebucht" — unabhängig
+  // davon, welcher Monat und wessen Zeit gerade unten in der Liste steht.
+  const meine = useBuchungen({ person: String(ich.id), von: vorDreissigTagen() });
   const projekte = useProjekte();
   const team = useTeam();
   const laufend = useLaufend();
   const neuLaden = useNeuLaden();
 
-  const [nachtragen, setNachtragen] = useState(false);
   const [bearbeiten, setBearbeiten] = useState<Buchung | null>(null);
   const [loeschen, setLoeschen] = useState<Buchung | null>(null);
 
   if (!buchungen.data) return <Zustand abfrage={buchungen} erneut={() => buchungen.refetch()} />;
 
   const entwuerfe = buchungen.data.filter((b) => b.ist_entwurf);
-  const echte = buchungen.data.filter((b) => !b.ist_entwurf);
-  const gesamt = echte.reduce((s, b) => s + b.sekunden, 0);
+  const tage = nachTagen(buchungen.data);
+  const gesamt = tage.reduce((s, t) => s + t.sekunden, 0);
+  const alle = person === "alle";
+  const buchbar = buchbarePakete(projekte.data ?? []);
+  const laeuftAuf = laufend.data?.laufend?.paket;
 
-  // Wo **ich** zuletzt gebucht habe. Das Nachtragen wählt das oberste davon
-  // vor und stellt die Liste im Suchfeld voran; fremde Buchungen sagen darüber
-  // nichts, auch wenn sie gerade mit in der Tabelle stehen.
-  const zuletztGebucht = letztePakete(
-    echte.filter((b) => b.person === ich.id),
-    projekte.data ?? [],
-    6,
-  ).map((p) => p.id);
+  const zuletztGebucht = letztePakete(meine.data ?? [], projekte.data ?? [], 6).map((p) => p.id);
 
   const nachweisPfad = (nurIch: boolean) =>
     `/api/zeitnachweis/?monat=${monat}${nurIch ? `&person=${ich.id}` : ""}`;
 
-  async function ohnePaket() {
-    await clockIn();
+  async function weiter(b: Buchung) {
+    await clockIn(b.paket);
     neuLaden();
   }
 
@@ -225,144 +255,134 @@ export function Zeit({ ich }: { ich: Ich }) {
         </div>
       )}
 
-      <div className="karte">
-        <div className="feld-reihe">
-          <input
-            className="feld"
-            type="month"
-            value={monat}
-            disabled={alleMonate}
-            onChange={(e) => setMonat(e.target.value)}
-            aria-label="Monat"
-          />
-          <select className="feld" value={person} onChange={(e) => setPerson(e.target.value)} aria-label="Person">
-            <option value="alle">Alle Personen</option>
-            {(team.data ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <label className="schalter">
-            <input type="checkbox" checked={alleMonate} onChange={(e) => setAlleMonate(e.target.checked)} />
-            Alle Monate
-          </label>
-        </div>
-
-        <div className="summenzeile">
-          <div>
-            <span className="beschriftung">Gebucht{alleMonate ? " insgesamt" : ""}</span>
-            <div className="wert zahl">
-              {alsDauer(gesamt)}{" "}
-              <span className="nebenwert">({alsStunden(gesamt)} h gerundet)</span>
-            </div>
+      {ich.darf.bearbeiten && (
+        <div className="karte zeitleiste">
+          <div className="spannenwahl" role="group" aria-label="Wie buchen">
+            <button type="button" aria-pressed={modus === "uhr"} onClick={() => setModus("uhr")}>
+              <Zeichen name="zeit" />
+              Uhr
+            </button>
+            <button type="button" aria-pressed={modus === "nachtragen"} onClick={() => setModus("nachtragen")}>
+              <Zeichen name="plus" />
+              Nachtragen
+            </button>
           </div>
-          <div className="feld-reihe nachweis-knoepfe">
-            {/* Nur, solange nichts läuft: Ein Start beendet die laufende
-                Buchung, und ein Knopf, der das nebenbei tut, gehört nicht auf
-                die Seite, auf der man Buchungen nachsieht. Läuft eine, steht
-                der Clock-out ohnehin in der Leiste. */}
-            {ich.darf.bearbeiten && !laufend.data?.laufend && (
-              <button
-                type="button"
-                className="knopf-still"
-                onClick={ohnePaket}
-                title="Die Uhr läuft auf „Overhead“. Beim Clock-out kannst du sie umbuchen."
-              >
-                <Zeichen name="start" />
-                Ohne Paket starten
-              </button>
-            )}
-            {ich.darf.bearbeiten && (
-              <button type="button" className="knopf-still" onClick={() => setNachtragen((n) => !n)}>
-                <Zeichen name={nachtragen ? "kreuz" : "plus"} />
-                {nachtragen ? "Schließen" : "Zeit nachtragen"}
-              </button>
-            )}
+          {!projekte.data ? null : modus === "uhr" ? (
+            <Uhrstart projekte={projekte.data} meine={meine.data ?? []} />
+          ) : (
+            <Nachtragen
+              projekte={projekte.data}
+              team={team.data ?? []}
+              ich={ich}
+              zuletzt={zuletztGebucht}
+              fertig={() => {
+                setModus("uhr");
+                neuLaden();
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      <div className="karte">
+        <div className="zeitkopf">
+          <div className="monatswahl">
+            <button type="button" className="mini" aria-label="Monat davor" onClick={() => setMonat(monatVerschieben(monat, -1))}>
+              <Zeichen name="zeiger" klasse="zeichen-links" />
+            </button>
+            <h2>{MONATSNAME.format(new Date(`${monat}-01T00:00:00`))}</h2>
+            <button
+              type="button"
+              className="mini"
+              aria-label="Monat danach"
+              disabled={monat >= aktuellerMonat()}
+              onClick={() => setMonat(monatVerschieben(monat, 1))}
+            >
+              <Zeichen name="zeiger" />
+            </button>
+          </div>
+          <select className="feld zeitkopf-wer" value={person} onChange={(e) => setPerson(e.target.value)} aria-label="Wessen Zeit">
+            <option value={String(ich.id)}>Meine Zeit</option>
+            <option value="alle">Ganzes Team</option>
+            {(team.data ?? [])
+              .filter((p) => p.id !== ich.id)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+          </select>
+          <div className="zeitkopf-summe">
+            <b className="zahl">{alsDauer(gesamt)} h</b>
+            <span className="zahl" title="So steht es im Zeitnachweis">
+              {alsStunden(gesamt)} h gerundet
+            </span>
+          </div>
+          <div className="zeitkopf-pdf">
+            {/* Der Zeitnachweis nimmt den Monat, der hier steht — es gibt
+                keinen zweiten Monat mehr, den er meinen könnte. */}
             <a className="knopf-still" href={nachweisPfad(true)}>
               <Zeichen name="pdf" />
-              PDF · nur ich
+              Mein Nachweis
             </a>
-            <a className="knopf" href={nachweisPfad(false)}>
+            <a className="knopf-still" href={nachweisPfad(false)}>
               <Zeichen name="pdf" />
-              PDF · ganzes Team
+              Team
             </a>
           </div>
         </div>
-        <p className="nachweis-hinweis">
-          Der Zeitnachweis nimmt immer den gewählten <b>Monat</b> ({monat.replace("-", "/")}),
-          auch wenn oben „Alle Monate" steht. Nicht bestätigte Buchungen sind nicht enthalten;
-          das PDF sagt es, wenn welche fehlen.
-        </p>
 
-        {nachtragen && projekte.data && (
-          <Nachtragen
-            projekte={projekte.data}
-            team={team.data ?? []}
-            ich={ich}
-            zuletzt={zuletztGebucht}
-            fertig={() => {
-              setNachtragen(false);
-              neuLaden();
-            }}
-          />
-        )}
-      </div>
-
-      <div className="karte">
-        <h2>Buchungen</h2>
-        {echte.length === 0 ? (
+        {tage.length === 0 ? (
           <Leerstelle
-            was={alleMonate ? "Noch keine Buchung" : "In diesem Monat keine Buchung"}
-            satz="Die Uhr startet auf einem Arbeitspaket — oder oben ohne Paket, dann läuft sie auf „Overhead“. Vergessene Zeiten trägst du hier nach."
+            was="In diesem Monat keine Buchung"
+            satz="Oben die Uhr starten oder vergessene Zeit nachtragen."
           />
         ) : (
-          <table className="tabelle">
-            <thead>
-              <tr>
-                <th>Tag</th>
-                <th>Person</th>
-                <th>Projekt · Paket</th>
-                <th>Von – bis</th>
-                <th>Dauer</th>
-                <th>Notiz</th>
-                <th aria-label="Aktionen" />
-              </tr>
-            </thead>
-            <tbody>
-              {echte.map((b) => (
-                <tr key={b.id}>
-                  <td data-spalte="Tag">{TAG.format(new Date(b.start))}</td>
-                  <td data-spalte="Person">{b.person_name}</td>
-                  <td data-spalte="Projekt · Paket" data-breit="ja">
-                    {b.projekt_titel} · {b.paket_titel}
-                  </td>
-                  <td data-spalte="Von – bis" className="zahl">
-                    {UHRZEIT.format(new Date(b.start))} –{" "}
-                    {b.ende ? UHRZEIT.format(new Date(b.ende)) : "läuft"}
-                  </td>
-                  <td data-spalte="Dauer" className="zahl">
-                    {alsDauer(b.sekunden)}
-                  </td>
-                  <td data-spalte="Notiz" data-breit="ja">{b.notiz || "—"}</td>
-                  <td data-spalte="" className="zeilen-aktionen">
-                    {ich.darf.bearbeiten && (
-                      <button type="button" className="mini" onClick={() => setBearbeiten(b)}>
-                        <Zeichen name="stift" />
-                        Ändern
-                      </button>
-                    )}
-                    {ich.darf.loeschen && (
-                      <button type="button" className="mini" onClick={() => setLoeschen(b)}>
-                        <Zeichen name="korb" />
-                        Entfernen
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          tage.map((t) => (
+            <section key={t.tag} className="zeittag">
+              <h3 className="zeittag-kopf">
+                <span>{TAG.format(new Date(`${t.tag}T00:00:00`))}</span>
+                <b className="zahl">{alsDauer(t.sekunden)}</b>
+              </h3>
+              <ul className="zeitliste">
+                {t.buchungen.map((b) => (
+                  <li key={b.id} className="zeitzeile" data-laeuft={b.laeuft ? "ja" : undefined}>
+                    <span className="zeitzeile-was">
+                      <b>{b.paket_titel}</b>
+                      <em>
+                        {b.projekt_titel}
+                        {alle && ` · ${b.person_name}`}
+                      </em>
+                      {b.notiz && <span className="zeitzeile-notiz">{b.notiz}</span>}
+                    </span>
+                    <span className="zeitzeile-wann zahl">
+                      {UHRZEIT.format(new Date(b.start))} – {b.ende ? UHRZEIT.format(new Date(b.ende)) : "läuft"}
+                    </span>
+                    <span className="zeitzeile-dauer zahl">{alsDauer(b.sekunden)}</span>
+                    <span className="zeitzeile-knoepfe">
+                      {/* Weitermachen nur auf der eigenen Zeit: Die Uhr läuft
+                          immer für den, der klickt. */}
+                      {ich.darf.bearbeiten && b.person === ich.id && buchbar.has(b.paket) && laeuftAuf !== b.paket && (
+                        <button type="button" className="mini" aria-label={`Auf „${b.paket_titel}“ weitermachen`} title="Weitermachen" onClick={() => weiter(b)}>
+                          <Zeichen name="start" />
+                        </button>
+                      )}
+                      {ich.darf.bearbeiten && (
+                        <button type="button" className="mini" aria-label="Buchung ändern" title="Ändern" onClick={() => setBearbeiten(b)}>
+                          <Zeichen name="stift" />
+                        </button>
+                      )}
+                      {ich.darf.loeschen && (
+                        <button type="button" className="mini" aria-label="Buchung entfernen" title="Entfernen" onClick={() => setLoeschen(b)}>
+                          <Zeichen name="korb" />
+                        </button>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
         )}
       </div>
 

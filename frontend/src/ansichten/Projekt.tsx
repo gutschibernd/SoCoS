@@ -204,54 +204,55 @@ export function Projekt({
 
   return (
     <div className="spalte">
-      {ich.darf.bearbeiten && <Bearbeitungsschalter bearbeiten={bearbeiten} wechseln={wechseln} />}
-
-      <div className="karte">
-        <div className="feld-reihe">
-          <select
-            className="feld"
-            value={projektFilter}
-            onChange={(e) => setProjektFilter(e.target.value)}
-            aria-label="Projekt"
-          >
-            <option value="alle">Alle Projekte</option>
-            {projekte.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.titel}
-              </option>
-            ))}
-          </select>
-          <select
-            className="feld"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            aria-label="Status"
-          >
-            <option value="alle">Alle Status</option>
-            {STATUS.map((s) => (
-              <option key={s.wert} value={s.wert}>
-                {s.text}
-              </option>
-            ))}
-          </select>
-          {darfAnlegen && (
-            <>
-              <input
-                className="feld"
-                placeholder="Neues Projekt"
-                value={neuesProjekt}
-                onChange={(e) => setNeuesProjekt(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && anlegen()}
-              />
-              <button type="button" className="knopf" onClick={anlegen}>
-                <Zeichen name="plus" />
-                Anlegen
-              </button>
-            </>
-          )}
-        </div>
-        <Fehlerzeile text={projektFehler} />
+      {/* Filter, Anlegen und „Bearbeiten“ in einer Zeile ohne Karte. Vorher
+          stand „Bearbeiten“ allein in einer Zeile und darunter eine Karte
+          mit zwei Auswahlfeldern über die volle Breite — zwei Zeilen Rahmen,
+          bevor das erste Projekt kam. */}
+      <div className="feld-reihe projekt-werkzeug">
+        <select
+          className="feld"
+          value={projektFilter}
+          onChange={(e) => setProjektFilter(e.target.value)}
+          aria-label="Projekt"
+        >
+          <option value="alle">Alle Projekte</option>
+          {projekte.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.titel}
+            </option>
+          ))}
+        </select>
+        <select
+          className="feld"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Status"
+        >
+          <option value="alle">Alle Status</option>
+          {STATUS.map((s) => (
+            <option key={s.wert} value={s.wert}>
+              {s.text}
+            </option>
+          ))}
+        </select>
+        {darfAnlegen && (
+          <>
+            <input
+              className="feld"
+              placeholder="Neues Projekt"
+              value={neuesProjekt}
+              onChange={(e) => setNeuesProjekt(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && anlegen()}
+            />
+            <button type="button" className="knopf" onClick={anlegen}>
+              <Zeichen name="plus" />
+              Anlegen
+            </button>
+          </>
+        )}
+        {ich.darf.bearbeiten && <Bearbeitungsschalter bearbeiten={bearbeiten} wechseln={wechseln} />}
       </div>
+      <Fehlerzeile text={projektFehler} />
 
       {auffang.map((projekt) => (
         <OverheadKarte key={projekt.id} projekt={projekt} ich={ich} bearbeiten={bearbeiten} neuLaden={neuLaden} />
@@ -332,20 +333,23 @@ function OverheadKarte({
           </div>
         </div>
         <span className="zahl gebucht">{alsDauer(projekt.gebuchte_sekunden)} gebucht</span>
+        {/* Ein stiller Knopf in der Kopfzeile, kein kupferner Balken über die
+            ganze Breite mehr: Der war das Lauteste auf der Projektseite, und
+            gestartet wird seit 2026-10-19 vor allem oben auf der Zeitseite. */}
+        {ich.darf.bearbeiten && (
+          <button
+            type="button"
+            className="knopf-still"
+            onClick={async () => {
+              await clockIn();
+              neuLaden();
+            }}
+          >
+            <Zeichen name="start" />
+            Start auf Overhead
+          </button>
+        )}
       </div>
-      {ich.darf.bearbeiten && (
-        <button
-          type="button"
-          className="knopf overhead-knopf"
-          onClick={async () => {
-            await clockIn();
-            neuLaden();
-          }}
-        >
-          <Zeichen name="start" />
-          Clock-in auf Overhead
-        </button>
-      )}
     </div>
   );
 }

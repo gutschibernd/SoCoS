@@ -49,10 +49,25 @@ VERSIONEN = [
                 "titel": "Die Uhr erscheint, wenn sie läuft",
                 "text": (
                     "Unten links und am Handy über der Fußleiste steht die Uhr nur noch während einer Buchung. "
-                    "Starten geht im Baustein „Zeit buchen“ der Übersicht und auf der Projektseite. Am Handy "
-                    "führt die Fußleiste jetzt zu Übersicht, Aufgaben, Kontakten und Thoughts."
+                    "Am Handy führt die Fußleiste jetzt zu Übersicht, Aufgaben, Kontakten und Thoughts."
+                ),
+            },
+            {
+                "titel": "Zeit buchen in einer Zeile",
+                "text": (
+                    "Oben auf der Zeitseite: Paket wählen, Start — oder auf „Nachtragen“ umschalten. Die zuletzt "
+                    "bebuchten Pakete stehen mit ▶ darunter. Die Liste zeigt deine Zeit eines Monats nach Tagen, "
+                    "jede Buchung mit ▶ zum Weitermachen."
                 ),
                 "wo": "zeit",
+            },
+            {
+                "titel": "Runway-Planung mit weniger Text",
+                "text": (
+                    "Die Erklärungen stehen hinter dem ⓘ neben Kennzahl, Register und Feld — antippen oder mit "
+                    "der Maus darüberfahren. Die Rechenannahmen stehen in der Doku."
+                ),
+                "wo": "module/runway",
             },
             {
                 "titel": "Weichere Ecken, neue Schrift",

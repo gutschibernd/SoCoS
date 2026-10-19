@@ -119,6 +119,13 @@ class TestKontrastDunkel:
 
 
 @pytest.mark.parametrize("palette", [HELL, DUNKEL], ids=["hell", "dunkel"])
+@pytest.mark.parametrize("vordergrund", ["--text", "--text-leise", "--marke"])
+def test_die_laufende_uhr_auf_der_zeitseite(palette, vordergrund):
+    """Paket, Projekt und Dauer der laufenden Buchung stehen auf --marke-hell."""
+    assert kontrast(palette[vordergrund], palette["--marke-hell"]) >= AA_KLEIN
+
+
+@pytest.mark.parametrize("palette", [HELL, DUNKEL], ids=["hell", "dunkel"])
 @pytest.mark.parametrize("vordergrund", ["--text", "--text-leise", "--akzent"])
 @pytest.mark.parametrize("hintergrund", ["--flaeche", "--grund", "--akzent-hell"])
 def test_text_und_akzent_auf_den_drei_gruenden(palette, vordergrund, hintergrund):

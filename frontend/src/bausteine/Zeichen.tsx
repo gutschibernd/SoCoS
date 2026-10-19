@@ -58,7 +58,15 @@ export type ZeichenName =
   | "gantt"
   | "kurve"
   | "schild"
-  | "griff";
+  | "griff"
+  | "info"
+  | "herunter"
+  | "hinauf"
+  | "flamme"
+  | "tief"
+  | "waage"
+  | "bruecke"
+  | "muenze";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -180,6 +188,24 @@ const PFADE: Record<ZeichenName, string> = {
   // Ein Schild mit Haken — die Designentscheidungen: begründet, warum das
   // Produkt sicher ist. Kein Schloss: das hieße „gesperrt" oder „Passwort".
   schild: "M12 4l7 2.5V12c0 4-3 6.8-7 8-4-1.2-7-4-7-8V6.5zM9 12l2.2 2.2L15.5 10",
+  // Ein i im Kreis — „was heißt das?" (bausteine/Hinweis.tsx). Kein
+  // Fragezeichen: das liest sich wie „Hilfe", und die steht in der Doku.
+  info: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0M12 11v5.5M12 7.5v1.5",
+  // Ausgeben und Einlesen einer Datei: der Pfeil zur Ablage hin und von ihr weg.
+  herunter: "M12 4v11M7.5 10.5L12 15l4.5-4.5M4.5 19.5h15",
+  hinauf: "M12 15V4M7.5 8.5L12 4l4.5 4.5M4.5 19.5h15",
+  // Die Kennzahlen der Runway-Planung — je eine Form für das, was die Zahl
+  // misst, damit man sie wiederfindet, ohne die Überschrift zu lesen:
+  // was jeden Monat verbrennt,
+  flamme: "M12 4c3.5 3.5 6 6.3 6 10a6 6 0 0 1-12 0c0-2.4 1.3-4 2.8-5.4.2 1.8 1 3 2.2 3.4C11 9.4 11.2 6.6 12 4z",
+  // der tiefste Punkt, auf den der Stand fällt,
+  tief: "M4 6l6 7 3.5-3.5L20 16M15.5 16H20v-4.5",
+  // wo Einnahmen und Ausgaben gleich schwer sind,
+  waage: "M12 4.5v15M8.5 19.5h7M6 7.5h12M6 7.5L4 13h4zM18 7.5L16 13h4z",
+  // was über ein Loch hinüberhilft,
+  bruecke: "M4 17h16M4 17v-6.5M20 17v-6.5M4 10.5c3.5 0 5-3.5 8-3.5s4.5 3.5 8 3.5M8.5 17v-4.5M12 17V11M15.5 17v-4.5",
+  // und Geld, das jemand hineinlegt.
+  muenze: "M12 4.5c3.6 0 6.5 1.1 6.5 2.5S15.6 9.5 12 9.5 5.5 8.4 5.5 7 8.4 4.5 12 4.5M5.5 7v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5V7M5.5 12v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-5",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {

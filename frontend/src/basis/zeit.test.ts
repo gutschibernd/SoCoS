@@ -7,6 +7,8 @@ import {
   alsZeitpunkt,
   aufFuenfMinuten,
   heuteAlsDatum,
+  monatVerschieben,
+  nachTagen,
   plusMinuten,
   spanne,
   summeGerundet,
@@ -137,5 +139,27 @@ describe("wannKurz", () => {
   it("zählt nach dem Kalendertag, nicht nach 24 Stunden", () => {
     expect(wannKurz(iso(new Date(2026, 8, 27, 23, 50)), jetzt)).toBe("gestern 23:50");
     expect(wannKurz(iso(new Date(2026, 8, 25, 9, 12)), jetzt)).toBe("25.09. 09:12");
+  });
+});
+
+describe("Monate und Tage der Zeitliste", () => {
+  it("blättert über die Jahresgrenze", () => {
+    expect(monatVerschieben("2026-12", 1)).toBe("2027-01");
+    expect(monatVerschieben("2026-01", -1)).toBe("2025-12");
+    expect(monatVerschieben("2026-10", 0)).toBe("2026-10");
+  });
+
+  it("gruppiert nach dem Tag des Beginns, neuester zuerst, ohne Entwürfe", () => {
+    const b = (start: string, sekunden: number, ist_entwurf = false) => ({ start, sekunden, ist_entwurf });
+    const tage = nachTagen([
+      b(new Date(2026, 9, 13, 9).toISOString(), 3600),
+      b(new Date(2026, 9, 14, 23, 30).toISOString(), 3600),
+      b(new Date(2026, 9, 13, 14).toISOString(), 1800),
+      b(new Date(2026, 9, 13, 16).toISOString(), 9999, true),
+    ]);
+    expect(tage.map((t) => t.tag)).toEqual(["2026-10-14", "2026-10-13"]);
+    expect(tage[1].sekunden).toBe(5400);
+    // Innerhalb des Tages die spätere zuerst — wie die Liste darüber.
+    expect(tage[1].buchungen[0].sekunden).toBe(1800);
   });
 });

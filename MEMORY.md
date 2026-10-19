@@ -7,6 +7,45 @@ betrifft.
 
 ---
 
+## 2026-10-19 — Zeit in einer Zeile, Runway mit weniger Text
+
+**Bernd:** Bei Zeit sei es „etwas unübersichtlich geworden mit dem Buchen, was
+wann auf was"; ein aktuelles Zeiterfassungswerkzeug ansehen, das die UX schon
+herausgefunden hat. Bei der Runway-Planung „einfach zu viel Text — mach kleine
+Icons, die beschreibend den Text erklären".
+
+**Zeit — nach Toggl, Clockify und Harvest:** Oben eine Zeile zum Buchen
+(`bausteine/Uhrstart.tsx`, dieselbe im Baustein „Zeit buchen" der Übersicht),
+mit dem Umschalter Uhr · Nachtragen darüber. Ein Startknopf statt drei; seine
+Beschriftung sagt, was er tut („Ohne Paket starten", „Start", „Wechseln").
+Die zuletzt bebuchten Pakete als ▶ darunter. Die Liste ist nach Tagen gruppiert
+mit Tagessumme (`basis/zeit.nachTagen`), jede eigene Buchung mit ▶ zum
+Weitermachen.
+
+- **Vorgewählt ist die eigene Zeit, nicht das Team.** Die Seite beantwortet
+  zuerst „was habe ich gebucht".
+- **„Alle Monate" ist weg.** Der Zeitnachweis kannte ohnehin nur einen Monat, und
+  der Satz, der das erklärte, stand nur da, weil es zwei Zeiträume gab.
+- **Keine Notiz beim Start**, wie in Toggl: Gefragt wird weiter beim Clock-out.
+  Beim Anfangen weiß man oft nicht, was man gemacht haben wird; und der Server
+  nähme sie bei `clock_in` heute gar nicht an.
+- Die laufende Buchung steht auf der Zeitseite **zusätzlich** zur Leiste, mit
+  eigenem Clock-out — dort sucht man ihn.
+
+**Runway:** Die Absätze über jedem Register, die Hinweise unter den
+Einstellungen, der Absatz unter der Monatsübersicht und die zwei Absätze im
+Fuß sind weg. Was ein Feld oder eine Zahl meint, steht hinter einem ⓘ
+(`bausteine/Hinweis.tsx`); die Rechenannahmen stehen in der Doku. Die Kennzahlen
+tragen je ein Zeichen für das, was sie messen (`flamme`, `tief`, `waage`,
+`bruecke`, `muenze`). Das ist eine bewusste Rückkehr des `?` für „was heißt
+dieses Feld" — CLAUDE.md ist angepasst; Anleitungen bleiben in der Doku.
+
+**Projektseite nebenbei:** „Clock-in auf Overhead" war ein kupferner Balken über
+die volle Breite, das Lauteste der Seite; jetzt ein stiller Knopf im Kopf.
+Filter, Anlegen und „Bearbeiten" stehen in einer Zeile statt in zweien.
+
+---
+
 ## 2026-10-19 — Die Übersicht aus Bausteinen (Schema: `Nutzer.uebersicht`, Migration `0054`)
 
 **Bernd:** Dashboard und Startseite zusammenführen; „es soll konfigurierbar

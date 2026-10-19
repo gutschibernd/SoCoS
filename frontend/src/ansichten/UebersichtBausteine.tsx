@@ -14,8 +14,6 @@
  * Dashboard.
  */
 
-import { useState } from "react";
-
 import { hole } from "../basis/api";
 import { tafel, fristText } from "../basis/aufgaben";
 import {
@@ -25,7 +23,6 @@ import {
   useFoerderungen,
   useKontakte,
   useLagekarte,
-  useLaufend,
   useMeetings,
   useNeuLaden,
   useProjekte,
@@ -38,16 +35,14 @@ import { achseUeber, heuteIso, monatsText, zeitraumText } from "../basis/gantt";
 import { graph, lage, offeneKarte } from "../basis/lagekarte";
 import { melden } from "../basis/meldungen";
 import { alsPfad, type Seite, type Wechselart } from "../basis/router";
-import { letztePakete, paketgruppen } from "../basis/start";
-import { clockIn } from "../basis/uhr";
 import type { Bausteinname } from "../basis/uebersicht";
 import { alsDauer, uhrzeitAusZeitpunkt, wannKurz } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
-import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Finanzeingabe } from "../bausteine/Finanzeingabe";
 import { Gantt, GanttBalken, GanttZeile } from "../bausteine/Gantt";
 import { Kontostandlinie } from "../bausteine/Kontostandlinie";
 import { Leerstelle } from "../bausteine/Leerstelle";
+import { Uhrstart } from "../bausteine/Uhrstart";
 import { Zeichen } from "../bausteine/Zeichen";
 
 export type Wechseln = (seite: Seite, unter?: string | null, art?: Wechselart) => void;
@@ -393,44 +388,19 @@ function vorDreissigTagen() {
 }
 
 /**
- * Die Uhr starten, ohne die Seite zu wechseln.
- *
- * Drei Wege nebeneinander und nicht einer: Die zuletzt gebuchten Pakete
- * decken den Alltag mit einem Klick ab, die Auswahl darunter alles andere,
- * und „Ohne Paket" den Fall, in dem man noch gar nicht weiß, wohin die Zeit
- * gehört.
+ * Die Uhr starten, ohne die Seite zu wechseln — dieselbe Zeile wie oben auf
+ * der Zeitseite (bausteine/Uhrstart.tsx), damit Buchen an beiden Orten gleich
+ * geht.
  */
 function Zeit({ ich, wechseln }: Teile) {
   const projekte = useProjekte();
-  const laufend = useLaufend();
-  const neuLaden = useNeuLaden();
   // Ausdrücklicher Zeitraum, kein stiller Filter: „zuletzt" heißt die letzten dreißig Tage.
   const meine = useBuchungen({ person: String(ich.id), von: vorDreissigTagen() });
-  const [paket, setPaket] = useState("");
-  const [fehler, setFehler] = useState("");
 
   if (!ich.darf.bearbeiten) {
     return <Leerstelle was="Nur zum Lesen" satz="Mit deiner Rolle läuft keine Uhr. Die Buchungen stehen auf der Zeitseite." />;
   }
-
-  const buchung = laufend.data?.laufend ?? null;
-
-  async function starten(id?: number) {
-    setFehler("");
-    try {
-      await clockIn(id);
-      setPaket("");
-      neuLaden();
-    } catch {
-      setFehler("Das hat nicht geklappt. Läuft die Verbindung noch?");
-    }
-  }
-
-  const alle = projekte.data ?? [];
-  const zuletzt = letztePakete(meine.data ?? [], alle);
-  const gruppen = paketgruppen(alle);
-
-  if (projekte.data && alle.length === 0) {
+  if (projekte.data && projekte.data.length === 0) {
     return (
       <Leerstelle
         was="Noch kein Projekt"
@@ -439,61 +409,7 @@ function Zeit({ ich, wechseln }: Teile) {
       />
     );
   }
-
-  return (
-    <div className="start-buchen">
-      {buchung && (
-        <p className="start-laeuft">Es läuft gerade „{buchung.paket_titel}“. Ein Start hier beendet diese Buchung.</p>
-      )}
-      {zuletzt.length > 0 && (
-        <div className="start-zuletzt">
-          {zuletzt.map((p) => (
-            <button key={p.id} type="button" onClick={() => starten(p.id)}>
-              <Zeichen name="start" />
-              {p.titel}
-              <em>{p.projekt}</em>
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="feld-reihe">
-        <select className="feld" value={paket} onChange={(e) => setPaket(e.target.value)} aria-label="Arbeitspaket">
-          <option value="">Anderes Arbeitspaket wählen …</option>
-          {gruppen.map((gruppe) => (
-            <optgroup key={gruppe.projekt} label={gruppe.projekt}>
-              {gruppe.pakete.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.titel}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        {/* Nicht stillgelegt: Ein grauer Knopf sagt nicht, was fehlt. Er nimmt
-            den Klick an und antwortet in der Zeile darunter. */}
-        <button
-          type="button"
-          className="knopf"
-          onClick={() =>
-            paket ? starten(Number(paket)) : setFehler("Wähl zuerst das Arbeitspaket, auf das die Uhr laufen soll.")
-          }
-        >
-          <Zeichen name="start" />
-          Uhr starten
-        </button>
-        {/* Ohne Paketnummer bucht der Server auf „Overhead"; umgebucht wird beim Clock-out. */}
-        <button
-          type="button"
-          className="knopf-still"
-          onClick={() => starten()}
-          title="Die Uhr läuft auf „Overhead“. Beim Clock-out kannst du sie umbuchen."
-        >
-          Ohne Paket
-        </button>
-      </div>
-      <Fehlerzeile text={fehler} />
-    </div>
-  );
+  return <Uhrstart projekte={projekte.data ?? []} meine={meine.data ?? []} />;
 }
 
 /* --- Team, Zuletzt passiert, Geld: aus der Auskunft des Dashboards --------- */

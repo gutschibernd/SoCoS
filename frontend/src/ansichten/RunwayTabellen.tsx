@@ -8,6 +8,8 @@ import { useRef, useState } from "react";
 
 import type { Runwaymonat, Runwayplan, Runwayrechnung, Szenario } from "../basis/daten";
 import { Achse, MON, anbieten, fmtE, num, parseDe, stempel, tabelleAlsCsv, zelle } from "../basis/runway";
+import { Hinweis } from "../bausteine/Hinweis";
+import { Zeichen } from "../bausteine/Zeichen";
 
 /* --- Überbrückung ------------------------------------------------------------ */
 
@@ -31,38 +33,36 @@ export function Ueberbrueckung({
   const hatGD = S.darlehen.some((d) => (d.typ || "gesellschafter") === "gesellschafter");
 
   let text;
-  if (r.leer) text = <p>Hier erscheint, wann und wie viel per Gesellschafterdarlehen überbrückt werden muss.</p>;
+  if (r.leer) text = <p>Hier steht, wann und wie viel überbrückt werden muss.</p>;
   else if (!r.sug.length)
     text = (
       <>
-        <p className="rw-ok-note">✓ Kein Überbrückungsbedarf im aktuellen Szenario.</p>
-        <p>
-          Der Kontostand bleibt über dem Mindestpuffer von <strong>{fmtE(buf)}</strong>.
-          {hatGD && r.kpi.negZ !== null && ` Ohne die eingeplanten Gesellschafterdarlehen wäre das Konto ab ${a.labL(r.kpi.negZ)} im Minus.`} Wechsle
-          oben auf „Konservativ“, um zu prüfen, was passiert, wenn nur zugesagte Mittel fließen.
-        </p>
+        <p className="rw-ok-note"><Zeichen name="haken" />Kein Bedarf — der Stand bleibt über <strong>{fmtE(buf)}</strong>.</p>
+        {hatGD && r.kpi.negZ !== null && <p>Ohne die eingeplanten Gesellschafterdarlehen: Minus ab {a.labL(r.kpi.negZ)}.</p>}
       </>
     );
   else
     text = (
       <>
         <p>
-          Damit der Kontostand nie unter <strong>{fmtE(buf)}</strong> fällt, brauchst du im aktuellen Szenario <strong>{fmtE(need)}</strong>{" "}
-          zusätzlich, verteilt auf {r.sug.length} Abruf{r.sug.length > 1 ? "e" : ""}. Der erste ist im <strong>{a.labL(r.sug[0].i)}</strong> fällig.
+          <strong>{fmtE(need)}</strong> in {r.sug.length} Abruf{r.sug.length > 1 ? "en" : ""}, der erste im <strong>{a.labL(r.sug[0].i)}</strong> —
+          damit der Stand nie unter {fmtE(buf)} fällt.
         </p>
-        <p>Übernimm die Vorschläge als Gesellschafterdarlehen und passe danach Gesellschafter:in, Datum, Rückzahlung und Zins im Register „Darlehen & Kredite“ an.</p>
         <div className="rw-bridge-ctrl">
-          <label htmlFor="rw-bg" className="rw-hint">Abruf deckt jeweils</label>
+          <label htmlFor="rw-bg" className="rw-hint">Ein Abruf deckt</label>
           <select className="rw-inp auto" id="rw-bg" value={g} disabled={!darf} onChange={(e) => gruppeSetzen(Number(e.target.value))}>
             {[1, 3, 6, 12].map((v) => (
               <option key={v} value={v}>{v} Monat{v > 1 ? "e" : ""}</option>
             ))}
           </select>
-          <span className="rw-hint">· gerundet auf 5.000 €</span>
+          <Hinweis
+            worum="Wie ein Abruf gerechnet wird"
+            text="Jeder Abruf deckt den tiefsten Stand der gewählten Monate ab und ist auf 5.000 € gerundet. Übernommen landen die Vorschläge als Gesellschafterdarlehen im Register „Darlehen & Kredite“ — dort Gesellschafter:in, Rückzahlung und Zins nachtragen."
+          />
         </div>
         {darf && (
           <div className="rw-bridge-ctrl">
-            <button type="button" className="rw-btn primary" onClick={uebernehmen}>Vorschläge als Gesellschafterdarlehen übernehmen</button>
+            <button type="button" className="rw-btn primary" onClick={uebernehmen}><Zeichen name="plus" />Als Gesellschafterdarlehen übernehmen</button>
           </div>
         )}
       </>
@@ -70,7 +70,7 @@ export function Ueberbrueckung({
 
   return (
     <section className="rw-panel">
-      <div className="rw-panel-head"><h2>Überbrückung mit Gesellschafterdarlehen</h2></div>
+      <div className="rw-panel-head"><h2 className="rw-mit-zeichen"><Zeichen name="bruecke" />Überbrückung</h2></div>
       <div className="rw-bridge-grid">
         <div className="rw-bridge-copy">{text}</div>
         <div>
@@ -295,7 +295,13 @@ export function Monate({
               {A.map((m) => <td key={m.key} className={m.head ? "" : "zero"}>{m.head || "–"}</td>)}
             </tr>
             <tr className="ist">
-              <th className="rowh">Ist-Kontostand (Bank)</th>
+              <th className="rowh">
+                Ist-Kontostand (Bank){" "}
+                <Hinweis
+                  worum="Was der Ist-Kontostand bewirkt"
+                  text="Am Monatsende den echten Bankstand eintragen. Er steht dann auch im Baustein „Geld“ der Übersicht, und die Prognose rechnet ab dem letzten Ist-Wert weiter (abschaltbar in den Einstellungen)."
+                />
+              </th>
               {A.map((m, i) => (
                 <td key={m.key} className="ist-cell">
                   <input
@@ -329,11 +335,6 @@ export function Monate({
           </tbody>
         </table>
       </div>
-      <p className="rw-ledger-note">
-        Ist-Kontostand: Trage am Monatsende den echten Bankstand ein — er steht dann auch als Kontostand auf dem Dashboard, und
-        ein Kontostand vom Dashboard steht hier. Die Prognose rechnet ab dem letzten Ist-Wert weiter (abschaltbar in den
-        Einstellungen).
-      </p>
     </section>
   );
 }
