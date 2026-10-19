@@ -38,7 +38,7 @@ import {
 import { ABSCHNITTE, kiAbgleich, kiAntwortLesen, kiBefehl } from "../basis/designtext";
 import { melden } from "../basis/meldungen";
 import { entscheidungsZahl } from "../basis/module";
-import type { Seite } from "../basis/router";
+import type { Wechseln } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Datumsfeld } from "../bausteine/Datumsfeld";
 import { Feldtext } from "../bausteine/Feldtext";
@@ -46,7 +46,6 @@ import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Suchfeld } from "../bausteine/Suchfeld";
 import { Zeichen } from "../bausteine/Zeichen";
 
-type Wechseln = (seite: Seite, unter?: string | null) => void;
 
 const WEG = "design";
 
@@ -271,7 +270,17 @@ function NeueEntscheidung({ angelegt }: { angelegt: (e: Designentscheidung) => v
 
 /* --- Die Seite einer Entscheidung ------------------------------------------ */
 
-export function Entscheidungsseite({ ich, id, wechseln }: { ich: Ich; id: number; wechseln: Wechseln }) {
+export function Entscheidungsseite({
+  ich,
+  id,
+  wechseln,
+  zurueck,
+}: {
+  ich: Ich;
+  id: number;
+  wechseln: Wechseln;
+  zurueck: () => void;
+}) {
   const liste = useDesignentscheidungen();
 
   if (!liste.data) return <Zustand abfrage={liste} erneut={() => liste.refetch()} />;
@@ -291,10 +300,20 @@ export function Entscheidungsseite({ ich, id, wechseln }: { ich: Ich; id: number
     );
   }
 
-  return <Entscheidung key={e.id} e={e} ich={ich} wechseln={wechseln} />;
+  return <Entscheidung key={e.id} e={e} ich={ich} wechseln={wechseln} zurueck={zurueck} />;
 }
 
-function Entscheidung({ e, ich, wechseln }: { e: Designentscheidung; ich: Ich; wechseln: Wechseln }) {
+function Entscheidung({
+  e,
+  ich,
+  wechseln,
+  zurueck,
+}: {
+  e: Designentscheidung;
+  ich: Ich;
+  wechseln: Wechseln;
+  zurueck: () => void;
+}) {
   const speichern = useSpeichern(e);
   const darf = ich.darf.bearbeiten;
   const [kiOffen, setKiOffen] = useState(false);
@@ -347,7 +366,7 @@ function Entscheidung({ e, ich, wechseln }: { e: Designentscheidung; ich: Ich; w
       </header>
 
       <div className="de-raster">
-        <Standtafel e={e} ich={ich} wechseln={wechseln} />
+        <Standtafel e={e} ich={ich} zurueck={zurueck} />
 
         <section className="pl-tafel de-haupt">
           {kiOffen && <KiAntwort e={e} erneutKopieren={fuerKiKopieren} schliessen={() => setKiOffen(false)} />}
@@ -465,7 +484,7 @@ function KiAntwort({
  * Stand, Datum, wer — und was zu „entschieden" noch fehlt. Steht am Rand,
  * damit man beim Schreiben sieht, wie weit die Entscheidung ist.
  */
-function Standtafel({ e, ich, wechseln }: { e: Designentscheidung; ich: Ich; wechseln: Wechseln }) {
+function Standtafel({ e, ich, zurueck }: { e: Designentscheidung; ich: Ich; zurueck: () => void }) {
   const speichern = useSpeichern(e);
   const neuLaden = useNeuLaden();
   const darf = ich.darf.bearbeiten;
@@ -491,7 +510,9 @@ function Standtafel({ e, ich, wechseln }: { e: Designentscheidung; ich: Ich; wec
     try {
       await hole(`/designentscheidungen/${e.id}/`, { method: "DELETE" });
       neuLaden();
-      wechseln("module", WEG);
+      // Dorthin, woher man kam — nicht vorwärts zur Liste, sonst stünde die
+      // entfernte Entscheidung als nächster Schritt zurück in der Geschichte.
+      zurueck();
     } catch {
       setLaeuft(false);
       setFragtLoeschen(false);

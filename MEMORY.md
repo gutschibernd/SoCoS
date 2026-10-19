@@ -7,6 +7,53 @@ betrifft.
 
 ---
 
+## 2026-10-19 — „Zurück" führt dorthin, woher man kam
+
+**Bernd:** „die zurück buttons führen oft nicht daher wo man herkommt. z.B.
+wenn ich im projekt auf eine förderung klicke und dann zurück will, dann soll
+ich wieder zurück in das projekt nicht in die förderung."
+
+**Ursache:** Seit 2026-09-10 ging „Zurück" zuerst **eine Ebene im Weg hoch**
+und erst dann in der Geschichte zurück (Begründung damals: wer vom Kontakt zum
+Event springt, will zur Eventliste). Vom Antrag aus dem Projekt führte es so
+ins Programm, zum Fördergeber, zur Liste — nie zurück ins Projekt. Das
+`ruecksprung`-Kennzeichen, das genau diese Ausnahme machte, hing nach dem
+Umzug der Planung an keinem Verweis mehr.
+
+**Jetzt** (`wohinZurueck`, basis/router.ts):
+
+1. Gibt es Geschichte in SoCoS (`tiefe > 0`): `history.back()` — immer, auch
+   aus einer Unterseite heraus.
+2. Sonst (Lesezeichen) eine Stufe hoch, sonst zur Startseite. Dieser Schritt
+   **ersetzt** den Eintrag; legte er einen an, führte das nächste Zurück
+   wieder auf die Seite, die man gerade verlassen hat (das war vorher so:
+   `/kontakte/12` → `/kontakte` → wieder `/kontakte/12`).
+
+**Was keinen Eintrag anlegt** (`wechseln(…, { ersetzen: true })`): ein
+Umschalter auf derselben Seite — Reiter der Aufgaben, Bearbeiten/Fertig im
+Projekt, die gewählte Phase unter dem Gantt — und dasselbe Praktikumsthema,
+das in die andere Liste zieht. Sonst führte Zurück durch jede angeklickte
+Phase und nach „Fertig" wieder ins Bearbeiten. Die Rubriken von Doku,
+Einstellungen und Profil **bleiben** Einträge: Sie sind Orte mit eigenem
+Untermenü, und die Zurück-Geste soll vom Teil zurück zum vorigen Teil führen
+(siehe 2026-09-10).
+
+- **Die gewählte Phase steht jetzt im Weg** (`/projekt/28`, ersetzt). Ohne
+  das landete Zurück vom Förderantrag zwar im Projekt, aber bei der Phase, mit
+  der die Seite aufgeht — nicht bei der, aus der man kam. Im Bearbeiten steht
+  dort „bearbeiten"; die Phase bleibt dann nur im Zustand.
+- **Nach dem Entfernen** (Organisation, Event, Meeting, Praktikumsthema,
+  Designentscheidung, Förderantrag) ruft die Ansicht `zurueck()` statt
+  vorwärts zur Liste zu wechseln. Sonst stünde das entfernte Ding als nächster
+  Schritt zurück in der Geschichte. `zurueck` kommt dafür als Prop aus
+  `App.tsx`, wie `wechseln`.
+- **Derselbe Ort noch einmal** (zweiter Klick auf „Projekt" im Menü) legt
+  keinen Eintrag an. **Eine neue Seite beginnt oben** (`scrollTo(0, 0)` beim
+  Anlegen eines Eintrags); beim Zurück stellt der Browser die alte Stelle
+  selbst wieder her.
+- Wer eine Ebene höher will, hat dafür einen Verweis auf der Seite (den
+  Programmnamen über dem Antrag) oder das Menü.
+
 ## 2026-10-19 — Projektplanung in die Projektseite gezogen
 
 **Bernd:** „Projekt und Projektplanung etwas aufräumen, ich hab da massiv die

@@ -10,7 +10,7 @@
  *
  * Die gewählte Organisation steht im Weg (`/kontakte/12`), nicht im Zustand
  * dieser Ansicht — sonst wirft die Zurück-Geste am Handy jemanden aus der
- * Seite statt eine Ebene hoch. Siehe basis/router.ts.
+ * Seite, statt dorthin, woher er kam. Siehe basis/router.ts.
  */
 
 import { useState } from "react";
@@ -185,10 +185,13 @@ export function Kontakte({
   ich,
   unter,
   wechseln,
+  zurueck,
 }: {
   ich: Ich;
   unter: string | null;
   wechseln: (seite: Seite, unter?: string | null) => void;
+  /** Nach dem Entfernen: dorthin, woher man kam — nicht zur Liste, wenn man von woanders kam. */
+  zurueck: () => void;
 }) {
   const organisationen = useOrganisationen();
   const kontakte = useKontakte();
@@ -224,7 +227,6 @@ export function Kontakte({
   }
 
   const oeffnen = (ziel: string) => wechseln("kontakte", ziel);
-  const zurueck = () => wechseln("kontakte");
   const lose = kontakte.data.filter((k) => k.organisation === null);
 
   // Ein Weg ins Leere — eine Organisation, die inzwischen weg ist, oder ein
@@ -1036,9 +1038,9 @@ function LoseSeite({
 
 /**
  * Nur noch die Ortsangabe. Der Knopf „Alle Organisationen", der hier stand,
- * ist der Zurück-Knopf in der Titelzeile geworden — er tut dasselbe (eine
- * Ebene hoch, siehe basis/router.ts) und steht auf jeder Seite an derselben
- * Stelle, statt auf zweien von acht.
+ * ist der Zurück-Knopf in der Titelzeile geworden. Der führt seit 2026-10-19
+ * dorthin, woher man kam (siehe basis/router.ts) — zur Liste also nur, wenn
+ * man aus ihr kam; sonst steht sie einen Klick entfernt im Menü.
  */
 function Brotkrume({ name }: { name: string }) {
   return (

@@ -86,7 +86,9 @@ function Bearbeitungsschalter({
         href={alsPfad("projekt", bearbeiten ? null : "bearbeiten")}
         onClick={(e) => {
           e.preventDefault();
-          wechseln("projekt", bearbeiten ? null : "bearbeiten");
+          // Ein Zustand der Seite, kein Ort: Der Wechsel ersetzt den Eintrag.
+          // Sonst führte „Zurück" nach „Fertig" wieder ins Bearbeiten.
+          wechseln("projekt", bearbeiten ? null : "bearbeiten", { ersetzen: true });
         }}
       >
         <Zeichen name={bearbeiten ? "haken" : "stift"} />
@@ -157,7 +159,7 @@ export function Projekt({
             }
             aktion={
               ich.darf.bearbeiten && !bearbeiten
-                ? { text: "Zum Bearbeiten", tun: () => wechseln("projekt", "bearbeiten") }
+                ? { text: "Zum Bearbeiten", tun: () => wechseln("projekt", "bearbeiten", { ersetzen: true }) }
                 : undefined
             }
           />
@@ -433,8 +435,14 @@ function ProjektKarte({
             {sichtbar.map((p) => {
               const gebucht = p.pakete.reduce((summe, x) => summe + x.gebuchte_sekunden, 0);
               // Ein Klick auf die Phase öffnet sie unter dem Gantt — bis
-              // 2026-10-19 führte er auf eine eigene Planungsseite.
-              const waehlen = () => setGewaehlt(p.id);
+              // 2026-10-19 führte er auf eine eigene Planungsseite. Sie kommt
+              // in den Weg, damit „Zurück" von einem Förderantrag aus dieser
+              // Phase wieder bei ihr landet und nicht bei der, mit der die
+              // Seite aufgeht. Im Bearbeiten steht dort schon „bearbeiten".
+              const waehlen = () => {
+                setGewaehlt(p.id);
+                if (!bearbeiten) wechseln("projekt", String(p.id), { ersetzen: true });
+              };
               return (
                 <GanttZeile
                   key={p.id}

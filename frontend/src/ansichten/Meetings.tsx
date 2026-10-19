@@ -89,10 +89,13 @@ export function Meetings({
   ich,
   unter,
   wechseln,
+  zurueck,
 }: {
   ich: Ich;
   unter: string | null;
   wechseln: (seite: Seite, unter?: string | null) => void;
+  /** Nach dem Entfernen: dorthin, woher man kam — nicht zur Liste, wenn man von woanders kam. */
+  zurueck: () => void;
 }) {
   const meetings = useMeetings();
   const kontakte = useKontakte();
@@ -151,7 +154,7 @@ export function Meetings({
           team={team.data}
           ich={ich}
           neuLaden={neuLaden}
-          zurueck={() => wechseln("meetings")}
+          zurueck={zurueck}
           zumKontakt={(id) => wechseln("kontakte", String(id))}
           zumLoeschen={setLoeschen}
         />

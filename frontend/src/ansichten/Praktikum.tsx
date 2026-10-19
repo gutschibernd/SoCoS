@@ -31,12 +31,11 @@ import {
 } from "../basis/daten";
 import { melden } from "../basis/meldungen";
 import { listeFuer, punkteAusText, themenZahl, type Themenliste } from "../basis/module";
-import type { Seite } from "../basis/router";
+import type { Wechseln } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 
-type Wechseln = (seite: Seite, unter?: string | null) => void;
 
 /** Das Fenster: zu, ein neues Thema dieser Art, oder ein bestehendes. */
 type Fenster = null | { neu: Themenart } | Praktikumsthema;
@@ -252,11 +251,13 @@ export function Themenseite({
   id,
   teil,
   wechseln,
+  zurueck,
 }: {
   ich: Ich;
   id: number;
   teil: Themenliste;
   wechseln: Wechseln;
+  zurueck: () => void;
 }) {
   const themen = usePraktikumsthemen();
   const [bearbeiten, setBearbeiten] = useState(false);
@@ -293,9 +294,10 @@ export function Themenseite({
             <ArchivKnopf thema={thema} />
             <ArtKnopf
               thema={thema}
-              // Die Seite zieht mit in die andere Liste, damit „zurück"
-              // dorthin führt, wo das Thema jetzt steht.
-              danach={(neu) => wechseln("module", `${listeFuer(neu).weg}/${thema.id}`)}
+              // Der Weg zieht mit in die andere Liste, damit Lesezeichen und
+              // Neuladen das Thema dort finden. Er ersetzt den alten: Es ist
+              // dasselbe Thema, und „Zurück" führt weiter dorthin, woher man kam.
+              danach={(neu) => wechseln("module", `${listeFuer(neu).weg}/${thema.id}`, { ersetzen: true })}
             />
             <button type="button" className="knopf-still" onClick={() => setBearbeiten(true)}>
               <Zeichen name="stift" />
@@ -344,7 +346,10 @@ export function Themenseite({
           art={thema.art}
           darfLoeschen={ich.darf.loeschen}
           schliessen={() => setBearbeiten(false)}
-          nachLoeschen={() => wechseln("module", listeFuer(thema.art).weg)}
+          // Dorthin, woher man kam — in die Liste oder dorthin, von wo aus
+          // man das Thema geöffnet hat. Ein Wechsel zur Liste ließe das
+          // entfernte Thema als nächsten Schritt zurück in der Geschichte.
+          nachLoeschen={zurueck}
         />
       )}
     </div>

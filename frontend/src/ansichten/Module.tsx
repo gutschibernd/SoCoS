@@ -32,7 +32,7 @@ import {
   type Teil,
   type Themenliste,
 } from "../basis/module";
-import type { Seite } from "../basis/router";
+import type { Wechseln } from "../basis/router";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
@@ -42,26 +42,27 @@ import { Runway } from "./Runway";
 import { Designliste, Entscheidungsseite } from "./Design";
 import { Achse } from "../basis/runway";
 
-type Wechseln = (seite: Seite, unter?: string | null) => void;
-
 export function Module({
   ich,
   unter,
   wechseln,
+  zurueck,
 }: {
   ich: Ich;
   unter: string | null;
   wechseln: Wechseln;
+  /** Nach dem Entfernen einer Einzelseite: dorthin, woher man kam. */
+  zurueck: () => void;
 }) {
   const thema = themaAusWeg(unter);
-  if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} />;
+  if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} zurueck={zurueck} />;
   if (foerderauslastungAusWeg(unter)) return <Foerderauslastung ich={ich} wechseln={wechseln} />;
   const entscheidung = designAusWeg(unter);
   if (entscheidung)
-    return <Entscheidungsseite key={entscheidung.id} ich={ich} id={entscheidung.id} wechseln={wechseln} />;
+    return <Entscheidungsseite key={entscheidung.id} ich={ich} id={entscheidung.id} wechseln={wechseln} zurueck={zurueck} />;
   const foerderung = foerderungAusWeg(unter);
   if (foerderung?.antrag)
-    return <Antragsseite key={foerderung.antrag} ich={ich} id={foerderung.antrag} wechseln={wechseln} />;
+    return <Antragsseite key={foerderung.antrag} ich={ich} id={foerderung.antrag} wechseln={wechseln} zurueck={zurueck} />;
   if (foerderung?.programm)
     return <Programmseite key={foerderung.programm} ich={ich} id={foerderung.programm} wechseln={wechseln} />;
   if (foerderung) return <Geberseite key={foerderung.geber} ich={ich} id={foerderung.geber} wechseln={wechseln} />;

@@ -102,10 +102,13 @@ export function Events({
   ich,
   unter,
   wechseln,
+  zurueck,
 }: {
   ich: Ich;
   unter: string | null;
   wechseln: (seite: Seite, unter?: string | null) => void;
+  /** Nach dem Entfernen: dorthin, woher man kam — nicht zur Liste, wenn man von woanders kam. */
+  zurueck: () => void;
 }) {
   const events = useEvents();
   const organisationen = useOrganisationen();
@@ -167,7 +170,7 @@ export function Events({
           team={team.data}
           ich={ich}
           neuLaden={neuLaden}
-          zurueck={() => wechseln("events")}
+          zurueck={zurueck}
           zumLoeschen={setLoeschen}
         />
       ) : (

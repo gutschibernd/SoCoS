@@ -46,7 +46,7 @@ import {
   type Filter,
 } from "../basis/aufgaben";
 import { melden } from "../basis/meldungen";
-import type { Seite } from "../basis/router";
+import type { Wechseln } from "../basis/router";
 import { useAufgaben, useNeuLaden, useTeam, type Aufgabe, type Ich, type Teammitglied } from "../basis/daten";
 import { Zustand } from "../basis/Zustand";
 import { Leerstelle } from "../bausteine/Leerstelle";
@@ -63,7 +63,7 @@ export function Aufgaben({
 }: {
   ich: Ich;
   unter: string | null;
-  wechseln: (seite: Seite, unter?: string | null) => void;
+  wechseln: Wechseln;
 }) {
   const liste = useAufgaben();
   const team = useTeam();
@@ -137,14 +137,17 @@ export function Aufgaben({
   return (
     <div className="aufgabenseite">
       <div className="aufgaben-kopf">
+        {/* Ein Umschalter, kein Verweis: Er ersetzt den Eintrag in der
+            Geschichte, damit „Zurück" auf die Seite davor führt und nicht
+            durch jeden angetippten Reiter (siehe basis/router.ts). */}
         <div className="spannenwahl" role="group" aria-label="Ansicht">
-          <button type="button" aria-pressed={ansicht === "tafel"} onClick={() => wechseln("aufgaben", null)}>
+          <button type="button" aria-pressed={ansicht === "tafel"} onClick={() => wechseln("aufgaben", null, { ersetzen: true })}>
             Tafel <span className="zahl">{zahl("alle")}</span>
           </button>
-          <button type="button" aria-pressed={ansicht === "ideen"} onClick={() => wechseln("aufgaben", "ideen")}>
+          <button type="button" aria-pressed={ansicht === "ideen"} onClick={() => wechseln("aufgaben", "ideen", { ersetzen: true })}>
             Ideen <span className="zahl">{zahlIdeen}</span>
           </button>
-          <button type="button" aria-pressed={ansicht === "archiv"} onClick={() => wechseln("aufgaben", "archiv")}>
+          <button type="button" aria-pressed={ansicht === "archiv"} onClick={() => wechseln("aufgaben", "archiv", { ersetzen: true })}>
             Archiv
           </button>
         </div>

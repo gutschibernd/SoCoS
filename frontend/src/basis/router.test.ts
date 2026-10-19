@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { alsPfad, ausPfad, darueber, wohinZurueck } from "./router";
+import { alsPfad, ausPfad, darueber, useSeite, wohinZurueck } from "./router";
 
 describe("ausPfad", () => {
   it("liest die Seite", () => {
@@ -129,32 +130,96 @@ describe("alsPfad", () => {
 });
 
 describe("wohinZurueck", () => {
-  const planung = { seite: "module", unter: "design/7" } as const;
+  const entscheidung = { seite: "module", unter: "design/7" } as const;
 
-  it("geht eine Stufe hoch, auch wenn es eine Geschichte gibt", () => {
-    expect(wohinZurueck(planung, { tiefe: 3 })).toEqual({ seite: "module", unter: "design" });
+  // Bernd, 2026-10-19: Vom Förderantrag, den man im Projekt angeklickt hat,
+  // zurück ins Projekt — nicht eine Stufe hoch ins Förderprogramm.
+  it("führt dorthin, woher man kam, auch aus einer Unterseite", () => {
+    expect(wohinZurueck(entscheidung, { tiefe: 3 })).toBe("geschichte");
+    expect(wohinZurueck({ seite: "projekt", unter: null }, { tiefe: 1 })).toBe("geschichte");
   });
 
-  // Von einem Verweis in eine Entscheidung — und wieder dorthin, woher man kam.
-  it("springt mit Rücksprung dorthin, woher man kam", () => {
-    expect(wohinZurueck(planung, { tiefe: 3, ruecksprung: true })).toBe("geschichte");
-  });
-
-  // Ein Rücksprung ohne Geschichte davor (Lesezeichen) trüge aus SoCoS heraus.
-  it("übergeht den Rücksprung ohne Geschichte", () => {
-    expect(wohinZurueck(planung, { tiefe: 0, ruecksprung: true })).toEqual({ seite: "module", unter: "design" });
+  // Ohne Geschichte (Lesezeichen) trüge die Geschichte aus SoCoS heraus.
+  it("geht ohne Geschichte eine Stufe hoch", () => {
+    expect(wohinZurueck(entscheidung, { tiefe: 0 })).toEqual({ seite: "module", unter: "design" });
+    expect(wohinZurueck(entscheidung, null)).toEqual({ seite: "module", unter: "design" });
   });
 
   // Ein Modul steht im Menü wie jede Seite — über ihm liegt keine Modulübersicht mehr.
   it("behandelt die oberste Stufe eines Moduls wie eine Seite", () => {
     const thoughts = { seite: "module", unter: "thoughts" } as const;
-    expect(wohinZurueck(thoughts, { tiefe: 2 })).toBe("geschichte");
     expect(wohinZurueck(thoughts, null)).toEqual({ seite: "start", unter: null });
   });
 
-  it("geht ohne Unterseite in der Geschichte zurück, sonst zur Startseite", () => {
-    expect(wohinZurueck({ seite: "projekt", unter: null }, { tiefe: 1 })).toBe("geschichte");
+  it("führt ohne Geschichte zur Startseite und von dort nirgends hin", () => {
     expect(wohinZurueck({ seite: "projekt", unter: null }, null)).toEqual({ seite: "start", unter: null });
     expect(wohinZurueck({ seite: "start", unter: null }, null)).toBeNull();
+  });
+});
+
+/*
+  Der Weg durch die echte Geschichte des Browsers (jsdom). `history.back()`
+  meldet sich dort wie im Browser erst später mit `popstate` — deshalb das
+  Warten.
+*/
+describe("useSeite", () => {
+  beforeEach(() => {
+    // Ein direkter Aufruf: ohne Zustand, also ohne Geschichte in SoCoS.
+    window.history.replaceState(null, "", "/");
+    // jsdom kennt kein Scrollen.
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  });
+
+  const oeffne = (pfad: string) => {
+    window.history.replaceState(null, "", pfad);
+    return renderHook(() => useSeite());
+  };
+
+  it("führt vom Förderantrag zurück in die Phase, aus der man kam", async () => {
+    const { result } = oeffne("/projekt/28");
+    act(() => result.current.wechseln("module", "foerderungen/2/1/3"));
+    expect(result.current.kannZurueck).toBe(true);
+    act(() => result.current.zurueck());
+    await waitFor(() => expect(result.current.ort).toEqual({ seite: "projekt", unter: "28" }));
+    expect(window.location.pathname).toBe("/projekt/28");
+  });
+
+  // Ein Umschalter (Reiter, Bearbeiten, Phase) ist kein Ort.
+  it("legt für einen Umschalter keinen Eintrag an", async () => {
+    const { result } = oeffne("/start");
+    act(() => result.current.wechseln("aufgaben"));
+    act(() => result.current.wechseln("aufgaben", "ideen", { ersetzen: true }));
+    act(() => result.current.wechseln("aufgaben", "archiv", { ersetzen: true }));
+    expect(window.location.pathname).toBe("/aufgaben/archiv");
+    act(() => result.current.zurueck());
+    await waitFor(() => expect(result.current.ort).toEqual({ seite: "start", unter: null }));
+    expect(result.current.kannZurueck).toBe(false);
+  });
+
+  // Sonst täte das nächste Zurück scheinbar nichts.
+  it("legt für denselben Ort keinen zweiten Eintrag an", async () => {
+    const { result } = oeffne("/start");
+    act(() => result.current.wechseln("projekt"));
+    act(() => result.current.wechseln("projekt"));
+    act(() => result.current.zurueck());
+    await waitFor(() => expect(result.current.ort).toEqual({ seite: "start", unter: null }));
+  });
+
+  // Ohne Geschichte ersetzt jeder Schritt den Eintrag. Legte er einen an,
+  // führte das nächste Zurück wieder hinunter, statt weiter nach oben.
+  it("steigt ohne Geschichte Stufe für Stufe auf, ohne hin und her", () => {
+    const { result } = oeffne("/module/foerderungen/2/1/3");
+    const schritte: string[] = [];
+    while (result.current.kannZurueck && schritte.length < 10) {
+      act(() => result.current.zurueck());
+      schritte.push(window.location.pathname);
+      expect(window.history.state).toEqual({ tiefe: 0 });
+    }
+    expect(schritte).toEqual([
+      "/module/foerderungen/2/1",
+      "/module/foerderungen/2",
+      "/module/foerderungen",
+      "/start",
+    ]);
   });
 });

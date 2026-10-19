@@ -157,16 +157,16 @@ export function App() {
             <Aufgaben ich={ich.data} unter={ort.unter} wechseln={wechseln} />
           )}
           {ort.seite === "kontakte" && (
-            <Kontakte ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+            <Kontakte ich={ich.data} unter={ort.unter} wechseln={wechseln} zurueck={zurueck} />
           )}
           {ort.seite === "events" && (
-            <Events ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+            <Events ich={ich.data} unter={ort.unter} wechseln={wechseln} zurueck={zurueck} />
           )}
           {ort.seite === "meetings" && (
-            <Meetings ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+            <Meetings ich={ich.data} unter={ort.unter} wechseln={wechseln} zurueck={zurueck} />
           )}
           {ort.seite === "module" && (
-            <Module ich={ich.data} unter={ort.unter} wechseln={wechseln} />
+            <Module ich={ich.data} unter={ort.unter} wechseln={wechseln} zurueck={zurueck} />
           )}
           {ort.seite === "profil" && (
             <Profil ich={ich.data} unter={ort.unter} wechseln={wechseln} />

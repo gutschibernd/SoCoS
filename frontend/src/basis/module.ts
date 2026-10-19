@@ -109,8 +109,8 @@ export function themaAusWeg(unter: string | null): { modul: Modul; teil: Themenl
 /**
  * Ein Fördergeber hinter `foerderungen/2`, ein Programm darin hinter
  * `foerderungen/2/4`, ein Antrag hinter `foerderungen/2/4/12` — oder nichts.
- * Was darüber liegt, steht mit im Weg, damit „zurück" Stufe für Stufe nach
- * oben führt. Ob es alles gibt, sagt erst der Server; die Seite zeigt dann,
+ * Was darüber liegt, steht mit im Weg, damit „zurück" ohne Geschichte
+ * (Lesezeichen) Stufe für Stufe nach oben führt. Ob es alles gibt, sagt erst der Server; die Seite zeigt dann,
  * dass es fehlt.
  */
 export function foerderungAusWeg(unter: string | null): {

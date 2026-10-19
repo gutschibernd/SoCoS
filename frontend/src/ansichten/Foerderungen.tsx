@@ -5,8 +5,9 @@
  * Vier Ebenen im Weg: `/module/foerderungen` zeigt die Fördergeber (FFG, aws,
  * KWF, Land NÖ) als Kacheln, `/module/foerderungen/2` einen davon mit seinen
  * Programmen, `/module/foerderungen/2/1` ein Programm und
- * `/module/foerderungen/2/1/3` einen Antrag darin. „Zurück" geht so Stufe für
- * Stufe nach oben.
+ * `/module/foerderungen/2/1/3` einen Antrag darin. „Zurück" führt dorthin,
+ * woher man kam; ohne Geschichte (Lesezeichen) Stufe für Stufe nach oben.
+ * Wer vom Antrag ins Programm will, nimmt den Programmnamen über dem Antrag.
  *
  * **Die Programmseite beantwortet drei Fragen auf einen Blick:** Wie weit sind
  * die Anträge (Geld gegen die Grenze, Zeitleiste, Reife)? Was ist bei der
@@ -73,7 +74,7 @@ import {
 } from "../basis/foerderungen";
 import { melden } from "../basis/meldungen";
 import { AUSLASTUNGSWEG, alsEuro, betragAusEingabe, betragZumBearbeiten } from "../basis/module";
-import type { Seite } from "../basis/router";
+import type { Wechseln } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Anlegekarte, Beschriftet } from "../bausteine/Anlegekarte";
 import { Entwurfsfeld } from "../bausteine/Entwurfsfeld";
@@ -82,7 +83,6 @@ import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 
-type Wechseln = (seite: Seite, unter?: string | null) => void;
 
 const WEG = "foerderungen";
 
@@ -922,7 +922,17 @@ function Richtlinienkarte({ programm, darf }: { programm: Foerderprogramm; darf:
 
 /* --- Die Antragsseite ------------------------------------------------------- */
 
-export function Antragsseite({ ich, id, wechseln }: { ich: Ich; id: number; wechseln: Wechseln }) {
+export function Antragsseite({
+  ich,
+  id,
+  wechseln,
+  zurueck,
+}: {
+  ich: Ich;
+  id: number;
+  wechseln: Wechseln;
+  zurueck: () => void;
+}) {
   const programme = useFoerderungen();
   const geber = useFoerdergeber();
   if (!programme.data) return <Zustand abfrage={programme} erneut={() => programme.refetch()} />;
@@ -944,7 +954,15 @@ export function Antragsseite({ ich, id, wechseln }: { ich: Ich; id: number; wech
   // wird die Seite deshalb nicht zurückgehalten.
   const seinGeber = geber.data?.find((g) => g.id === programm.geber) ?? null;
   return (
-    <Antrag key={antrag.id} antrag={antrag} programm={programm} geber={seinGeber} ich={ich} wechseln={wechseln} />
+    <Antrag
+      key={antrag.id}
+      antrag={antrag}
+      programm={programm}
+      geber={seinGeber}
+      ich={ich}
+      wechseln={wechseln}
+      zurueck={zurueck}
+    />
   );
 }
 
@@ -968,12 +986,14 @@ function Antrag({
   geber,
   ich,
   wechseln,
+  zurueck,
 }: {
   antrag: Foerderantrag;
   programm: Foerderprogramm;
   geber: Foerdergeber | null;
   ich: Ich;
   wechseln: Wechseln;
+  zurueck: () => void;
 }) {
   const speichern = useAendern();
   const neuLaden = useNeuLaden();
@@ -1152,7 +1172,9 @@ function Antrag({
             try {
               await hole(pfad, { method: "DELETE" });
               neuLaden();
-              wechseln("module", `${programmweg(programm)}`);
+              // Dorthin, woher man kam — ins Programm oder ins Projekt, aus
+              // dem heraus man den Antrag geöffnet hat.
+              zurueck();
             } catch {
               setFragtLoeschen(false);
             }
