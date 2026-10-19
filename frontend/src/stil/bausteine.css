@@ -52,7 +52,7 @@
   position: sticky; top: 0; height: 100vh;
   display: flex; flex-direction: column;
   padding: 14px 10px 12px;
-  background: var(--kopf-grund);
+  background: var(--kopf-grund); border-right: 1px solid var(--kopf-rand);
   overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--kopf-rand) transparent;
 }
 
@@ -65,8 +65,8 @@
 }
 .leiste-marke:hover { background: var(--kopf-aktiv); }
 .leiste-marke[aria-current="page"] { background: var(--kopf-aktiv); }
-.leiste-marke img { display: block; border-radius: var(--kante); }
-.leiste-marke b { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.03em; }
+.leiste-marke img { display: block; border-radius: var(--kante-klein); }
+.leiste-marke b { font-size: 16px; font-weight: 700; color: var(--kopf-text); letter-spacing: -0.02em; }
 
 .navigation { display: flex; flex-direction: column; gap: 1px; }
 .navigation a {
@@ -74,18 +74,15 @@
   display: flex; align-items: center; gap: 11px;
   min-height: var(--griff); padding: 0 12px 0 13px;
   border-radius: var(--kante);
-  font-size: 13.5px; font-weight: 500; white-space: nowrap;
+  font-size: 14px; font-weight: 500; white-space: nowrap;
   color: var(--kopf-text-leise);
 }
 .navigation a:hover { background: var(--kopf-aktiv); color: var(--kopf-text); }
-/* Vorher ein cremefarbener Block auf Dunkelgrün — der hellste Fleck der
-   ganzen Seite saß dort, wo man nicht hinsieht. Jetzt ein ruhig aufgehellter
-   Block mit einer Kupferkante an der Seite: Er sagt dasselbe und schreit nicht. */
-.navigation a[aria-current="page"] { background: var(--kopf-aktiv); color: var(--kopf-aktiv-text); }
-.navigation a[aria-current="page"]::before {
-  content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px;
-  border-radius: 0 var(--kante) var(--kante) 0; background: var(--kopf-kante);
-}
+/* Hier: eine leise Pille, der Name in voller Textfarbe und das Zeichen in
+   Kupfer. Die Kupferkante an der Seite ist mit der dunklen Leiste gegangen —
+   auf hellem Grund war sie neben der Pille ein zweites Signal für dasselbe. */
+.navigation a[aria-current="page"] { background: var(--kopf-aktiv); color: var(--kopf-aktiv-text); font-weight: 600; }
+.navigation a[aria-current="page"] > .zeichen:first-child { color: var(--kopf-kante); }
 
 /* Der Zweig „Module": aufgeklappt, solange man in einem Modul ist (siehe
    Seitenleiste.tsx). Die Kante der Markierung sitzt auf der Linie des Zweigs
@@ -102,12 +99,13 @@
 }
 .navigation-zweig a { padding-left: 17px; font-size: 13px; }
 
-/* Die einzige Stelle der Anwendung, an der Versalien bleiben: zwei Wörter,
-   nie Fließtext, und sie ordnen eine Liste statt etwas zu benennen. */
+/* Gemischte Schreibung wie überall sonst. Die Versalien mit Sperrung und
+   72 % Deckkraft standen hier als einzige der Anwendung — und die Deckkraft
+   drückte den Ton unter die Kontrastschwelle, die er als Farbe hielt. */
 .navigation-gruppe {
-  padding: 16px 13px 7px;
-  font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
-  color: var(--kopf-text-leise); opacity: 0.72;
+  padding: 18px 13px 6px;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--kopf-text-leise);
 }
 
 /* Die einklappbare Gruppe („Software", siehe Seitenleiste.tsx). Eingeklappt
@@ -136,7 +134,7 @@
 /* --- Integrationen ------------------------------------------------------- */
 /* Der Link ist lang und soll ganz lesbar sein — Zahlenschrift, weil er aus
    Zeichen besteht, die man sonst verwechselt (l, 1, I). */
-.feld-reihe > .integration-link { flex: 1 1 360px; font-family: var(--schrift-zahl); }
+.feld-reihe > .integration-link { flex: 1 1 360px; font-family: var(--schrift-mono); }
 .integration-titel { margin: 20px 0 10px; font-size: 14px; font-weight: 600; }
 .integration-merke { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.55; color: var(--text-leise); }
 .integration-merke li { margin-bottom: 6px; }
@@ -221,7 +219,7 @@
 
 .karte {
   background: var(--flaeche); border: 1px solid var(--rand);
-  border-radius: var(--kante); padding: 18px 20px;
+  border-radius: var(--kante-karte); padding: 18px 20px;
 }
 /*
  * Die Überschrift einer Karte ist eine Überschrift und keine Beschriftung.
@@ -443,7 +441,7 @@
 /* --- Statusfarben -------------------------------------------------------- */
 
 .status {
-  display: inline-block; padding: 3px 9px; border-radius: var(--kante);
+  display: inline-block; padding: 3px 9px; border-radius: var(--kante-klein);
   font-size: 12px; font-weight: 600; white-space: nowrap;
 }
 .status-offen        { background: var(--ruhend-hell);  color: var(--text-leise); }
@@ -456,7 +454,7 @@
 
 /* --- Balken -------------------------------------------------------------- */
 
-.balken { height: 8px; background: var(--flaeche-leise); border-radius: var(--kante); overflow: hidden; }
+.balken { height: 8px; background: var(--flaeche-leise); border-radius: var(--kante-klein); overflow: hidden; }
 .balken > i { display: block; height: 100%; background: var(--marke); }
 /* Über dem Pensum: Der Balken ist voll und wechselt die Farbe. Ein Paket,
    das überzogen ist, soll auffallen — nicht aussehen wie eines, das fertig ist. */
@@ -514,7 +512,7 @@
    damit die Rubriken ein Bild bekommen, ohne dass Farbe Bedeutung vortäuscht. */
 .doku-siegel {
   flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center;
-  border: 1px solid var(--marke-rand); border-radius: var(--kante);
+  border: 1px solid var(--marke-rand); border-radius: var(--kante-klein);
   background: var(--marke-hell); color: var(--marke);
 }
 .doku-siegel .zeichen { width: 18px; height: 18px; }
@@ -522,8 +520,8 @@
 .doku-vorspann { margin: 5px 0 0; font-size: 14px; line-height: 1.55; color: var(--text-leise); }
 .doku-text { margin: 0 0 12px; font-size: 14px; line-height: 1.6; }
 .doku-text code {
-  font-family: var(--schrift-zahl); font-size: 12.5px;
-  background: var(--flaeche-leise); padding: 1px 5px; border-radius: var(--kante);
+  font-family: var(--schrift-mono); font-size: 12.5px;
+  background: var(--flaeche-leise); padding: 1px 5px; border-radius: var(--kante-klein);
 }
 
 /* Begriffskacheln. Auto-fill statt fester Spaltenzahl: Dieselbe Regel trägt
@@ -534,7 +532,7 @@
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
 }
 .doku-begriff {
-  border: 1px solid var(--rand); border-radius: var(--kante);
+  border: 1px solid var(--rand); border-radius: var(--kante-karte);
   background: var(--flaeche-leise); padding: 11px 13px;
 }
 .doku-begriff dt { font-size: 13px; font-weight: 700; color: var(--text); }
@@ -555,8 +553,9 @@
 .doku-schritte li::before {
   content: counter(schritt); position: absolute; left: 0; top: 0;
   width: 22px; height: 22px; display: grid; place-items: center;
-  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  border: 1px solid var(--rand-stark); border-radius: var(--kante-klein);
   font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-leise);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Der Baum der vier Ebenen. Die Einrückung trägt eine Haarlinie — dasselbe
@@ -627,7 +626,7 @@
 /* Fehler und Wunsch unterscheiden sich am Wort, nicht an einer Farbe: Rot für
    „Fehler" wäre eine Bewertung, und gemeldet wird hier auch Kleinkram. */
 .zettel-art {
-  padding: 2px 8px; border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  padding: 2px 8px; border: 1px solid var(--rand-stark); border-radius: var(--kante-klein);
   font-size: 11.5px; font-weight: 600; color: var(--text-leise);
 }
 .zettel[data-art="fehler"] .zettel-art { border-color: var(--warnung); color: var(--warnung); }
@@ -647,7 +646,7 @@
 }
 .zettel-werkzeug {
   margin-top: 11px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
-  border: 1px solid var(--rand); border-radius: var(--kante); background: var(--flaeche-leise);
+  border: 1px solid var(--rand); border-radius: var(--kante-karte); background: var(--flaeche-leise);
 }
 
 /* --- Was ist neu ---------------------------------------------------------- */
@@ -677,7 +676,7 @@
 }
 .dialog {
   width: 100%; max-width: 440px; background: var(--flaeche);
-  border: 1px solid var(--rand-stark); border-radius: var(--kante); padding: 22px;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante-karte); padding: 22px;
 }
 .dialog h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; }
 .dialog p { margin: 0 0 16px; font-size: 14px; line-height: 1.55; color: var(--text-leise); }
@@ -727,7 +726,7 @@
 }
 .sicherung-teil > .knopf { display: inline-flex; }
 .sicherung-hinweis { margin: 10px 0 14px; font-size: 13px; color: var(--text-leise); }
-.sicherung-hinweis code { font-family: var(--schrift-zahl); font-size: 12px; }
+.sicherung-hinweis code { font-family: var(--schrift-mono); font-size: 12px; }
 
 /* Der Knopf im Dateifeld wird sonst vom System gezeichnet — hell, mit fremdem
    Radius, und im dunklen Modus als weißer Fleck mitten im Dialog. */
@@ -815,8 +814,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--akzent); }
 .suchfeld-taste {
   position: absolute; right: 12px;
   min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center;
-  border: 1px solid var(--rand); border-radius: var(--kante); background: var(--flaeche-leise);
-  font-family: var(--schrift-zahl); font-size: 11px; color: var(--text-sehr-leise);
+  border: 1px solid var(--rand); border-radius: var(--kante-klein); background: var(--flaeche-leise);
+  font-family: var(--schrift-mono); font-size: 11px; color: var(--text-sehr-leise);
   pointer-events: none;
 }
 .suchfeld:focus-within .suchfeld-taste { display: none; }
@@ -865,13 +864,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--akzent); }
  * Titel keine Antwort.
  */
 .uhrblock {
-  border: 1px solid var(--kopf-rand); border-radius: var(--kante);
+  border: 1px solid var(--kopf-rand); border-radius: var(--kante-karte);
   padding: 10px 11px;
 }
 .uhrblock[data-laeuft="ja"] { background: var(--kopf-aktiv); }
 .uhrblock-zeit { display: flex; align-items: center; gap: 8px; }
 .uhrblock-zeit .zahl,
-.uhrblock-zeit time { font-size: 17px; font-weight: 500; color: #fff; }
+.uhrblock-zeit time { font-size: 17px; font-weight: 500; color: var(--kopf-text); }
 .uhrblock .punkt {
   width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%;
   background: var(--kopf-text-leise);
@@ -892,13 +891,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--akzent); }
 }
 .uhrblock-knopf:hover { background: var(--kopf-rand); color: var(--kopf-text); }
 /* Läuft die Uhr, ist Clock-out die Handlung — und Handlungen tragen Kupfer.
-   Auf der Leiste heißt der Ton --kopf-kante: --akzent ist hell genug für Weiß,
-   aber zu dunkel für Dunkelgrün. */
+   Auf der Leiste heißt der Ton --kopf-kante, die Schrift darauf
+   --kopf-auf-kante: hell auf hellem Grund, dunkel auf dunklem. */
 .uhrblock[data-laeuft="ja"] .uhrblock-knopf {
-  background: var(--kopf-kante); border-color: var(--kopf-kante); color: var(--marke-tiefer);
+  background: var(--kopf-kante); border-color: var(--kopf-kante); color: var(--kopf-auf-kante);
 }
 .uhrblock[data-laeuft="ja"] .uhrblock-knopf:hover {
-  background: var(--kopf-kante); color: var(--marke-tiefer); filter: brightness(1.08);
+  background: var(--kopf-kante); color: var(--kopf-auf-kante); filter: brightness(1.08);
 }
 /* Zum Start führen zwei Wege — mit Paket und ohne. In der Leiste stehen sie
    untereinander: Nebeneinander blieben bei 196 px Breite von beiden
@@ -918,7 +917,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--akzent); }
 }
 .profil:hover { background: var(--kopf-aktiv); }
 .profil i {
-  width: 26px; height: 26px; border-radius: var(--kante); flex: 0 0 26px;
+  width: 26px; height: 26px; border-radius: 50%; flex: 0 0 26px;
   display: grid; place-items: center;
   font-size: 10px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
 }
@@ -989,7 +988,7 @@ a.leiste-knopf { text-decoration: none; }
 .feldhinweis {
   display: block; margin: 5px 0 0; font-size: 12px; color: var(--text-leise); line-height: 1.5;
 }
-.feldhinweis code { font-family: var(--schrift-zahl); font-size: 11px; }
+.feldhinweis code { font-family: var(--schrift-mono); font-size: 11px; }
 .profilwert { margin: 0 0 4px; font-size: 14px; }
 .kontozeile {
   display: flex; align-items: center; gap: 12px;
@@ -1038,7 +1037,7 @@ a.leiste-knopf { text-decoration: none; }
 .kachel {
   display: grid; grid-template-columns: minmax(0, 1fr);
   background: var(--flaeche); border: 1px solid var(--rand);
-  border-radius: var(--kante); border-top: 3px solid var(--marke);
+  border-radius: var(--kante-karte); border-top: 3px solid var(--marke);
 }
 .kachel-ziel {
   display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
@@ -1097,7 +1096,7 @@ a.leiste-knopf { text-decoration: none; }
 .team li:last-child { border-bottom: 0; }
 .team li > i {
   grid-area: kuerzel;
-  width: 28px; height: 28px; border-radius: var(--kante);
+  width: 28px; height: 28px; border-radius: 50%;
   display: grid; place-items: center;
   font-size: 11px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
 }
@@ -1107,7 +1106,7 @@ a.leiste-knopf { text-decoration: none; }
    dem „zuletzt" weg, und die ist der Grund für die Zeile. */
 .team .anwesenheit { font-size: 12.5px; line-height: 1.4; color: var(--text-leise); }
 .team .balken {
-  grid-area: balken; height: 8px; border-radius: var(--kante);
+  grid-area: balken; height: 8px; border-radius: var(--kante-klein);
   background: var(--flaeche-leise); overflow: hidden;
 }
 .team .balken i { display: block; height: 100%; }
@@ -1131,7 +1130,7 @@ a.leiste-knopf { text-decoration: none; }
 }
 .aktivitaet li:last-child { border-bottom: 0; }
 .aktivitaet i {
-  width: 22px; height: 22px; flex: 0 0 22px; border-radius: var(--kante);
+  width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%;
   display: grid; place-items: center; margin-top: 1px;
   font-size: 9.5px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
 }
@@ -1179,17 +1178,18 @@ a.leiste-knopf { text-decoration: none; }
 .phase-gliedern .ordnen { margin-left: auto; }
 .paket-umzug { min-height: 36px; max-width: 220px; padding: 4px 8px; }
 .projektphase h4 .art {
-  padding: 2px 8px; border-radius: var(--kante);
+  padding: 2px 8px; border-radius: var(--kante-klein);
   background: var(--flaeche-leise); color: var(--text-leise); letter-spacing: 0.04em;
 }
 .projektphase h4 .abgeschlossen { background: var(--gut-hell); color: var(--gut); }
 .projektphase h4 .phase-summe {
   margin-left: auto; white-space: nowrap; font-size: 13px;
   font-weight: 400; font-family: var(--schrift-zahl); color: var(--text-leise);
+  font-variant-numeric: tabular-nums;
 }
 
 .paket {
-  border: 1px solid var(--rand); border-radius: var(--kante);
+  border: 1px solid var(--rand); border-radius: var(--kante-karte);
   padding: 10px 12px; margin-bottom: 8px; background: var(--flaeche);
 }
 .paket-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 9px; }
@@ -1223,7 +1223,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 /* Das Kürzel der Organisation — in der Liste, im Kopf, überall dasselbe. */
 .kuerzel {
   font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
-  flex: 0 0 auto; padding: 3px 6px; border-radius: var(--kante);
+  flex: 0 0 auto; padding: 3px 6px; border-radius: var(--kante-klein);
   background: var(--marke-hell); color: var(--marke);
 }
 .kuerzel-leer { background: var(--flaeche-leise); color: var(--text-leise); }
@@ -1238,7 +1238,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 }
 .zeilen-titel:hover { color: var(--marke); }
 .weitere {
-  margin-left: 8px; padding: 1px 6px; border-radius: var(--kante);
+  margin-left: 8px; padding: 1px 6px; border-radius: var(--kante-klein);
   background: var(--flaeche-leise); color: var(--text-leise);
   font-size: 11px; font-weight: 600; white-space: nowrap;
 }
@@ -1273,7 +1273,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 
 /* Eine Person als Kachel. */
 .person {
-  border: 1px solid var(--rand); border-radius: var(--kante); padding: 11px 12px;
+  border: 1px solid var(--rand); border-radius: var(--kante-karte); padding: 11px 12px;
   display: flex; flex-direction: column; gap: 9px;
 }
 .person-kopf { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; }
@@ -1373,7 +1373,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
    aus wie ein Fehler und schiebt die Zeile auseinander. */
 .ball {
   display: inline-block; font-size: 11px; font-weight: 600;
-  padding: 2px 8px; border-radius: var(--kante); white-space: nowrap;
+  padding: 2px 8px; border-radius: var(--kante-klein); white-space: nowrap;
 }
 .ball-uns { background: var(--warnung-hell); color: var(--warnung); }
 .ball-ihnen { background: var(--flaeche-leise); color: var(--text-leise); }
@@ -1395,7 +1395,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
    schreiben wäre beim nächsten Lesen eine falsche Fährte. */
 .stand {
   display: inline-block; font-size: 11px; font-weight: 600;
-  padding: 2px 8px; border-radius: var(--kante); white-space: nowrap;
+  padding: 2px 8px; border-radius: var(--kante-klein); white-space: nowrap;
 }
 .stand-offen     { background: var(--marke-hell);   color: var(--marke); }
 .stand-getroffen { background: var(--gut-hell);     color: var(--gut); }
@@ -1433,7 +1433,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 
 /* Was der Leser sieht — dieselben Farben, ohne Feld darum. */
 .prio {
-  display: inline-block; padding: 3px 8px; border-radius: var(--kante);
+  display: inline-block; padding: 3px 8px; border-radius: var(--kante-klein);
   font-size: 12px; font-weight: 600;
 }
 .prio-hoch   { background: var(--warnung-hell); color: var(--warnung); }
@@ -1549,7 +1549,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .wahl-grund { position: fixed; inset: 0; z-index: 85; }
 .wahlliste {
   position: absolute; z-index: 86; top: calc(100% + 4px); left: 0; right: 0;
-  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  border: 1px solid var(--rand-stark); border-radius: var(--kante-karte);
   background: var(--flaeche); padding: 6px;
 }
 .wahl-treffer { max-height: 240px; overflow-y: auto; margin-top: 6px; }
@@ -1662,7 +1662,7 @@ a.mini { text-decoration: none; }
   margin: 0; display: flex; align-items: baseline; gap: 8px;
   font-size: 15px; font-weight: 600; color: var(--text);
 }
-.aufgaben-spaltentitel .zahl { font-family: var(--schrift-zahl); font-size: 12px; font-weight: 400; color: var(--text-sehr-leise); }
+.aufgaben-spaltentitel .zahl { font-family: var(--schrift-zahl); font-size: 12px; font-weight: 400; color: var(--text-sehr-leise); font-variant-numeric: tabular-nums; }
 .aufgaben-kopf { display: flex; flex-direction: column; gap: 12px; }
 .aufgaben-kopf > .spannenwahl { align-self: flex-start; }
 .aufgaben-kopf > .suchfeld { max-width: 560px; }
@@ -1693,7 +1693,7 @@ a.mini { text-decoration: none; }
 .aufgaben-chip[aria-pressed="true"] { background: var(--marke-hell); border-color: var(--marke); color: var(--marke); font-weight: 600; }
 .aufgaben-chip[aria-pressed="true"] .zahl { color: var(--marke); }
 .aufgaben-chip .kuerzel { padding: 2px 4px; font-size: 9px; }
-.aufgaben-datum { width: auto; min-height: 36px; margin-top: 0; padding: 4px 8px; font-family: var(--schrift-zahl); }
+.aufgaben-datum { width: auto; min-height: 36px; margin-top: 0; padding: 4px 8px; font-family: var(--schrift-zahl); font-variant-numeric: tabular-nums; }
 
 /* Das Feld zum Schreiben und das Menü darunter: ein Kasten. */
 .aufgaben-neu { background: var(--flaeche); border: 1px solid var(--rand-stark); border-radius: var(--kante); }
@@ -1753,7 +1753,7 @@ a.mini { text-decoration: none; }
 }
 .aufgabe-haken > i {
   width: 20px; height: 20px; display: grid; place-items: center;
-  border: 1.5px solid var(--rand-stark); border-radius: var(--kante); background: var(--flaeche);
+  border: 1.5px solid var(--rand-stark); border-radius: var(--kante-klein); background: var(--flaeche);
 }
 .aufgabe-haken .zeichen { width: 14px; height: 14px; opacity: 0; }
 .aufgabe-haken:hover:not(:disabled) > i { border-color: var(--gut); }
@@ -1789,7 +1789,7 @@ a.mini { text-decoration: none; }
    Zeile, das nichts unterscheidet, ist Rauschen. */
 .aufgabe-marke {
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
-  padding: 2px 6px; border-radius: var(--kante);
+  padding: 2px 6px; border-radius: var(--kante-klein);
   background: var(--flaeche-leise); color: var(--text-leise);
 }
 .aufgabe-marke[data-prio="hoch"] { background: var(--akzent-hell); color: var(--akzent); }
@@ -1799,7 +1799,8 @@ a.mini { text-decoration: none; }
    Warnfarbe, wenn sie vorbei ist. */
 .aufgabe-frist {
   font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-leise);
-  white-space: nowrap; padding: 3px 6px; border-radius: var(--kante);
+  white-space: nowrap; padding: 3px 6px; border-radius: var(--kante-klein);
+  font-variant-numeric: tabular-nums;
 }
 .aufgabe-frist[data-lage="heute"] { background: var(--akzent-hell); color: var(--akzent); font-weight: 600; }
 .aufgabe-frist[data-lage="drueber"] { background: var(--warnung-hell); color: var(--warnung); font-weight: 600; }
@@ -1895,6 +1896,7 @@ a.mini { text-decoration: none; }
 .auftragsfeld {
   font-family: var(--schrift-zahl); font-size: 12px; line-height: 1.5;
   background: var(--flaeche-leise); color: var(--text-leise);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Anhänge am Meeting. Die ganze Karte nimmt eine hineingezogene Mail an;
@@ -1980,7 +1982,7 @@ a.mini { text-decoration: none; }
 }
 .modul-kachel {
   display: flex; flex-direction: column;
-  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante);
+  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante-karte);
   color: var(--text); text-decoration: none;
 }
 .modul-kopf {
@@ -2034,7 +2036,7 @@ a.mini { text-decoration: none; }
 .vorhabenleiste {
   display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap;
   padding: 14px 16px; background: var(--flaeche);
-  border: 1px solid var(--rand); border-radius: var(--kante);
+  border: 1px solid var(--rand); border-radius: var(--kante-karte);
 }
 /* Der Name, darunter eine Zeile dazu. */
 .vorhaben-kopf { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 320px; }
@@ -2055,7 +2057,7 @@ a.mini { text-decoration: none; }
 .thema-kachel {
   position: relative; display: flex; flex-direction: column; gap: 8px;
   padding: 16px 16px 0; background: var(--flaeche);
-  border: 1px solid var(--rand); border-radius: var(--kante);
+  border: 1px solid var(--rand); border-radius: var(--kante-karte);
 }
 .thema-kachel:hover { border-color: var(--rand-stark); }
 .thema-kachel:hover .thema-kachel-link { color: var(--akzent); }
@@ -2075,7 +2077,7 @@ a.mini { text-decoration: none; }
   margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-leise);
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
-.thema-kachel-zahl { font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-sehr-leise); }
+.thema-kachel-zahl { font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-sehr-leise); font-variant-numeric: tabular-nums; }
 .thema-kachel-fuss {
   display: flex; align-items: center; gap: 4px 8px; flex-wrap: wrap;
   margin-top: auto; padding: 6px 0; border-top: 1px solid var(--rand);
@@ -2201,7 +2203,7 @@ a.mini { text-decoration: none; }
 
 .lk-etikett {
   position: absolute; z-index: 6; transform: translate(-50%, -50%);
-  display: flex; background: var(--flaeche); border: 2px solid var(--akzent); border-radius: var(--kante);
+  display: flex; background: var(--flaeche); border: 2px solid var(--akzent); border-radius: var(--kante-klein);
 }
 .lk-etikett input { width: 190px; min-height: 40px; padding: 0 10px; border: 0; background: none; font-size: 16px; outline: none; }
 .lk-etikett[hidden] { display: none; }
@@ -2214,11 +2216,11 @@ a.mini { text-decoration: none; }
 .lk-band span { position: absolute; left: 16px; top: 10px; font-size: 12px; font-weight: 600; color: var(--text-leise); }
 .lk-buehne[data-ansicht="stern"] .lk-band, .lk-buehne[data-stufe="lage"] .lk-band { opacity: 0; }
 
-/* Die Mitte — in beiden Themen dunkel wie die Leiste, daher nur --kopf-*. */
+/* Die Mitte — im Ton der Leiste, daher nur --kopf-*. */
 .lk-mitte {
   position: absolute; transform: translate(-50%, -50%) scale(var(--g, 1));
   display: flex; align-items: center; gap: 10px; padding: 0 18px; height: 72px; min-width: 190px;
-  background: var(--kopf-grund); color: var(--kopf-text); border-radius: var(--kante);
+  background: var(--kopf-grund); color: var(--kopf-text); border-radius: var(--kante-karte);
   border-bottom: 3px solid var(--kopf-kante);
   font-weight: 700; font-size: 17px; letter-spacing: -0.02em; cursor: default;
 }
@@ -2229,12 +2231,12 @@ a.mini { text-decoration: none; }
 .lk-hub {
   position: absolute; width: 220px; transform: translate(-50%, -50%) scale(var(--g, 1));
   padding: 10px 12px 11px; background: var(--t); color: var(--auf-ton);
-  border-radius: var(--kante); cursor: pointer; transition: opacity 0.25s;
+  border-radius: var(--kante-karte); cursor: pointer; transition: opacity 0.25s;
 }
 .lk-hub-kopf { display: flex; align-items: baseline; gap: 8px; }
 .lk-hub-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; outline: none; min-width: 2ch; }
 .lk-hub-name:empty::before { content: "Neues Thema"; opacity: 0.7; font-weight: 500; }
-.lk-hub-zahl { margin-left: auto; font: 500 12px var(--schrift-zahl); opacity: 0.9; }
+.lk-hub-zahl { margin-left: auto; font: 500 12px var(--schrift-zahl); opacity: 0.9; font-variant-numeric: tabular-nums; }
 .lk-hub-balken { display: flex; gap: 3px; margin-top: 8px; height: 6px; }
 .lk-hub-balken i { flex: 1; border: 1px solid currentColor; opacity: 0.55; }
 .lk-hub-balken i[data-s="erledigt"] { background: currentColor; opacity: 1; }
@@ -2254,7 +2256,7 @@ a.mini { text-decoration: none; }
 .lk-k {
   position: absolute; width: 200px; min-height: 48px; transform: translate(-50%, -50%);
   padding: 9px 12px 10px 34px; background: var(--f);
-  border: 2px solid var(--rand-stark); border-radius: var(--kante);
+  border: 2px solid var(--rand-stark); border-radius: var(--kante-karte);
   cursor: pointer; transition: opacity 0.3s, border-color 0.2s;
 }
 /* Zwei Status, sonst nichts. „Wartet" ist kein Status, sondern folgt:
@@ -2292,7 +2294,7 @@ span.lk-k-punkt { cursor: inherit; }
 }
 /* Als Nächstes frei: ein ruhiger Puls statt eines Schattens — das Kupfer ist die Handlung. */
 .lk-k.lk-frei::after {
-  content: ""; position: absolute; inset: -2px; border: 2px solid var(--akzent); border-radius: var(--kante);
+  content: ""; position: absolute; inset: -2px; border: 2px solid var(--akzent); border-radius: var(--kante-karte);
   animation: lk-puls 2.6s ease-out infinite; pointer-events: none;
 }
 @keyframes lk-puls { 0% { opacity: 0.55; transform: scale(1); } 100% { opacity: 0; transform: scale(1.06, 1.22); } }
@@ -2324,12 +2326,12 @@ span.lk-k-punkt { cursor: inherit; }
 .lk-buendel { position: absolute; width: 200px; transform: translate(-50%, -50%); transition: opacity 0.3s; }
 .lk-buendel button {
   position: relative; display: block; width: 100%; min-height: 48px; padding: 8px 12px 9px 34px;
-  background: var(--f); border: 2px solid var(--gut); border-radius: var(--kante);
+  background: var(--f); border: 2px solid var(--gut); border-radius: var(--kante-karte);
   font: inherit; text-align: left; color: var(--text-leise); cursor: pointer;
 }
 .lk-buendel[data-zu="true"]::before {
   content: ""; position: absolute; inset: 5px -5px -5px 5px; z-index: -1;
-  background: var(--f); border: 2px solid var(--gut); border-radius: var(--kante);
+  background: var(--f); border: 2px solid var(--gut); border-radius: var(--kante-karte);
 }
 .lk-buendel[data-zu="true"] button::before {
   content: ""; position: absolute; left: 11px; top: 50%; width: 12px; height: 12px; margin-top: -6px;
@@ -2415,8 +2417,8 @@ span.lk-k-punkt { cursor: inherit; }
 .lk-h3::after { content: ""; flex: 1; height: 1px; background: var(--rand); }
 .lk-leer-satz { margin: 0; font-size: 13px; color: var(--text-sehr-leise); }
 .lk-seite kbd {
-  font: 500 11px/1 var(--schrift-zahl); padding: 3px 5px;
-  border: 1px solid var(--rand); border-radius: var(--kante); background: var(--flaeche); color: var(--text-leise);
+  font: 500 11px/1 var(--schrift-mono); padding: 3px 5px;
+  border: 1px solid var(--rand); border-radius: var(--kante-klein); background: var(--flaeche); color: var(--text-leise);
 }
 .lk-seite .knopf kbd { background: none; border-color: currentColor; color: inherit; opacity: 0.8; }
 
@@ -2478,13 +2480,13 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .lk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .lk-chip {
   min-height: var(--griff); padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid var(--rand); background: var(--f, var(--flaeche)); border-radius: var(--kante);
+  border: 1px solid var(--rand); background: var(--f, var(--flaeche)); border-radius: var(--kante-klein);
   cursor: pointer; font-size: 12.5px; font-weight: 500;
 }
 .lk-chip::before { content: ""; width: 8px; height: 8px; background: var(--t, var(--rand-stark)); }
 .lk-chip[aria-pressed="true"] { border-color: var(--t, var(--text)); box-shadow: inset 0 0 0 1px var(--t, var(--text)); font-weight: 700; }
 .lk-farbwahl { display: flex; gap: 6px; flex-wrap: wrap; }
-.lk-farbwahl button { width: var(--griff); height: var(--griff); border: 2px solid transparent; background: var(--t); border-radius: var(--kante); cursor: pointer; }
+.lk-farbwahl button { width: var(--griff); height: var(--griff); border: 2px solid transparent; background: var(--t); border-radius: var(--kante-klein); cursor: pointer; }
 .lk-farbwahl button[aria-pressed="true"] { border-color: var(--text); outline: 2px solid var(--flaeche); outline-offset: -4px; }
 .lk-bezug { list-style: none; margin: 0; padding: 0; }
 .lk-bezug li { display: flex; align-items: center; gap: 8px; min-height: var(--griff); border-bottom: 1px solid var(--rand); font-size: 13px; }
@@ -2595,7 +2597,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .fussleiste {
     display: flex; position: fixed; z-index: 55;
     left: 0; right: 0; bottom: 0;
-    background: var(--kopf-grund);
+    background: var(--kopf-grund); border-top: 1px solid var(--kopf-rand);
     padding-bottom: env(safe-area-inset-bottom);
   }
   .fussleiste > a, .fussleiste > button {
@@ -2845,7 +2847,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   pointer-events: auto;
   display: flex; align-items: center; gap: 12px;
   max-width: 460px; padding: 12px 12px 12px 15px;
-  border-radius: var(--kante); border: 1px solid;
+  border-radius: var(--kante-karte); border: 1px solid;
   font-size: 14px; line-height: 1.45;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
 }
@@ -2864,11 +2866,11 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px;
 }
 .team-du {
-  margin-left: 8px; padding: 2px 7px; border-radius: var(--kante);
+  margin-left: 8px; padding: 2px 7px; border-radius: var(--kante-klein);
   background: var(--marke-hell); color: var(--marke); font-size: 11px; font-weight: 600;
 }
 .protokoll-modell {
-  display: inline-block; margin-right: 8px; padding: 1px 6px; border-radius: var(--kante);
+  display: inline-block; margin-right: 8px; padding: 1px 6px; border-radius: var(--kante-klein);
   background: var(--flaeche-leise); color: var(--text-leise); font-size: 11px; font-weight: 600;
 }
 .protokoll-feld { font-size: 13px; line-height: 1.5; }
@@ -2907,7 +2909,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 
 .fd-eckdaten {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante);
+  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante-karte);
 }
 .fd-eckdatum { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; min-width: 0; }
 .fd-eckdatum + .fd-eckdatum { border-left: 1px solid var(--rand); }
@@ -2915,6 +2917,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-eckwert, .fd-eckdatum .inline-aendern {
   font-family: var(--schrift-zahl); font-size: 20px; font-weight: 500; color: var(--text);
   letter-spacing: -0.02em; text-decoration: none;
+  font-variant-numeric: tabular-nums;
 }
 .fd-eckdatum[data-achtung] a.fd-eckwert { color: var(--akzent); }
 .fd-eckwert-mit { display: inline-flex; align-items: baseline; gap: 6px; }
@@ -2926,7 +2929,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-geberkachel {
   position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 132px;
   padding: 16px; background: var(--flaeche); color: var(--text); text-decoration: none;
-  border: 1px solid var(--rand); border-radius: var(--kante);
+  border: 1px solid var(--rand); border-radius: var(--kante-karte);
 }
 .fd-geberkachel:hover { border-color: var(--akzent); color: var(--text); }
 .fd-geberkachel:hover > b { color: var(--akzent); }
@@ -2946,7 +2949,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-programme { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .fd-programmkachel h2 { font-size: 17px; }
 /* Das Kürzel des Fördergebers im Siegel — „FFG", „aws", „KWF". */
-.fd-kuerzel { width: auto; min-width: 40px; padding: 0 8px; font-family: var(--schrift-zahl); font-size: 13px; font-weight: 600; }
+.fd-kuerzel { width: auto; min-width: 40px; padding: 0 8px; font-family: var(--schrift-zahl); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .fd-kachelzahlen { display: flex; gap: 24px; margin: 0; }
 .fd-kachelzahlen dt { font-size: 12px; font-weight: 600; color: var(--text-leise); }
 .fd-kachelzahlen dd { margin: 2px 0 0; font-size: 15px; }
@@ -2962,7 +2965,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-antragskarte {
   position: relative; display: flex; flex-direction: column; gap: 10px;
   padding: 16px 16px 0; background: var(--flaeche);
-  border: 1px solid var(--rand); border-radius: var(--kante);
+  border: 1px solid var(--rand); border-radius: var(--kante-karte);
 }
 .fd-antragskarte:hover { border-color: var(--rand-stark); }
 .fd-antragskarte:hover .thema-kachel-link { color: var(--akzent); }
@@ -2987,7 +2990,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-geldzeile { display: flex; align-items: baseline; gap: 10px; font-size: 13px; color: var(--text-leise); }
 .fd-geldzeile b { color: var(--text); font-size: 15px; font-weight: 500; }
 .fd-ueber { color: var(--warnung); font-weight: 600; font-size: 12px; }
-.fd-geldbalken { display: block; height: 6px; background: var(--flaeche-leise); border-radius: var(--kante); overflow: hidden; }
+.fd-geldbalken { display: block; height: 6px; background: var(--flaeche-leise); border-radius: var(--kante-klein); overflow: hidden; }
 .fd-geldbalken > span { display: block; height: 100%; background: var(--marke); }
 .fd-geldbalken[data-ueber] > span { background: var(--warnung); }
 
@@ -3001,7 +3004,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 }
 
 .fd-kartenfuss { font-size: 12px; color: var(--text-sehr-leise); }
-.fd-reifezahl { display: inline-flex; align-items: center; gap: 8px; font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-leise); margin-left: auto; }
+.fd-reifezahl { display: inline-flex; align-items: center; gap: 8px; font-family: var(--schrift-zahl); font-size: 12px; color: var(--text-leise); margin-left: auto; font-variant-numeric: tabular-nums; }
 .fd-reifezahl[data-fertig] { color: var(--gut); }
 .fd-reifezahl + .thema-kachel-zeiger { margin-left: 4px; }
 .fd-punkte { display: inline-flex; gap: 3px; }
@@ -3032,7 +3035,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 }
 .fd-frage-punkt::before {
   content: ""; grid-area: 1 / 1; width: 18px; height: 18px;
-  border: 1.5px solid var(--akzent); border-radius: var(--kante); box-sizing: border-box;
+  border: 1.5px solid var(--akzent); border-radius: var(--kante-klein); box-sizing: border-box;
 }
 .fd-frage-punkt:hover::before { background: var(--akzent-hell); }
 .fd-frage-punkt:disabled { cursor: default; }
@@ -3069,7 +3072,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-antragstitel, .fd-antragstitel.inline-aendern {
   display: block; font-size: 20px; font-weight: 600; line-height: 1.3; letter-spacing: -0.015em; color: var(--text);
 }
-.zeichenzahl { font-family: var(--schrift-zahl); font-size: 11.5px; color: var(--text-sehr-leise); margin-left: auto; }
+.zeichenzahl { font-family: var(--schrift-zahl); font-size: 11.5px; color: var(--text-sehr-leise); margin-left: auto; font-variant-numeric: tabular-nums; }
 .zeichenzahl[data-ueber] { color: var(--warnung); font-weight: 600; }
 .fd-antragskopf > .zeichenzahl { display: block; margin: 4px 0 0; }
 .fd-kopfzeile { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 14px; }
@@ -3108,7 +3111,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-reife li button:hover > span { color: var(--akzent); }
 .fd-reife li > button > i {
   flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; display: grid; place-items: center;
-  border: 1.5px solid var(--rand-stark); border-radius: var(--kante);
+  border: 1.5px solid var(--rand-stark); border-radius: var(--kante-klein);
 }
 .fd-reife li[data-erfuellt] > button > i { border-color: var(--gut); background: var(--gut-hell); color: var(--gut); }
 .fd-reife li[data-erfuellt] > button > span { color: var(--text-leise); }
@@ -3175,6 +3178,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-monat {
   font-family: var(--schrift-zahl); font-size: 10.5px; color: var(--text-sehr-leise);
   white-space: nowrap; overflow: visible; padding: 0 0 4px 2px; border-left: 1px solid var(--rand);
+  font-variant-numeric: tabular-nums;
 }
 .fd-monat[data-ueber] { background: var(--warnung-hell); color: var(--warnung); }
 .fd-betragkopf { font-size: 12px; font-weight: 600; color: var(--text-leise); text-align: right; }
@@ -3186,7 +3190,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   position: absolute; top: 7px; bottom: 7px;
   left: calc((var(--von) - 1) / var(--monate) * 100%);
   width: calc((var(--bis) - var(--von) + 1) / var(--monate) * 100%);
-  background: var(--marke); border-radius: var(--kante);
+  background: var(--marke); border-radius: var(--kante-klein);
   cursor: grab; touch-action: none; user-select: none;
 }
 .fd-balken:hover { background: var(--marke-dunkel); }
@@ -3413,7 +3417,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 
 .fa-paket {
   position: relative; display: flex; align-items: center; min-width: 0; margin: 0 1px;
-  padding: 0 8px; border: 1px solid var(--t); border-radius: var(--kante);
+  padding: 0 8px; border: 1px solid var(--t); border-radius: var(--kante-karte);
   font-size: 12px; color: var(--text);
 }
 .fa-paket > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3553,6 +3557,7 @@ a.gantt-wahl { text-decoration: none; }
   display: flex; align-items: flex-end; padding: 0 0 6px 4px;
   font-family: var(--schrift-zahl); font-size: 10.5px; color: var(--text-sehr-leise);
   border-left: 1px solid var(--rand); white-space: nowrap; overflow: visible;
+  font-variant-numeric: tabular-nums;
 }
 .gantt-monat[data-jahr] { border-left-color: var(--rand-stark); color: var(--text-leise); }
 .gantt-linie {
@@ -3581,7 +3586,7 @@ a.gantt-wahl { text-decoration: none; }
   left: calc(var(--a) / var(--tage) * 100%);
   width: max(6px, calc(var(--l) / var(--tage) * 100%));
   display: flex; align-items: center; min-width: 0; padding: 0 6px;
-  border: 1px solid var(--marke); border-radius: var(--kante);
+  border: 1px solid var(--marke); border-radius: var(--kante-klein);
   background: var(--marke); color: var(--auf-marke);
   font-size: 12px; user-select: none;
 }
@@ -3643,7 +3648,7 @@ a.gantt-wahl { text-decoration: none; }
 .pl-listentitel b { font-weight: 500; }
 .pl-listentitel em { font-style: normal; font-size: 12px; color: var(--text-sehr-leise); }
 .pl-liste .art {
-  padding: 2px 8px; border-radius: var(--kante); font-size: 12px;
+  padding: 2px 8px; border-radius: var(--kante-klein); font-size: 12px;
   background: var(--marke-hell); color: var(--marke);
 }
 
@@ -4042,13 +4047,13 @@ span.pl-paketstatus { cursor: default; }
 .rw-chart-scroll { overflow-x: auto; padding: 0 0 10px; touch-action: pan-x pan-y; }
 .rw-chart-scroll svg { display: block; }
 .rw-chart-scroll text { font-family: var(--schrift); }
-.rw-chart-scroll .ax { font-family: var(--schrift-zahl); font-size: 10.5px; fill: var(--rw-faint); }
+.rw-chart-scroll .ax { font-family: var(--schrift-zahl); font-size: 10.5px; fill: var(--rw-faint); font-variant-numeric: tabular-nums; }
 .rw-chart-scroll .jahr { font-weight: 700; font-size: 11px; fill: var(--rw-muted); }
 .rw-chart-scroll .heute { font-size: 10px; font-weight: 600; fill: var(--rw-accent); }
 .rw-chart-scroll .puffer { font-size: 10.5px; font-weight: 600; fill: var(--rw-warn); }
 .rw-chart-scroll .lbl { font-size: 12px; fill: var(--rw-ink); }
 .rw-chart-scroll .lbl-sub { font-size: 10px; fill: var(--rw-faint); text-transform: uppercase; letter-spacing: 0.06em; }
-.rw-chart-scroll .amt { font-family: var(--schrift-zahl); font-size: 10px; fill: var(--rw-muted); }
+.rw-chart-scroll .amt { font-family: var(--schrift-zahl); font-size: 10px; fill: var(--rw-muted); font-variant-numeric: tabular-nums; }
 .rw-chart-scroll .amt.dunkel { fill: var(--rw-ink); }
 .rw-chart-scroll .anzahl { font-size: 8px; font-weight: 700; }
 .rw-chart-empty { margin: 0 18px 18px; padding: 30px; border: 1px dashed var(--rw-line); border-radius: 12px; text-align: center; color: var(--rw-muted); }
@@ -4116,7 +4121,7 @@ span.pl-paketstatus { cursor: default; }
 .rw .sw.darl { background: var(--rw-c-darl); }
 .rw .sw.tax { background: var(--rw-c-tax); }
 .rw .sw.faint { background: var(--rw-faint); }
-.rw-tabs .cnt { font-family: var(--schrift-zahl); font-size: 11px; color: var(--rw-faint); font-weight: 500; }
+.rw-tabs .cnt { font-family: var(--schrift-zahl); font-size: 11px; color: var(--rw-faint); font-weight: 500; font-variant-numeric: tabular-nums; }
 .rw-editor { border: 0; margin: 0; min-width: 0; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
 .rw-ed-intro { margin: 0; color: var(--rw-muted); max-width: 88ch; }
 .rw-rows { display: flex; flex-direction: column; border: 1px solid var(--rw-line); border-radius: 12px; overflow: hidden; }
@@ -4170,7 +4175,7 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
 .rw-ledger th, .rw-ledger td { padding: 7px 10px; white-space: nowrap; border-bottom: 1px solid var(--rw-line-2); }
 .rw-ledger td { text-align: right; font-family: var(--schrift-zahl); font-variant-numeric: tabular-nums; }
 .rw-ledger th.rowh { position: sticky; left: 0; background: var(--rw-surface); text-align: left; font-weight: 500; z-index: 1; border-right: 1px solid var(--rw-line); min-width: 230px; }
-.rw-ledger thead th { background: var(--rw-surface-2); font-family: var(--schrift-zahl); font-weight: 500; font-size: 11.5px; color: var(--rw-muted); text-align: right; position: sticky; top: 0; }
+.rw-ledger thead th { background: var(--rw-surface-2); font-family: var(--schrift-zahl); font-weight: 500; font-size: 11.5px; color: var(--rw-muted); text-align: right; position: sticky; top: 0; font-variant-numeric: tabular-nums; }
 .rw-ledger thead th.rowh { background: var(--rw-surface-2); z-index: 2; font-family: var(--schrift); }
 .rw-ledger thead th.jan { color: var(--rw-ink); }
 .rw-ledger tbody tr:hover td, .rw-ledger tbody tr:hover th.rowh { background: var(--rw-surface-2); }
@@ -4187,7 +4192,7 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
 .rw-ledger tr.indent2 td { color: var(--rw-faint); font-size: 12px; }
 .rw-ledger tr.ist th.rowh, .rw-ledger tr.ist td { background: var(--rw-accent-soft); }
 .rw-ledger td.ist-cell { padding: 3px 4px; }
-.rw-ist-inp { width: 86px; border: 1px solid var(--rw-line); background: var(--rw-surface); border-radius: 7px; padding: 4px 6px; text-align: right; font-family: var(--schrift-zahl); font-size: 12px; }
+.rw-ist-inp { width: 86px; border: 1px solid var(--rw-line); background: var(--rw-surface); border-radius: 7px; padding: 4px 6px; text-align: right; font-family: var(--schrift-zahl); font-size: 12px; font-variant-numeric: tabular-nums; }
 .rw-ist-inp:focus { border-color: var(--rw-accent); outline: none; box-shadow: 0 0 0 3px var(--rw-accent-soft); }
 .rw-ist-inp.bad { border-color: var(--rw-bad); }
 .rw-ist-inp:disabled { background: transparent; border-color: transparent; color: var(--rw-ink); }

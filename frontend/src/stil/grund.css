@@ -8,10 +8,10 @@ body {
   background: var(--grund);
   color: var(--text);
   font-family: var(--schrift);
-  /* 14 statt 15: Archivo läuft enger als Figtree und trägt bei 14 px
-     dieselbe Lesbarkeit — dafür passt in eine Tabellenzeile spürbar mehr,
-     ohne dass sie gedrängt wirkt. */
-  font-size: 14px;
+  /* 15 px (vorher 14 mit Archivo): Die Seiten wirkten gedrängt, und Figtree
+     ist offener gebaut — bei 14 px liefe es klein. Was dadurch nicht mehr in
+     eine Zeile passt, bricht um; am Handy galt das ohnehin. */
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
   /* Am Handy darf nichts unter der Notch oder dem Homebalken liegen. */
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
@@ -34,4 +34,4 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   outline-offset: 1px;
 }
 
-.zahl { font-family: var(--schrift-zahl); letter-spacing: -0.02em; }
+.zahl { font-family: var(--schrift-zahl); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }

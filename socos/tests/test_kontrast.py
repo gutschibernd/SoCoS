@@ -78,10 +78,16 @@ class TestKontrastHell:
         wert = kontrast(HELL[text], HELL[flaeche])
         assert wert >= AA_KLEIN, f"{text} auf {flaeche}: {wert:.2f}:1"
 
-    def test_kopfleiste(self):
+    @pytest.mark.parametrize("grund", ["--kopf-grund", "--kopf-aktiv"])
+    def test_kopfleiste(self, grund):
+        """Auf der Leiste und auf ihrem markierten Eintrag — beide tragen Text."""
         for ton in ("--kopf-text", "--kopf-text-leise"):
-            wert = kontrast(HELL[ton], HELL["--kopf-grund"])
-            assert wert >= AA_KLEIN, f"{ton} auf --kopf-grund: {wert:.2f}:1"
+            wert = kontrast(HELL[ton], HELL[grund])
+            assert wert >= AA_KLEIN, f"{ton} auf {grund}: {wert:.2f}:1"
+
+    def test_clockout_knopf(self):
+        """Die Schrift auf dem kupfernen Knopf der laufenden Uhr."""
+        assert kontrast(HELL["--kopf-auf-kante"], HELL["--kopf-kante"]) >= AA_KLEIN
 
 
 class TestKontrastDunkel:
@@ -100,10 +106,16 @@ class TestKontrastDunkel:
         """
         assert kontrast(DUNKEL["--auf-marke"], DUNKEL["--marke"]) >= AA_KLEIN
 
-    def test_kopfleiste(self):
+    @pytest.mark.parametrize("grund", ["--kopf-grund", "--kopf-aktiv"])
+    def test_kopfleiste(self, grund):
+        """Auf der Leiste und auf ihrem markierten Eintrag — beide tragen Text."""
         for ton in ("--kopf-text", "--kopf-text-leise"):
-            wert = kontrast(DUNKEL[ton], DUNKEL["--kopf-grund"])
-            assert wert >= AA_KLEIN, f"dunkel: {ton} auf --kopf-grund: {wert:.2f}:1"
+            wert = kontrast(DUNKEL[ton], DUNKEL[grund])
+            assert wert >= AA_KLEIN, f"dunkel: {ton} auf {grund}: {wert:.2f}:1"
+
+    def test_clockout_knopf(self):
+        """Die Schrift auf dem kupfernen Knopf der laufenden Uhr."""
+        assert kontrast(DUNKEL["--kopf-auf-kante"], DUNKEL["--kopf-kante"]) >= AA_KLEIN
 
 
 @pytest.mark.parametrize("palette", [HELL, DUNKEL], ids=["hell", "dunkel"])

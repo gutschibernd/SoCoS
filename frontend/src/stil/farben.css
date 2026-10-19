@@ -6,8 +6,9 @@
  * Anmeldeseite läuft ohne das React-Bundle. Die Namen sind dort dieselben,
  * damit man die zweite Stelle findet.
  *
- * Die Werte kommen aus dem Entwurf „Werkbank“ (entwurf/redesign/) und sind
- * verbindlich. Jeder Textton ist gegen **jeden** Untergrund gerechnet, auf dem
+ * Die Farbwerte kommen aus dem Entwurf „Werkbank“ (entwurf/redesign/) und
+ * sind verbindlich; Ecken, Schrift und Leiste sind es seit 2026-10-19 nicht
+ * mehr (siehe CLAUDE.md, „Visuelle Sprache“). Jeder Textton ist gegen **jeden** Untergrund gerechnet, auf dem
  * er vorkommt — die Kommentare unten nennen die Zahlen.
  */
 
@@ -59,21 +60,25 @@
   /* Text auf einer Markenfläche. */
   --auf-marke: #ffffff;
 
-  /* Leiste (heute die Kopfzeile, ab Etappe 2 die Seitenleiste)
+  /* Leiste
    *
-   * Sie ist in **beiden** Themen dunkel — deshalb stehen hier auch im hellen
-   * Thema dunkle Werte, und deshalb braucht die aktive Kante einen eigenen
-   * Namen: `--akzent` ist hell genug für Weiß, aber zu dunkel für Dunkelgrün.
+   * Seit 2026-10-19 hell, auf dem Ton der leisen Fläche — vorher in beiden
+   * Themen dunkles Petrol (#0B2A2C). Die dunkle Leiste war der lauteste Block
+   * der Seite und stand genau dort, wo man nicht arbeitet. Jetzt folgt sie dem
+   * Thema; die eigenen Namen `--kopf-*` bleiben, weil die Leiste einen eigenen
+   * Grund hat und ihre Töne gegen diesen gerechnet sind, nicht gegen Weiß.
    *
-   * `--kopf-text-leise` stand auf #8FB4B5 und kam damit auf 4,82:1 — knapp
-   * über der Schwelle und entsprechend mühsam. #94B3B2 auf #0B2A2C sind 6,77. */
-  --kopf-grund: #0b2a2c;
-  --kopf-text: #e4edec;
-  --kopf-text-leise: #94b3b2;
-  --kopf-rand: #1b4a4d;
-  --kopf-aktiv: #123a3d;
-  --kopf-aktiv-text: #ffffff;
-  --kopf-kante: #d98c5c;
+   * Gerechnet: --kopf-text auf --kopf-grund 15,64 · auf --kopf-aktiv 13,66 ·
+   * --kopf-text-leise auf --kopf-grund 6,10 · auf --kopf-aktiv 5,33. Die
+   * Kupferkante ist kein Text (Zeichen, 3:1 genügt): 4,22 auf --kopf-aktiv. */
+  --kopf-grund: #f3f2ec;
+  --kopf-text: #171a18;
+  --kopf-text-leise: #565c58;
+  --kopf-rand: #d2ccbc;
+  --kopf-aktiv: #e6e3d9;
+  --kopf-aktiv-text: #171a18;
+  --kopf-kante: #a2552c;
+  --kopf-auf-kante: #ffffff;   /* auf --kopf-kante 5,40 */
 
   /* Zustände. Jeder Ton ist gegen seine eigene helle Fläche gerechnet, nicht
      gegen Weiß — dort steht er nämlich. */
@@ -151,16 +156,24 @@
   --rw-schatten: 0 1px 2px rgba(19, 32, 30, 0.06), 0 6px 20px rgba(19, 32, 30, 0.05);
   --rw-tipp-schatten: 0 10px 32px rgba(19, 32, 30, 0.18);
 
-  /* Maße */
-  --kante: 2px;          /* eckige Kanten, verbindlich aus dem Entwurf */
+  /* Maße
+   *
+   * Ecken seit 2026-10-19 weich statt eckig (vorher 2 px aus „Werkbank" —
+   * Bernd: „diese eckige stört mich richtig"). Drei Stufen und keine
+   * vierte: Flächen 8, Bedienelemente 6, Kleines (Chips, Haken, Balken) 4.
+   * Verschachteltes wird nach innen kleiner, nie größer. */
+  --kante-karte: 8px;
+  --kante: 6px;
+  --kante-klein: 4px;
   --griff: 44px;         /* was der Finger trifft, ist mindestens so hoch */
-  /* Archivo statt Figtree: enger und kantiger, damit in eine dichte
-     Tabellenzeile mehr hineinpasst, ohne gedrängt zu wirken. Der Ersatzstapel
-     ist mit Bedacht gewählt — Helvetica Neue liegt metrisch nah genug, dass
-     der Umsprung beim Laden nicht springt. Beide Schriften liegen lokal,
-     siehe statisch/schriften.css. */
-  --schrift: Archivo, "Helvetica Neue", system-ui, -apple-system, sans-serif;
-  --schrift-zahl: "IBM Plex Mono", ui-monospace, monospace;
+  /* Figtree: offen und rund, passend zu den weichen Ecken, und mit echten
+     Tabellenziffern (`tnum`). Deshalb gibt es keine zweite Schrift für Zahlen
+     mehr — `--schrift-zahl` ist dieselbe Schrift, und wo sie steht, sind die
+     gleich breiten Ziffern eingeschaltet. Monospace bleibt Code und
+     Schlüsseln. Die Schrift liegt lokal, siehe statisch/schriften.css. */
+  --schrift: Figtree, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --schrift-zahl: var(--schrift);
+  --schrift-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -190,15 +203,17 @@
     --wortmarke-o: #d98c5c;
     --auf-marke: #07201f;
 
-    /* Die Leiste ist ohnehin dunkel; sie wird nur noch eine Spur tiefer
-       gesetzt, damit sie sich vom dunklen Inhalt abhebt. */
-    --kopf-grund: #0a2224;
-    --kopf-text: #dde9e8;
-    --kopf-text-leise: #8fadac;
-    --kopf-rand: #17474b;
-    --kopf-aktiv: #103134;
+    /* Die Leiste eine Spur tiefer als der Grund. Gerechnet: --kopf-text auf
+       --kopf-grund 15,99 · auf --kopf-aktiv 12,64 · --kopf-text-leise 8,51 ·
+       6,73. */
+    --kopf-grund: #101315;
+    --kopf-text: #eceeec;
+    --kopf-text-leise: #a9b1ae;
+    --kopf-rand: #303739;
+    --kopf-aktiv: #23292c;
     --kopf-aktiv-text: #ffffff;
     --kopf-kante: #d98c5c;
+    --kopf-auf-kante: #072b2d;
 
     --gut: #86b37d;
     --gut-hell: #1b281c;
@@ -276,15 +291,17 @@
   --wortmarke-o: #d98c5c;
   --auf-marke: #07201f;
 
-  /* Die Leiste ist ohnehin dunkel; sie wird nur noch eine Spur tiefer
-     gesetzt, damit sie sich vom dunklen Inhalt abhebt. */
-  --kopf-grund: #0a2224;
-  --kopf-text: #dde9e8;
-  --kopf-text-leise: #8fadac;
-  --kopf-rand: #17474b;
-  --kopf-aktiv: #103134;
+  /* Die Leiste eine Spur tiefer als der Grund. Gerechnet: --kopf-text auf
+     --kopf-grund 15,99 · auf --kopf-aktiv 12,64 · --kopf-text-leise 8,51 ·
+     6,73. */
+  --kopf-grund: #101315;
+  --kopf-text: #eceeec;
+  --kopf-text-leise: #a9b1ae;
+  --kopf-rand: #303739;
+  --kopf-aktiv: #23292c;
   --kopf-aktiv-text: #ffffff;
   --kopf-kante: #d98c5c;
+  --kopf-auf-kante: #072b2d;
 
   --gut: #86b37d;
   --gut-hell: #1b281c;

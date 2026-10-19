@@ -7,6 +7,37 @@ betrifft.
 
 ---
 
+## 2026-10-19 — Grundoptik: weiche Ecken, Figtree, helle Leiste (kein Schema)
+
+**Bernd:** „die farben passen aber typografie und diese eckige stört mich
+richtig". Gewählt aus vorgelegten Varianten: Ecken „weich, aber straff",
+Figtree, helle Leiste, etwas luftiger.
+
+- **Drei Eckstufen statt einer** (`--kante-karte` 8 · `--kante` 6 ·
+  `--kante-klein` 4). Eine einzige Stufe ging nicht: 6 px auf einem 7-px-Punkt
+  oder einem 16-px-Haken macht daraus einen Kreis, auf einer Karte wirkt es
+  kantig. Personenkürzel (Team, Aktivität, Profil) sind jetzt Kreise.
+- **Figtree auch für Zahlen**, IBM Plex Mono ist weg. Figtree hat echte
+  Tabellenziffern (`tnum`, geprüft mit fontTools — ohne die Funktion hätten
+  Beträge untereinander nicht mehr gestimmt). Überall, wo `--schrift-zahl`
+  steht, ist `font-variant-numeric: tabular-nums` mit gesetzt.
+  `--schrift-zahl` bleibt als Name, damit man die Zahlenstellen weiter findet.
+  Code und Schlüssel: `--schrift-mono`, die Systemschrift — dafür eine eigene
+  Datei zu laden lohnt nicht. Die Mono-Zeile unter der großen Wortmarke der
+  Anmeldeseite steht damit ebenfalls in der Systemschrift.
+- **Woher Figtree kommt:** `@fontsource/figtree@5.2.10` (OFL-1.1), latin und
+  latin-ext, 400–700, 8 Dateien, ~70 kB — weniger als die 11 Archivo/Plex-Dateien.
+- **Die Leiste ist hell** und folgt dem Thema. Die Kupferkante am aktiven
+  Eintrag ist weg (Pille + Kupfer am Zeichen sagt dasselbe einmal), die
+  Gruppenüberschriften stehen nicht mehr in Versalien mit 72 % Deckkraft —
+  die Deckkraft drückte den Ton unter die Schwelle, die er als Farbe hielt.
+  `--kopf-auf-kante` ist neu: Auf hellem Kupfer muss die Schrift weiß sein,
+  auf dunklem dunkel. Der Kontrasttest prüft jetzt auch `--kopf-aktiv`.
+- **Grundgröße 15 px** statt 14.
+- **Nicht angefasst:** die zweite Optik (`.pl`, `.rw`) der Runway-Planung,
+  Projektplanung und Designentscheidungen. Ihre Ecken sind ohnehin rund; ob
+  sie an die Grundoptik herangeführt wird, ist offen.
+
 ## 2026-10-19 — Suchen und Anlegen als je ein Baustein (kein Schema)
 
 **Bernd:** Suchfelder und Anlegefelder überarbeiten, das ganze Werkzeug

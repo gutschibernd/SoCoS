@@ -174,19 +174,25 @@ im Ernstfall, unter Zeitdruck, wenn das Original schon weg ist.
 **Jede Änderung an der Oberfläche wird an beiden Größen geprüft, bevor sie committet
 wird — 1280×800 und 375×812, hell und dunkel.**
 
-### Visuelle Sprache: „Werkbank" als Grundlage, nicht als Käfig
+### Visuelle Sprache: die Grundoptik als Grundlage, nicht als Käfig
 
-Der Entwurf „Werkbank" (2026-09-12) ist der Ausgangspunkt: Eckige Kanten (2 px
-Radius) · Seitengrund `#FAFAF7`, Fläche `#FFFFFF`, Kante `#D2CCBC` · Akzent
-`#A2552C` (Kupfer — **das ist die Handlung**), Marke `#0D4E52` (Verweise und
-„läuft"), Leiste `#0B2A2C` (in **beiden** Themen dunkel) · **Archivo** für Text,
-**IBM Plex Mono** für Zahlen und Zeiten, Grundgröße 14 px · Trennung durch
-Haarlinien, keine Schatten · 4-Spalten-Raster, Abstände in Vierern.
+Die Grundoptik (seit 2026-10-19, aus „Werkbank" vom 2026-09-12 hervorgegangen):
+**weiche, straffe Ecken** — Flächen 8 px, Bedienelemente 6 px, Kleines 4 px
+(`--kante-karte`, `--kante`, `--kante-klein`), Personenkürzel rund · Seitengrund
+`#FAFAF7`, Fläche `#FFFFFF`, Kante `#D2CCBC` · Akzent `#A2552C` (Kupfer — **das
+ist die Handlung**), Marke `#0D4E52` (Verweise und „läuft") · **helle Leiste**
+auf dem Ton der leisen Fläche, sie folgt dem Thema · **Figtree** für alles, auch
+für Zahlen — dort mit Tabellenziffern (`.zahl`, `--schrift-zahl`); Monospace nur
+für Code und Schlüssel (`--schrift-mono`) · Grundgröße 15 px · Trennung durch
+1-px-Kanten, keine Schatten an ruhenden Flächen · Abstände in Vierern.
+
+Bernd, 2026-10-19: „die farben passen aber typografie und diese eckige stört
+mich richtig". Die Farben sind geblieben, Schrift, Ecken und Leiste nicht.
 
 Die Entwürfe liegen in `entwurf/redesign/`, Layout und Beschriftungen als
 Ausgangspunkt in `entwurf/Sopharmis Internal v6 leer.dc.html`.
 
-**Bringt eine Abweichung von diesem Design einen Vorteil für die Bedienung,
+**Bringt eine Abweichung von dieser Optik einen Vorteil für die Bedienung,
 wird sie gemacht** (Bernd, 2026-10-15: „Werkbank" hat einzelne Seiten
 künstlich schlechter bedienbar gemacht). Vorteil heißt konkret: weniger Klicks,
 an Ort und Stelle bearbeiten statt in einem Fenster, übersichtlicher, schneller
@@ -198,7 +204,7 @@ Vorteil.
 **Wer abweicht, nimmt die zweite Optik, die es schon gibt — keine dritte:**
 runde Ecken, leise Schatten, Pillen, Tafeln unter `.pl` (bzw. `.rw`), Farben
 `--rw-*`. So sehen heute die Runway-Planung, die Projektplanung und die
-Designentscheidungen aus (Bernd, 2026-10-14/-15) — nicht auf „Werkbank"
+Designentscheidungen aus (Bernd, 2026-10-14/-15) — nicht auf die Grundoptik
 zurückbauen. Eine dritte Palette liefe auseinander, und ihre Kontraste müsste
 jemand neu rechnen.
 
@@ -213,9 +219,10 @@ der auf Weiß 4,66:1 hält, fällt auf dem Seitengrund auf 4,46. Und ein Ton, de
 als Punkt genügt, kann als Text auf seiner eigenen hellen Fläche bei 2,86:1
 liegen. Die Zahlen stehen als Kommentar in `farben.css`.
 
-**Ein Ton, der auf der Leiste steht, heißt `--kopf-*`.** `--marke-dunkel` und
-`--auf-marke` kippen zwischen hell und dunkel, die Leiste nicht — wer dort einen
-Markenton benutzt, bekommt im dunklen Thema Hell auf Hell.
+**Ein Ton, der auf der Leiste steht, heißt `--kopf-*`.** Die Leiste hat einen
+eigenen Grund, und ihre Töne sind gegen ihn und gegen den markierten Eintrag
+(`--kopf-aktiv`) gerechnet — ein Ton aus dem Inhalt ist es nicht. Auf dem
+kupfernen Knopf steht `--kopf-auf-kante`, nicht `--auf-marke`.
 
 ## Größere Änderungen werden angekündigt — in `socos/aenderungen.py`
 
