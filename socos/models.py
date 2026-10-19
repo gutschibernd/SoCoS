@@ -108,9 +108,19 @@ class Nutzer(AbstractBaseUser, PermissionsMixin):
         "Kalenderschlüssel", max_length=64, null=True, blank=True, unique=True
     )
 
+    # Die eigene Übersicht: welche Bausteine in welcher Reihenfolge, je
+    # `{"baustein": "aufgaben", "breit": false}`. Leer heißt: noch nie
+    # angepasst — dann gilt der Vorschlag aus der eigenen Nutzung (siehe
+    # socos/services/uebersicht.py). Kein eigenes Modell: Es ist eine
+    # Einstellung dieses einen Kontos, und eine Tabelle mit einer Zeile je
+    # Baustein bräuchte für jedes Verschieben ein Dutzend Schreibvorgänge.
+    uebersicht = models.JSONField("Übersicht", default=list, blank=True)
+
     # Der Schlüssel steht nicht im Änderungsprotokoll: Das liest jeder Admin,
     # und ein Schlüssel im Klartext dort wäre ein zweiter Weg an das Abo.
-    protokoll_ohne = ("kalenderschluessel",)
+    # Die Übersicht auch nicht — sie ist eine Vorliebe, kein Fachbestand, und
+    # jedes Verschieben eines Bausteins stünde sonst als Zeile darin.
+    protokoll_ohne = ("kalenderschluessel", "uebersicht")
 
     objects = NutzerVerwaltung()
 

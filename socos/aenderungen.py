@@ -25,8 +25,17 @@ VERSIONEN = [
         # Der 20. und nicht der 19.: Der Eintrag vom 19. ist schon ausgeliefert
         # und von beiden gesehen — Punkte, die dort dazukämen, gingen nie auf.
         "version": "2026-10-20",
-        "titel": "Neues Menü, neue Optik",
+        "titel": "Die Übersicht, ein neues Menü, eine neue Optik",
         "punkte": [
+            {
+                "titel": "Start und Dashboard sind jetzt die Übersicht",
+                "text": (
+                    "Die erste Seite zeigt Bausteine: deine Aufgaben, wer auf uns wartet, die nächsten Termine, "
+                    "Thoughts, Anträge und mehr — vorgeschlagen aus dem, woran du in den letzten 30 Tagen "
+                    "gearbeitet hast. Über „Anpassen“ ganz unten ziehst du sie zurecht, nimmst dazu oder weg."
+                ),
+                "wo": "start",
+            },
             {
                 "titel": "Das Menü ordnet nach dem, was du tun willst",
                 "text": (
@@ -40,8 +49,8 @@ VERSIONEN = [
                 "titel": "Die Uhr erscheint, wenn sie läuft",
                 "text": (
                     "Unten links und am Handy über der Fußleiste steht die Uhr nur noch während einer Buchung. "
-                    "Starten geht auf der Zeitseite und auf der Projektseite. Am Handy führt die Fußleiste jetzt "
-                    "zu Übersicht, Aufgaben, Kontakten und Thoughts."
+                    "Starten geht im Baustein „Zeit buchen“ der Übersicht und auf der Projektseite. Am Handy "
+                    "führt die Fußleiste jetzt zu Übersicht, Aufgaben, Kontakten und Thoughts."
                 ),
                 "wo": "zeit",
             },

@@ -203,6 +203,24 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
       </Abschnitt>
 
       <Abschnitt
+        zeichen="zuhause"
+        titel="Die Übersicht stellst du dir selbst zusammen"
+        vorspann="Sie ist die erste Seite nach der Anmeldung. Jeder Baustein zeigt ein paar Zeilen, „Alle“ führt auf die Seite, wo alles steht."
+      >
+        <Schritte
+          schritte={[
+            "Solange du nichts umgestellt hast, schlägt SoCoS die Bausteine aus deiner Arbeit der letzten 30 Tage vor: Woran du am meisten schreibst, steht oben. Meine Aufgaben steht immer zuerst, Zuletzt passiert zuletzt.",
+            "„Anpassen“ ganz unten: Bausteine mit der Maus ziehen oder mit den Pfeilen ordnen. „Breit“ legt einen über beide Spalten, das Kreuz nimmt ihn weg, darunter steht, was sich dazunehmen lässt.",
+            "Gespeichert wird bei jedem Griff. „Vorschlag wiederherstellen“ wirft die eigene Anordnung weg und nimmt wieder den Vorschlag.",
+          ]}
+        />
+        <Merke>
+          Buchungen, bei denen der Clock-out fehlte, stehen immer ganz oben und lassen sich nicht
+          wegnehmen: Bis sie bestätigt sind, zählen sie in keiner Summe.
+        </Merke>
+      </Abschnitt>
+
+      <Abschnitt
         zeichen="mehr"
         titel="Wo was steht"
         vorspann="Die Seitenleiste ordnet nach dem, was du tun willst: Arbeit, Extern und Geld. Ablage und Software klappen auf, wenn der Zeiger darüber steht."
@@ -251,7 +269,7 @@ function ZeitDoku() {
       >
         <Schritte
           schritte={[
-            "Auf der Startseite ein Paket wählen oder in der Leiste „Paket wählen“ drücken. Die Uhr unten links zählt.",
+            "Im Baustein „Zeit buchen“ der Übersicht (über „Anpassen“ dazunehmen) oder auf der Projektseite ein Paket wählen. Solange die Uhr läuft, steht sie unten links in der Leiste, am Handy über der Fußleiste.",
             "Beim Clock-out fragt SoCoS nach einer Notiz. Sie ist freiwillig und in einem halben Jahr das, was die Zeile erklärt.",
             "Startet man eine zweite Buchung, während eine läuft, wird die erste beendet — ohne Notiz. Wer eine mitgeben will, macht vorher den Clock-out.",
           ]}
@@ -261,7 +279,7 @@ function ZeitDoku() {
       <Abschnitt
         zeichen="start"
         titel="„Ohne Paket“ — erst aufzeichnen, dann einsortieren"
-        vorspann="Den Knopf gibt es dreimal: in der Leiste unten, auf der Startseite und über der Buchungsliste. Er startet die Uhr, ohne vorher nach dem Paket zu fragen."
+        vorspann="Den Knopf gibt es zweimal: im Baustein „Zeit buchen“ der Übersicht und über der Buchungsliste. Er startet die Uhr, ohne vorher nach dem Paket zu fragen."
       >
         <Schritte
           schritte={[
@@ -1126,7 +1144,7 @@ function ModuleDoku() {
             "Unter „Kontostand und Zeitachse“ zeigt die Linie den Stand am Monatsende, darunter steht Zeile für Zeile, was wann fließt. Mit der Maus darüberfahren oder antippen zeigt den Monat im Detail.",
             "In den Registern eintragen. Jedes Feld lässt sich gleich beschreiben, gespeichert wird von selbst — oben rechts steht „Gespeichert“. Ein gelöschter Eintrag lässt sich sieben Sekunden lang rückgängig machen.",
             "Fehlt Geld, schlägt „Überbrückung“ Abrufe vor; „Vorschläge als Gesellschafterdarlehen übernehmen“ trägt sie als Darlehen ein.",
-            "In der Monatsübersicht den echten Bankstand in die Ist-Zeile tippen. Er steht dann auch als Kontostand auf dem Dashboard.",
+            "In der Monatsübersicht den echten Bankstand in die Ist-Zeile tippen. Er steht dann auch als Kontostand im Baustein „Geld“ der Übersicht.",
             "„Daten exportieren“ lädt den Plan als Datei, „Daten importieren“ (oder die Datei auf die Seite ziehen) ersetzt ihn — dasselbe Format wie der Runway-Planer.",
           ]}
         />
@@ -1171,7 +1189,7 @@ function GeldDoku() {
           paare={[
             {
               begriff: "Kontostand",
-              text: "Ein Stichtagswert. Beliebig viele — die Linie im Dashboard ist ihre Reihe.",
+              text: "Ein Stichtagswert. Beliebig viele — die Linie im Baustein „Geld“ ist ihre Reihe.",
             },
             {
               begriff: "Fixkosten",
@@ -1193,7 +1211,7 @@ function GeldDoku() {
         <Schritte
           schritte={[
             "Solange weniger als drei Monate erfasst sind, gilt der Fixkostenbetrag als erwartete Monatskosten.",
-            "Ab drei erfassten Monaten deren Durchschnitt — die Grundlage steht im Dashboard dabei.",
+            "Ab drei erfassten Monaten deren Durchschnitt — die Grundlage steht im Baustein „Geld“ dabei.",
             "Der Runway ist der letzte Kontostand geteilt durch die erwarteten Monatskosten. Die gestrichelte Linie ist die Prognose, die durchgezogene das Erfasste.",
           ]}
         />

@@ -7,6 +7,48 @@ betrifft.
 
 ---
 
+## 2026-10-19 — Die Übersicht aus Bausteinen (Schema: `Nutzer.uebersicht`, Migration `0054`)
+
+**Bernd:** Dashboard und Startseite zusammenführen; „es soll konfigurierbar
+sein und interaktiv mit drag and drop bausteinen zusammenbaubar sein, leg du
+jedoch fest aufgrund der nutzung in den letzten 14 tagen was florian und ich
+beide mal vorab bekommen".
+
+- **Eine Seite statt zwei.** `start` ist die Übersicht; `dashboard` ist aus
+  `SEITEN` gestrichen, `/dashboard` fällt auf sie zurück. `Start.tsx` und
+  `Dashboard.tsx` sind weg; ihre Teile leben als Bausteine in
+  `ansichten/UebersichtBausteine.tsx` weiter (Buchen, Team, Aktivität, Gantt,
+  Geld samt Finanzeingabe).
+- **Zehn Bausteine**, Katalog in `basis/uebersicht.ts`, die Schlüssel ein
+  zweites Mal in `socos/services/uebersicht.py` (Speichern, Vorschlag). Jeder
+  zeigt höchstens fünf Zeilen und führt mit „Alle" auf seine Seite — kein
+  Baustein baut seine Seite nach.
+- **Die Vorbelegung wird gerechnet, nicht festgelegt:** Protokollzeilen des
+  Nutzers der letzten 30 Tage je Baustein, ab fünf Zeilen zählt er; Aufgaben
+  zuerst, „Zuletzt passiert" zuletzt, dazwischen höchstens vier. Warum nicht
+  je Person fest: Ein Vorschlag nach Namen stünde im Code (CLAUDE.md, „Daten"),
+  und er wäre falsch, sobald jemand anders arbeitet. Mit den Live-Zahlen ergibt
+  das für Florian Aufgaben · Wir sind am Zug · Termine · Zuletzt passiert, für
+  Bernd Aufgaben · Thoughts · Anträge · Termine · Wir sind am Zug · Zuletzt
+  passiert. Ab dem ersten Verschieben gilt das Gespeicherte (`eigen: true`);
+  eine leere Liste heißt „zurück zum Vorschlag".
+- **Ein JSON-Feld am Nutzer, kein Modell:** eine Einstellung eines Kontos;
+  eine Tabelle je Baustein bräuchte für jedes Verschieben ein Dutzend
+  Schreibvorgänge. Es steht in `protokoll_ohne` — eine Vorliebe ist kein
+  Fachbestand, und jedes Ziehen wäre sonst eine Protokollzeile. Es wandert mit
+  dem Nutzer durch die Sicherung (Test `test_die_eigene_uebersicht_wandert_mit`).
+- **Konfigurierbarkeit trotz „keine ohne zweiten Fall"**: Der zweite Fall ist
+  da — zwei Personen, die verschieden arbeiten.
+- **Ziehen mit HTML5-Drag-and-drop, am Handy Pfeile.** Ohne Bibliothek gibt es
+  kein verlässliches Ziehen auf Touch; die Pfeile tun dasselbe und gehen auch
+  mit der Tastatur. Gespeichert wird sofort im Zwischenspeicher und dann am
+  Server (`useUebersichtSpeichern`), nicht über `useNeuLaden` — sonst spränge
+  ein gezogener Baustein bis zur Antwort zurück.
+- **„Anpassen" steht unter den Bausteinen**, nicht darüber: der seltene
+  Griff kostete oben jeden Tag eine Zeile.
+- **„Bitte bestätigen" (Buchungen ohne Clock-out) ist kein Baustein** und
+  steht immer oben: Wer ihn wegnähme, hätte später Lücken im Zeitnachweis.
+
 ## 2026-10-19 — Menü nach Nutzung, „Module" aufgelöst (kein Schema)
 
 **Bernd:** Die UI-Durchgänge davor brachten nur Kleinigkeiten; Menüs sollen

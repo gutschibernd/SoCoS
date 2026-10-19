@@ -67,6 +67,7 @@ from socos.models import (
 )
 from socos.services import aktivitaet, auswertung, finanzen, foerderung, planung as planungsdienst
 from socos.services import runway as runwaydienst
+from socos.services import uebersicht
 from socos.services import zeit as zeitdienst
 
 logger = logging.getLogger(__name__)
@@ -1123,6 +1124,9 @@ def ich(request):
             # Steht hier und nicht hinter einem eigenen Abruf: Das Fenster soll
             # aufgehen, sobald die Oberfläche steht, nicht eine Anfrage später.
             "neuigkeiten": aenderungen.punkte_seit(nutzer.neuigkeiten_bis),
+            # Die eigene Übersicht, oder der Vorschlag aus der Nutzung — hier
+            # und nicht hinter einem eigenen Abruf, aus demselben Grund.
+            "uebersicht": uebersicht.fuer(nutzer),
             "darf": {
                 "bearbeiten": berechtigung.darf_bearbeiten(nutzer),
                 "loeschen": berechtigung.darf_loeschen(nutzer),
@@ -1154,6 +1158,23 @@ def neuigkeiten_gesehen(request):
     nutzer.neuigkeiten_bis = aenderungen.NEUESTE
     nutzer.save(update_fields=["neuigkeiten_bis"])
     return Response({"neuigkeiten_bis": nutzer.neuigkeiten_bis})
+
+
+@api_view(["PUT"])
+def uebersicht_speichern(request):
+    """
+    Die eigene Übersicht. Jeder darf seine eigene einrichten, auch ein Leser:
+    Sie ändert nichts, was ein anderer sieht. Eine leere Liste heißt „zurück
+    zum Vorschlag".
+    """
+    try:
+        bausteine = uebersicht.bereinigt(request.data.get("bausteine"))
+    except ValueError as fehler:
+        raise ValidationError({"bausteine": str(fehler)})
+    nutzer = request.user
+    nutzer.uebersicht = bausteine
+    nutzer.save(update_fields=["uebersicht"])
+    return Response(uebersicht.fuer(nutzer))
 
 
 @api_view(["GET"])

@@ -9,7 +9,6 @@ import { Meldungen } from "./bausteine/Meldungen";
 import { Neuigkeiten } from "./bausteine/Neuigkeiten";
 import { useSuchtaste } from "./bausteine/Suchfeld";
 import { Aufgaben } from "./ansichten/Aufgaben";
-import { Dashboard } from "./ansichten/Dashboard";
 import { Doku } from "./ansichten/Doku";
 import { Einstellungen } from "./ansichten/Einstellungen";
 import { Events } from "./ansichten/Events";
@@ -20,15 +19,14 @@ import { Profil } from "./ansichten/Profil";
 import { Projekt } from "./ansichten/Projekt";
 import { Rueckmeldungen } from "./ansichten/Rueckmeldungen";
 import { Integrationen } from "./ansichten/Integrationen";
-import { Start } from "./ansichten/Start";
+import { Uebersicht } from "./ansichten/Uebersicht";
 import { Zeit } from "./ansichten/Zeit";
 
 const TITEL: Record<Seite, { titel: string; unter: string }> = {
-  // Die Startseite trägt in der Zeile eine Anrede statt ihres Namens — siehe
-  // unten. Der Eintrag hier ist trotzdem nötig, damit der Record vollständig
-  // bleibt und eine neue Seite ohne Zeile nicht durchrutscht.
-  start: { titel: "Start", unter: "Womit geht's los?" },
-  dashboard: { titel: "Dashboard", unter: "Woche, Geld, Fortschritt" },
+  // Die Übersicht trägt in der Beizeile eine Anrede — siehe unten. Der
+  // Eintrag hier ist trotzdem nötig, damit der Record vollständig bleibt und
+  // eine neue Seite ohne Zeile nicht durchrutscht.
+  start: { titel: "Übersicht", unter: "Was ansteht" },
   projekt: { titel: "Projekt", unter: "Projektphasen, Arbeitspakete, Pensum" },
   zeit: { titel: "Zeit", unter: "Buchungen und Nachträge" },
   aufgaben: { titel: "Aufgaben", unter: "Was ansteht — nach Fälligkeit" },
@@ -99,7 +97,7 @@ export function App() {
     (thema ? { titel: thema.modul.titel, unter: thema.teil.titel } : null) ??
     (modul ? { titel: modul.titel, unter: modul.wozu } : null) ??
     (ort.seite === "start"
-      ? { titel: `Hallo ${ich.data.name.split(" ")[0]}`, unter: TITEL.start.unter }
+      ? { titel: TITEL.start.titel, unter: `Hallo ${ich.data.name.split(" ")[0]}` }
       : TITEL[ort.seite]);
 
   return (
@@ -147,8 +145,7 @@ export function App() {
         {/* Thoughts ist eine Fläche bis an die Ränder — ohne den Innenabstand
             und die Höchstbreite, die einer Liste Luft geben. */}
         <main className="seite" data-voll={ort.seite === "module" && ort.unter === "thoughts" ? "ja" : undefined}>
-          {ort.seite === "start" && <Start ich={ich.data} wechseln={wechseln} />}
-          {ort.seite === "dashboard" && <Dashboard ich={ich.data} wechseln={wechseln} />}
+          {ort.seite === "start" && <Uebersicht ich={ich.data} wechseln={wechseln} />}
           {ort.seite === "projekt" && (
             <Projekt ich={ich.data} bearbeiten={bearbeiten} wechseln={wechseln} />
           )}

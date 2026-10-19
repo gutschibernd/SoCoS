@@ -197,11 +197,9 @@
  * Seitenleiste (ab Etappe 2). Zwei Wörter, nie Fließtext.
  */
 .pl-kartenkopf > h2,
-.kennzahl .beschriftung,
 .tabelle th,
 .sicherung-teil h3,
 .klapptitel,
-.start-beschriftung,
 .projektphase h4,
 .summenzeile .beschriftung,
 .tiefe-kopf,
@@ -258,36 +256,12 @@
 .raster-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .spalte { display: flex; flex-direction: column; gap: 16px; }
 
-/*
- * Keine farbige Oberkante mehr. Vier Kennzahlen trugen vier verschiedene
- * Farben — Grün, Kupfer, Grün, Grau —, und keine davon bedeutete etwas. Das
- * ist Dekoration, die wie Bedeutung aussieht: Wer einmal gelernt hat, dass
- * die Farbe dort nichts sagt, sieht sie auch dann nicht mehr an, wenn eine
- * Karte sie wirklich einmal braucht.
- *
- * Was Aufmerksamkeit verlangt, bekommt weiter eine Kante — aber dann eine
- * linke, dreifache, in --warnung, und dann steht auch ein Satz dabei.
- */
-.kennzahl .wert {
-  font-family: var(--schrift-zahl); font-size: 27px; font-weight: 500;
-  margin-top: 7px; letter-spacing: -0.04em; white-space: nowrap;
-  /* Ziffern gleicher Breite: Zahlen, die untereinander stehen, müssen auch
-     untereinander stehen — sonst wandert die Tausenderstelle von Zeile zu
-     Zeile, und der Vergleich zweier Beträge wird zur Suchaufgabe. */
-  font-variant-numeric: tabular-nums;
-}
-.kennzahl .hinweis { font-size: 12.5px; color: var(--text-sehr-leise); margin-top: 5px; }
-
 /* --- Zeitraumwahl --------------------------------------------------------- */
 /*
  * Sie steht über den Zahlen, die sie ändert — nicht in der Kontextleiste der
  * Seite. Ein Filter gehört über das, was er filtert; oben in der Ecke sähe er
  * aus, als gälte er für die ganze Seite.
  */
-.zeitraumleiste {
-  display: flex; align-items: center; gap: 11px; flex-wrap: wrap;
-  padding: 0 2px;
-}
 .spannenwahl {
   display: flex;
   border: 1px solid var(--rand-stark); border-radius: var(--kante);
@@ -304,8 +278,6 @@
 /* `aria-pressed` und keine eigene Klasse: Der Zustand steht damit einmal da —
    für das Auge und für den Screenreader. Zwei Quellen liefen auseinander. */
 .spannenwahl button[aria-pressed="true"] { background: var(--akzent); color: var(--auf-marke); }
-.spanne-datum { font-size: 12.5px; color: var(--text-leise); }
-.spanne-hinweis { margin-left: auto; }
 
 /* --- Kopfzeile einer Karte mit Beiwerk ----------------------------------- */
 /* Überschrift links, Legende oder Knopf rechts — statt beides in eine Zeile zu
@@ -341,18 +313,6 @@
   stroke-dasharray: 5 4;
 }
 
-.linie-legende { display: flex; gap: 16px; margin-left: auto; }
-.linie-legende span {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 12.5px; color: var(--text-sehr-leise);
-}
-.linie-legende span::before {
-  content: ""; width: 18px; height: 0; flex: 0 0 18px;
-  border-top: 2px solid currentColor;
-}
-.legende-erfasst::before { color: var(--marke); }
-.legende-prognose::before { color: var(--akzent); border-top-style: dashed !important; }
-
 /* Die Beschriftung teilt sich in zwei Abschnitte, deren Breiten dem Bild
    entsprechen: links das Erfasste bis heute, rechts die Fortschreibung. Die
    Spaltenbreite kommt als style aus der Komponente — sie hängt an den Daten
@@ -377,16 +337,6 @@
   white-space: nowrap;
 }
 .linie-einzeln { margin: 0; font-size: 14px; color: var(--text-leise); line-height: 1.55; }
-
-.stichtage { margin-top: 16px; border-top: 1px solid var(--rand); padding-top: 12px; }
-.stichtage > summary { cursor: pointer; list-style: none; min-height: 32px; display: flex; align-items: center; }
-.stichtage > summary::-webkit-details-marker { display: none; }
-.stichtage > summary:hover .klapptitel, .stichtage > summary:hover { color: var(--akzent); }
-.stichtage > summary::before {
-  content: "▸"; margin-right: 8px; color: var(--text-sehr-leise); font-size: 11px;
-}
-.stichtage[open] > summary::before { content: "▾"; }
-.stichtage .tabelle { margin-top: 8px; }
 
 /* --- Knöpfe -------------------------------------------------------------- */
 
@@ -1011,53 +961,8 @@ a.leiste-knopf { text-decoration: none; }
 .zeiger-klapp { color: var(--text-sehr-leise); transition: transform 0.15s; }
 .klappkarte[open] > summary .zeiger-klapp { transform: rotate(90deg); }
 
-/* --- Startseite ---------------------------------------------------------- */
-/*
- * Die Ziele in den Kacheln sind Knöpfe, keine Karten mit einem Link darin:
- * Wer ein Ziel anfasst, meint immer den ganzen Block. Ein Link nur auf der
- * Überschrift hätte am Handy ein Ziel von 20 px in einem 130 px hohen Feld.
- *
- * Die Kachel ist der Rahmen, das Ziel darin der Knopf — auch wenn nur eines
- * darin steht. Sonst gäbe es zwei Bauweisen nebeneinander, und die geteilte
- * Kachel wäre die, die beim nächsten Nachbessern vergessen wird.
- *
- * Drei Spalten, und jede Kachel nimmt genau eine — auch die geteilte. Die
- * drei einfachen füllen die erste Zeile, die geteilte steht allein in der
- * zweiten. Die leeren Felder bleiben damit ganz am Ende und nicht zwischen
- * zwei Kacheln, wo sie wie ein Fehler aussähen.
- */
-
-.kacheln { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.kachel {
-  display: grid; grid-template-columns: minmax(0, 1fr);
-  background: var(--flaeche); border: 1px solid var(--rand);
-  border-radius: var(--kante-karte); border-top: 3px solid var(--marke);
-}
-.kachel-ziel {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
-  padding: 18px 18px 20px; min-height: 132px; text-align: left; cursor: pointer;
-  background: none; border: 0; border-radius: var(--kante); color: inherit;
-}
-/* Nur der Grund wechselt: `border-color` würde auch die Kante oben
-   übermalen, und die ist das einzige Farbige an der Kachel. */
-.kachel-ziel:hover { background: var(--flaeche-leise); }
-.kachel-ziel > .zeichen { font-size: 22px; color: var(--marke); margin-bottom: 3px; }
-.kachel-ziel b { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
-.kachel-ziel span { font-size: 14px; color: var(--text-leise); line-height: 1.4; }
-
-/* Zwei Ziele in einer Kachel — links und rechts, getrennt durch eine
-   Haarlinie. Sie ist so breit wie jede andere Kachel; die beiden Hälften
-   sind deshalb schmal, und ihre Sätze sind dafür kurz gehalten. */
-.kachel[data-teile="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.kachel[data-teile="2"] > .kachel-ziel + .kachel-ziel { border-left: 1px solid var(--rand); }
-
-/* Die Uhr-Kachel steht über der Breite: Sie ist der Griff, den man am
-   häufigsten sucht, und sie trägt Felder statt nur einer Beschriftung. */
-.start-buchen { border-top: 3px solid var(--akzent); }
+/* --- Zeit buchen (Baustein der Übersicht) ------------------------------- */
 .start-laeuft { margin: 0 0 12px; font-size: 14px; color: var(--text-leise); }
-.start-beschriftung {
-  margin-bottom: 8px;
-}
 .start-zuletzt { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .start-zuletzt > button {
   display: inline-flex; align-items: center; gap: 8px;
@@ -1071,11 +976,98 @@ a.leiste-knopf { text-decoration: none; }
 .start-zuletzt > button em {
   font-style: normal; font-weight: 400; color: var(--text-leise); font-size: 13px;
 }
-/* Der zweite Weg in den Start — eigene Zeile, damit er nicht wie ein zweiter
-   Knopf zum Auswahlfeld darüber aussieht. */
-.start-ohne-paket { margin-top: 8px; }
+/* --- Die Übersicht --------------------------------------------------------- */
+/*
+ * Zwei Spalten; ein breiter Baustein nimmt beide. `align-items: start`, damit
+ * ein kurzer Baustein neben einem langen nicht auf dessen Höhe gezogen wird
+ * und unten ein leeres Feld trägt.
+ */
+.ue-werkzeug { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.ue-stand { font-size: 12.5px; color: var(--text-sehr-leise); }
+.ue-raster { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.baustein { min-width: 0; }
+.baustein[data-breit="ja"] { grid-column: 1 / -1; }
+.baustein-kopf { align-items: center; margin-bottom: 8px; }
+.baustein-kopf > h2 { flex: 1 1 auto; min-width: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.baustein-alle {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 32px;
+  font-size: 13px; font-weight: 600; color: var(--marke);
+}
+.baustein-alle .zeichen { width: 14px; height: 14px; }
+.baustein-knoepfe { display: flex; gap: 4px; margin-left: auto; }
+.baustein-knoepfe .mini { min-width: 36px; color: var(--text-leise); }
+.baustein-knoepfe .mini[aria-pressed="true"] { color: var(--marke); border-color: var(--marke-rand); }
+.baustein-griff { color: var(--text-sehr-leise); cursor: grab; }
 
-/* --- Dashboard ----------------------------------------------------------- */
+/* Beim Anpassen ist der Inhalt nur zum Erkennen da: gekappt, blass, und kein
+   Klick geht hindurch — sonst öffnete das Ziehen an einem Eintrag dessen
+   Seite. Wohin ein gezogener Baustein fällt, zeigt eine Kupferkante. */
+.ue-raster[data-anpassen] .baustein { cursor: grab; }
+.ue-raster[data-anpassen] .baustein-inhalt {
+  max-height: 180px; overflow: hidden; opacity: 0.55; pointer-events: none;
+}
+.baustein[data-gezogen="ja"] { opacity: 0.4; }
+.baustein[data-ziel="ja"] { outline: 2px dashed var(--akzent); outline-offset: 2px; }
+
+.ue-dazu-liste { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.ue-dazu-liste > button {
+  display: flex; align-items: flex-start; gap: 10px; min-height: var(--griff);
+  padding: 10px 12px; text-align: left; cursor: pointer;
+  border: 1px solid var(--rand); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text); font: inherit;
+}
+.ue-dazu-liste > button:hover { border-color: var(--akzent); }
+.ue-dazu-liste > button > .zeichen { flex: none; margin-top: 2px; color: var(--akzent); }
+.ue-dazu-liste b { display: block; font-size: 14px; font-weight: 600; }
+.ue-dazu-liste em { display: block; font-size: 12.5px; font-style: normal; color: var(--text-leise); line-height: 1.4; }
+
+/* Die Liste eines Bausteins: eine Zeile je Eintrag, Name groß, das Dazu klein
+   darunter, rechts eine Zahl oder ein Datum. */
+.ue-liste { list-style: none; margin: 0; padding: 0; }
+.ue-liste > li {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  border-bottom: 1px solid var(--flaeche-leise);
+}
+.ue-liste > li:last-child { border-bottom: 0; }
+.ue-zeile {
+  flex: 1 1 auto; min-width: 0; min-height: var(--griff); padding: 6px 0;
+  display: flex; flex-direction: column; justify-content: center; text-align: left;
+  border: 0; background: none; color: inherit; font: inherit; cursor: pointer;
+}
+.ue-zeile b { font-size: 14.5px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.ue-zeile em { font-size: 12.5px; font-style: normal; color: var(--text-leise); line-height: 1.4; }
+.ue-zeile:hover b { color: var(--akzent); }
+.ue-wann { flex: none; font-size: 12.5px; color: var(--text-leise); white-space: nowrap; }
+.ue-datum { flex: 0 0 104px; font-size: 12.5px; font-weight: 600; color: var(--text-leise); }
+.ue-ton { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--t); }
+.ue-aufgabe .aufgabe-haken { flex-basis: 32px; margin-left: -6px; }
+/* Eine Leerstelle im Baustein: dieselbe, nur mit weniger Luft — die Karte
+   ringsum gibt schon Abstand. */
+.baustein .leerstelle { padding: 10px 8px 6px; }
+.ue-satz { margin: 0 0 8px; font-size: 14px; line-height: 1.5; color: var(--text-leise); }
+.ue-weitere {
+  min-height: 36px; padding: 6px 0 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--marke);
+}
+
+/* Geld: drei Zahlen nebeneinander, darunter der Verlauf. */
+.ue-zahlen { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 12px; }
+.ue-zahlen span { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-leise); }
+.ue-zahlen b { display: block; margin-top: 4px; font-size: 22px; font-weight: 600; white-space: nowrap; }
+.ue-zahlen em { display: block; margin-top: 3px; font-size: 12px; font-style: normal; color: var(--text-sehr-leise); }
+/* Die Eingabe ist sonst eine eigene Karte; im Baustein steht sie ohne Rahmen. */
+.ue-eintragen { margin-top: 12px; }
+.ue-eintragen > summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; }
+.ue-eintragen .karte { border: 0; padding: 8px 0 0; }
+.ue-eintragen .karte > h2 { display: none; }
+
+@media (max-width: 1000px) {
+  .ue-raster { grid-template-columns: minmax(0, 1fr); }
+  /* Eine Spalte: breit und schmal sehen gleich aus, der Knopf täte nichts. */
+  .baustein-breite { display: none; }
+}
+
+/* --- Team und Zuletzt passiert (Bausteine der Übersicht) ---------------- */
 
 /* Das Team: eine Zeile je Person. Kürzel, Name mit Status darunter, ein
    Balken für die Stunden und die Zahl. Am Handy rutscht der Balken unter
@@ -1137,7 +1129,6 @@ a.leiste-knopf { text-decoration: none; }
 .legende li i { width: 10px; height: 10px; border-radius: 2px; }
 .legende .zahl { color: var(--text-leise); }
 
-
 /* --- Umschalter in den Bearbeitungsmodus --------------------------------- */
 
 /* Ein Knopf am rechten Rand, kein Reiterpaar: Es gibt eine Ansicht und einen
@@ -1145,7 +1136,6 @@ a.leiste-knopf { text-decoration: none; }
 .ansicht-schalter { display: flex; justify-content: flex-end; }
 
 /* --- Projektansicht ------------------------------------------------------ */
-
 
 .projekt-kopf {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -1818,7 +1808,6 @@ a.mini { text-decoration: none; }
 @media (pointer: coarse) {
   .aufgaben-chip, .aufgaben-datum, .idee-uebernehmen { min-height: var(--griff); }
 }
-
 
 /* --- Meetings ------------------------------------------------------------- */
 
@@ -2519,7 +2508,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   /* Dieselbe Frage wie eine Zeile darüber: Drei Spalten werden hier zu schmal
      — bei den Kacheln bricht zuerst der Titel um, dann der Satz auf vier
      Zeilen. */
-  .kacheln, .modul-kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .modul-kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .plan { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -2728,7 +2717,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .anlegefelder > .feldblock-tag, .anlegefelder > .feldblock-uhrzeit { flex: 1 1 130px; }
   .anlegeknoepfe > .knopf { flex: 1 1 auto; }
 
-  .raster-4, .raster-3, .raster-2, .kacheln, .modul-kacheln, .thema-kacheln, .doku-wege { grid-template-columns: 1fr; }
+  .raster-4, .raster-3, .raster-2, .modul-kacheln, .thema-kacheln, .doku-wege { grid-template-columns: 1fr; }
   .themenideen .art-text { display: none; }
   .themenideen .art-knopf { min-width: var(--griff); justify-content: center; }
 
@@ -2745,14 +2734,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   }
   .vorhaben-kopf { flex: 1 1 100%; }
   .vorhaben-aktionen { margin-left: 0; }
-  /* Untereinander statt nebeneinander — und ohne die 132 px je Hälfte, sonst
-     wäre diese eine Kachel doppelt so hoch wie jede andere. */
-  .kachel[data-teile="2"] { grid-template-columns: 1fr; }
-  .kachel[data-teile="2"] > .kachel-ziel { min-height: 0; }
-  .kachel[data-teile="2"] > .kachel-ziel + .kachel-ziel {
-    border-left: 0; border-top: 1px solid var(--rand);
-  }
-  /* Unten **dieselben 140 px wie im 900er Block** und nicht 40. Hier stand
+  /* Unten **derselbe Abstand wie im 900er Block** und nicht 40. Hier stand
      genau der Fehler, vor dem die Überschrift dieses Blocks warnt: Die Regel
      weiter unten gewinnt bei gleicher Spezifität, und damit lag das Ende
      jeder Seite hinter der Uhr und der Fußleiste — erreichbar war es nicht

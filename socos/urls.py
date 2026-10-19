@@ -48,6 +48,7 @@ urlpatterns = [
     path("dashboard/", api.dashboard, name="dashboard"),
     path("aenderungen/", api.aenderungsliste, name="aenderungen"),
     path("neuigkeiten/gesehen/", api.neuigkeiten_gesehen, name="neuigkeiten-gesehen"),
+    path("ich/uebersicht/", api.uebersicht_speichern, name="uebersicht"),
     path("kalender/", api.kalenderlink, name="kalenderlink"),
     path("kalender/neu/", api.kalenderlink_neu, name="kalenderlink-neu"),
     path("zeitnachweis/", api.zeitnachweis, name="zeitnachweis"),

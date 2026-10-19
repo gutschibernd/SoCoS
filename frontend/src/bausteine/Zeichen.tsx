@@ -57,7 +57,8 @@ export type ZeichenName =
   | "archiv"
   | "gantt"
   | "kurve"
-  | "schild";
+  | "schild"
+  | "griff";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -121,6 +122,10 @@ const PFADE: Record<ZeichenName, string> = {
      Striche sind am Handy schon das Menü der Fußleiste. Mit eckigem
      Linienende werden die kurzen Striche zu Punkten. */
   punkte: "M5 12h1M11.5 12h1M18 12h1",
+  /* Der Griff zum Ziehen: zwei Reihen zu drei Punkten, aufrecht — dasselbe
+     Bild wie „punkte", nur um Längs- statt Querlage, damit es als „hier
+     anfassen" und nicht als „mehr" gelesen wird. */
+  griff: "M9 6h1M14 6h1M9 12h1M14 12h1M9 18h1M14 18h1",
   /* Ein aufgeschlagenes Buch, zwei Seiten am Falz. Kein „i" im Kreis: Das
      stand bis hierher als Fragezeichen neben jeder Beschriftung und heißt
      „eine Erklärung an dieser Stelle" — hier geht es zu allen. */

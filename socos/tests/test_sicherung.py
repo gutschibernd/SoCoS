@@ -217,6 +217,24 @@ def test_stillgelegter_nutzer_wandert_mit(tmp_path, medien, bearbeiter):
 
 
 @pytest.mark.django_db(transaction=True)
+def test_die_eigene_uebersicht_wandert_mit(tmp_path, medien, bearbeiter):
+    """
+    Wer seine Übersicht einmal zusammengestellt hat, will sie nach dem
+    Wiederherstellen nicht als Vorschlag zurückbekommen.
+    """
+    eigen = [{"baustein": "geld", "breit": True}, {"baustein": "aufgaben", "breit": False}]
+    bearbeiter.uebersicht = eigen
+    bearbeiter.save()
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    Nutzer.objects.filter(pk=bearbeiter.pk).update(uebersicht=[])
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    assert Nutzer.objects.get(email=bearbeiter.email).uebersicht == eigen
+
+
+@pytest.mark.django_db(transaction=True)
 def test_kalenderschluessel_und_eventzeiten_wandern_mit(tmp_path, medien, bearbeiter):
     """
     Der Schlüssel des Kalender-Abos steht in einem Kalender draußen. Käme er

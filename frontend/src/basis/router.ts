@@ -4,10 +4,10 @@
  * Kein react-router: Es gibt zehn Seiten und eine Ebene darunter. Ein
  * Rahmenwerk brächte hier mehr Begriffe mit, als die Anwendung Wege hat.
  *
- * „start" ist die Wurzel und zugleich der Rückfall für einen Pfad, den es
- * nicht gibt. Sie steht in keinem Menü — hin kommt man über das Logo. Eine
- * Seite, die nur Abkürzungen auf die anderen fünf zeigt, wäre als sechster
- * Menüeintrag neben ihren eigenen Zielen bloß Verdopplung.
+ * „start" ist die Übersicht, die Wurzel und zugleich der Rückfall für einen
+ * Pfad, den es nicht gibt — auch für `/dashboard`, das seit 2026-10-19 in ihr
+ * aufgegangen ist. Ein altes Lesezeichen landet so dort, wo das Dashboard
+ * jetzt steht.
  *
  * Warum die zweite Ebene überhaupt im Weg steht und nicht im Zustand der
  * Ansicht: Auf der Kontakteseite ist „zurück zur Liste" der häufigste Griff,
@@ -23,7 +23,6 @@ import { MODULWEGE, designAusWeg, foerderauslastungAusWeg, foerderungAusWeg, pla
 
 export const SEITEN = [
   "start",
-  "dashboard",
   "projekt",
   "zeit",
   "aufgaben",

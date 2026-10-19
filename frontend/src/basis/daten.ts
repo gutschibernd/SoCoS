@@ -6,6 +6,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { hole } from "./api";
+import type { Anordnung, Platz } from "./uebersicht";
 
 /**
  * Eine Seite im Fenster, das nach der Anmeldung aufgeht. Der Inhalt kommt aus
@@ -38,6 +39,8 @@ export type Ich = {
   };
   /** Was dieser Nutzer noch nicht gesehen hat. Leer heißt: nichts Neues. */
   neuigkeiten: Neuigkeit[];
+  /** Die eigene Übersicht — oder, solange `eigen` falsch ist, der Vorschlag aus der Nutzung. */
+  uebersicht: Anordnung;
 };
 
 export type Aenderungsversion = {
@@ -979,6 +982,32 @@ export function useNeuLaden() {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }
   };
+}
+
+/**
+ * Die eigene Übersicht speichern.
+ *
+ * **Sofort im Zwischenspeicher, dann am Server** — und nicht über `useNeuLaden`:
+ * Ein gezogener Baustein, der erst nach der Antwort an seinem Platz steht,
+ * springt sichtbar zurück und wieder hin. Und alle Abrufe zu verwerfen, weil
+ * jemand eine Kachel verschoben hat, lüde jeden Baustein der Seite neu.
+ * Geht das Speichern schief, kommt der Stand vom Server zurück.
+ */
+export function useUebersichtSpeichern() {
+  const speicher = useQueryClient();
+  return useMutation({
+    mutationFn: (bausteine: Platz[]) =>
+      hole<Anordnung>("/ich/uebersicht/", { method: "PUT", body: JSON.stringify({ bausteine }) }),
+    onMutate: (bausteine) => {
+      speicher.setQueryData<Ich>(["ich"], (ich) =>
+        ich && { ...ich, uebersicht: { bausteine, eigen: bausteine.length > 0 } },
+      );
+    },
+    onSuccess: (anordnung) => {
+      speicher.setQueryData<Ich>(["ich"], (ich) => ich && { ...ich, uebersicht: anordnung });
+    },
+    onError: () => speicher.invalidateQueries({ queryKey: ["ich"] }),
+  });
 }
 
 export function useSchreiben<T = unknown>(

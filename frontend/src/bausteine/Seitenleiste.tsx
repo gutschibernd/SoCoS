@@ -41,7 +41,8 @@ function modul(weg: string): Eintrag {
  * von 14 Tagen, Thoughts an 10, Kontakte an jedem Tag, an dem Florian
  * arbeitete; Zeit drei Buchungen, Finanzen ein Kontostand. Vorher lagen
  * Thoughts und Förderungen in einem zugeklappten Zweig „Module", während
- * Zeit und Dashboard oben standen.
+ * Zeit und Dashboard oben standen. Das Dashboard ist in der Übersicht
+ * aufgegangen.
  *
  * **„Module" gibt es im Menü nicht mehr.** Der Name sagte, wie etwas gebaut
  * ist, nicht wozu es da ist — und wer Thoughts suchte, musste wissen, dass es
@@ -64,7 +65,6 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[]; klappt?: true }[] =
       { seite: "projekt", titel: "Projekt", zeichen: "projekt" },
       modul("planung"),
       { seite: "zeit", titel: "Zeit", zeichen: "zeit" },
-      { seite: "dashboard", titel: "Dashboard", zeichen: "dashboard" },
     ],
   },
   {
