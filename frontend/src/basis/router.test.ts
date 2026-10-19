@@ -142,6 +142,13 @@ describe("wohinZurueck", () => {
     expect(wohinZurueck(planung, { tiefe: 0, ruecksprung: true })).toEqual({ seite: "module", unter: "planung" });
   });
 
+  // Ein Modul steht im Menü wie jede Seite — über ihm liegt keine Modulübersicht mehr.
+  it("behandelt die oberste Stufe eines Moduls wie eine Seite", () => {
+    const thoughts = { seite: "module", unter: "thoughts" } as const;
+    expect(wohinZurueck(thoughts, { tiefe: 2 })).toBe("geschichte");
+    expect(wohinZurueck(thoughts, null)).toEqual({ seite: "start", unter: null });
+  });
+
   it("geht ohne Unterseite in der Geschichte zurück, sonst zur Startseite", () => {
     expect(wohinZurueck({ seite: "projekt", unter: null }, { tiefe: 1 })).toBe("geschichte");
     expect(wohinZurueck({ seite: "projekt", unter: null }, null)).toEqual({ seite: "start", unter: null });

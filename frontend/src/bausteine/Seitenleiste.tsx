@@ -2,64 +2,81 @@ import { Fragment, useState } from "react";
 
 import { csrfWert } from "../basis/api";
 import { useLaufend, useNeuLaden, useProjekte, type Ich } from "../basis/daten";
-import { MODULE, designAusWeg, teilZuWeg, themaAusWeg } from "../basis/module";
-import type { Ort, Seite } from "../basis/router";
+import {
+  MODULE,
+  designAusWeg,
+  foerderauslastungAusWeg,
+  foerderungAusWeg,
+  planungAusWeg,
+  teilZuWeg,
+  themaAusWeg,
+} from "../basis/module";
+import { alsPfad, type Ort, type Seite } from "../basis/router";
 import { paketgruppen } from "../basis/start";
-import { clockIn, clockOut } from "../basis/uhr";
+import { clockOut } from "../basis/uhr";
 import { alsDauer } from "../basis/zeit";
 import { hatEinstellungen } from "../ansichten/Einstellungen";
 import { Notizdialog } from "./Notizdialog";
 import { Uhr } from "./Uhr";
 import { Zeichen, type ZeichenName } from "./Zeichen";
 
-type Eintrag = { seite: Seite; titel: string; zeichen: ZeichenName };
+/**
+ * Ein Menüeintrag. `unter` steht nur bei einem Modul: Es lebt unter
+ * `/module/<weg>`, steht im Menü aber wie jede andere Seite.
+ */
+type Eintrag = { seite: Seite; unter?: string; titel: string; zeichen: ZeichenName };
+
+/** Ein Modul als Eintrag — Titel und Zeichen aus MODULE, nicht ein zweites Mal hier. */
+function modul(weg: string): Eintrag {
+  const m = MODULE.find((x) => x.weg === weg);
+  if (!m) throw new Error(`Kein Modul ${weg}`);
+  return { seite: "module", unter: m.weg, titel: m.titel, zeichen: m.zeichen };
+}
 
 /**
  * Das Menü — **eine** Liste, aus der beide Größen leben.
  *
- * **Start steht nicht darin: Dorthin führt das Logo.** Sie hatte eine Weile
- * einen eigenen Eintrag ganz oben, und er kostete eine Zeile in einer Leiste,
- * die mit jeder Rubrik länger wird. Ein Signet, das auf die Startseite führt,
- * ist außerdem das, was jeder ohnehin zuerst anklickt.
+ * Seit 2026-10-19 nach dem, was man tun will, und nach dem, was wirklich
+ * benutzt wird (Änderungsprotokoll der Live-Seite, 14 Tage): Aufgaben an 12
+ * von 14 Tagen, Thoughts an 10, Kontakte an jedem Tag, an dem Florian
+ * arbeitete; Zeit drei Buchungen, Finanzen ein Kontostand. Vorher lagen
+ * Thoughts und Förderungen in einem zugeklappten Zweig „Module", während
+ * Zeit und Dashboard oben standen.
  *
- * Am Handy bleibt „Start" in der Fußleiste stehen (siehe FUSS): Dort ist das
- * Logo erst zu sehen, wenn die Schublade offen ist — der Weg dahin wäre sonst
- * zwei Griffe statt einem.
+ * **„Module" gibt es im Menü nicht mehr.** Der Name sagte, wie etwas gebaut
+ * ist, nicht wozu es da ist — und wer Thoughts suchte, musste wissen, dass es
+ * ein Modul ist. Die Wege bleiben `/module/…`, damit Lesezeichen weiter gehen.
  *
- * „Intern" und „Extern" statt „Arbeit" und „Leute": Die erste Einteilung
- * trennte nicht sauber — Zeit ist auch Leute, Events sind auch Arbeit. Intern
- * ist, was wir selbst tun; extern, mit wem wir reden.
+ * „Übersicht" steht wieder als Eintrag da, obwohl das Signet auch dorthin
+ * führt: Dass ein Logo ein Weg ist, weiß man — dass es der *einzige* Weg zur
+ * wichtigsten Seite ist, sah man nicht.
+ *
+ * Ablage und Software klappen ein, bis der Zeiger darüber steht: Man braucht
+ * sie selten, und die Leiste wird mit jeder Rubrik länger.
  */
 const GRUPPEN: { titel: string | null; eintraege: Eintrag[]; klappt?: true }[] = [
+  { titel: null, eintraege: [{ seite: "start", titel: "Übersicht", zeichen: "zuhause" }] },
   {
-    titel: "Intern",
+    titel: "Arbeit",
     eintraege: [
-      { seite: "dashboard", titel: "Dashboard", zeichen: "dashboard" },
-      { seite: "projekt", titel: "Projekt", zeichen: "projekt" },
-      { seite: "zeit", titel: "Zeit", zeichen: "zeit" },
       { seite: "aufgaben", titel: "Aufgaben", zeichen: "aufgaben" },
-      // Klappt auf, solange man in einem Modul ist — siehe `Modulzweig`.
-      { seite: "module", titel: "Module", zeichen: "module" },
+      modul("thoughts"),
+      { seite: "projekt", titel: "Projekt", zeichen: "projekt" },
+      modul("planung"),
+      { seite: "zeit", titel: "Zeit", zeichen: "zeit" },
+      { seite: "dashboard", titel: "Dashboard", zeichen: "dashboard" },
     ],
   },
   {
     titel: "Extern",
     eintraege: [
       { seite: "kontakte", titel: "Kontakte", zeichen: "kontakte" },
-      { seite: "events", titel: "Events", zeichen: "event" },
       { seite: "meetings", titel: "Meetings", zeichen: "meeting" },
+      { seite: "events", titel: "Events", zeichen: "event" },
     ],
   },
-  /*
-    Die dritte Gruppe handelt nicht von der Arbeit, sondern vom Werkzeug —
-    deshalb steht sie unten und heißt „Software". Hier stand bis dahin nichts:
-    Erklärungen hingen als Fragezeichen neben einzelnen Beschriftungen, und
-    was jemandem auffiel, blieb ein Zuruf über den Tisch.
-
-    Sie ist eingeklappt, bis der Zeiger darüber steht: Man braucht sie selten,
-    und die Leiste wird mit jeder Rubrik länger. Nur diese Gruppe — Intern und
-    Extern sind der Alltag, dort kostete jedes Aufklappen einen Griff.
-  */
+  { titel: "Geld", eintraege: [modul("foerderungen"), modul("runway")] },
+  { titel: "Ablage", klappt: true, eintraege: [modul("design"), modul("praktikum")] },
   {
     titel: "Software",
     klappt: true,
@@ -71,25 +88,43 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[]; klappt?: true }[] =
   },
 ];
 
-/* Start steht in keiner Gruppe (siehe oben), wird am Handy aber gebraucht —
-   die Fußleiste sucht ihre Einträge aus dieser Liste heraus. */
-const START: Eintrag = { seite: "start", titel: "Start", zeichen: "zuhause" };
+const ALLE: Eintrag[] = GRUPPEN.flatMap((g) => g.eintraege);
 
-const ALLE: Eintrag[] = [START, ...GRUPPEN.flatMap((g) => g.eintraege)];
+/** Das Modul, in dem man gerade steht — auch tief darin (ein Antrag, eine Phase). */
+function modulAm(unter: string | null) {
+  return (
+    teilZuWeg(unter) ??
+    themaAusWeg(unter) ??
+    designAusWeg(unter) ??
+    foerderungAusWeg(unter) ??
+    foerderauslastungAusWeg(unter) ??
+    planungAusWeg(unter)
+  )?.modul;
+}
+
+/** Ob dieser Eintrag der Ort ist, an dem man steht. */
+export function istHier(eintrag: Eintrag, ort: Ort): boolean {
+  if (eintrag.seite !== ort.seite) return false;
+  return eintrag.seite !== "module" || modulAm(ort.unter)?.weg === eintrag.unter;
+}
 
 /**
  * Die vier Abkürzungen in der Fußleiste am Handy — der fünfte Platz ist
  * „Mehr" und öffnet die Leiste als Schublade.
  *
- * Sie stehen als Seitennamen da und werden aus GRUPPEN herausgesucht, nicht
- * ein zweites Mal beschrieben: Sonst hätte ein umbenannter Eintrag am Handy
- * noch den alten Namen, und niemand sähe warum.
+ * Herausgesucht aus GRUPPEN, nicht ein zweites Mal beschrieben: Sonst hätte
+ * ein umbenannter Eintrag am Handy noch den alten Namen.
  *
- * Die Auswahl ist die des Alltags, nicht die der Vollständigkeit: buchen,
- * nachtragen, im Baum nachsehen, jemanden nachschlagen. Dashboard und Events
- * schaut man sich an, wenn man Zeit hat — die stehen hinter „Mehr".
+ * Die Auswahl ist die der Nutzung: Aufgaben und Kontakte brauchen beide, die
+ * Thoughts Bernd fast täglich. Zeit stand hier, solange sie als der häufigste
+ * Griff galt — gebucht wurde dreimal in zwei Wochen.
  */
-const FUSS: Seite[] = ["start", "zeit", "projekt", "kontakte"];
+const FUSS: { seite: Seite; unter?: string }[] = [
+  { seite: "start" },
+  { seite: "aufgaben" },
+  { seite: "kontakte" },
+  { seite: "module", unter: "thoughts" },
+];
 
 export function Seitenleiste({
   ich,
@@ -114,11 +149,6 @@ export function Seitenleiste({
     neuLaden();
   }
 
-  async function ohnePaket() {
-    await clockIn();
-    neuLaden();
-  }
-
   /* Jeder Weg schließt die Schublade. Sonst steht sie nach dem Wechsel offen
      über der Seite, auf die sie gerade geführt hat. */
   function hin(s: Seite, unter: string | null = null) {
@@ -126,23 +156,38 @@ export function Seitenleiste({
     wechseln(s, unter);
   }
 
-  const uhr = (
-    <Uhrblock
-      buchung={buchung}
-      fragen={() => setFragtNotiz(true)}
-      waehlen={() => hin("projekt")}
-      ohnePaket={ich.darf.bearbeiten ? ohnePaket : null}
-    />
-  );
+  /* Die Uhr steht nur da, solange sie läuft. Vorher stand sie immer — mit
+     „Paket wählen" und „Ohne Paket" —, und am Handy nahm sie jeder Seite eine
+     Zeile über der Fußleiste. Gebucht wurde in zwei Wochen dreimal. Wer eine
+     Buchung startet, tut das auf der Übersicht, der Zeit- oder der
+     Projektseite; was dann läuft, steht hier. */
+  const uhr = buchung && <Uhrblock buchung={buchung} fragen={() => setFragtNotiz(true)} />;
+
+  const link = (eintrag: Eintrag) => {
+    const weg = alsPfad(eintrag.seite, eintrag.unter ?? null);
+    return (
+      <a
+        key={weg}
+        href={weg}
+        aria-current={istHier(eintrag, ort) ? "page" : undefined}
+        onClick={(e) => {
+          e.preventDefault();
+          hin(eintrag.seite, eintrag.unter ?? null);
+        }}
+      >
+        <Zeichen name={eintrag.zeichen} />
+        {eintrag.titel}
+      </a>
+    );
+  };
 
   return (
     <>
       <aside className="leiste" data-offen={offen ? "ja" : "nein"}>
         {/*
-          Das Signet ist der Weg zur Startseite — deshalb ein Anker und kein
-          div. Sie hatte daneben eine Weile einen eigenen Menüeintrag; der war
-          derselbe Weg zweimal und kostete eine Zeile in einer Leiste, die mit
-          jeder Rubrik länger wird.
+          Das Signet führt zur Übersicht — wie der Eintrag darunter. Zweimal
+          derselbe Weg, mit Absicht: Das Signet klickt jeder zuerst an, den
+          Eintrag findet, wer nicht weiß, dass ein Logo ein Weg ist.
 
           Das Signet ist dieselbe Datei wie das Favicon. Nachgezeichnet wäre es
           beim ersten Nachbessern falsch.
@@ -150,8 +195,7 @@ export function Seitenleiste({
         <a
           className="leiste-marke"
           href="/start"
-          aria-current={seite === "start" ? "page" : undefined}
-          title="Zur Startseite"
+          title="Zur Übersicht"
           onClick={(e) => {
             e.preventDefault();
             hin("start");
@@ -163,30 +207,13 @@ export function Seitenleiste({
 
         <nav className="navigation">
           {GRUPPEN.map((gruppe, i) => {
-            const eintraege = gruppe.eintraege.map((eintrag) =>
-                eintrag.seite === "module" ? (
-                  <Modulzweig key="module" eintrag={eintrag} ort={ort} hin={hin} />
-                ) : (
-                  <a
-                    key={eintrag.seite}
-                    href={`/${eintrag.seite}`}
-                    aria-current={seite === eintrag.seite ? "page" : undefined}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      hin(eintrag.seite);
-                    }}
-                  >
-                    <Zeichen name={eintrag.zeichen} />
-                    {eintrag.titel}
-                  </a>
-                ),
-            );
+            const eintraege = gruppe.eintraege.map(link);
             if (gruppe.klappt) {
               /* Offen, wenn man auf einer ihrer Seiten steht — sonst wäre die
                  Markierung dessen, wo man ist, unsichtbar. Alles andere macht
                  das CSS (Zeiger, Tastaturfokus; am Handy gibt es kein Darüber
                  und damit auch kein Einklappen). */
-              const drin = gruppe.eintraege.some((e) => e.seite === seite);
+              const drin = gruppe.eintraege.some((e) => istHier(e, ort));
               return (
                 <div
                   key={gruppe.titel ?? `gruppe-${i}`}
@@ -281,29 +308,16 @@ export function Seitenleiste({
         />
       )}
 
-      {/* Am Handy: die Uhr über der Fußleiste, wo der Daumen liegt. Sie scrollt
-          nie weg. Derselbe Baustein wie in der Leiste — nicht dasselbe Markup
-          ein zweites Mal, sondern dieselbe Funktion an zwei Plätzen. */}
-      <div className="uhr-handy">{uhr}</div>
+      {/* Am Handy: die laufende Uhr über der Fußleiste, wo der Daumen liegt.
+          Sie scrollt nie weg. Derselbe Baustein wie in der Leiste — nicht
+          dasselbe Markup ein zweites Mal, sondern dieselbe Funktion an zwei
+          Plätzen. Läuft nichts, ist der Platz frei. */}
+      {uhr && <div className="uhr-handy">{uhr}</div>}
 
       <nav className="fussleiste">
-        {FUSS.map((s) => {
-          const eintrag = ALLE.find((e) => e.seite === s);
-          if (!eintrag) return null;
-          return (
-            <a
-              key={s}
-              href={`/${s}`}
-              aria-current={seite === s ? "page" : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                hin(s);
-              }}
-            >
-              <Zeichen name={eintrag.zeichen} />
-              {eintrag.titel}
-            </a>
-          );
+        {FUSS.map((ziel) => {
+          const eintrag = ALLE.find((e) => e.seite === ziel.seite && e.unter === ziel.unter);
+          return eintrag && link(eintrag);
         })}
         <button
           type="button"
@@ -331,67 +345,6 @@ export function Seitenleiste({
 }
 
 /**
- * „Module" mit seinen Modulen darunter.
- *
- * **Aufgeklappt ist der Zweig genau dann, wenn man in einem Modul ist** — kein
- * gemerkter Zustand. Module braucht man selten, und eine Leiste, die sich
- * merkt, dass man sie einmal aufgeklappt hat, trägt die Zeilen danach wochenlang
- * mit sich herum. Ein gemerkter Zustand ist außerdem einer, der falsch sein
- * kann. Ein Klick auf „Module" führt zur Übersicht und klappt damit auf.
- *
- * Steht man in einem Modul, trägt das Modul die Markierung und „Module" nur
- * einen helleren Ton: Man sieht, wo man ist, und von wo aus man hinkam.
- */
-function Modulzweig({
-  eintrag,
-  ort,
-  hin,
-}: {
-  eintrag: Eintrag;
-  ort: Ort;
-  hin: (s: Seite, unter?: string | null) => void;
-}) {
-  const offen = ort.seite === "module";
-  const modul = offen ? (teilZuWeg(ort.unter) ?? themaAusWeg(ort.unter) ?? designAusWeg(ort.unter))?.modul : undefined;
-
-  return (
-    <>
-      <a
-        href="/module"
-        aria-current={offen && !modul ? "page" : undefined}
-        aria-expanded={offen}
-        data-elter={modul ? "ja" : undefined}
-        onClick={(e) => {
-          e.preventDefault();
-          hin("module");
-        }}
-      >
-        <Zeichen name={eintrag.zeichen} />
-        {eintrag.titel}
-        <Zeichen name="zeiger" klasse="navigation-klapp" />
-      </a>
-      {offen && (
-        <div className="navigation-zweig">
-          {MODULE.map((m) => (
-            <a
-              key={m.weg}
-              href={`/module/${m.weg}`}
-              aria-current={modul === m ? "page" : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                hin("module", m.weg);
-              }}
-            >
-              {m.titel}
-            </a>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-/**
  * Die laufende Uhr. Steht am Fuß der Leiste und am Handy über der Fußleiste —
  * **ein** Baustein an zwei Plätzen, damit der zweite beim nächsten Feld nicht
  * vergessen wird.
@@ -402,55 +355,21 @@ function Modulzweig({
 function Uhrblock({
   buchung,
   fragen,
-  waehlen,
-  ohnePaket,
 }: {
-  buchung: { start: string; paket_titel: string; projekt_titel: string } | null;
+  buchung: { start: string; paket_titel: string; projekt_titel: string };
   fragen: () => void;
-  waehlen: () => void;
-  /** `null` für einen Leser: Er darf nicht buchen, und ein Knopf, der still
-      eine 403 kassiert, ist schlimmer als keiner. */
-  ohnePaket: (() => void) | null;
 }) {
   return (
-    <div className="uhrblock" data-laeuft={buchung ? "ja" : "nein"}>
+    <div className="uhrblock" data-laeuft="ja">
       <div className="uhrblock-zeit">
         <i className="punkt" />
-        {buchung ? <Uhr seit={buchung.start} /> : <span className="zahl">00:00:00</span>}
+        <Uhr seit={buchung.start} />
       </div>
-      <div className="uhrblock-wo">
-        {buchung ? `${buchung.projekt_titel} · ${buchung.paket_titel}` : "Keine Buchung läuft"}
-      </div>
-      {buchung ? (
-        <button type="button" className="uhrblock-knopf" onClick={fragen}>
-          <Zeichen name="stopp" />
-          Clock-out
-        </button>
-      ) : (
-        /* Zwei Wege, weil der Alltag zwei kennt: Wer weiß, woran er arbeitet,
-           wählt das Paket. Wer nur anfangen will, drückt „Ohne Paket" — die
-           Zeit läuft auf Overhead und wird beim Clock-out umgebucht. */
-        <div className="uhrblock-knoepfe">
-          <button
-            type="button"
-            className="uhrblock-knopf"
-            onClick={waehlen}
-            title="Die Uhr startet auf einem Arbeitspaket."
-          >
-            Paket wählen
-          </button>
-          {ohnePaket && (
-            <button
-              type="button"
-              className="uhrblock-knopf"
-              onClick={ohnePaket}
-              title="Die Uhr läuft auf „Overhead“. Beim Clock-out kannst du sie umbuchen."
-            >
-              Ohne Paket
-            </button>
-          )}
-        </div>
-      )}
+      <div className="uhrblock-wo">{`${buchung.projekt_titel} · ${buchung.paket_titel}`}</div>
+      <button type="button" className="uhrblock-knopf" onClick={fragen}>
+        <Zeichen name="stopp" />
+        Clock-out
+      </button>
     </div>
   );
 }

@@ -83,21 +83,20 @@
    auf hellem Grund war sie neben der Pille ein zweites Signal für dasselbe. */
 .navigation a[aria-current="page"] { background: var(--kopf-aktiv); color: var(--kopf-aktiv-text); font-weight: 600; }
 .navigation a[aria-current="page"] > .zeichen:first-child { color: var(--kopf-kante); }
+/* Mit der Maus 36 statt 44 px je Zeile: Die 44 sind für den Finger. Mit
+   Übersicht, fünf Gruppen und vierzehn Einträgen stand die Leiste bei 800 px
+   Fensterhöhe sonst über den Rand, und das Profil am Fuß war nur noch über
+   Scrollen zu erreichen. Am Touchgerät bleibt es bei 44. */
+@media (pointer: fine) {
+  .navigation a { min-height: 36px; }
+  .navigation-gruppe { padding-top: 14px; padding-bottom: 4px; }
+}
 
-/* Der Zweig „Module": aufgeklappt, solange man in einem Modul ist (siehe
-   Seitenleiste.tsx). Die Kante der Markierung sitzt auf der Linie des Zweigs
-   — dieselbe Kupferkante wie oben, nur eine Ebene tiefer. */
+/* Der Pfeil der einklappbaren Gruppen (Ablage, Software). */
 .navigation-klapp {
   margin-left: auto; width: 0.9em; height: 0.9em; opacity: 0.7;
   transition: transform 0.15s;
 }
-.navigation a[aria-expanded="true"] .navigation-klapp { transform: rotate(90deg); }
-.navigation a[data-elter="ja"] { color: var(--kopf-text); }
-.navigation-zweig {
-  display: flex; flex-direction: column; gap: 1px;
-  margin: 1px 0 4px 21px; border-left: 1px solid var(--kopf-rand);
-}
-.navigation-zweig a { padding-left: 17px; font-size: 13px; }
 
 /* Gemischte Schreibung wie überall sonst. Die Versalien mit Sperrung und
    72 % Deckkraft standen hier als einzige der Anwendung — und die Deckkraft
@@ -899,11 +898,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--akzent); }
 .uhrblock[data-laeuft="ja"] .uhrblock-knopf:hover {
   background: var(--kopf-kante); color: var(--kopf-auf-kante); filter: brightness(1.08);
 }
-/* Zum Start führen zwei Wege — mit Paket und ohne. In der Leiste stehen sie
-   untereinander: Nebeneinander blieben bei 196 px Breite von beiden
-   Beschriftungen die Hälfte übrig. */
-.uhrblock-knoepfe { display: flex; flex-direction: column; gap: 6px; margin-top: 9px; }
-.uhrblock-knoepfe .uhrblock-knopf { margin-top: 0; }
 
 /* --- Konto am Fuß der Leiste --------------------------------------------- */
 
@@ -2543,7 +2537,11 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
    ========================================================================== */
 
 @media (max-width: 900px) {
-  .geruest { display: block; }
+  /* Was unten fest über dem Inhalt liegt: die Fußleiste (60 px) und, nur
+     solange eine Buchung läuft, die Uhr darüber (61 px). Eine Zahl für alle,
+     die darunter Platz lassen müssen. */
+  .geruest { display: block; --unten: 60px; }
+  .geruest:has(.uhr-handy) { --unten: 121px; }
 
   /*
    * Die Schublade fährt über `left` herein und nicht über `transform`.
@@ -2588,11 +2586,6 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .uhr-handy .uhrblock-knopf { width: auto; margin-top: 0; flex: 0 0 auto; padding: 0 16px; }
-  .uhr-handy .uhrblock-knoepfe { flex-direction: row; margin-top: 0; flex: 0 0 auto; }
-  /* Läuft nichts, stehen hier zwei Knöpfe — dann ist für „Keine Buchung läuft"
-     kein Platz mehr, und der Satz sagt auch nichts, was die stehende Uhr und
-     der graue Punkt nicht schon sagen. */
-  .uhr-handy .uhrblock[data-laeuft="nein"] .uhrblock-wo { display: none; }
 
   .fussleiste {
     display: flex; position: fixed; z-index: 55;
@@ -2625,11 +2618,11 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .aufgabe-menue { padding-left: 12px; padding-right: 12px; }
   .aufgaben-neu-menue { padding-left: 12px; padding-right: 12px; }
 
-  /* Thoughts endet über Uhr und Fußleiste (61 + 60 px), statt darunter
+  /* Thoughts endet über Uhr und Fußleiste (`--unten`), statt darunter
      weiterzulaufen — sonst lägen die Tiefenknöpfe und das Blatt hinter der
      Leiste. Die Seitenspalte wird zum Blatt von unten. Der Abstand gewinnt
      über das Attribut gegen `.seite` weiter unten, nicht über die Reihenfolge. */
-  .seite[data-voll="ja"] { padding: 0 0 calc(121px + env(safe-area-inset-bottom)); }
+  .seite[data-voll="ja"] { padding: 0 0 calc(var(--unten) + env(safe-area-inset-bottom)); }
   .thoughts { grid-template-columns: minmax(0, 1fr); }
   .lk-seite {
     position: absolute; z-index: 8; left: 0; right: 0; bottom: 0;
@@ -2656,7 +2649,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 
   /* Platz für Uhr und Fußleiste am Fuß der Seite. Ohne das liegt die letzte
      Tabellenzeile unter der Leiste und ist nicht erreichbar. */
-  .seite { padding: 16px 16px calc(140px + env(safe-area-inset-bottom)); }
+  .seite { padding: 16px 16px calc(var(--unten) + 20px + env(safe-area-inset-bottom)); }
   .kontextleiste { padding: 7px 16px; top: 0; }
 }
 
@@ -2764,7 +2757,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
      weiter unten gewinnt bei gleicher Spezifität, und damit lag das Ende
      jeder Seite hinter der Uhr und der Fußleiste — erreichbar war es nicht
      mehr, und im Stylesheet sah beides richtig aus. */
-  .seite { padding: 14px 14px calc(140px + env(safe-area-inset-bottom)); }
+  .seite { padding: 14px 14px calc(var(--unten) + 20px + env(safe-area-inset-bottom)); }
 
   /* Im Arbeitsdialog zählt am Handy jede Zeile Höhe: Was der Kopf an Rand
      verliert, gewinnt der Text darunter. */

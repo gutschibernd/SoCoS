@@ -22,6 +22,39 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        # Der 20. und nicht der 19.: Der Eintrag vom 19. ist schon ausgeliefert
+        # und von beiden gesehen — Punkte, die dort dazukämen, gingen nie auf.
+        "version": "2026-10-20",
+        "titel": "Neues Menü, neue Optik",
+        "punkte": [
+            {
+                "titel": "Das Menü ordnet nach dem, was du tun willst",
+                "text": (
+                    "Links stehen jetzt Arbeit, Extern und Geld. Thoughts, Förderungen, Projektplanung und "
+                    "Runway-Planung haben eigene Einträge — „Module“ gibt es nicht mehr. Designentscheidungen "
+                    "und Praktikantenstellen liegen unter Ablage, die aufklappt, wenn der Zeiger darüber steht."
+                ),
+                "wo": "doku/ueberblick",
+            },
+            {
+                "titel": "Die Uhr erscheint, wenn sie läuft",
+                "text": (
+                    "Unten links und am Handy über der Fußleiste steht die Uhr nur noch während einer Buchung. "
+                    "Starten geht auf der Zeitseite und auf der Projektseite. Am Handy führt die Fußleiste jetzt "
+                    "zu Übersicht, Aufgaben, Kontakten und Thoughts."
+                ),
+                "wo": "zeit",
+            },
+            {
+                "titel": "Weichere Ecken, neue Schrift",
+                "text": (
+                    "Die Farben bleiben, Ecken und Schrift sind neu, und die Leiste ist hell. Text steht etwas "
+                    "größer, Zahlen bleiben untereinander bündig."
+                ),
+            },
+        ],
+    },
+    {
         "version": "2026-10-19",
         "titel": "Suchen und Anlegen überall gleich",
         "punkte": [

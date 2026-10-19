@@ -1,6 +1,6 @@
 import { useIch } from "./basis/daten";
 import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
-import { foerderauslastungAusWeg, foerderungAusWeg, planungAusWeg, themaAusWeg } from "./basis/module";
+import { designAusWeg, foerderauslastungAusWeg, foerderungAusWeg, planungAusWeg, teilZuWeg, themaAusWeg } from "./basis/module";
 import { useSeite, type Seite } from "./basis/router";
 import { Zustand } from "./basis/Zustand";
 import { Zeichen } from "./bausteine/Zeichen";
@@ -87,12 +87,17 @@ export function App() {
       ? (themaAusWeg(ort.unter) ??
         foerderungAusWeg(ort.unter) ??
         planungAusWeg(ort.unter) ??
+        designAusWeg(ort.unter) ??
         (auslastung && { ...auslastung, teil: { ...auslastung.teil, titel: "Auslastung" } }))
       : null;
+  // Die oberste Stufe eines Moduls trägt seinen Namen und wozu es da ist —
+  // nicht „Module", seit es im Menü wie jede andere Seite steht.
+  const modul = ort.seite === "module" ? teilZuWeg(ort.unter)?.modul : undefined;
   const kopfzeile =
     UNTERTITEL[`${ort.seite}/${ort.unter}`] ??
     // Ein einzelnes Thema: Sein Titel steht groß auf der Seite selbst.
     (thema ? { titel: thema.modul.titel, unter: thema.teil.titel } : null) ??
+    (modul ? { titel: modul.titel, unter: modul.wozu } : null) ??
     (ort.seite === "start"
       ? { titel: `Hallo ${ich.data.name.split(" ")[0]}`, unter: TITEL.start.unter }
       : TITEL[ort.seite]);

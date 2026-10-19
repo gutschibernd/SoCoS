@@ -205,21 +205,29 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
       <Abschnitt
         zeichen="mehr"
         titel="Wo was steht"
-        vorspann="Die Seitenleiste hat drei Gruppen: was wir tun, mit wem wir reden, und das Werkzeug selbst."
+        vorspann="Die Seitenleiste ordnet nach dem, was du tun willst: Arbeit, Extern und Geld. Ablage und Software klappen auf, wenn der Zeiger darüber steht."
       >
         <div className="doku-wege">
           {[
-            { seite: "start" as const, zeichen: "zuhause" as const, titel: "Start", text: "Uhr starten, zuletzt gebucht, der schnelle Griff." },
-            { seite: "dashboard" as const, zeichen: "dashboard" as const, titel: "Dashboard", text: "Woche, Geld, Fortschritt auf einen Blick." },
-            { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Der Baum, die Pakete, das Pensum." },
-            { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, nach Fälligkeit." },
-            { seite: "module" as const, zeichen: "module" as const, titel: "Module", text: "Zusätzliche Werkzeuge: die Praktikantenstellen, Thoughts, die Förderungen, die Projektplanung, die Runway-Planung und die Designentscheidungen." },
+            { seite: "module" as const, unter: "thoughts", zeichen: "thoughts" as const, titel: "Thoughts", text: "Was in welchem Thema ansteht und worauf gewartet wird." },
+            { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Phasen und Pakete im Gantt, das Pensum." },
+            { seite: "module" as const, unter: "planung", zeichen: "gantt" as const, titel: "Projektplanung", text: "Eine Phase mit Paketen, Aufgaben und Antrag planen." },
+            { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
-            { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
+            { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
+            { seite: "module" as const, unter: "foerderungen", zeichen: "foerderung" as const, titel: "Förderungen", text: "Fördergeber, Programme, Anträge." },
+            { seite: "module" as const, unter: "runway", zeichen: "kurve" as const, titel: "Runway-Planung", text: "Was herein- und hinausgeht, wie lange das Geld reicht." },
+            { seite: "module" as const, unter: "design", zeichen: "schild" as const, titel: "Designentscheidungen", text: "Unter Ablage: begründen, belegen, als PDF in die Akte." },
+            { seite: "module" as const, unter: "praktikum", zeichen: "mappe" as const, titel: "Praktikantenstellen", text: "Unter Ablage: Themen aufbereiten und ausschreiben." },
           ].map((w) => (
-            <button key={w.seite} type="button" className="doku-weg" onClick={() => wechseln(w.seite)}>
+            <button
+              key={`${w.seite}/${"unter" in w ? w.unter : ""}`}
+              type="button"
+              className="doku-weg"
+              onClick={() => wechseln(w.seite, "unter" in w ? w.unter : null)}
+            >
               <Zeichen name={w.zeichen} />
               <span>
                 <b>{w.titel}</b>
@@ -771,17 +779,13 @@ function ModuleDoku() {
     <>
       <Abschnitt
         zeichen="module"
-        titel="Module — was nicht zu Projekt und Zeit gehört"
-        vorspann="Zusätzliche Werkzeuge stehen unter Intern · Module. Die Leiste klappt sie nur auf, solange du in einem Modul bist."
+        titel="Werkzeuge neben Projekt und Zeit"
+        vorspann="Thoughts, Projektplanung, Förderungen, Runway-Planung, Designentscheidungen und Praktikantenstellen stehen in der Leiste dort, wozu sie dienen — unter Arbeit, Geld oder Ablage."
       >
         <Begriffe
           paare={[
             {
-              begriff: "Die Übersicht",
-              text: "Ein Klick auf „Module“ zeigt jedes Modul als Kachel: wofür es da ist, welche Teile es hat und wie weit sie sind.",
-            },
-            {
-              begriff: "Ein Modul fehlt",
+              begriff: "Ein Werkzeug fehlt",
               text: "Module entstehen im Code, nicht in der Oberfläche. Wer eines braucht, meldet es unter Wünsche & Fehler.",
             },
           ]}
@@ -1013,7 +1017,7 @@ function ModuleDoku() {
       >
         <Schritte
           schritte={[
-            "Hin kommst du mit einem Klick auf eine Phase im Gantt der Projektseite oder unter Module · Projektplanung. Von der Projektseite aus führt „Zurück“ wieder ins Projekt.",
+            "Hin kommst du mit einem Klick auf eine Phase im Gantt der Projektseite oder unter Arbeit · Projektplanung. Von der Projektseite aus führt „Zurück“ wieder ins Projekt.",
             "Oben rechts wählst du die Ansicht: „Aufgaben“ ist die Arbeitsliste, „Zeitplan“ der Gantt, „Stunden & Antrag“ alles zum Nachschlagen. Die Seite merkt sich die Wahl.",
             "Unter „Aufgaben“ steht jedes Paket mit seinen Aufgaben. In die letzte Zeile eines Pakets tippen und Enter legt eine Aufgabe an. Titel, wer, Beginn, Ende und Stunden änderst du direkt in der Zeile; über „…“ schiebst du eine Aufgabe in ein anderes Paket.",
             "Ein Paket benennst du mit einem Klick auf seinen Namen um, daneben setzt du seinen Status. Ganz unten legst du ein neues Paket an.",

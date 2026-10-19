@@ -178,7 +178,11 @@ export function alsPfad(seite: Seite, unter: string | null): string {
 export function wohinZurueck(ort: Ort, eintrag: Weggeschichte): "geschichte" | Ort | null {
   const tief = (eintrag?.tiefe ?? 0) > 0;
   if (eintrag?.ruecksprung && tief) return "geschichte";
-  if (ort.unter) return { seite: ort.seite, unter: darueber(ort.unter) };
+  // Ein Modul steht seit 2026-10-19 im Menü wie jede andere Seite. Seine
+  // oberste Stufe (`/module/thoughts`) hat deshalb nichts mehr darüber — die
+  // Übersicht aller Module war ein Weg, den niemand mehr geht.
+  const oben = ort.seite === "module" && ort.unter !== null && darueber(ort.unter) === null;
+  if (ort.unter && !oben) return { seite: ort.seite, unter: darueber(ort.unter) };
   if (tief) return "geschichte";
   return ort.seite !== "start" ? { seite: "start", unter: null } : null;
 }

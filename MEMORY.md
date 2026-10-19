@@ -7,6 +7,41 @@ betrifft.
 
 ---
 
+## 2026-10-19 — Menü nach Nutzung, „Module" aufgelöst (kein Schema)
+
+**Bernd:** Die UI-Durchgänge davor brachten nur Kleinigkeiten; Menüs sollen
+einen Rework bekommen, damit das System verständlicher wird — vorher
+nachsehen, was wirklich benutzt wird.
+
+**Die Grundlage war das Änderungsprotokoll der Live-Seite** (14 Tage, nur
+lesend über `ssh socos` und die Django-Shell, mit Bernds Freigabe). Es zählt
+nur Schreiben, nicht Anschauen. Ergebnis: Aufgaben an 12 von 14 Tagen (beide),
+Thoughts an 10 (Bernd, ~170 Einträge), Kontakte vor allem Florian, Förderungen
+in drei großen Schüben; Zeit **drei Buchungen**, Finanzen **ein** Kontostand
+(8.9.), keine Fixkosten. Anna hat sich nie angemeldet. Das Menü stellte
+Dashboard und Zeit nach oben und Thoughts und Förderungen in einen
+zugeklappten Zweig „Module".
+
+- **Gruppen:** Übersicht · Arbeit (Aufgaben, Thoughts, Projekt,
+  Projektplanung, Zeit) · Extern (Kontakte, Meetings, Events) · Geld
+  (Förderungen, Runway-Planung) · Ablage und Software (beide klappen ein).
+  „Extern" auf Bernds Wunsch, nicht „Außen".
+- **Module stehen als Einträge**, ihre Titel und Zeichen kommen aus `MODULE`
+  (`modul("thoughts")`), nicht ein zweites Mal aus der Leiste. Die Wege bleiben
+  `/module/…`. `istHier()` erkennt auch Unterseiten (Antrag, Phase) als
+  „im Modul". „Zurück" aus der obersten Stufe eines Moduls führt nicht mehr in
+  die Modulübersicht, sondern wie bei jeder Seite zurück bzw. zur Übersicht.
+  Die Seite `/module` gibt es noch (alte Lesezeichen), im Menü nicht.
+- **Die Uhr nur, solange sie läuft** (Leiste und Handy). Ihr Ruhezustand mit
+  „Paket wählen"/„Ohne Paket" ist entfernt; gestartet wird auf Zeit- und
+  Projektseite. Am Handy hängt der Platz unter dem Inhalt an `--unten`, das
+  `:has(.uhr-handy)` umschaltet.
+- **Fußleiste:** Übersicht · Aufgaben · Kontakte · Thoughts · Mehr.
+- **Mit der Maus 36 px je Menüzeile**, am Touchgerät 44 (`pointer: fine`) —
+  sonst stand die Leiste bei 800 px Höhe über den Rand.
+- **Änderungseintrag mit Version 2026-10-20:** Der vom 19. war schon
+  ausgeliefert und gesehen; Punkte dort gingen bei niemandem mehr auf.
+
 ## 2026-10-19 — Grundoptik: weiche Ecken, Figtree, helle Leiste (kein Schema)
 
 **Bernd:** „die farben passen aber typografie und diese eckige stört mich
