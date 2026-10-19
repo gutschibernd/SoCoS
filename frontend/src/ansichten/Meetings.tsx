@@ -63,10 +63,11 @@ import type { Seite } from "../basis/router";
 import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Anhangkarte } from "../bausteine/Anhangkarte";
+import { Anlegekarte, Beschriftet, Neuknopf } from "../bausteine/Anlegekarte";
 import { Feldtext } from "../bausteine/Feldtext";
-import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
+import { Suchfeld } from "../bausteine/Suchfeld";
 import { Zeichen } from "../bausteine/Zeichen";
 
 async function aendern(pfad: string, daten: Record<string, unknown>): Promise<void> {
@@ -189,8 +190,16 @@ function Uebersicht({
   oeffnen: (id: number) => void;
 }) {
   const [suche, setSuche] = useState("");
-  const [neues, setNeues] = useState({ titel: "", datum: heuteAlsDatum(), uhrzeit: "", ort: "" });
+  const leer = () => ({ titel: "", datum: heuteAlsDatum(), uhrzeit: "", ort: "" });
+  const [neues, setNeues] = useState(leer);
+  const [anlegenOffen, setAnlegenOffen] = useState(false);
   const [fehler, setFehler] = useState("");
+
+  function abbrechen() {
+    setAnlegenOffen(false);
+    setNeues(leer());
+    setFehler("");
+  }
 
   async function anlegen() {
     if (!neues.titel.trim())
@@ -208,61 +217,59 @@ function Uebersicht({
         ort: neues.ort.trim(),
       }),
     });
-    setNeues({ titel: "", datum: heuteAlsDatum(), uhrzeit: "", ort: "" });
+    setNeues(leer());
+    setAnlegenOffen(false);
     neuLaden();
     // Gleich hinein: Wer ein Meeting anlegt, will als Nächstes aufschreiben,
     // was er dort erreichen will.
     oeffnen(angelegt.id);
   }
 
-  const anlegezeile = ich.darf.bearbeiten && (
-    <div className="karte">
-      <h2>Neues Meeting</h2>
-      <div className="feld-reihe">
-        <input
-          className="feld"
-          placeholder="Worum geht es?"
-          value={neues.titel}
-          onChange={(e) => setNeues({ ...neues, titel: e.target.value })}
-          onKeyDown={(e) => e.key === "Enter" && anlegen()}
-        />
-        <input
-          type="date"
-          className="feld datumsfeld"
-          style={{ flex: "0 1 170px" }}
-          value={neues.datum}
-          onChange={(e) => setNeues({ ...neues, datum: e.target.value })}
-          aria-label="Datum"
-        />
-        <input
-          type="time"
-          className="feld datumsfeld"
-          style={{ flex: "0 1 120px" }}
-          value={neues.uhrzeit}
-          onChange={(e) => setNeues({ ...neues, uhrzeit: e.target.value })}
-          aria-label="Uhrzeit"
-          required
-        />
-        <input
-          className="feld"
-          placeholder="Ort oder Link"
-          value={neues.ort}
-          onChange={(e) => setNeues({ ...neues, ort: e.target.value })}
-          onKeyDown={(e) => e.key === "Enter" && anlegen()}
-        />
-        <button type="button" className="knopf" onClick={anlegen}>
-          <Zeichen name="plus" />
-          Anlegen
-        </button>
-      </div>
-      <Fehlerzeile text={fehler} />
-    </div>
-  );
+  // Bei einer leeren Liste steht das Formular gleich offen und ohne Abbrechen:
+  // Dort ist Anlegen das Einzige, was es zu tun gibt.
+  const anlegekarte = (offenOhneKnopf: boolean) =>
+    ich.darf.bearbeiten && (
+      <Anlegekarte
+        titel="Neues Meeting"
+        knopf="Meeting anlegen"
+        anlegen={anlegen}
+        abbrechen={offenOhneKnopf ? undefined : abbrechen}
+        fehler={fehler}
+      >
+        <Beschriftet text="Worum geht es?" art="breit">
+          <input
+            className="feld"
+            value={neues.titel}
+            autoFocus={!offenOhneKnopf}
+            onChange={(e) => setNeues({ ...neues, titel: e.target.value })}
+          />
+        </Beschriftet>
+        <Beschriftet text="Tag" art="tag">
+          <input
+            type="date"
+            className="feld"
+            value={neues.datum}
+            onChange={(e) => setNeues({ ...neues, datum: e.target.value })}
+          />
+        </Beschriftet>
+        <Beschriftet text="Uhrzeit" art="uhrzeit">
+          <input
+            type="time"
+            className="feld"
+            value={neues.uhrzeit}
+            onChange={(e) => setNeues({ ...neues, uhrzeit: e.target.value })}
+          />
+        </Beschriftet>
+        <Beschriftet text="Ort oder Link">
+          <input className="feld" value={neues.ort} onChange={(e) => setNeues({ ...neues, ort: e.target.value })} />
+        </Beschriftet>
+      </Anlegekarte>
+    );
 
   if (meetings.length === 0)
     return (
       <>
-        {anlegezeile}
+        {anlegekarte(true)}
         <div className="karte">
           <Leerstelle
             was="Noch kein Meeting"
@@ -281,19 +288,19 @@ function Uebersicht({
 
   return (
     <>
-      {anlegezeile}
-
-      <div className="karte">
-        <div className="feld-reihe">
-          <input
-            className="feld"
-            placeholder="Suchen — Titel, Person, Haus, auch im Protokoll …"
-            value={suche}
-            onChange={(e) => setSuche(e.target.value)}
-            aria-label="Suchen"
-          />
-        </div>
+      <div className="werkzeugleiste">
+        <Suchfeld
+          wert={suche}
+          setzen={setSuche}
+          platzhalter="Titel, Person, Haus, auch im Protokoll …"
+          treffer={{ gezeigt: gefiltert.length, von: meetings.length }}
+        />
+        {ich.darf.bearbeiten && !anlegenOffen && (
+          <Neuknopf text="Neues Meeting" oeffnen={() => setAnlegenOffen(true)} />
+        )}
       </div>
+
+      {anlegenOffen && anlegekarte(false)}
 
       {gefiltert.length === 0 ? (
         <div className="karte">
@@ -344,7 +351,7 @@ function Meetingtabelle({
     <div className="karte">
       <h2>{titel}</h2>
       {meetings.length === 0 ? (
-        <Leerstelle was="Nichts hier" satz={leer} />
+        <p className="leerzeile">{leer}</p>
       ) : (
         <table className="tabelle">
           <thead>
@@ -365,7 +372,7 @@ function Meetingtabelle({
                   <td data-spalte="Wann" className="zahl">
                     {wann(m)}
                   </td>
-                  <td data-spalte="Meeting">
+                  <td data-spalte="Meeting" data-breit="ja">
                     <button type="button" className="zeilen-titel" onClick={() => oeffnen(m.id)}>
                       {m.titel}
                     </button>
@@ -374,7 +381,7 @@ function Meetingtabelle({
                   {/* Leer ist hier kein Gedankenstrich, sondern eine Aufgabe:
                       Wer nicht nachgetragen ist, findet das Meeting später
                       nicht über seinen Kontakt. */}
-                  <td data-spalte="Mit wem">
+                  <td data-spalte="Mit wem" data-breit="ja">
                     {mitWem.length > 0 ? (
                       mitWem.join(", ")
                     ) : (

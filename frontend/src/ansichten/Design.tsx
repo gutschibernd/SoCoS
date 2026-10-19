@@ -43,6 +43,7 @@ import { Zustand } from "../basis/Zustand";
 import { Datumsfeld } from "../bausteine/Datumsfeld";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
+import { Suchfeld } from "../bausteine/Suchfeld";
 import { Zeichen } from "../bausteine/Zeichen";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
@@ -155,16 +156,13 @@ export function Designliste({ ich, wechseln }: { ich: Ich; wechseln: Wechseln })
                 </button>
               ))}
             </div>
-            <label className="de-suche">
-              <Zeichen name="lupe" />
-              <input
-                type="search"
-                value={suche}
-                placeholder="Suchen, auch in den Texten"
-                aria-label="Suchen"
-                onChange={(ev) => setSuche(ev.target.value)}
-              />
-            </label>
+            <Suchfeld
+              klasse="de-suche"
+              wert={suche}
+              setzen={setSuche}
+              platzhalter="Suchen, auch in den Texten"
+              treffer={{ gezeigt: gezeigt.length, von: alle.length }}
+            />
           </div>
         )}
 

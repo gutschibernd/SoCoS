@@ -68,6 +68,9 @@ export function Notizdialog({
             Buchung tatsächlich läuft. */}
         <p>{gewaehlt ? `${gewaehlt.projekt} · ${gewaehlt.titel}` : wo} · {dauer}</p>
         {gruppen.length > 0 && <Paketwahl gruppen={gruppen} wert={ziel} setzen={setZiel} />}
+        {/* ⌘↵ / Strg+↵ speichert, Esc bricht ab: Wer den Satz getippt hat,
+            soll nicht zur Maus greifen müssen. Enter allein bleibt der
+            Zeilenumbruch — sonst ginge ein zweiter Satz nicht. */}
         <textarea
           className="feld"
           style={{ marginTop: gruppen.length > 0 ? 8 : 0 }}
@@ -76,6 +79,16 @@ export function Notizdialog({
           value={notiz}
           placeholder="Ein Satz reicht."
           onChange={(e) => setNotiz(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              abbrechen();
+            } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              if (notiz.trim()) speichern(notiz, ziel);
+              else setFragtNach(true);
+            }
+          }}
         />
         <div className="dialog-knoepfe" style={{ marginTop: 14 }}>
           <button type="button" className="knopf-still" onClick={abbrechen}>

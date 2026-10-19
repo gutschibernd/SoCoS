@@ -73,12 +73,12 @@ export function Protokoll() {
                 <tr key={e.id}>
                   <td data-spalte="Wann" className="zahl">{ZEIT.format(new Date(e.zeitpunkt))}</td>
                   <td data-spalte="Wer">{e.nutzer_text || "System"}</td>
-                  <td data-spalte="Was">
+                  <td data-spalte="Was" data-breit="ja">
                     <span className="protokoll-modell">{kurz(e.modell)}</span>
                     {e.objekt_text}
                   </td>
                   <td data-spalte="Aktion">{AKTION[e.aktion] ?? e.aktion}</td>
-                  <td data-spalte="Änderung">
+                  <td data-spalte="Änderung" data-breit="ja">
                     {Object.keys(e.aenderungen).length === 0
                       ? "—"
                       : Object.entries(e.aenderungen).map(([feld, v]) => (

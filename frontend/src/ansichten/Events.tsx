@@ -59,10 +59,12 @@ import type { Seite } from "../basis/router";
 import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Anhangkarte } from "../bausteine/Anhangkarte";
+import { Anlegekarte, Beschriftet, Neuknopf } from "../bausteine/Anlegekarte";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
+import { Suchfeld } from "../bausteine/Suchfeld";
 import { Zeichen } from "../bausteine/Zeichen";
 
 const STAENDE: { wert: Eventziel["stand"]; text: string }[] = [
@@ -204,7 +206,14 @@ function Uebersicht({
 }) {
   const [suche, setSuche] = useState("");
   const [neues, setNeues] = useState<NeuesEventDaten>(leeresEvent);
+  const [anlegenOffen, setAnlegenOffen] = useState(false);
   const [fehler, setFehler] = useState("");
+
+  function abbrechen() {
+    setAnlegenOffen(false);
+    setNeues(leeresEvent());
+    setFehler("");
+  }
 
   async function anlegen() {
     if (!neues.titel.trim()) return setFehler("Ohne Titel gibt es nichts anzulegen.");
@@ -222,6 +231,7 @@ function Uebersicht({
       }),
     });
     setNeues(leeresEvent());
+    setAnlegenOffen(false);
     neuLaden();
     // Gleich hinein: Wer ein Event anlegt, will als Nächstes die Hitlist füllen.
     oeffnen(angelegt.id);
@@ -249,19 +259,21 @@ function Uebersicht({
 
   return (
     <>
-      {ich.darf.bearbeiten && <NeuesEvent neues={neues} setNeues={setNeues} anlegen={anlegen} fehler={fehler} />}
-
-      <div className="karte">
-        <div className="feld-reihe">
-          <input
-            className="feld"
-            placeholder="Suchen — Event, Ort, Name auf der Hitlist …"
-            value={suche}
-            onChange={(e) => setSuche(e.target.value)}
-            aria-label="Suchen"
-          />
-        </div>
+      <div className="werkzeugleiste">
+        <Suchfeld
+          wert={suche}
+          setzen={setSuche}
+          platzhalter="Event, Ort, Name auf der Hitlist …"
+          treffer={{ gezeigt: gefiltert.length, von: events.length }}
+        />
+        {ich.darf.bearbeiten && !anlegenOffen && (
+          <Neuknopf text="Neues Event" oeffnen={() => setAnlegenOffen(true)} />
+        )}
       </div>
+
+      {ich.darf.bearbeiten && anlegenOffen && (
+        <NeuesEvent neues={neues} setNeues={setNeues} anlegen={anlegen} fehler={fehler} abbrechen={abbrechen} />
+      )}
 
       {gefiltert.length === 0 ? (
         <div className="karte">
@@ -305,71 +317,64 @@ function NeuesEvent({
   setNeues,
   anlegen,
   fehler,
+  abbrechen,
 }: {
   neues: NeuesEventDaten;
   setNeues: (n: NeuesEventDaten) => void;
-  anlegen: () => void;
+  anlegen: () => Promise<void>;
   fehler: string;
+  /** Fehlt bei einer leeren Liste — dort ist Anlegen das Einzige, was es gibt. */
+  abbrechen?: () => void;
 }) {
   return (
-    <div className="karte">
-      <h2>Neues Event</h2>
-      <div className="feld-reihe">
+    <Anlegekarte titel="Neues Event" knopf="Event anlegen" anlegen={anlegen} abbrechen={abbrechen} fehler={fehler}>
+      <Beschriftet text="Titel" art="breit">
         <input
           className="feld"
-          placeholder="Titel (Tagung, Kongress, Messe …)"
+          placeholder="Tagung, Kongress, Messe …"
           value={neues.titel}
+          autoFocus={Boolean(abbrechen)}
           onChange={(e) => setNeues({ ...neues, titel: e.target.value })}
-          onKeyDown={(e) => e.key === "Enter" && anlegen()}
         />
-        <input
-          className="feld"
-          placeholder="Ort"
-          value={neues.ort}
-          onChange={(e) => setNeues({ ...neues, ort: e.target.value })}
-          onKeyDown={(e) => e.key === "Enter" && anlegen()}
-        />
+      </Beschriftet>
+      <Beschriftet text="Ort">
+        <input className="feld" value={neues.ort} onChange={(e) => setNeues({ ...neues, ort: e.target.value })} />
+      </Beschriftet>
+      <Beschriftet text={neues.bis ? "Erster Tag" : "Tag"} art="tag">
         <input
           type="date"
           className="feld"
-          style={{ flex: "0 1 170px" }}
           value={neues.von}
           onChange={(e) => setNeues({ ...neues, von: e.target.value })}
-          aria-label={neues.bis ? "Erster Tag" : "Tag"}
         />
-        <label className="schalter">
-          <input
-            type="checkbox"
-            checked={!!neues.bis}
-            onChange={(e) =>
-              setNeues({
-                ...neues,
-                bis: e.target.checked
-                  ? (mehrtaegigUmschalten({ von: neues.von, beginn: null, ende: null }, true).bis ?? "")
-                  : "",
-              })
-            }
-          />
-          Mehrtägig
-        </label>
-        {neues.bis && (
+      </Beschriftet>
+      {neues.bis && (
+        <Beschriftet text="Letzter Tag" art="tag">
           <input
             type="date"
             className="feld"
-            style={{ flex: "0 1 170px" }}
             value={neues.bis}
             min={neues.von}
             onChange={(e) => e.target.value && setNeues({ ...neues, bis: e.target.value })}
-            aria-label="Letzter Tag"
           />
-        )}
-        <button type="button" className="knopf" onClick={anlegen}>
-          <Zeichen name="plus" />
-          Anlegen
-        </button>
-      </div>
-      <Fehlerzeile text={fehler} />
-    </div>
+        </Beschriftet>
+      )}
+      <label className="schalter">
+        <input
+          type="checkbox"
+          checked={!!neues.bis}
+          onChange={(e) =>
+            setNeues({
+              ...neues,
+              bis: e.target.checked
+                ? (mehrtaegigUmschalten({ von: neues.von, beginn: null, ende: null }, true).bis ?? "")
+                : "",
+            })
+          }
+        />
+        Mehrtägig
+      </label>
+    </Anlegekarte>
   );
 }
 
@@ -390,7 +395,7 @@ function Eventtabelle({
     <div className="karte">
       <h2>{titel}</h2>
       {events.length === 0 ? (
-        <Leerstelle was="Nichts hier" satz={leer} />
+        <p className="leerzeile">{leer}</p>
       ) : (
         <table className="tabelle">
           <thead>
@@ -856,7 +861,7 @@ function Hitlistzeile({
         <b>{wer.name}</b>
         {wer.dazu && <span className="dazu">{wer.dazu}</span>}
       </td>
-      <td data-spalte="Anliegen">
+      <td data-spalte="Anliegen" data-breit="ja">
         <Feldtext
           wert={ziel.anliegen}
           platzhalter="Was wollen wir von ihnen?"
@@ -957,57 +962,52 @@ function Verlaufskarte({
     <div className="karte">
       <h2>Verlauf</h2>
 
+      {/* Der Knopf ist nie stillgelegt: Ein grauer Knopf sagt nicht, was
+          fehlt. Er nimmt den Klick an und antwortet in der Zeile darunter. */}
       {ich.darf.bearbeiten && (
         <div className="nachbuchen">
-          <div className="feld-reihe">
+          <Anlegekarte eingebettet knopf="Eintragen" anlegen={anlegen} fehler={fehler}>
             {/* Alle Kontakte, nicht nur die Hitlist: Wen man trifft,
                 entscheidet der Gang über den Flur. Die geplanten Namen stehen
                 trotzdem oben — sie sind die häufigste Wahl. */}
-            <select
-              className="feld"
-              style={{ flex: "1 1 230px" }}
-              value={eintrag.ziel}
-              onChange={(e) => setEintrag({ ...eintrag, ziel: e.target.value })}
-              aria-label="Mit wem"
-            >
-              <option value="">Mit wem?</option>
-              <Zielgruppe titel="Von der Hitlist" auswahl={wahl.hitlist} />
-              <Zielgruppe titel="Personen" auswahl={wahl.personen} />
-              <Zielgruppe titel="Organisationen" auswahl={wahl.organisationen} />
-            </select>
-            <input
-              type="date"
-              className="feld"
-              style={{ flex: "0 1 170px" }}
-              value={eintrag.datum}
-              min={event.von}
-              max={letzterTag(event)}
-              onChange={(e) => setEintrag({ ...eintrag, datum: e.target.value })}
-              aria-label="Datum"
-            />
-            <input
-              className="feld"
-              style={{ flex: "1 1 220px" }}
-              placeholder="Worum ging es?"
-              value={eintrag.titel}
-              onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })}
-            />
-            <input
-              className="feld"
-              style={{ flex: "1 1 260px" }}
-              placeholder="Ergebnis, nächster Schritt …"
-              value={eintrag.text}
-              onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })}
-              onKeyDown={(e) => e.key === "Enter" && anlegen()}
-            />
-            {/* Nicht stillgelegt: Ein grauer Knopf sagt nicht, was fehlt. Er
-                nimmt den Klick an und antwortet in der Zeile darunter. */}
-            <button type="button" className="knopf" onClick={anlegen}>
-              <Zeichen name="plus" />
-              Eintragen
-            </button>
-          </div>
-          <Fehlerzeile text={fehler} />
+            <Beschriftet text="Mit wem">
+              <select
+                className="feld"
+                value={eintrag.ziel}
+                onChange={(e) => setEintrag({ ...eintrag, ziel: e.target.value })}
+              >
+                <option value="">Bitte wählen …</option>
+                <Zielgruppe titel="Von der Hitlist" auswahl={wahl.hitlist} />
+                <Zielgruppe titel="Personen" auswahl={wahl.personen} />
+                <Zielgruppe titel="Organisationen" auswahl={wahl.organisationen} />
+              </select>
+            </Beschriftet>
+            <Beschriftet text="Tag" art="tag">
+              <input
+                type="date"
+                className="feld"
+                value={eintrag.datum}
+                min={event.von}
+                max={letzterTag(event)}
+                onChange={(e) => setEintrag({ ...eintrag, datum: e.target.value })}
+              />
+            </Beschriftet>
+            <Beschriftet text="Worum ging es?" art="breit">
+              <input
+                className="feld"
+                value={eintrag.titel}
+                onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })}
+              />
+            </Beschriftet>
+            <Beschriftet text="Ergebnis" art="breit">
+              <input
+                className="feld"
+                placeholder="Nächster Schritt, Zusage, offene Frage …"
+                value={eintrag.text}
+                onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })}
+              />
+            </Beschriftet>
+          </Anlegekarte>
 
           <Kennengelernt
             event={event}
@@ -1178,82 +1178,82 @@ function Kennengelernt({
 
   return (
     <div className="nachtrag">
-      <span className="beschriftung-klein">Vor Ort kennengelernt</span>
-      <div className="feld-reihe">
-        <input
-          className="feld"
-          placeholder="Name der Person"
-          value={person.name}
-          onChange={(e) => setPerson({ ...person, name: e.target.value })}
-        />
-        <input
-          className="feld"
-          placeholder="Rolle"
-          value={person.funktion}
-          onChange={(e) => setPerson({ ...person, funktion: e.target.value })}
-        />
+      <Anlegekarte
+        eingebettet
+        titel="Vor Ort kennengelernt"
+        knopf="Person anlegen"
+        anlegen={anlegen}
+        fehler={fehler}
+        abbrechen={() => {
+          setPerson(leer);
+          setFehler("");
+          setOffen(false);
+        }}
+      >
+        <Beschriftet text="Name" art="breit">
+          <input
+            className="feld"
+            autoFocus
+            value={person.name}
+            onChange={(e) => setPerson({ ...person, name: e.target.value })}
+          />
+        </Beschriftet>
+        <Beschriftet text="Rolle">
+          <input
+            className="feld"
+            value={person.funktion}
+            onChange={(e) => setPerson({ ...person, funktion: e.target.value })}
+          />
+        </Beschriftet>
         {/* Mail und Telefon stehen hier und nicht erst in den Kontakten: Was
             auf der Visitenkarte steht, hat man genau jetzt in der Hand. Wer
             dafür später die Kontakteseite aufsuchen muss, tippt es nie ab. */}
-        <input
-          className="feld"
-          type="email"
-          inputMode="email"
-          autoComplete="off"
-          placeholder="E-Mail"
-          value={person.email}
-          onChange={(e) => setPerson({ ...person, email: e.target.value })}
-        />
-        <input
-          className="feld"
-          type="tel"
-          inputMode="tel"
-          autoComplete="off"
-          placeholder="Telefon"
-          value={person.telefon}
-          onChange={(e) => setPerson({ ...person, telefon: e.target.value })}
-        />
-        <select
-          className="feld"
-          value={person.organisation}
-          onChange={(e) => setPerson({ ...person, organisation: e.target.value })}
-          aria-label="Gehört zu"
-        >
-          <option value="">Wohin gehört die Person?</option>
-          <option value={NEUES_HAUS}>＋ Neue Organisation …</option>
-          {organisationen.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-          <option value={OHNE_HAUS}>Ohne Organisation</option>
-        </select>
-        {person.organisation === NEUES_HAUS && (
+        <Beschriftet text="E-Mail">
           <input
             className="feld"
-            placeholder="Name der Organisation"
-            value={person.haus}
-            onChange={(e) => setPerson({ ...person, haus: e.target.value })}
-            aria-label="Name der neuen Organisation"
+            type="email"
+            inputMode="email"
+            autoComplete="off"
+            value={person.email}
+            onChange={(e) => setPerson({ ...person, email: e.target.value })}
           />
+        </Beschriftet>
+        <Beschriftet text="Telefon">
+          <input
+            className="feld"
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            value={person.telefon}
+            onChange={(e) => setPerson({ ...person, telefon: e.target.value })}
+          />
+        </Beschriftet>
+        <Beschriftet text="Gehört zu">
+          <select
+            className="feld"
+            value={person.organisation}
+            onChange={(e) => setPerson({ ...person, organisation: e.target.value })}
+          >
+            <option value="">Bitte wählen …</option>
+            <option value={NEUES_HAUS}>＋ Neue Organisation …</option>
+            {organisationen.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+            <option value={OHNE_HAUS}>Ohne Organisation</option>
+          </select>
+        </Beschriftet>
+        {person.organisation === NEUES_HAUS && (
+          <Beschriftet text="Name der neuen Organisation">
+            <input
+              className="feld"
+              value={person.haus}
+              onChange={(e) => setPerson({ ...person, haus: e.target.value })}
+            />
+          </Beschriftet>
         )}
-        <button type="button" className="knopf" onClick={anlegen}>
-          <Zeichen name="plus" />
-          Anlegen
-        </button>
-        <button
-          type="button"
-          className="knopf-still"
-          onClick={() => {
-            setPerson(leer);
-            setFehler("");
-            setOffen(false);
-          }}
-        >
-          Abbrechen
-        </button>
-      </div>
-      <Fehlerzeile text={fehler} />
+      </Anlegekarte>
     </div>
   );
 }

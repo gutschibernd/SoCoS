@@ -60,10 +60,12 @@ import type { Seite } from "../basis/router";
 import { melden } from "../basis/meldungen";
 import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
+import { Anlegekarte, Beschriftet, Neuknopf } from "../bausteine/Anlegekarte";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
+import { Suchfeld } from "../bausteine/Suchfeld";
 import { Zeichen } from "../bausteine/Zeichen";
 
 /** Der Weg zu den Personen ohne Organisation. Kein Name kann so heißen. */
@@ -400,69 +402,60 @@ function Uebersicht({
   return (
     <>
       {/*
-        Suchen und Anlegen sind zwei Karten, die sich nicht ähnlich sehen
-        (Rückmeldung Bernd, 2026-10-06): Vorher standen zwei gleiche Felder
-        übereinander, und wer im oberen nach einem Namen suchte und Enter
-        drückte, hatte eine neue Organisation angelegt. Jetzt steht die Suche
-        oben, das Anlegen liegt hinter einem Knopf und ist als Handlung
-        abgesetzt — man kommt nicht mehr aus Versehen hinein.
+        Suchen und Anlegen sehen sich nicht ähnlich (Rückmeldung Bernd,
+        2026-10-06): Vorher standen zwei gleiche Felder übereinander, und wer
+        im oberen nach einem Namen suchte und Enter drückte, hatte eine neue
+        Organisation angelegt. Die Suche steht in der Werkzeugleiste, das
+        Anlegen liegt hinter dem Knopf daneben und geht als eigene Karte mit
+        Kupferkante auf — man kommt nicht aus Versehen hinein.
       */}
-      <div className="karte">
-        <div className="ko-suchkopf">
-          <h2>Suchen</h2>
-          {ich.darf.bearbeiten && !anlegenOffen && (
-            <button type="button" className="knopf-still" onClick={() => setAnlegenOffen(true)}>
-              <Zeichen name="plus" />
-              Neue Organisation
-            </button>
-          )}
-        </div>
-        <div className="feld-reihe">
-          <label className="ko-suche">
-            <Zeichen name="lupe" />
-            <input
-              className="feld"
-              type="search"
-              placeholder="Organisation, Person, offener Punkt …"
-              value={suche}
-              onChange={(e) => setSuche(e.target.value)}
-              aria-label="Suchen"
-            />
-          </label>
-          <select
-            className="feld"
-            style={{ flex: "0 1 210px" }}
-            value={ball}
-            onChange={(e) => setBall(e.target.value as Ballfilter)}
-            aria-label="Wer ist am Zug"
-          >
-            <option value="alle">Alle</option>
-            <option value="uns">Warten auf uns</option>
-            <option value="ihnen">Wir warten</option>
-            <option value="nichts">Nichts offen</option>
-          </select>
+      <div className="werkzeugleiste">
+        <Suchfeld
+          wert={suche}
+          setzen={setSuche}
+          platzhalter="Organisation, Person, offener Punkt …"
+          treffer={{
+            gezeigt: gefiltert.length + (loseZeigen ? 1 : 0),
+            von: organisationen.length + (lose.length > 0 ? 1 : 0),
+          }}
+        />
+        <select
+          className="feld werkzeug-wahl"
+          value={ball}
+          onChange={(e) => setBall(e.target.value as Ballfilter)}
+          aria-label="Wer ist am Zug"
+          data-gesetzt={ball !== "alle" ? "ja" : undefined}
+        >
+          <option value="alle">Am Zug: alle</option>
+          <option value="uns">Warten auf uns</option>
+          <option value="ihnen">Wir warten</option>
+          <option value="nichts">Nichts offen</option>
+        </select>
 
-          {/*
-            Dasselbe wie ein Klick auf den Spaltenkopf, nur am Handy: Dort wird
-            aus der Tabelle eine Karte, und der Kopf — mit ihm die Sortierung —
-            ist ausgeblendet. Beide schreiben in denselben Zustand; ein zweiter
-            Sortierbegriff daneben wäre eine zweite Wahrheit.
-          */}
-          <select
-            className="feld nur-handy"
-            value={`${sortierung.nach}-${sortierung.auf ? "auf" : "ab"}`}
-            onChange={(e) => {
-              const [nach, richtung] = e.target.value.split("-");
-              setSortierung({ nach: nach as Sortierung["nach"], auf: richtung === "auf" });
-            }}
-            aria-label="Sortierung"
-          >
-            <option value="name-auf">Name A–Z</option>
-            <option value="name-ab">Name Z–A</option>
-            <option value="prioritaet-auf">Prio — wichtig zuerst</option>
-            <option value="prioritaet-ab">Prio — wichtig zuletzt</option>
-          </select>
-        </div>
+        {/*
+          Dasselbe wie ein Klick auf den Spaltenkopf, nur am Handy: Dort wird
+          aus der Tabelle eine Karte, und der Kopf — mit ihm die Sortierung —
+          ist ausgeblendet. Beide schreiben in denselben Zustand; ein zweiter
+          Sortierbegriff daneben wäre eine zweite Wahrheit.
+        */}
+        <select
+          className="feld werkzeug-wahl nur-handy"
+          value={`${sortierung.nach}-${sortierung.auf ? "auf" : "ab"}`}
+          onChange={(e) => {
+            const [nach, richtung] = e.target.value.split("-");
+            setSortierung({ nach: nach as Sortierung["nach"], auf: richtung === "auf" });
+          }}
+          aria-label="Sortierung"
+        >
+          <option value="name-auf">Name A–Z</option>
+          <option value="name-ab">Name Z–A</option>
+          <option value="prioritaet-auf">Prio — wichtig zuerst</option>
+          <option value="prioritaet-ab">Prio — wichtig zuletzt</option>
+        </select>
+
+        {ich.darf.bearbeiten && !anlegenOffen && (
+          <Neuknopf text="Neue Organisation" oeffnen={() => setAnlegenOffen(true)} />
+        )}
       </div>
 
       {ich.darf.bearbeiten && anlegenOffen && (
@@ -541,7 +534,7 @@ function Uebersicht({
                     <td data-spalte="Zuletzt" className="zahl">
                       {alsDatum(letzterKontakt(o))}
                     </td>
-                    <td data-spalte="Offener Punkt">
+                    <td data-spalte="Offener Punkt" data-breit="ja">
                       {offen.text || "—"}
                       {offen.weitere > 0 && <span className="weitere">+{offen.weitere}</span>}
                     </td>
@@ -573,7 +566,7 @@ function Uebersicht({
                   <td data-spalte="Zuletzt" className="zahl">
                     {alsDatum(verlaufDerPersonen(gefilterteLose)[0]?.datum ?? null)}
                   </td>
-                  <td data-spalte="Offener Punkt">{offenerPunkt(gefilterteLose).text || "—"}</td>
+                  <td data-spalte="Offener Punkt" data-breit="ja">{offenerPunkt(gefilterteLose).text || "—"}</td>
                 </tr>
               )}
             </tbody>
@@ -609,56 +602,51 @@ function NeueOrganisation({
     name.length >= 3 ? organisationen.filter((o) => o.name.toLowerCase().includes(name)).slice(0, 3) : [];
 
   return (
-    <div className="karte ko-neu">
-      <h2>Neue Organisation anlegen</h2>
-      <div className="feld-reihe">
+    <Anlegekarte
+      titel="Neue Organisation"
+      knopf="Organisation anlegen"
+      anlegen={anlegen}
+      abbrechen={abbrechen}
+      fehler={fehler}
+      unten={
+        gibtEs.length > 0 && (
+          <p className="ko-gibtes">
+            Gibt es schon:{" "}
+            {gibtEs.map((o, i) => (
+              <span key={o.id}>
+                {i > 0 && ", "}
+                <a
+                  href={`/kontakte/${o.id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    oeffnen(String(o.id));
+                  }}
+                >
+                  {o.name}
+                </a>
+              </span>
+            ))}
+          </p>
+        )
+      }
+    >
+      <Beschriftet text="Name" art="breit">
         <input
           className="feld"
-          placeholder="Name der neuen Organisation"
           value={neue.name}
           autoFocus={Boolean(abbrechen)}
           onChange={(e) => setNeue({ ...neue, name: e.target.value })}
-          onKeyDown={(e) => e.key === "Enter" && anlegen()}
-          aria-label="Name der neuen Organisation"
         />
+      </Beschriftet>
+      <Beschriftet text="Typ">
         <input
           className="feld"
-          placeholder="Typ (Förderstelle, Partner …)"
+          placeholder="Förderstelle, Partner …"
           value={neue.typ}
           onChange={(e) => setNeue({ ...neue, typ: e.target.value })}
-          onKeyDown={(e) => e.key === "Enter" && anlegen()}
         />
-        <button type="button" className="knopf" onClick={anlegen}>
-          <Zeichen name="plus" />
-          Anlegen
-        </button>
-        {abbrechen && (
-          <button type="button" className="knopf-still" onClick={abbrechen}>
-            Abbrechen
-          </button>
-        )}
-      </div>
-      {gibtEs.length > 0 && (
-        <p className="ko-gibtes">
-          Gibt es schon:{" "}
-          {gibtEs.map((o, i) => (
-            <span key={o.id}>
-              {i > 0 && ", "}
-              <a
-                href={`/kontakte/${o.id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  oeffnen(String(o.id));
-                }}
-              >
-                {o.name}
-              </a>
-            </span>
-          ))}
-        </p>
-      )}
-      <Fehlerzeile text={fehler} />
-    </div>
+      </Beschriftet>
+    </Anlegekarte>
   );
 }
 
@@ -1132,27 +1120,23 @@ function Personenkarte({
 
       {ich.darf.bearbeiten && (
         <div className="nachtrag">
-          <div className="feld-reihe">
-            <input
-              className="feld"
-              placeholder="Name der Person"
-              value={neue.name}
-              onChange={(e) => setNeue({ ...neue, name: e.target.value })}
-              onKeyDown={(e) => e.key === "Enter" && anlegen()}
-            />
-            <input
-              className="feld"
-              placeholder="Rolle"
-              value={neue.funktion}
-              onChange={(e) => setNeue({ ...neue, funktion: e.target.value })}
-              onKeyDown={(e) => e.key === "Enter" && anlegen()}
-            />
-            <button type="button" className="knopf-still" onClick={anlegen}>
-              <Zeichen name="plus" />
-              Person
-            </button>
-          </div>
-          <Fehlerzeile text={fehler} />
+          <Anlegekarte eingebettet titel="Neue Person" knopf="Person anlegen" anlegen={anlegen} fehler={fehler}>
+            <Beschriftet text="Name" art="breit">
+              <input
+                className="feld"
+                value={neue.name}
+                onChange={(e) => setNeue({ ...neue, name: e.target.value })}
+              />
+            </Beschriftet>
+            <Beschriftet text="Rolle">
+              <input
+                className="feld"
+                placeholder="CEO, Einkauf …"
+                value={neue.funktion}
+                onChange={(e) => setNeue({ ...neue, funktion: e.target.value })}
+              />
+            </Beschriftet>
+          </Anlegekarte>
         </div>
       )}
     </div>
@@ -1594,67 +1578,62 @@ function Verlaufskarte({
     <div className="karte">
       <h2>Verlauf</h2>
 
+      {/* Der Knopf ist nie stillgelegt: Ein grauer Knopf sagt nicht, was
+          fehlt. Er nimmt den Klick an und antwortet in der Zeile darunter. */}
       {ich.darf.bearbeiten && (
         <div className="nachbuchen">
-          <div className="feld-reihe">
-            <select
-              className="feld"
-              style={{ flex: "0 1 130px" }}
-              value={eintrag.art}
-              onChange={(e) => setEintrag({ ...eintrag, art: e.target.value })}
-              aria-label="Art"
-            >
-              {VERLAUFSARTEN.map((a) => (
-                <option key={a.wert} value={a.wert}>
-                  {a.text}
-                </option>
-              ))}
-            </select>
-            <select
-              className="feld"
-              style={{ flex: "0 1 230px" }}
-              value={eintrag.ziel}
-              onChange={(e) => setEintrag({ ...eintrag, ziel: e.target.value })}
-              aria-label="Mit wem"
-            >
-              {andasHaus !== null && <option value="haus">An die Organisation</option>}
-              {kontakte.map((k) => (
-                <option key={k.id} value={String(k.id)}>
-                  {k.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="date"
-              className="feld"
-              style={{ flex: "0 1 170px" }}
-              value={eintrag.datum}
-              onChange={(e) => setEintrag({ ...eintrag, datum: e.target.value })}
-              aria-label="Datum"
-            />
-            <input
-              className="feld"
-              style={{ flex: "1 1 220px" }}
-              placeholder="Worum ging es?"
-              value={eintrag.titel}
-              onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })}
-            />
-            <input
-              className="feld"
-              style={{ flex: "1 1 260px" }}
-              placeholder="Ergebnis, nächster Schritt …"
-              value={eintrag.text}
-              onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })}
-              onKeyDown={(e) => e.key === "Enter" && anlegen()}
-            />
-            {/* Nicht stillgelegt: Ein grauer Knopf sagt nicht, was fehlt. Er
-                nimmt den Klick an und antwortet in der Zeile darunter. */}
-            <button type="button" className="knopf" onClick={anlegen}>
-              <Zeichen name="plus" />
-              Eintragen
-            </button>
-          </div>
-          <Fehlerzeile text={fehler} />
+          <Anlegekarte eingebettet knopf="Eintragen" anlegen={anlegen} fehler={fehler}>
+            <Beschriftet text="Art">
+              <select
+                className="feld"
+                value={eintrag.art}
+                onChange={(e) => setEintrag({ ...eintrag, art: e.target.value })}
+              >
+                {VERLAUFSARTEN.map((a) => (
+                  <option key={a.wert} value={a.wert}>
+                    {a.text}
+                  </option>
+                ))}
+              </select>
+            </Beschriftet>
+            <Beschriftet text="Mit wem">
+              <select
+                className="feld"
+                value={eintrag.ziel}
+                onChange={(e) => setEintrag({ ...eintrag, ziel: e.target.value })}
+              >
+                {andasHaus !== null && <option value="haus">An die Organisation</option>}
+                {kontakte.map((k) => (
+                  <option key={k.id} value={String(k.id)}>
+                    {k.name}
+                  </option>
+                ))}
+              </select>
+            </Beschriftet>
+            <Beschriftet text="Tag" art="tag">
+              <input
+                type="date"
+                className="feld"
+                value={eintrag.datum}
+                onChange={(e) => setEintrag({ ...eintrag, datum: e.target.value })}
+              />
+            </Beschriftet>
+            <Beschriftet text="Worum ging es?" art="breit">
+              <input
+                className="feld"
+                value={eintrag.titel}
+                onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })}
+              />
+            </Beschriftet>
+            <Beschriftet text="Ergebnis" art="breit">
+              <input
+                className="feld"
+                placeholder="Nächster Schritt, Zusage, offene Frage …"
+                value={eintrag.text}
+                onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })}
+              />
+            </Beschriftet>
+          </Anlegekarte>
         </div>
       )}
 

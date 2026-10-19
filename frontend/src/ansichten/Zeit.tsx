@@ -334,7 +334,7 @@ export function Zeit({ ich }: { ich: Ich }) {
                 <tr key={b.id}>
                   <td data-spalte="Tag">{TAG.format(new Date(b.start))}</td>
                   <td data-spalte="Person">{b.person_name}</td>
-                  <td data-spalte="Projekt · Paket">
+                  <td data-spalte="Projekt · Paket" data-breit="ja">
                     {b.projekt_titel} · {b.paket_titel}
                   </td>
                   <td data-spalte="Von – bis" className="zahl">
@@ -344,7 +344,7 @@ export function Zeit({ ich }: { ich: Ich }) {
                   <td data-spalte="Dauer" className="zahl">
                     {alsDauer(b.sekunden)}
                   </td>
-                  <td data-spalte="Notiz">{b.notiz || "—"}</td>
+                  <td data-spalte="Notiz" data-breit="ja">{b.notiz || "—"}</td>
                   <td data-spalte="" className="zeilen-aktionen">
                     {ich.darf.bearbeiten && (
                       <button type="button" className="mini" onClick={() => setBearbeiten(b)}>

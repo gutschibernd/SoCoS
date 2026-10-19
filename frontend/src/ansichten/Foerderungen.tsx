@@ -75,6 +75,7 @@ import { melden } from "../basis/meldungen";
 import { AUSLASTUNGSWEG, alsEuro, betragAusEingabe, betragZumBearbeiten } from "../basis/module";
 import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
+import { Anlegekarte, Beschriftet } from "../bausteine/Anlegekarte";
 import { Entwurfsfeld } from "../bausteine/Entwurfsfeld";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Leerstelle } from "../bausteine/Leerstelle";
@@ -116,12 +117,14 @@ export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }
 
   if (geber.data.length === 0)
     return (
-      <div className="karte">
-        <Leerstelle
-          was="Noch kein Fördergeber"
-          satz="Unter einem Fördergeber — FFG, aws, KWF, ein Land — stehen seine Programme, darunter die Anträge."
-        />
+      <div className="spalte">
         {ich.darf.bearbeiten && <GeberAnlegen wechseln={wechseln} />}
+        <div className="karte">
+          <Leerstelle
+            was="Noch kein Fördergeber"
+            satz="Unter einem Fördergeber — FFG, aws, KWF, ein Land — stehen seine Programme, darunter die Anträge."
+          />
+        </div>
       </div>
     );
 
@@ -155,8 +158,8 @@ export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }
           />
         ))}
         {ich.darf.bearbeiten && (
-          <Dazu text="Fördergeber" titel="Neuer Fördergeber">
-            <GeberAnlegen wechseln={wechseln} autoFokus />
+          <Dazu text="Fördergeber">
+            {(abbrechen) => <GeberAnlegen wechseln={wechseln} abbrechen={abbrechen} />}
           </Dazu>
         )}
       </div>
@@ -164,8 +167,18 @@ export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }
   );
 }
 
-/** Erst ein Knopf, erst nach dem Tippen darauf ein Feld — Neues ist hier selten. */
-function Dazu({ text, titel, children }: { text: string; titel: string; children: React.ReactNode }) {
+/**
+ * Erst ein Knopf, erst nach dem Tippen darauf ein Feld — Neues ist hier
+ * selten. Abbrechen (oder Esc) macht wieder den Knopf daraus; vorher blieb
+ * das Feld stehen, bis man die Seite verließ.
+ */
+function Dazu({
+  text,
+  children,
+}: {
+  text: string;
+  children: (abbrechen: () => void) => React.ReactNode;
+}) {
   const [offen, setOffen] = useState(false);
   if (!offen)
     return (
@@ -174,12 +187,7 @@ function Dazu({ text, titel, children }: { text: string; titel: string; children
         {text}
       </button>
     );
-  return (
-    <div className="karte fd-programm-neu">
-      <h2>{titel}</h2>
-      {children}
-    </div>
-  );
+  return <div className="fd-programm-neu">{children(() => setOffen(false))}</div>;
 }
 
 /** „aws – Austria Wirtschaftsservice" unter „AWS" → „Austria Wirtschaftsservice". */
@@ -226,45 +234,54 @@ function Geberkachel({
 
 /** Ein Feld, ein Knopf: einen Namen eintippen, anlegen, dorthin wechseln. */
 function Anlegen({
+  titel,
+  knopf,
   platzhalter,
-  autoFokus,
+  abbrechen,
   anlegen,
 }: {
+  titel: string;
+  knopf: string;
   platzhalter: string;
-  autoFokus?: boolean;
+  /** Fehlt, wenn es noch nichts gibt — dann ist Anlegen das Einzige. */
+  abbrechen?: () => void;
   anlegen: (name: string) => Promise<void>;
 }) {
   const [name, setName] = useState("");
+  const [fehler, setFehler] = useState("");
   return (
-    <form
-      className="feld-reihe fd-neu"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (name.trim()) await anlegen(name.trim());
+    <Anlegekarte
+      titel={titel}
+      knopf={knopf}
+      abbrechen={abbrechen}
+      fehler={fehler}
+      anlegen={async () => {
+        if (!name.trim()) return setFehler("Ohne Namen gibt es nichts anzulegen.");
+        setFehler("");
+        await anlegen(name.trim());
       }}
     >
-      <input
-        className="feld"
-        value={name}
-        placeholder={platzhalter}
-        autoFocus={autoFokus}
-        aria-label={platzhalter}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <button type="submit" className="knopf" disabled={!name.trim()}>
-        <Zeichen name="plus" />
-        Anlegen
-      </button>
-    </form>
+      <Beschriftet text="Name" art="breit">
+        <input
+          className="feld"
+          value={name}
+          placeholder={platzhalter}
+          autoFocus={Boolean(abbrechen)}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </Beschriftet>
+    </Anlegekarte>
   );
 }
 
-function GeberAnlegen({ wechseln, autoFokus }: { wechseln: Wechseln; autoFokus?: boolean }) {
+function GeberAnlegen({ wechseln, abbrechen }: { wechseln: Wechseln; abbrechen?: () => void }) {
   const neuLaden = useNeuLaden();
   return (
     <Anlegen
-      platzhalter="Name des Fördergebers, z. B. FFG"
-      autoFokus={autoFokus}
+      titel="Neuer Fördergeber"
+      knopf="Fördergeber anlegen"
+      platzhalter="z. B. FFG"
+      abbrechen={abbrechen}
       anlegen={async (name) => {
         const neu = await hole<Foerdergeber>("/foerdergeber/", { method: "POST", body: JSON.stringify({ name }) });
         neuLaden();
@@ -274,12 +291,14 @@ function GeberAnlegen({ wechseln, autoFokus }: { wechseln: Wechseln; autoFokus?:
   );
 }
 
-function ProgrammAnlegen({ geber, wechseln, autoFokus }: { geber: number; wechseln: Wechseln; autoFokus?: boolean }) {
+function ProgrammAnlegen({ geber, wechseln, abbrechen }: { geber: number; wechseln: Wechseln; abbrechen: () => void }) {
   const neuLaden = useNeuLaden();
   return (
     <Anlegen
-      platzhalter="Name des Programms, z. B. Basisprogramm"
-      autoFokus={autoFokus}
+      titel="Neues Förderprogramm"
+      knopf="Programm anlegen"
+      platzhalter="z. B. Basisprogramm"
+      abbrechen={abbrechen}
       anlegen={async (name) => {
         const neu = await hole<Foerderprogramm>("/foerderprogramme/", {
           method: "POST",
@@ -387,8 +406,8 @@ export function Geberseite({ ich, id, wechseln }: { ich: Ich; id: number; wechse
             <Programmkachel key={p.id} programm={p} wechseln={wechseln} />
           ))}
           {darf && (
-            <Dazu text="Programm dazu" titel="Neues Förderprogramm">
-              <ProgrammAnlegen geber={geber.id} wechseln={wechseln} autoFokus />
+            <Dazu text="Programm dazu">
+              {(abbrechen) => <ProgrammAnlegen geber={geber.id} wechseln={wechseln} abbrechen={abbrechen} />}
             </Dazu>
           )}
         </div>

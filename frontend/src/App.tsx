@@ -7,6 +7,7 @@ import { Zeichen } from "./bausteine/Zeichen";
 import { Seitenleiste } from "./bausteine/Seitenleiste";
 import { Meldungen } from "./bausteine/Meldungen";
 import { Neuigkeiten } from "./bausteine/Neuigkeiten";
+import { useSuchtaste } from "./bausteine/Suchfeld";
 import { Aufgaben } from "./ansichten/Aufgaben";
 import { Dashboard } from "./ansichten/Dashboard";
 import { Doku } from "./ansichten/Doku";
@@ -66,6 +67,7 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
 export function App() {
   const ich = useIch();
   const { ort, wechseln, zurueck, kannZurueck } = useSeite();
+  useSuchtaste();
 
   // Wer nicht angemeldet ist, gehört zur Anmeldung — nicht auf eine
   // Fehlerseite, von der aus es keinen Weg weitergibt.

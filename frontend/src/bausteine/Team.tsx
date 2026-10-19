@@ -56,7 +56,7 @@ export function Team({ ich }: { ich: Ich }) {
                 {p.name}
                 {p.id === ich.id && <span className="team-du">du</span>}
               </td>
-              <td data-spalte="E-Mail">{p.email}</td>
+              <td data-spalte="E-Mail" data-breit="ja">{p.email}</td>
               <td data-spalte="Rolle">
                 {p.id === ich.id ? (
                   // Sonst nimmt sich der letzte Admin versehentlich selbst die

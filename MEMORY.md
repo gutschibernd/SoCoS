@@ -7,6 +7,39 @@ betrifft.
 
 ---
 
+## 2026-10-19 — Suchen und Anlegen als je ein Baustein (kein Schema)
+
+**Bernd:** Suchfelder und Anlegefelder überarbeiten, das ganze Werkzeug
+leichter bedienbar machen, Struktur ungefähr gleich lassen.
+
+- **Ein Suchfeld** (`bausteine/Suchfeld.tsx`) statt eines je Liste: Lupe,
+  Kreuz und Esc zum Leeren, die Trefferzahl im Feld („3 von 40"). Die Taste
+  „/" springt hinein (`useSuchtaste`, **einmal** in App.tsx eingehängt —
+  je Feld zögen zwei Suchfelder auf einer Seite gegeneinander am Fokus).
+  Neu dazu: Suche im Archiv der Aufgaben.
+- **Eine Anlegekarte** (`bausteine/Anlegekarte.tsx`) statt eines Formulars
+  je Liste. Sie steht **hinter einem Knopf** in der Werkzeugleiste
+  (`Neuknopf`); vorher stand das Formular auf Events und Meetings dauerhaft
+  über der Suche. Nur eine leere Liste zeigt es gleich offen. `<form>`:
+  Enter aus jedem Feld (vorher im Datumsfeld nie), Esc bricht ab, gesperrt,
+  solange der Server arbeitet (vorher ergab ein Doppelklick zwei Einträge).
+  **Beschriftung über jedem Feld**, kein Platzhalter als Beschriftung.
+  `eingebettet` für Formulare in einer Karte (Neue Person, Verlauf
+  eintragen, Vor Ort kennengelernt) — ohne Rahmen, Knöpfe in der Feldreihe.
+- **Am Handy wird aus der Tabelle eine Karte mit zwei Spalten**, nicht mit
+  einer: Beschriftung klein über dem Wert, kurze Felder nebeneinander. Die
+  erste Zelle und Zellen mit `data-breit` nehmen die ganze Breite. Eine
+  Organisation brauchte vorher ~720 px Höhe, jetzt ~290. Die Zeilen trennt
+  eine Linie statt einer Karte in der Karte.
+- **Kartenüberschriften in der Textfarbe, 15 px** statt im Ton der
+  Spaltenköpfe. Abweichung von „Werkbank" — Abschnitt und Spalte sahen
+  gleich aus, und beim Überfliegen fand man die Abschnitte nur an den Kanten.
+- **Nicht** angefasst: die Neuzeile der Aufgaben und die letzte Zeile der
+  Designentscheidungen. Beide sind „Titel tippen, Enter" für etwas, das man
+  oft und schnell anlegt — dort ist die immer offene Zeile richtig.
+
+---
+
 ## 2026-10-15 — Designentscheidungen: mit KI überarbeiten (kein Schema)
 
 **Bernd:** alle ausgefüllten Felder als LLM-Befehl kopieren, Rechtschreibung

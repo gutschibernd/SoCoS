@@ -22,6 +22,30 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-10-19",
+        "titel": "Suchen und Anlegen überall gleich",
+        "punkte": [
+            {
+                "titel": "Neues anlegen über den Knopf rechts",
+                "text": (
+                    "Auf Events, Meetings und Kontakten steht das Formular zum Anlegen nicht mehr "
+                    "dauerhaft über der Liste. „Neues Event“, „Neues Meeting“ oder „Neue Organisation“ "
+                    "rechts neben der Suche öffnet es; Enter legt an, Esc bricht ab."
+                ),
+                "wo": "events",
+            },
+            {
+                "titel": "Eine Suche für alle Listen",
+                "text": (
+                    "Jede Suche zeigt jetzt, wie viel sie findet, und leert sich mit dem Kreuz oder Esc. "
+                    "Die Taste „/“ springt von überall auf der Seite hinein. Neu: Das Archiv der Aufgaben "
+                    "lässt sich durchsuchen."
+                ),
+                "wo": "aufgaben/archiv",
+            },
+        ],
+    },
+    {
         "version": "2026-10-15",
         "titel": "Neues Modul: Designentscheidungen",
         "punkte": [

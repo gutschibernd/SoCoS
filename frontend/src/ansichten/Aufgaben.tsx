@@ -50,6 +50,7 @@ import type { Seite } from "../basis/router";
 import { useAufgaben, useNeuLaden, useTeam, type Aufgabe, type Ich, type Teammitglied } from "../basis/daten";
 import { Zustand } from "../basis/Zustand";
 import { Leerstelle } from "../bausteine/Leerstelle";
+import { Suchfeld } from "../bausteine/Suchfeld";
 import { Zeichen } from "../bausteine/Zeichen";
 
 type Speichern = (aufgabe: Aufgabe, daten: Partial<Aufgabe>) => Promise<void>;
@@ -68,6 +69,9 @@ export function Aufgaben({
   const team = useTeam();
   const neuLaden = useNeuLaden();
   const [filter, setFilter] = useState<Filter>("allgemein");
+  // Nur im Archiv: Es wächst jede Woche, und „wann haben wir das erledigt?"
+  // ließ sich vorher nur durch Scrollen durch die Monate beantworten.
+  const [suche, setSuche] = useState("");
   // Welche Zeile aufgeklappt ist, samt Spalte: Eine Aufgabe steht oft links
   // **und** rechts, und aufklappen soll nur die, auf die getippt wurde.
   const [offen, setOffen] = useState<string | null>(null);
@@ -113,6 +117,11 @@ export function Aufgaben({
 
   const gemeinsam = { ich, personen, darfSchreiben, speichern, offen, setOffen };
 
+  const gesucht = suche.trim().toLowerCase();
+  const imArchiv = gesucht ? aufgaben.filter((a) => a.text.toLowerCase().includes(gesucht)) : aufgaben;
+  const archivZahl = (liste: Aufgabe[]) =>
+    archiv(liste, wirksam, ich.id).reduce((n, m) => n + m.aufgaben.length, 0);
+
   const filterleiste = (mitMeinen: boolean) => (
     <Filterleiste
       aufgaben={aufgaben}
@@ -140,7 +149,17 @@ export function Aufgaben({
           </button>
         </div>
 
-        {ansicht === "archiv" && filterleiste(true)}
+        {ansicht === "archiv" && (
+          <>
+            <Suchfeld
+              wert={suche}
+              setzen={setSuche}
+              platzhalter="Im Archiv suchen …"
+              treffer={{ gezeigt: archivZahl(imArchiv), von: archivZahl(aufgaben) }}
+            />
+            {filterleiste(true)}
+          </>
+        )}
       </div>
 
       {darfSchreiben && ansicht !== "archiv" && (
@@ -172,7 +191,16 @@ export function Aufgaben({
         </div>
       )}
       {ansicht === "ideen" && <Ideenliste aufgaben={aufgaben} spalte="ideen" filter="alle" {...gemeinsam} />}
-      {ansicht === "archiv" && <Archivliste aufgaben={aufgaben} spalte="archiv" filter={wirksam} {...gemeinsam} />}
+      {ansicht === "archiv" &&
+        (gesucht && archivZahl(imArchiv) === 0 ? (
+          <Leerstelle
+            was="Nichts gefunden"
+            satz="Keine erledigte Aufgabe passt zur Suche."
+            aktion={{ text: "Suche zurücksetzen", tun: () => setSuche("") }}
+          />
+        ) : (
+          <Archivliste aufgaben={imArchiv} spalte="archiv" filter={wirksam} {...gemeinsam} />
+        ))}
     </div>
   );
 }

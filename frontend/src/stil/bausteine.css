@@ -160,7 +160,9 @@
   min-height: 52px; padding: 7px 24px;
   background: var(--flaeche); border-bottom: 1px solid var(--rand);
 }
-.kontextleiste h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+/* 18 statt 16 px: Der Seitenname ist das Erste, was man nach einem Wechsel
+   sucht, und er stand kaum größer als die Kartenüberschriften darunter. */
+.kontextleiste h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
 .kontext-trenner { width: 1px; height: 16px; background: var(--rand); flex: 0 0 1px; }
 .kontextleiste .unter { font-size: 12.5px; color: var(--text-sehr-leise); }
 
@@ -180,8 +182,9 @@
 
 /* --- Die Beschriftung --------------------------------------------------- */
 /*
- * **Ein** Ort für den Ton, der über einer Karte, einer Tabellenspalte, einem
- * Bereich oder einer Kennzahl steht.
+ * **Ein** Ort für den Ton, der über einer Tabellenspalte, einem Bereich oder
+ * einer Kennzahl steht. Die Überschrift einer Karte gehört seit 2026-10-19
+ * nicht mehr dazu — siehe `.karte > h2`.
  *
  * Vorher stand dieselbe Deklaration elfmal in dieser Datei — jedesmal
  * `11px / 0.1em gesperrt / VERSALIEN`. Elf Kopien heißt: Wer den Ton ändert,
@@ -196,8 +199,6 @@
  * Eine einzige Stelle behält Versalien: die Gruppenüberschrift der
  * Seitenleiste (ab Etappe 2). Zwei Wörter, nie Fließtext.
  */
-.karte > h2,
-.ko-suchkopf > h2,
 .pl-kartenkopf > h2,
 .kennzahl .beschriftung,
 .tabelle th,
@@ -222,8 +223,19 @@
   background: var(--flaeche); border: 1px solid var(--rand);
   border-radius: var(--kante); padding: 18px 20px;
 }
+/*
+ * Die Überschrift einer Karte ist eine Überschrift und keine Beschriftung.
+ *
+ * Sie stand im Ton der Spaltenköpfe (12,5 px, grau) — „Organisationen" über
+ * der Tabelle sah genauso aus wie „Typ" und „Stufe" darunter, und wer eine
+ * lange Seite überflog, fand die Abschnitte nur an den Kartenkanten. Jetzt in
+ * der Textfarbe und eine Stufe größer: Abschnitt und Spalte sind zwei Ebenen,
+ * und so sehen sie jetzt auch aus. Weicht von „Werkbank" ab; der Vorteil ist
+ * das Überfliegen.
+ */
 .karte > h2 {
   margin: 0 0 12px;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--text);
 }
 
 /*
@@ -238,19 +250,9 @@
 .karte-achtung { border-left: 3px solid var(--warnung); background: var(--warnung-hell); }
 .karte-achtung > h2 { color: var(--text); }
 
-/* Kontakte: Suchen und Anlegen dürfen sich nicht ähnlich sehen. Die Suche
-   trägt eine Lupe im Feld, das Anlegen die Kupferkante der Handlung. */
-.ko-suchkopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.ko-suchkopf > h2 { margin: 0; }
-.ko-suche { position: relative; display: block; }
-.ko-suche > .zeichen {
-  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-  width: 18px; height: 18px; color: var(--text-leise); pointer-events: none;
-}
-.ko-suche > .feld { padding-left: 40px; }
-.ko-neu { border-left: 3px solid var(--akzent); background: var(--akzent-hell); }
-.ko-neu > h2 { color: var(--text); }
-.ko-gibtes { margin: 10px 0 0; font-size: 13px; color: var(--text); }
+/* Kontakte: Wer beim Anlegen einen Namen tippt, den es schon gibt, sieht ihn
+   unter den Feldern — bevor ein Doppel entsteht. */
+.ko-gibtes { margin: 12px 0 0; font-size: 13px; color: var(--text); }
 .ko-gibtes a { color: var(--marke); font-weight: 600; }
 
 .raster { display: grid; gap: 16px; }
@@ -744,9 +746,112 @@
   border: 1px solid var(--rand-stark); border-radius: var(--kante);
   background: var(--flaeche); color: var(--text);
 }
+/* Ein Feld zeigt, dass es eines ist, bevor man hineinklickt. Vorher sah es
+   unter der Maus genauso aus wie daneben — bei einem Auswahlfeld, das wie
+   eine Marke gestaltet ist, war das die einzige Frage: Kann ich das ändern? */
+.feld:hover:not(:disabled):not(:focus) { border-color: var(--text-sehr-leise); }
+.feld:disabled { background: var(--flaeche-leise); color: var(--text-leise); cursor: default; }
+/* Der Platzhalter stand im Grau des Browsers — im dunklen Thema kaum lesbar,
+   im hellen dunkler als die leise Schrift daneben. Jetzt der leiseste Ton
+   der Palette, gerechnet gegen Fläche, Grund und leise Fläche. */
+.feld::placeholder, .aufgaben-neu-feld::placeholder { color: var(--text-sehr-leise); opacity: 1; }
+/* Kästchen und Knöpfe zum Anklicken in der Handlungsfarbe statt im Blau des
+   Systems — das einzige Blau, das sonst nirgends vorkommt. */
+input[type="checkbox"], input[type="radio"] { accent-color: var(--akzent); }
 .feld-reihe { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .feld-reihe > * { flex: 1 1 160px; }
 .feld-reihe > .knopf, .feld-reihe > .knopf-still { flex: 0 0 auto; }
+
+/* --- Werkzeugleiste: Suchen · Filtern · Neu ------------------------------ */
+/*
+ * Über jeder Liste dieselbe Reihe: das Suchfeld links, Filter daneben, der
+ * Knopf zum Anlegen rechts außen. Keine Karte darum und keine Überschrift
+ * „Suchen" darüber — ein Feld mit Lupe sagt, wofür es da ist, und die Karte
+ * kostete eine Zeile Höhe, bevor die erste Organisation zu sehen war.
+ *
+ * Vorher stand auf Events und Meetings das Formular zum Anlegen dauerhaft
+ * über der Suche: Was man einmal im Monat tut, schob das, was man täglich tut,
+ * eine halbe Bildschirmhöhe nach unten.
+ */
+.werkzeugleiste { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.werkzeugleiste > .suchfeld { flex: 1 1 280px; max-width: 560px; }
+.werkzeugleiste > .knopf { margin-left: auto; }
+/* `.feld` bringt `width: 100%` mit — ohne feste Breite nähme ein Filter die
+   ganze Reihe (siehe .kopf-aktionen). */
+/* `min-width: 0`: Ein Auswahlfeld wird sonst nie schmaler als seine längste
+   Option — am Handy standen die beiden Filter deshalb untereinander statt
+   nebeneinander. */
+.werkzeug-wahl { flex: 0 1 200px; width: auto; min-width: 0; }
+/* Ein gesetzter Filter sieht anders aus als keiner — sonst sucht man, warum
+   die Liste so kurz ist, und findet den Grund in einem unscheinbaren Feld. */
+.werkzeug-wahl[data-gesetzt="ja"] {
+  border-color: var(--marke); background: var(--marke-hell); color: var(--marke); font-weight: 600;
+}
+
+.suchfeld { position: relative; display: flex; align-items: center; min-width: 0; }
+.suchfeld > .zeichen {
+  position: absolute; left: 13px; width: 17px; height: 17px;
+  color: var(--text-sehr-leise); pointer-events: none;
+}
+.suchfeld:focus-within > .zeichen { color: var(--text); }
+.suchfeld > .feld { padding-left: 40px; padding-right: var(--griff); }
+/* Rechts im Feld stehen Trefferzahl und Kreuz — der Text läuft nicht darunter. */
+.suchfeld:has(.suchfeld-treffer) > .feld { padding-right: 132px; }
+/* Das System zeichnet sonst ein zweites Kreuz in seiner eigenen Form. */
+.suchfeld > .feld::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.suchfeld-leeren {
+  position: absolute; right: 0; top: 0; bottom: 0; width: var(--griff);
+  display: grid; place-items: center;
+  border: 0; background: none; color: var(--text-leise); cursor: pointer;
+}
+.suchfeld-leeren:hover { color: var(--akzent); }
+.suchfeld-leeren .zeichen { width: 15px; height: 15px; }
+.suchfeld-treffer {
+  position: absolute; right: var(--griff);
+  font-size: 12px; color: var(--text-leise); white-space: nowrap; pointer-events: none;
+}
+/* Der Hinweis auf die Taste „/". Nur, solange das Feld leer ist und nicht
+   den Fokus hat, und nur mit Maus — am Handy gibt es die Taste nicht. */
+.suchfeld-taste {
+  position: absolute; right: 12px;
+  min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center;
+  border: 1px solid var(--rand); border-radius: var(--kante); background: var(--flaeche-leise);
+  font-family: var(--schrift-zahl); font-size: 11px; color: var(--text-sehr-leise);
+  pointer-events: none;
+}
+.suchfeld:focus-within .suchfeld-taste { display: none; }
+@media (hover: none) { .suchfeld-taste { display: none; } }
+
+/* --- Anlegen ------------------------------------------------------------- */
+/*
+ * Die Karte, die hinter „Neues …" aufgeht (bausteine/Anlegekarte.tsx). Die
+ * Kupferkante links ist die der Handlung; sie unterscheidet das Anlegen von
+ * der Suche darüber. Die Fläche bleibt weiß — eine getönte Fläche machte die
+ * weißen Felder darin zu Löchern.
+ */
+.anlegekarte { border-left: 3px solid var(--akzent); }
+.anlegekarte > h2 { margin-bottom: 14px; font-size: 15px; color: var(--text); }
+.anlegefelder { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.anlegefelder > .feldblock { flex: 1 1 200px; width: auto; }
+.anlegefelder > .feldblock-breit { flex: 3 1 300px; }
+.anlegefelder > .feldblock-tag { flex: 0 0 168px; }
+.anlegefelder > .feldblock-uhrzeit { flex: 0 0 118px; }
+.anlegefelder > .schalter { flex: 0 0 auto; }
+.anlegeknoepfe { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+
+/* Eingebettet — in einer Karte, ohne eigenen Rahmen. Felder und Knöpfe
+   stehen in **einer** Reihe, solange dort Platz ist; Hinweis und Fehler
+   darunter. `display: contents` macht die Felder zu Geschwistern der Knöpfe,
+   ohne dass die Komponente zwei Formen von Markup kennt. */
+.anlegekarte-eingebettet { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.anlegekarte-eingebettet > .anlegefelder { display: contents; }
+.anlegekarte-eingebettet > .feldblock, .anlegekarte-eingebettet > .anlegefelder > .feldblock { flex: 1 1 180px; }
+.anlegekarte-eingebettet > .anlegefelder > .feldblock-breit { flex: 2 1 240px; }
+.anlegekarte-eingebettet > .anlegefelder > .feldblock-tag { flex: 0 0 168px; }
+.anlegekarte-eingebettet > .anlegetitel { flex: 1 0 100%; }
+.anlegekarte-eingebettet > .anlegeknoepfe { order: 1; margin-top: 0; }
+.anlegekarte-eingebettet > :not(.anlegefelder, .anlegeknoepfe, .anlegetitel) { order: 2; flex: 1 0 100%; margin-top: 0; }
+.anlegetitel { margin: 0 0 -4px; font-size: 13.5px; font-weight: 600; color: var(--text); }
 
 /* --- Die laufende Uhr ---------------------------------------------------- */
 /*
@@ -1239,7 +1344,7 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
    Formular aus. Die Anrede bekommt nur so viel Breite, wie „ohne Anrede"
    braucht — der Rest gehört dem Organisationsnamen, der lang werden kann. */
 .person-felder { display: flex; gap: 8px; align-items: flex-end; }
-.person-anrede { flex: 0 0 108px; }
+.person-anrede { flex: 0 0 122px; }
 .person-haus { flex: 1; min-width: 0; }
 .person-felder label { display: block; }
 .person-felder .beschriftung-klein { margin-bottom: 3px; }
@@ -1496,7 +1601,15 @@ a.mini { text-decoration: none; }
   font: inherit; color: inherit;
 }
 .inline-aendern:hover { border-color: var(--rand-stark); background: var(--flaeche-leise); }
-.inline-aendern .leer { color: var(--text-sehr-leise); font-style: italic; }
+/* Was fehlt, sieht nach Fehlen aus — überall, nicht nur im änderbaren Feld.
+   „niemand eingetragen" in der Meetingliste stand vorher in der Textfarbe
+   und las sich wie ein Name. */
+.leer { color: var(--text-sehr-leise); font-style: italic; }
+
+/* Ein leerer Abschnitt einer Liste („Kommend", wenn nichts ansteht): ein
+   Satz, keine Leerstelle mit Überschrift. Die volle Leerstelle nahm über
+   100 px ein und schob die Liste darunter, um die es ging, nach unten. */
+.leerzeile { margin: 0; font-size: 14px; color: var(--text-leise); }
 
 .ordnen { display: inline-flex; gap: 4px; align-items: center; }
 .ordnen .mini { min-width: 32px; justify-content: center; }
@@ -1552,6 +1665,7 @@ a.mini { text-decoration: none; }
 .aufgaben-spaltentitel .zahl { font-family: var(--schrift-zahl); font-size: 12px; font-weight: 400; color: var(--text-sehr-leise); }
 .aufgaben-kopf { display: flex; flex-direction: column; gap: 12px; }
 .aufgaben-kopf > .spannenwahl { align-self: flex-start; }
+.aufgaben-kopf > .suchfeld { max-width: 560px; }
 .aufgaben-kopf .spannenwahl .zahl { margin-left: 6px; font-size: 12px; opacity: 0.8; }
 
 /* Knöpfe mit An/Aus: der Filter, die Personen, die Schnellfristen. Einer
@@ -2565,24 +2679,59 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 
   /* Aus einer Tabelle wird eine Karte — aus demselben Markup, über das
      data-spalte je Zelle. Keine zweite Ansicht: die zweite wird beim nächsten
-     neuen Feld vergessen. */
-  .tabelle, .tabelle tbody, .tabelle tr, .tabelle td { display: block; width: 100%; }
+     neuen Feld vergessen.
+
+     **Zwei Spalten in der Karte, nicht eine.** Mit einem Feld je Zeile war
+     eine Organisation acht Zeilen hoch und füllte den Bildschirm; zwei Stück
+     sah man nie zugleich. Jetzt steht die Beschriftung klein über dem Wert,
+     und kurze Felder teilen sich eine Zeile. Die ganze Breite bekommen die
+     erste Zelle — das, worum es in der Zeile geht — und lange Texte, die ihre
+     Zelle mit `data-breit` ankündigen. Die Beschriftung der ersten Zelle
+     fällt weg: Über einem Namen stünde „Organisation". */
+  .tabelle, .tabelle tbody { display: block; width: 100%; }
   .tabelle thead { display: none; }
   /* Mit dem Kopf verschwinden auch die sortierbaren Spalten. Das Feld in der
      Filterzeile tritt an ihre Stelle — derselbe Zustand, andere Form. */
   .nur-handy { display: block; flex: 1 1 100%; }
+  /* Die Zeilen trennt eine Linie, keine eigene Karte: Jede Zeile als Karte in
+     der Karte kostete Rand um Rand Breite, und von 375 px blieben 280. */
   .tabelle tr {
-    border: 1px solid var(--rand); border-radius: var(--kante);
-    margin-bottom: 10px; padding: 4px 0; background: var(--flaeche);
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px;
+    padding: 4px 0 8px; border-bottom: 1px solid var(--rand);
   }
+  .tabelle tbody tr:last-child { border-bottom: 0; padding-bottom: 0; }
+  .tabelle tbody tr:hover td { background: none; }
   .tabelle td {
-    display: flex; justify-content: space-between; gap: 14px;
-    border-bottom: 1px solid var(--flaeche-leise); text-align: right;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    min-width: 0; padding: 8px 0; border-bottom: 0; text-align: left;
   }
+  .tabelle td:first-child, .tabelle td[data-breit] { grid-column: 1 / -1; }
   .tabelle td::before {
     content: attr(data-spalte);
-    text-align: left; flex: 0 0 auto;
+    /* Nicht in der Zahlenschrift, auch wenn die Zelle eine Zahl trägt. */
+    font-family: var(--schrift); font-size: 12px;
   }
+  .tabelle td:first-child::before, .tabelle td[data-spalte=""]::before { display: none; }
+  .tabelle td > select { max-width: 100%; }
+  .karte { padding: 16px; }
+
+  /* Die Beizeile bricht am Handy unter die Überschrift — der Strich dazwischen
+     hinge dann allein am Zeilenende. */
+  .kontext-trenner { display: none; }
+
+  /* Zwei Zeilen statt vier: oben die Suche mit dem „+" daneben, darunter die
+     Filter nebeneinander. Das Wort im Knopf bleibt für Vorlesesoftware da. */
+  .werkzeugleiste > .suchfeld { flex: 1 1 calc(100% - var(--griff) - 8px); max-width: none; }
+  .werkzeugleiste > .neuknopf { order: 1; flex: 0 0 var(--griff); margin-left: 0; padding: 0; }
+  .werkzeugleiste > .werkzeug-wahl { order: 2; flex: 1 1 120px; }
+  .neuknopf-text {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  /* Beim Anlegen ein Feld je Zeile; nur Tag und Uhrzeit teilen sich eine. */
+  .anlegefelder > .feldblock, .anlegefelder > .feldblock-breit { flex: 1 1 100%; }
+  .anlegefelder > .feldblock-tag, .anlegefelder > .feldblock-uhrzeit { flex: 1 1 130px; }
+  .anlegeknoepfe > .knopf { flex: 1 1 auto; }
 
   .raster-4, .raster-3, .raster-2, .kacheln, .modul-kacheln, .thema-kacheln, .doku-wege { grid-template-columns: 1fr; }
   .themenideen .art-text { display: none; }
@@ -2660,8 +2809,10 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 
   .mini { min-height: var(--griff); }
   .draht-zeile > .draht-kopie { min-height: var(--griff); min-width: var(--griff); }
-  .tabelle td.zeilen-aktionen { justify-content: flex-end; }
-  .tabelle td.zeilen-aktionen::before { content: "Aktionen"; }
+  /* Die Knöpfe sagen selbst, was sie tun — eine Beschriftung „Aktionen"
+     darüber wäre eine Zeile Höhe für nichts. */
+  .tabelle td.zeilen-aktionen { grid-column: 1 / -1; flex-direction: row; justify-content: flex-start; }
+  .tabelle td.zeilen-aktionen::before { display: none; }
 
   /* Auf der Kontakteseite: Stufe und „Entfernen" bekommen die ganze Breite,
      statt sich zu zweit 375 px zu teilen. */
@@ -2787,6 +2938,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-geberkachel:hover .fd-geberzeiger { color: var(--akzent); }
 .fd-geberraster > .fd-antrag-dazu { min-height: 132px; }
 .fd-geberraster > .fd-programm-neu { grid-column: span 2; }
+.fd-programme > .fd-programm-neu { grid-column: 1 / -1; }
 
 /* Die Übersicht: je Programm eine Kachel, zwei je Zeile. */
 .fd-programme { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -4106,14 +4258,20 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
  * (Bernd, 2026-10-15: weg vom Werkbank-Stil, wo er die Arbeit schlechter
  * macht). Hier steht nur, was die Entscheidungen zusätzlich brauchen.
  */
-.de-suche {
-  display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 0; min-height: 36px;
-  padding: 0 10px; border: 1px solid var(--rw-line); border-radius: 8px; background: var(--rw-surface); color: var(--rw-faint);
+/* Das gemeinsame Suchfeld (bausteine/Suchfeld.tsx) in dieser Optik: runde
+   Ecke, die Linie und die Töne der Planung statt der Werkbank. */
+.de-suche { flex: 1 1 240px; }
+.de-suche > .feld {
+  min-height: 36px; border-color: var(--rw-line); border-radius: 8px;
+  background: var(--rw-surface); color: var(--rw-ink);
 }
-.de-suche svg { width: 15px; height: 15px; flex: none; }
-/* 16 px, sonst zoomt iOS beim Hineintippen. */
-.de-suche input { flex: 1; min-width: 0; min-height: 34px; border: 0; background: transparent; outline: none; font-size: 16px; color: var(--rw-ink); }
-.de-suche:focus-within { border-color: var(--rw-accent); }
+.de-suche > .feld:hover:not(:focus) { border-color: var(--rw-faint); }
+.de-suche > .feld:focus-visible { outline: 2px solid var(--rw-accent); outline-offset: 0; border-color: var(--rw-accent); }
+.de-suche > .zeichen, .de-suche .suchfeld-treffer { color: var(--rw-faint); }
+.de-suche .suchfeld-leeren { width: 36px; color: var(--rw-muted); }
+.de-suche .suchfeld-leeren:hover { color: var(--rw-accent); }
+.de-suche .suchfeld-treffer { right: 36px; }
+.de-suche .suchfeld-taste { border-color: var(--rw-line); background: var(--rw-surface-2); color: var(--rw-faint); border-radius: 4px; }
 .de-textknopf { border: 0; background: none; padding: 0; color: var(--rw-accent); font-weight: 600; cursor: pointer; text-decoration: underline; }
 
 .de-liste { list-style: none; margin: 0; padding: 0; }
