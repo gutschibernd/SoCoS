@@ -200,8 +200,7 @@
 .tabelle th,
 .sicherung-teil h3,
 .klapptitel,
-.projektphase h4,
-.tiefe-kopf,
+.phase-kopf .phase-summe,
 .beschriftung-klein,
 .tabelle td::before {
   font-size: 12.5px;
@@ -1190,58 +1189,26 @@ a.leiste-knopf { text-decoration: none; }
 .overhead .projekt-kopf { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
 
 /* Die im Gantt gewählte Phase, unter dem Gantt. */
-.projektphase { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--rand-stark); }
-.projektphase h4 {
-  margin: 0 0 12px; font-size: 16px; color: var(--text);
-  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
-}
-.projektphase h4 > a.knopf-still { text-decoration: none; }
 .phase-gliedern {
   display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 0 0 14px;
 }
 .phase-gliedern > label { display: flex; flex-direction: column; gap: 2px; min-width: 150px; }
 .phase-gliedern .ordnen { margin-left: auto; }
-.paket-umzug { min-height: 36px; max-width: 220px; padding: 4px 8px; }
-.projektphase h4 .art {
-  padding: 2px 8px; border-radius: var(--kante-klein);
-  background: var(--flaeche-leise); color: var(--text-leise); letter-spacing: 0.04em;
+/* Die gewählte Phase: eine eigene Karte unter dem Gantt. */
+.phase-kopf {
+  margin: 0 0 12px; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; color: var(--text);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
-.projektphase h4 .abgeschlossen { background: var(--gut-hell); color: var(--gut); }
-.projektphase h4 .phase-summe {
+.phase-kopf .art {
+  padding: 2px 8px; border-radius: var(--kante-klein); font-size: 12px; font-weight: 600;
+  background: var(--flaeche-leise); color: var(--text-leise);
+}
+.phase-kopf .phase-summe {
   margin-left: auto; white-space: nowrap; font-size: 13px;
-  font-weight: 400; font-family: var(--schrift-zahl); color: var(--text-leise);
-  font-variant-numeric: tabular-nums;
+  font-weight: 400; font-family: var(--schrift-zahl); font-variant-numeric: tabular-nums;
 }
 
-.paket {
-  border: 1px solid var(--rand); border-radius: var(--kante-karte);
-  padding: 10px 12px; margin-bottom: 8px; background: var(--flaeche);
-}
-.paket-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 9px; }
-.paket-titel {
-  flex: 1; min-width: 160px; text-align: left;
-  background: none; border: 0; padding: 6px 0; cursor: pointer;
-  font-size: 15px; font-weight: 500; color: var(--text);
-  display: flex; align-items: center; gap: 8px; min-height: var(--griff);
-}
-.paket-titel:hover { color: var(--marke); }
-.paket-kopf .fortschritt { font-size: 13px; color: var(--text-leise); }
 select.status { border: 1px solid transparent; min-height: var(--griff); padding: 6px 10px; }
-
-.paket-tiefe { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--rand); }
-.tiefe-kopf { margin-bottom: 7px; }
-/* Je Person: Name, Balken, Zahl — der Balken nimmt, was übrig bleibt. Name
-   und Zahl haben feste Breiten, damit die Balken zweier Personen an derselben
-   Stelle beginnen und enden — sonst vergleicht man Längen, die nichts
-   vergleichen. */
-.pensum-zeile { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 12px; margin-bottom: 6px; }
-.pensum-zeile .pensum-person { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pensum-zeile .pensum-zahl { font-size: 12.5px; color: var(--text-leise); white-space: nowrap; }
-.paket-tiefe .beschreibung { margin: 12px 0 0; font-size: 14px; color: var(--text-leise); line-height: 1.5; }
-
-.unteraufgaben { list-style: none; margin: 12px 0 0; padding: 0; }
-.unteraufgaben li { display: flex; align-items: center; gap: 9px; padding: 6px 0; font-size: 14px; }
-.unteraufgaben span[data-erledigt="ja"] { text-decoration: line-through; color: var(--text-sehr-leise); }
 
 /* --- Kontakte ------------------------------------------------------------ */
 
@@ -1517,7 +1484,6 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .monatswahl { display: flex; align-items: center; gap: 6px; }
 .monatswahl h2 { margin: 0; min-width: 9.5em; text-align: center; font-size: 17px; }
 .monatswahl .mini { width: 36px; padding: 0; }
-.zeichen-links { transform: scaleX(-1); }
 .zeitkopf-wer { width: auto; }
 .zeitkopf-summe { display: flex; flex-direction: column; line-height: 1.2; margin-left: auto; text-align: right; }
 .zeitkopf-summe b { font-size: 20px; font-weight: 600; }
@@ -1667,21 +1633,6 @@ a.mini { text-decoration: none; }
 
 .ordnen { display: inline-flex; gap: 4px; align-items: center; }
 .ordnen .mini { min-width: 32px; justify-content: center; }
-.paket-aufklappen {
-  background: none; border: 0; cursor: pointer; padding: 0 4px;
-  color: var(--text-leise); font-size: 13px;
-  min-height: var(--griff); min-width: 28px;
-}
-.paket-aufklappen:hover { color: var(--marke); }
-/* Ein Zeichen, gedreht — nicht zwei. Zwei Zeichen (auf/zu) laufen beim
-   nächsten Nachbessern auseinander. */
-.paket-aufklappen { display: inline-flex; align-items: center; justify-content: center; }
-.paket-aufklappen .zeichen { width: 14px; height: 14px; }
-.paket-aufklappen[aria-expanded="true"] .zeichen { transform: rotate(90deg); }
-.paket-titel { flex: 1; min-width: 150px; font-size: 15px; font-weight: 500; }
-.unteraufgaben li { justify-content: flex-start; }
-.unteraufgaben li > span { flex: 1; }
-.unteraufgaben input[type="checkbox"] { width: 18px; height: 18px; }
 
 .feld-klein { min-height: 34px; padding: 5px 8px; font-size: 13px; margin-top: 7px; }
 .beschriftung-klein {
@@ -2837,11 +2788,6 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .feld-klein { min-height: var(--griff); font-size: 15px; }
   select.status { font-size: 15px; }
 
-  /* Je Person untereinander: 120 px Name neben einem Balken passen bei
-     375 px nicht mehr, ohne dass der Balken zum Strich wird. */
-  .pensum-zeile { grid-template-columns: 1fr auto; }
-  .pensum-zeile .balken { grid-column: 1 / -1; }
-
   /* Die zwei Filter nebeneinander, nicht je eine halbe leere Zeile. */
   .projekt-werkzeug > select.feld { flex: 1 1 40%; }
   /* Die Zeile zum Buchen: der Knopf unter das Paket, über die volle Breite. */
@@ -3689,30 +3635,13 @@ a.gantt-wahl { text-decoration: none; }
 
 /* --- Projektplanung (ansichten/Planung.tsx) ---------------------------------- */
 /*
- * Die Liste der Phasen steht im Stil der Module-Übersicht. Die Planung einer
- * Phase ist dagegen ein eigenes Werkzeug und sieht aus wie die Runway-Planung
- * (Bernd, 2026-10-15: vom Werkbank-Stil weg, damit echte Projektplanung
- * übersichtlich bleibt): runde Ecken, Pillen, Kacheln. Alles steht unter `.pl`,
- * die Farben sind die `--rw-*` aus farben.css — dort gegen ihre Untergründe
- * gerechnet, und eine zweite Palette daneben liefe auseinander.
+ * `.pl` ist die runde Optik mit den Farben `--rw-*` — so sehen heute die
+ * Designentscheidungen aus (Bernd, 2026-10-15). Die Planung einer Phase stand
+ * bis 2026-10-19 ebenfalls darin; seit sie in die Projektseite gezogen ist,
+ * trägt sie dort die Grundoptik (Abschnitt „Planung in der Projektseite"
+ * unten).
  */
 
-.pl-liste > h2 { margin-bottom: 8px; }
-.pl-liste ul { list-style: none; margin: 0; padding: 0; }
-.pl-liste li { border-top: 1px solid var(--rand); }
-.pl-liste a {
-  display: flex; align-items: center; gap: 12px; min-height: 52px;
-  color: var(--text); text-decoration: none;
-}
-.pl-liste a:hover { color: var(--akzent); }
-.pl-liste a:hover .modul-zeiger { color: var(--akzent); }
-.pl-listentitel { display: flex; flex-direction: column; min-width: 0; }
-.pl-listentitel b { font-weight: 500; }
-.pl-listentitel em { font-style: normal; font-size: 12px; color: var(--text-sehr-leise); }
-.pl-liste .art {
-  padding: 2px 8px; border-radius: var(--kante-klein); font-size: 12px;
-  background: var(--marke-hell); color: var(--marke);
-}
 
 .pl { display: flex; flex-direction: column; gap: 16px; color: var(--rw-ink); font-size: 14px; line-height: 1.45; }
 .pl h2, .pl h3 { margin: 0; letter-spacing: -0.01em; color: var(--rw-ink); }
@@ -3979,6 +3908,7 @@ span.pl-paketstatus { cursor: default; }
     gap: 6px 8px; padding: 6px 12px 8px 8px;
   }
   .pl-zeilen { padding: 0 12px 4px; }
+
   .pl-gruppenkopf > .pl-klappe { grid-area: klappe; width: var(--griff); height: var(--griff); margin-left: -6px; }
   .pl-gruppenkopf > .pl-nr { grid-area: nr; }
   .pl-gruppenkopf > .pl-pakettitel { grid-area: titel; white-space: normal; }
@@ -4019,6 +3949,112 @@ span.pl-paketstatus { cursor: default; }
   .pl-stundenraster { grid-template-columns: minmax(0, 1fr); padding-left: 0; }
   .pl-ziele li { grid-template-columns: 28px minmax(0, 1fr) auto; }
   .pl-ziele li > .pl-sub { grid-column: 2; }
+}
+
+/* --- Planung in der Projektseite (Projekt.tsx · Planung.tsx) -------------- */
+/*
+ * Grundoptik statt der runden Planungsoptik (Bernd, 2026-10-19). Die Regeln
+ * oben unter `.pl` gelten weiter — für die Designentscheidungen. Hier zeigen
+ * ihre Farbnamen auf die Grundpalette, und Ecken und Schatten folgen der
+ * Grundoptik.
+ *
+ * **Warum umbenannte Töne und keine zweite Abschrift aller Regeln:** Jede
+ * Regel zweimal, einmal rund und einmal straff, liefe beim nächsten Feld
+ * auseinander. Die Paare, die dabei entstehen, sind in test_kontrast.py
+ * schon gerechnet: Text auf Fläche und leiser Fläche, --marke auf
+ * --marke-hell, die Statuschips, --auf-marke auf --marke.
+ */
+.projektphase .pl {
+  --rw-ink: var(--text); --rw-muted: var(--text-leise); --rw-faint: var(--text-sehr-leise);
+  --rw-line: var(--rand-stark); --rw-line-2: var(--rand);
+  --rw-surface: var(--flaeche); --rw-surface-2: var(--flaeche-leise);
+  --rw-accent: var(--marke); --rw-accent-soft: var(--marke-hell); --rw-on-accent: var(--auf-marke);
+  --rw-ok: var(--gut); --rw-ok-soft: var(--gut-hell);
+  --rw-warn: var(--wartend); --rw-warn-soft: var(--wartend-hell);
+  --rw-bad: var(--warnung); --rw-bad-soft: var(--warnung-hell);
+  --rw-schatten: none;
+  gap: 14px; font-size: 14px;
+}
+/* Die Pakete als Liste mit Trennlinien, nicht als sieben Karten mit grauem
+   Kopf: In der Karte der Phase wären es Karten in einer Karte. Ein offenes
+   Paket hebt sich mit der leisen Fläche ab. */
+.projektphase .pl-gruppe { border: 0; border-top: 1px solid var(--rand); border-radius: 0; margin: 0; background: none; }
+.projektphase .pl-gruppe:last-of-type { border-bottom: 1px solid var(--rand); }
+.projektphase .pl-gruppenkopf {
+  grid-template-columns: 32px auto minmax(0, 1fr) auto auto 150px 36px;
+  min-height: 52px; padding: 6px 4px; background: none; border-radius: 0;
+}
+.projektphase .pl-gruppe[data-offen] { background: var(--flaeche-leise); padding-bottom: 6px; }
+.projektphase .pl-gruppe[data-offen] > .pl-gruppenkopf { border-radius: 0; border-bottom: 0; }
+.projektphase .pl-gruppe[data-offen] .pl-zeile:hover { background: var(--flaeche); }
+.projektphase .pl-gruppenkopf .pl-paketstatus, .projektphase .pl-gruppenkopf .pl-zaehler { background: var(--flaeche-leise); }
+.projektphase .pl-gruppe[data-offen] .pl-gruppenkopf .pl-paketstatus,
+.projektphase .pl-gruppe[data-offen] .pl-gruppenkopf .pl-zaehler { background: var(--flaeche); }
+/* Der Filter der Aufgaben ist eine leise Wahl neben den Reitern, keine zweite
+   kupferne Leiste: Zwei gleich laute Umschalter nebeneinander lesen sich als
+   eine Frage mit sechs Antworten. */
+.pl-leiste .spannenwahl button[aria-pressed="true"] { background: var(--flaeche-leise); color: var(--text); font-weight: 600; }
+.projektphase .pl-gruppenkopf > .pl-nr,
+.projektphase .pl-paketstatus, .projektphase .pl-zaehler, .projektphase .pl-lage, .projektphase .pl-wer { border-radius: var(--kante-klein); }
+.projektphase .pl-klappe, .projektphase .pl-mehrknopf, .projektphase .pl-zeile, .projektphase .pl-neu,
+.projektphase .pl-wahl, .projektphase .pl-knopf, .projektphase .pl-knopf-leise, .projektphase .pl-zeile .feld { border-radius: var(--kante); }
+.projektphase .gantt-balken { border-radius: var(--kante-klein); }
+/* Der Titel trägt darunter Antragsmonate und Stunden je Person — die Zeile,
+   die vorher eine eigene Ansicht brauchte („Stunden & Antrag"). */
+.pl-pakettitel { display: flex; flex-direction: column; line-height: 1.3; }
+.pl-pakettitel > em { font-style: normal; font-weight: 400; font-size: 12.5px; color: var(--rw-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-start { width: 36px; padding: 0; }
+.pl-paketgliedern { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 14px 0 56px; }
+.pl-paketgliedern > .pl-wahl { flex: 0 1 360px; min-width: 0; }
+.pl-beschreibung { padding: 10px 14px 4px 56px; font-size: 14px; line-height: 1.5; color: var(--rw-muted); white-space: pre-line; }
+
+/* Die vier Zahlen der Phase in einer Zeile, keine Kacheln. */
+.projektphase .pl-kennzahlen {
+  display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center;
+  padding: 10px 0 12px; border-bottom: 1px solid var(--rand);
+}
+.projektphase .pl-kennzahl {
+  display: flex; align-items: baseline; gap: 6px; padding: 0; border: 0; border-radius: 0;
+  background: none; box-shadow: none; overflow: visible; font: inherit; color: var(--text);
+}
+.projektphase .pl-kennzahl::before { content: none; }
+.projektphase .pl-kennzahl b { font-size: 18px; font-weight: 600; }
+.projektphase .pl-kennzahl em { font-style: normal; font-size: 13px; color: var(--text-leise); }
+.projektphase button.pl-kennzahl { min-height: 32px; }
+.projektphase button.pl-kennzahl:hover em { color: var(--akzent); }
+.projektphase .pl-kennzahl[data-ton="schlecht"] b { color: var(--warnung); }
+.pl-foerderung { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); margin-right: 8px; }
+.pl-foerderung > .zeichen { color: var(--marke); width: 18px; height: 18px; }
+.pl-foerderung > span { display: flex; flex-direction: column; line-height: 1.25; }
+.pl-foerderung b { font-weight: 600; font-size: 14px; }
+.pl-foerderung em { font-style: normal; font-size: 12.5px; color: var(--text-leise); }
+.pl-foerderung:hover b { color: var(--marke); }
+
+/* Reiter links, die Filter der Aufgaben rechts daneben. */
+.pl-reiter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.pl-reiter > .spannenwahl button { min-height: 36px; }
+.pl-reiter > .pl-leiste { flex: 1 1 auto; padding: 0; }
+.pl-abschnitt + .pl-abschnitt { border-top: 1px solid var(--rand); padding-top: 14px; }
+.pl-abschnitt > h2 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+.projektphase .pl-bezahlt { padding: 0 0 14px; }
+
+/* Am Handy hinter den Regeln oben, nicht im Handy-Block der `.pl`: Der steht
+   früher in der Datei, und das Raster von hier schlüge ihn sonst. */
+@media (max-width: 720px) {
+  .projektphase .pl-gruppenkopf {
+    grid-template-columns: 32px auto auto minmax(0, 1fr) var(--griff);
+    grid-template-areas: "klappe nr titel titel titel" ". status zaehler stand start";
+    padding: 8px 0;
+  }
+  .projektphase .pl-gruppenkopf > :last-child { grid-area: start; }
+  .projektphase .pl-start { width: var(--griff); min-height: var(--griff); }
+  .pl-pakettitel > em { white-space: normal; }
+  .pl-paketgliedern, .pl-beschreibung { padding-left: 4px; padding-right: 4px; }
+  .projektphase .pl-zeilen { padding: 0 4px 4px; }
+  .projektphase .pl-kennzahlen { gap: 6px 18px; }
+  .pl-reiter > .spannenwahl { width: 100%; }
+  .pl-reiter > .spannenwahl button { flex: 1; min-height: var(--griff); }
+  .phase-kopf { font-size: 17px; }
 }
 
 /* --- Module · Runway-Planung ---------------------------------------------- */

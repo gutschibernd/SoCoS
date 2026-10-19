@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from "react";
 
-import { MODULWEGE, designAusWeg, foerderauslastungAusWeg, foerderungAusWeg, planungAusWeg, themaAusWeg } from "./module";
+import { MODULWEGE, designAusWeg, foerderauslastungAusWeg, foerderungAusWeg, themaAusWeg } from "./module";
 
 export const SEITEN = [
   "start",
@@ -89,7 +89,8 @@ export type Profilteil = (typeof PROFILTEILE)[number];
  * sie zeigt dann die Liste.
  */
 const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
-  projekt: (unter) => unter === "bearbeiten",
+  // „bearbeiten", oder die Nummer der Phase, die unter dem Gantt aufgeht.
+  projekt: (unter) => unter === "bearbeiten" || /^\d+$/.test(unter),
   aufgaben: (unter) => unter === "ideen" || unter === "archiv",
   kontakte: (unter) => unter === "lose" || /^\d+$/.test(unter),
   events: (unter) => /^\d+$/.test(unter),
@@ -98,15 +99,13 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   // Liste steht in basis/module.ts und nicht ein zweites Mal hier. Dazu ein
   // einzelnes Praktikumsthema: `/module/praktikum/12`, `/module/praktikum-ideen/7`,
   // Fördergeber, Programm und Antrag: `/module/foerderungen/2`, `/2/1`, `/2/1/3`,
-  // und die Auslastung daneben: `/module/foerderungen/auslastung`. Die
-  // Planung einer Phase: `/module/planung/28`, eine Designentscheidung:
-  // `/module/design/7`.
+  // und die Auslastung daneben: `/module/foerderungen/auslastung`, eine
+  // Designentscheidung: `/module/design/7`.
   module: (unter) =>
     MODULWEGE.includes(unter) ||
     themaAusWeg(unter) !== null ||
     foerderungAusWeg(unter) !== null ||
     foerderauslastungAusWeg(unter) !== null ||
-    planungAusWeg(unter) !== null ||
     designAusWeg(unter) !== null,
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
   profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),
@@ -139,8 +138,18 @@ const tiefe = () => (window.history.state as Weggeschichte)?.tiefe ?? 0;
  */
 export type Wechselart = { ruecksprung?: boolean };
 
+/**
+ * Die Projektplanung ist seit 2026-10-19 Teil der Projektseite. Ein altes
+ * Lesezeichen auf `/module/planung/28` führt zur selben Phase dort, statt auf
+ * der Übersicht zu landen.
+ */
+function alterWeg(teile: string[]): string[] {
+  if (teile[0] === "module" && teile[1] === "planung") return ["projekt", ...teile.slice(2)];
+  return teile;
+}
+
 export function ausPfad(pfad: string): Ort {
-  const teile = pfad.replace(/^\/+/, "").split("/").filter(Boolean);
+  const teile = alterWeg(pfad.replace(/^\/+/, "").split("/").filter(Boolean));
   const seite = (SEITEN as readonly string[]).includes(teile[0]) ? (teile[0] as Seite) : "start";
   const erlaubt = UNTERWEG[seite];
   // Alles hinter der Seite, auch über mehrere Stufen — ob die Stufen dort

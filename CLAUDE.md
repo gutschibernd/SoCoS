@@ -204,9 +204,11 @@ Vorteil.
 
 **Wer abweicht, nimmt die zweite Optik, die es schon gibt — keine dritte:**
 runde Ecken, leise Schatten, Pillen, Tafeln unter `.pl` (bzw. `.rw`), Farben
-`--rw-*`. So sehen heute die Runway-Planung, die Projektplanung und die
-Designentscheidungen aus (Bernd, 2026-10-14/-15) — nicht auf die Grundoptik
-zurückbauen. Eine dritte Palette liefe auseinander, und ihre Kontraste müsste
+`--rw-*`. So sehen heute die Runway-Planung und die Designentscheidungen aus
+(Bernd, 2026-10-14/-15) — nicht auf die Grundoptik zurückbauen. Die
+Projektplanung trug sie auch, bis sie am 2026-10-19 in die Projektseite zog;
+dort trägt sie auf Bernds Wunsch die Grundoptik (`.projektphase .pl` zeigt
+die `--rw-*`-Namen auf die Grundtöne). Eine dritte Palette liefe auseinander, und ihre Kontraste müsste
 jemand neu rechnen.
 
 **Was bei jeder Optik gilt, auch abweichend:** Farben nur in `farben.css`,

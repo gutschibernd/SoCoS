@@ -3,7 +3,7 @@
  *
  * `/module` ist die Übersicht aller Module, `/module/praktikum` die
  * Praktikantenstellen (in `Praktikum.tsx`), `/module/thoughts`,
- * `/module/foerderungen`, `/module/planung` und `/module/design` je eine
+ * `/module/foerderungen` und `/module/design` je eine
  * eigene Seite.
  */
 
@@ -12,7 +12,6 @@ import {
   useFoerderungen,
   useLagekarte,
   usePraktikumsthemen,
-  useProjekte,
   useRunway,
   type Ich,
 } from "../basis/daten";
@@ -25,10 +24,8 @@ import {
   themaAusWeg,
   foerderauslastungAusWeg,
   foerderungAusWeg,
-  planungAusWeg,
   type Designteil,
   type Foerderteil,
-  type Planungsteil,
   type Runwayteil,
   type Kartenteil,
   type Modul,
@@ -41,7 +38,6 @@ import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
 import { Foerderauslastung } from "./Foerderauslastung";
 import { Antragsseite, Foerderungen, Geberseite, Programmseite } from "./Foerderungen";
-import { Planungsliste, Planungsseite } from "./Planung";
 import { Runway } from "./Runway";
 import { Designliste, Entscheidungsseite } from "./Design";
 import { Achse } from "../basis/runway";
@@ -60,8 +56,6 @@ export function Module({
   const thema = themaAusWeg(unter);
   if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} />;
   if (foerderauslastungAusWeg(unter)) return <Foerderauslastung ich={ich} wechseln={wechseln} />;
-  const planung = planungAusWeg(unter);
-  if (planung) return <Planungsseite key={planung.phase} ich={ich} id={planung.phase} wechseln={wechseln} />;
   const entscheidung = designAusWeg(unter);
   if (entscheidung)
     return <Entscheidungsseite key={entscheidung.id} ich={ich} id={entscheidung.id} wechseln={wechseln} />;
@@ -76,7 +70,6 @@ export function Module({
   const { modul, teil } = treffer;
   if (teil.schluessel === "thoughts") return <Thoughts ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "foerderung") return <Foerderungen ich={ich} wechseln={wechseln} />;
-  if (teil.schluessel === "planung") return <Planungsliste wechseln={wechseln} />;
   if (teil.schluessel === "runway") return <Runway ich={ich} />;
   if (teil.schluessel === "design") return <Designliste ich={ich} wechseln={wechseln} />;
   return (
@@ -125,8 +118,6 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
                 <Themenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "thoughts" ? (
                 <Kartenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
-              ) : teil.schluessel === "planung" ? (
-                <Planungszeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "runway" ? (
                 <Runwayzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "design" ? (
@@ -232,32 +223,6 @@ function Foerderzeile({ teil, stelle, wechseln }: { teil: Foerderteil; stelle: n
         <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
         {teil.titel}
         <span className="modul-stand">{stand}</span>
-        <Zeichen name="zeiger" klasse="modul-zeiger" />
-      </a>
-    </li>
-  );
-}
-
-/** Eine Zeile der Kachel für die Projektplanung: wie viele Phasen etwas zu planen haben. */
-function Planungszeile({ teil, stelle, wechseln }: { teil: Planungsteil; stelle: number; wechseln: Wechseln }) {
-  const projekte = useProjekte();
-  // Dieselbe Auswahl wie die Liste selbst: Pakete oder ein Antrag.
-  const zahl = projekte.data
-    ?.filter((p) => !p.ist_auffang)
-    .flatMap((p) => p.phasen)
-    .filter((ph) => ph.pakete.length > 0 || ph.foerderantrag !== null).length;
-  return (
-    <li>
-      <a
-        href={`/module/${teil.weg}`}
-        onClick={(e) => {
-          e.preventDefault();
-          wechseln("module", teil.weg);
-        }}
-      >
-        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
-        {teil.titel}
-        <span className="modul-stand">{zahl === undefined ? "" : `${zahl} ${zahl === 1 ? "Phase" : "Phasen"}`}</span>
         <Zeichen name="zeiger" klasse="modul-zeiger" />
       </a>
     </li>

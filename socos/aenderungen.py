@@ -39,8 +39,8 @@ VERSIONEN = [
             {
                 "titel": "Das Menü ordnet nach dem, was du tun willst",
                 "text": (
-                    "Links stehen jetzt Arbeit, Extern und Geld. Thoughts, Förderungen, Projektplanung und "
-                    "Runway-Planung haben eigene Einträge — „Module“ gibt es nicht mehr. Designentscheidungen "
+                    "Links stehen jetzt Arbeit, Extern und Geld. Thoughts, Förderungen und Runway-Planung "
+                    "haben eigene Einträge — „Module“ gibt es nicht mehr. Designentscheidungen "
                     "und Praktikantenstellen liegen unter Ablage, die aufklappt, wenn der Zeiger darüber steht."
                 ),
                 "wo": "doku/ueberblick",
@@ -51,6 +51,15 @@ VERSIONEN = [
                     "Unten links und am Handy über der Fußleiste steht die Uhr nur noch während einer Buchung. "
                     "Am Handy führt die Fußleiste jetzt zu Übersicht, Aufgaben, Kontakten und Thoughts."
                 ),
+            },
+            {
+                "titel": "Projektplanung ist jetzt Teil der Projektseite",
+                "text": (
+                    "Unter dem Gantt geht die gewählte Phase auf: je Paket eine Zeile mit Antragsmonaten, "
+                    "Stunden je Person, Status und ▶, aufgeklappt die Aufgaben. Zeitplan und Antrag sind "
+                    "Reiter daneben. Im Gantt stehen nur noch Phasen mit Zeitraum."
+                ),
+                "wo": "projekt",
             },
             {
                 "titel": "Zeit buchen in einer Zeile",

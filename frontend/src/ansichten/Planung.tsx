@@ -1,24 +1,22 @@
 /**
- * Module · Projektplanung: eine Projektphase mit ihren Paketen und Aufgaben —
- * und, wenn die Phase aus einem Förderantrag bezahlt wird, der Antrag als
- * Maßstab daneben.
+ * Die Planung einer Projektphase — seit 2026-10-19 **ein Teil der
+ * Projektseite** und keine eigene Seite mehr: Unter dem Gantt steht die
+ * gewählte Phase mit ihren Paketen, Stunden und Aufgaben.
  *
- * `/module/planung` listet die Phasen, `/module/planung/28` plant eine. Von der
- * Projektseite führt ein Klick auf eine Phase hierher.
+ * **Warum zusammengelegt** (Bernd, 2026-10-19: „ich hab da massiv die
+ * Übersicht verloren"): Projekt und Projektplanung zeigten beide dieselben
+ * Pakete — einmal mit Pensum und Clock-in, einmal mit Aufgaben und Antrag —
+ * und man wusste nie, wo was zu ändern war. Jetzt gibt es je Paket eine
+ * Zeile: Stunden je Person, Antragsmonate, Status, ▶; aufgeklappt die
+ * Aufgaben.
  *
- * **Drei Ansichten statt einer langen Seite** (Bernd, 2026-10-15: „sehr
- * unübersichtlich … in der realen Welt ist vieles agil und nicht so wie im
- * Angebot"). Vorher standen die Pakete zweimal da — im Gantt und darunter als
- * Karten mit den Antragstexten —, und bearbeiten ließ sich eine Aufgabe nur in
- * der Karte, weit unter dem Gantt. Jetzt: „Aufgaben" ist die Arbeitsliste,
- * jede Zeile an Ort und Stelle änderbar; „Zeitplan" ist der Gantt;
- * „Stunden & Antrag" ist, was man nachschlägt. Pakete legt man hier an und
- * benennt sie um, Aufgaben schiebt man in ein anderes Paket — der Plan
- * ändert sich, und das Werkzeug soll das nicht schwerer machen als nötig.
+ * **Drei Reiter statt einer langen Seite** (Bernd, 2026-10-15): „Pakete &
+ * Stunden" ist die Arbeitsliste, „Zeitplan" der Gantt der Aufgaben, „Antrag"
+ * das, was man nachschlägt.
  *
- * **Eigene Optik wie die Runway-Planung** (Bernd: vom Werkbank-Stil weg, wo
- * er hier im Weg steht). Alles unter `.pl`, die Farben sind die `--rw-*`
- * aus farben.css — zwei eigenständige Werkzeuge, eine Farbwelt.
+ * **Die Grundoptik** wie der Rest von SoCoS (Bernd, 2026-10-19). Die
+ * Klassennamen `.pl-*` sind geblieben; ihre Töne zeigen in bausteine.css auf
+ * die Grundpalette.
  *
  * **Die Aufgaben dürfen vom Antrag abweichen, die Stunden nicht** (Bernd,
  * 2026-10-13): Gebucht wird aufs Arbeitspaket, und das Arbeitspaket zeigt auf
@@ -35,7 +33,6 @@ import {
   useFoerderungen,
   useNeuLaden,
   usePlanung,
-  useProjekte,
   useTeam,
   type Ich,
   type Planung,
@@ -43,7 +40,7 @@ import {
   type Planungspaket,
 } from "../basis/daten";
 import { antragsstandText } from "../basis/foerderungen";
-import { monatsText, plusTage, zeitraumText } from "../basis/gantt";
+import { plusTage, zeitraumText } from "../basis/gantt";
 import {
   aufgabenImPlan,
   alsH,
@@ -58,6 +55,7 @@ import {
   type Zeige,
 } from "../basis/planung";
 import { alsPfad, type Seite } from "../basis/router";
+import { clockIn } from "../basis/uhr";
 import { Zustand } from "../basis/Zustand";
 import { Datumsfeld } from "../bausteine/Datumsfeld";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
@@ -83,86 +81,52 @@ function useSpeichern() {
 
 const fehlertext = (e: unknown) => (e instanceof ApiFehler ? lesbarerGrund(e) : "Das hat nicht geklappt.");
 
-/* --- Die Liste der Phasen --------------------------------------------------- */
-
-/**
- * Die Phasen aller Projekte, die etwas zu planen haben — Pakete oder einen
- * Antrag. Die leeren stehen auf der Projektseite; hier wären sie nur Zeilen,
- * hinter denen nichts ist.
- */
-export function Planungsliste({ wechseln }: { wechseln: Wechseln }) {
-  const abfrage = useProjekte();
-  if (!abfrage.data) return <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />;
-  const projekte = abfrage.data
-    .filter((p) => !p.ist_auffang)
-    .map((p) => ({ ...p, phasen: p.phasen.filter((ph) => ph.pakete.length > 0 || ph.foerderantrag !== null) }))
-    .filter((p) => p.phasen.length > 0);
-
-  if (projekte.length === 0)
-    return (
-      <div className="karte">
-        <Leerstelle
-          was="Noch keine Phase mit Arbeitspaketen"
-          satz="Geplant wird eine Projektphase mit ihren Paketen. Angelegt werden sie auf der Projektseite."
-          aktion={{ text: "Zur Projektseite", tun: () => wechseln("projekt") }}
-        />
-      </div>
-    );
-
-  return (
-    <div className="spalte">
-      {projekte.map((projekt) => (
-        <section key={projekt.id} className="karte pl-liste">
-          <h2>{projekt.titel}</h2>
-          <ul>
-            {projekt.phasen.map((phase) => {
-              const aufgaben = phase.pakete.reduce((n, p) => n + p.unteraufgaben.length, 0);
-              const weg = `planung/${phase.id}`;
-              return (
-                <li key={phase.id}>
-                  <a
-                    href={alsPfad("module", weg)}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      wechseln("module", weg);
-                    }}
-                  >
-                    <span className="pl-listentitel">
-                      <b>{phase.titel}</b>
-                      <em>{monatsText(phase.von, phase.bis)}</em>
-                    </span>
-                    {phase.foerderantrag !== null && <span className="art">Förderung</span>}
-                    <span className="modul-stand">
-                      {phase.pakete.length} {phase.pakete.length === 1 ? "Paket" : "Pakete"} · {aufgaben}{" "}
-                      {aufgaben === 1 ? "Aufgabe" : "Aufgaben"}
-                    </span>
-                    <Zeichen name="zeiger" klasse="modul-zeiger" />
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
-    </div>
-  );
-}
-
 /* --- Die Planung einer Phase ------------------------------------------------ */
 
-export function Planungsseite({ ich, id, wechseln }: { ich: Ich; id: number; wechseln: Wechseln }) {
-  const abfrage = usePlanung(id);
+/** Was nur im Bearbeiten der Projektseite gilt: wohin ein Paket umziehen kann. */
+export type Phasenwahl = { id: number; text: string }[];
+
+export function Phasenplanung({
+  phase,
+  ich,
+  bearbeiten,
+  phasenwahl,
+  buchbar,
+  wechseln,
+}: {
+  phase: number;
+  ich: Ich;
+  bearbeiten: boolean;
+  phasenwahl: Phasenwahl;
+  /** Pakete, auf die die Uhr laufen darf — das entscheidet der Server (`paket.buchbar`). */
+  buchbar: Set<number>;
+  wechseln: Wechseln;
+}) {
+  const abfrage = usePlanung(phase);
   if (!abfrage.data) return <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />;
-  return <Planungsinhalt key={id} planung={abfrage.data} ich={ich} wechseln={wechseln} />;
+  return (
+    <Planungsinhalt
+      key={phase}
+      planung={abfrage.data}
+      ich={ich}
+      bearbeiten={bearbeiten}
+      phasenwahl={phasenwahl}
+      buchbar={buchbar}
+      wechseln={wechseln}
+    />
+  );
 }
 
 type Ansicht = "aufgaben" | "zeitplan" | "antrag";
 
 const ANSICHTEN: { wert: Ansicht; text: string }[] = [
-  { wert: "aufgaben", text: "Aufgaben" },
+  { wert: "aufgaben", text: "Pakete & Stunden" },
   { wert: "zeitplan", text: "Zeitplan" },
-  { wert: "antrag", text: "Stunden & Antrag" },
+  { wert: "antrag", text: "Antrag" },
 ];
+
+/** Was die Teile der Planung brauchen, ohne dass jeder es einzeln durchreicht. */
+type Rahmen = { bearbeiten: boolean; phasenwahl: Phasenwahl; buchbar: Set<number> };
 
 /** Ansicht und Filter bleiben im Browser stehen — wer morgens „Jetzt dran" will, will es morgen wieder. */
 const MERKEN = "socos-planung";
@@ -174,7 +138,14 @@ function gemerkt(): { ansicht: Ansicht; filter: Filter } {
   }
 }
 
-function Planungsinhalt({ planung, ich, wechseln }: { planung: Planung; ich: Ich; wechseln: Wechseln }) {
+function Planungsinhalt({
+  planung,
+  ich,
+  bearbeiten,
+  phasenwahl,
+  buchbar,
+  wechseln,
+}: { planung: Planung; ich: Ich; wechseln: Wechseln } & Rahmen) {
   const [stand, setStand] = useState(gemerkt);
   const merken = (teil: Partial<typeof stand>) => {
     const neu = { ...stand, ...teil };
@@ -185,6 +156,11 @@ function Planungsinhalt({ planung, ich, wechseln }: { planung: Planung; ich: Ich
       /* ohne Speicher im Browser geht es auch */
     }
   };
+  const rahmen: Rahmen = { bearbeiten, phasenwahl, buchbar };
+  // Den Reiter „Antrag" gibt es ohne Antrag nur für den, der einen zuordnen
+  // kann — für alle anderen stünde dort nur, dass es keinen gibt.
+  const ansichten = ANSICHTEN.filter((a) => a.wert !== "antrag" || planung.antrag || ich.darf.bearbeiten);
+  const ansicht = ansichten.some((a) => a.wert === stand.ansicht) ? stand.ansicht : "aufgaben";
   // Eine gemerkte Person, die in dieser Phase keine Aufgabe hat, filterte
   // alles weg — ohne dass man sähe, warum.
   const personen = personenMitAufgaben(planung.pakete);
@@ -195,8 +171,10 @@ function Planungsinhalt({ planung, ich, wechseln }: { planung: Planung; ich: Ich
 
   // Zugeklappt, nicht aufgeklappt: Neue Pakete sollen offen dastehen. Ein
   // Zustand für Liste und Zeitplan — sonst sucht man im einen das Paket,
-  // das man im anderen gerade aufgemacht hat.
-  const [zu, setZu] = useState<Set<number>>(new Set());
+  // das man im anderen gerade aufgemacht hat. Am Anfang ist alles zu: Sieben
+  // offene Pakete untereinander waren genau die lange Seite, auf der man die
+  // Übersicht verlor.
+  const [zu, setZu] = useState<Set<number>>(() => new Set(planung.pakete.map((p) => p.id)));
   const umschalten = (paket: number) =>
     setZu((alt) => {
       const neu = new Set(alt);
@@ -207,118 +185,105 @@ function Planungsinhalt({ planung, ich, wechseln }: { planung: Planung; ich: Ich
 
   return (
     <div className="pl">
-      <Kopf planung={planung} ansicht={stand.ansicht} waehlen={(ansicht) => merken({ ansicht })} wechseln={wechseln} />
-      <Kennzahlen planung={planung} jetztDran={() => merken({ ansicht: "aufgaben", filter: { ...filter, zeige: "jetzt" } })} />
-      {stand.ansicht === "antrag" ? (
-        <Antragsansicht planung={planung} ich={ich} wechseln={wechseln} />
-      ) : planung.pakete.length === 0 && !ich.darf.bearbeiten ? (
-        <section className="pl-tafel">
-          <Leerstelle
-            was="Diese Phase hat noch keine Arbeitspakete"
-            satz="Pakete legt ein Bearbeiter oder Admin hier oder auf der Projektseite an."
-          />
-        </section>
-      ) : (
-        <section className="pl-tafel">
+      <Kennzahlen planung={planung} wechseln={wechseln} jetztDran={() => merken({ ansicht: "aufgaben", filter: { ...filter, zeige: "jetzt" } })} />
+      <div className="pl-reiter">
+        <div className="spannenwahl" role="group" aria-label="Ansicht">
+          {ansichten.map((a) => (
+            <button key={a.wert} type="button" aria-pressed={ansicht === a.wert} onClick={() => merken({ ansicht: a.wert })}>
+              {a.text}
+            </button>
+          ))}
+        </div>
+        {ansicht !== "antrag" && planung.pakete.length > 0 && (
           <Filterleiste
             filter={filter}
             personen={personen}
             setzen={(f) => merken({ filter: f })}
-            alleZu={planung.pakete.length > 0 && planung.pakete.every((p) => zu.has(p.id))}
+            alleZu={planung.pakete.every((p) => zu.has(p.id))}
             alleUmschalten={(schliessen) => setZu(new Set(schliessen ? planung.pakete.map((p) => p.id) : []))}
           />
-          {stand.ansicht === "aufgaben" ? (
-            <Aufgabenliste planung={planung} ich={ich} filter={filter} zu={zu} umschalten={umschalten} filterWeg={() => merken({ filter: OHNE_FILTER })} />
-          ) : (
-            <Zeitplan planung={planung} darf={ich.darf.bearbeiten} filter={filter} zu={zu} umschalten={umschalten} />
-          )}
-        </section>
+        )}
+      </div>
+      {ansicht === "antrag" ? (
+        <Antragsansicht planung={planung} ich={ich} wechseln={wechseln} />
+      ) : planung.pakete.length === 0 && !(ich.darf.bearbeiten && bearbeiten) ? (
+        <Leerstelle
+          was="Diese Phase hat noch keine Arbeitspakete"
+          satz={ich.darf.bearbeiten ? "Pakete legst du unter „Bearbeiten“ an." : "Pakete legt ein Bearbeiter oder Admin an."}
+        />
+      ) : ansicht === "aufgaben" ? (
+        <Aufgabenliste
+          planung={planung}
+          ich={ich}
+          rahmen={rahmen}
+          filter={filter}
+          zu={zu}
+          umschalten={umschalten}
+          filterWeg={() => merken({ filter: OHNE_FILTER })}
+        />
+      ) : (
+        <Zeitplan planung={planung} darf={ich.darf.bearbeiten} filter={filter} zu={zu} umschalten={umschalten} />
       )}
     </div>
   );
 }
 
-/* --- Kopf und Kennzahlen ------------------------------------------------------ */
+/* --- Kennzahlen ------------------------------------------------------------- */
 
-function Kopf({
-  planung,
-  ansicht,
-  waehlen,
-  wechseln,
-}: {
-  planung: Planung;
-  ansicht: Ansicht;
-  waehlen: (a: Ansicht) => void;
-  wechseln: Wechseln;
-}) {
-  const { phase, antrag } = planung;
-  return (
-    <header className="pl-kopf">
-      <div className="pl-marke">
-        <a
-          className="pl-eyebrow"
-          href={alsPfad("projekt", null)}
-          onClick={(e) => {
-            e.preventDefault();
-            wechseln("projekt");
-          }}
-        >
-          {phase.projekt_titel}
-        </a>
-        <h1 className="pl-titel">{phase.titel}</h1>
-        <span className="pl-sub">
-          {zeitraumText(phase.von, phase.bis)}
-          {antrag ? ` · bezahlt aus „${antrag.titel}“` : ""}
-        </span>
-      </div>
-      <div className="pl-seg" role="group" aria-label="Ansicht">
-        {ANSICHTEN.map((a) => (
-          <button key={a.wert} type="button" aria-pressed={ansicht === a.wert} onClick={() => waehlen(a.wert)}>
-            {a.text}
-          </button>
-        ))}
-      </div>
-    </header>
-  );
-}
-
-function Kennzahlen({ planung, jetztDran }: { planung: Planung; jetztDran: () => void }) {
+/**
+ * Vier Zahlen in einer Zeile, keine vier Kacheln mehr: Unter dem Gantt und dem
+ * Kopf der Phase nahmen die Kacheln eine ganze Bildschirmhöhe, bevor das
+ * erste Paket kam.
+ */
+function Kennzahlen({ planung, jetztDran, wechseln }: { planung: Planung; jetztDran: () => void; wechseln: Wechseln }) {
   const { summen, antrag } = planung;
   const alle = planung.pakete.flatMap((p) => p.aufgaben);
   const ueberfaellig = alle.filter((a) => a.lage === "ueberfaellig").length;
   const laeuft = alle.filter((a) => a.lage === "laeuft").length;
   const anteil = Number(summen.soll) > 0 ? Math.round((100 * Number(summen.gebucht)) / Number(summen.soll)) : null;
   const stand = standGegenPlan(summen.gebucht, summen.soll_bis_heute);
+  const antragsweg = antrag && `foerderungen/${antrag.geber}/${antrag.programm}/${antrag.id}`;
 
   return (
     <div className="pl-kennzahlen">
-      <div className="pl-kennzahl">
-        <span className="pl-eyebrow">Gebucht</span>
-        <span className="pl-wert">{alsH(summen.gebucht, 0)}</span>
-        <span className="pl-sub">
+      {antrag && antragsweg && (
+        <a
+          className="pl-foerderung"
+          href={alsPfad("module", antragsweg)}
+          onClick={(e) => {
+            e.preventDefault();
+            wechseln("module", antragsweg);
+          }}
+        >
+          <Zeichen name="foerderung" />
+          <span>
+            <b>{antrag.geber_name} · {antrag.programm_name}</b>
+            <em>{antragsstandText(antrag.stand)}</em>
+          </span>
+        </a>
+      )}
+      <span className="pl-kennzahl">
+        <b className="zahl">{alsH(summen.gebucht, 0)}</b>
+        <em>
           von {alsH(summen.soll, 0)} {antrag ? "laut Antrag" : "Pensum"}
           {anteil !== null && ` · ${anteil} %`}
+        </em>
+      </span>
+      {summen.soll_bis_heute !== null && (
+        <span className="pl-kennzahl">
+          <b className="zahl">{alsH(summen.soll_bis_heute, 0)}</b>
+          <em>Soll bis heute{stand ? ` · ${stand}` : ""}</em>
         </span>
-      </div>
-      <div className="pl-kennzahl">
-        <span className="pl-eyebrow">Soll bis heute</span>
-        <span className="pl-wert">{alsH(summen.soll_bis_heute, 0)}</span>
-        <span className="pl-sub">{stand ?? "braucht Monate aus dem Antrag"}</span>
-      </div>
-      <div className="pl-kennzahl">
-        <span className="pl-eyebrow">Aufgaben erledigt</span>
-        <span className="pl-wert">
-          {summen.erledigt} / {summen.aufgaben}
-        </span>
-        <span className="pl-sub">
-          {alsH(summen.aufgaben_stunden, 0)} geplant
-          {summen.ohne_termin > 0 && ` · ${summen.ohne_termin} ohne Termin`}
-        </span>
-      </div>
+      )}
+      <span className="pl-kennzahl">
+        <b className="zahl">
+          {summen.erledigt}/{summen.aufgaben}
+        </b>
+        <em>Aufgaben erledigt</em>
+      </span>
       <button type="button" className="pl-kennzahl" data-ton={ueberfaellig > 0 ? "schlecht" : undefined} onClick={jetztDran}>
-        <span className="pl-eyebrow">Jetzt dran</span>
-        <span className="pl-wert">{ueberfaellig + laeuft}</span>
-        <span className="pl-sub">{ueberfaellig > 0 ? `davon ${ueberfaellig} überfällig` : "nichts überfällig"}</span>
+        <b className="zahl">{ueberfaellig + laeuft}</b>
+        <em>{ueberfaellig > 0 ? `jetzt dran, ${ueberfaellig} überfällig` : "jetzt dran"}</em>
       </button>
     </div>
   );
@@ -347,7 +312,7 @@ function Filterleiste({
 }) {
   return (
     <div className="pl-leiste">
-      <div className="pl-seg pl-seg-klein" role="group" aria-label="Welche Aufgaben">
+      <div className="spannenwahl" role="group" aria-label="Welche Aufgaben">
         {ZEIGE.map((z) => (
           <button key={z.wert} type="button" aria-pressed={filter.zeige === z.wert} onClick={() => setzen({ ...filter, zeige: z.wert })}>
             {z.text}
@@ -381,6 +346,7 @@ function Filterleiste({
 function Aufgabenliste({
   planung,
   ich,
+  rahmen,
   filter,
   zu,
   umschalten,
@@ -388,6 +354,7 @@ function Aufgabenliste({
 }: {
   planung: Planung;
   ich: Ich;
+  rahmen: Rahmen;
   filter: Filter;
   zu: Set<number>;
   umschalten: (paket: number) => void;
@@ -416,12 +383,14 @@ function Aufgabenliste({
           aufgaben={g.aufgaben}
           planung={planung}
           ich={ich}
+          rahmen={rahmen}
           filter={filter}
           offen={!zu.has(g.paket.id)}
           umschalten={() => umschalten(g.paket.id)}
         />
       ))}
-      {ich.darf.bearbeiten && !gefiltert(filter) && <NeuesPaket planung={planung} />}
+      {/* Pakete anlegen ist Gliedern — wie auf der Projektseite nur unter „Bearbeiten“. */}
+      {ich.darf.bearbeiten && rahmen.bearbeiten && !gefiltert(filter) && <NeuesPaket planung={planung} />}
     </>
   );
 }
@@ -442,6 +411,7 @@ function Paketgruppe({
   aufgaben,
   planung,
   ich,
+  rahmen,
   filter,
   offen,
   umschalten,
@@ -451,15 +421,30 @@ function Paketgruppe({
   aufgaben: Planungsaufgabe[];
   planung: Planung;
   ich: Ich;
+  rahmen: Rahmen;
   filter: Filter;
   offen: boolean;
   umschalten: () => void;
 }) {
   const speichern = useSpeichern();
+  const neuLaden = useNeuLaden();
+  const team = useTeam();
   const darf = ich.darf.bearbeiten;
+  const gliedern = darf && rahmen.bearbeiten;
   const [fehler, setFehler] = useState("");
   const [loeschen, setLoeschen] = useState<Planungsaufgabe | null>(null);
+  const [paketWeg, setPaketWeg] = useState(false);
   const erledigt = paket.aufgaben.filter((a) => a.erledigt).length;
+  const ap = paket.foerderpaket === null ? undefined : planung.antrag?.pakete.find((x) => x.id === paket.foerderpaket);
+  const stelle = planung.pakete.findIndex((p) => p.id === paket.id);
+  // Die Kürzel statt der Namen: „BG 12/40 · FD 3/90" passt unter den Titel,
+  // zwei volle Namen mit Balken brauchten je eine eigene Zeile.
+  const kuerzel = (nutzer: number | null, name: string) =>
+    (nutzer !== null && team.data?.find((t) => t.id === nutzer)?.initialen) || name;
+  const personen = paket.personen
+    .filter((x) => x.soll !== null || Number(x.gebucht) > 0)
+    .map((x) => `${kuerzel(x.nutzer, x.name)} ${Number(x.gebucht).toLocaleString("de-AT", { maximumFractionDigits: 0 })}/${x.soll === null ? "–" : alsH(x.soll, 0)}`);
+  const unterzeile = [ap ? `M${ap.monat_von}–M${ap.monat_bis}` : "", ...personen].filter(Boolean).join(" · ");
 
   async function versuchen(tun: () => Promise<void>) {
     setFehler("");
@@ -478,7 +463,8 @@ function Paketgruppe({
         </button>
         <span className="pl-nr">{String(nummer).padStart(2, "0")}</span>
         <span className="pl-pakettitel">
-          <Feldtext wert={paket.titel} aendern={darf} speichern={(titel) => versuchen(() => speichern(`/pakete/${paket.id}/`, { titel }))} />
+          <Feldtext wert={paket.titel} aendern={gliedern} speichern={(titel) => versuchen(() => speichern(`/pakete/${paket.id}/`, { titel }))} />
+          {unterzeile && <em className="zahl">{unterzeile}</em>}
         </span>
         {darf ? (
           <select
@@ -503,7 +489,84 @@ function Paketgruppe({
           {erledigt}/{paket.aufgaben.length}
         </span>
         <Stundenstand gebucht={paket.gebucht} soll={paket.soll} sollBisHeute={paket.soll_bis_heute} />
+        {/* Clock-in ist Arbeiten, kein Gliedern — der Knopf steht in beiden Modi. */}
+        {darf && rahmen.buchbar.has(paket.id) ? (
+          <button
+            type="button"
+            className="mini pl-start"
+            aria-label={`Uhr auf „${paket.titel}“ starten`}
+            title="Uhr starten"
+            onClick={() =>
+              versuchen(async () => {
+                await clockIn(paket.id);
+                neuLaden();
+              })
+            }
+          >
+            <Zeichen name="start" />
+          </button>
+        ) : (
+          <span />
+        )}
       </div>
+
+      {offen && gliedern && (
+        <div className="pl-paketgliedern">
+          <select
+            className="pl-wahl"
+            value={planung.phase.id}
+            aria-label={`Phase von ${paket.titel}`}
+            onChange={(e) => versuchen(() => speichern(`/pakete/${paket.id}/`, { phase: Number(e.target.value) }))}
+          >
+            {rahmen.phasenwahl.map((ph) => (
+              <option key={ph.id} value={ph.id}>
+                {ph.text}
+              </option>
+            ))}
+          </select>
+          {/* Beide Nummern tauschen, nicht nur eine hochzählen: Sonst landen
+              zwei Pakete auf derselben Zahl und die Reihenfolge wird zufällig. */}
+          {([-1, 1] as const).map((richtung) => {
+            const nachbar = planung.pakete[stelle + richtung];
+            return (
+              <button
+                key={richtung}
+                type="button"
+                className="mini"
+                disabled={!nachbar}
+                aria-label={richtung < 0 ? "Nach oben" : "Nach unten"}
+                onClick={() =>
+                  nachbar &&
+                  versuchen(async () => {
+                    await speichern(`/pakete/${paket.id}/`, { reihenfolge: stelle + richtung });
+                    await speichern(`/pakete/${nachbar.id}/`, { reihenfolge: stelle });
+                  })
+                }
+              >
+                <Zeichen name={richtung < 0 ? "hoch" : "runter"} />
+              </button>
+            );
+          })}
+          {ich.darf.loeschen && (
+            <button type="button" className="mini" onClick={() => setPaketWeg(true)}>
+              <Zeichen name="korb" />
+              Entfernen
+            </button>
+          )}
+        </div>
+      )}
+
+      {offen && (paket.beschreibung || gliedern) && (
+        <div className="pl-beschreibung">
+          <Feldtext
+            wert={paket.beschreibung}
+            mehrzeilig
+            platzhalter="Was in diesem Paket getan wird …"
+            aendern={gliedern}
+            speichern={(beschreibung) => versuchen(() => speichern(`/pakete/${paket.id}/`, { beschreibung }))}
+          />
+        </div>
+      )}
 
       {offen && (
         <div className="pl-zeilen" role="list" aria-label={`Aufgaben von ${paket.titel}`}>
@@ -547,6 +610,27 @@ function Paketgruppe({
             const a = loeschen;
             setLoeschen(null);
             versuchen(() => speichern(`/unteraufgaben/${a.id}/`, null, "DELETE"));
+          }}
+        />
+      )}
+
+      {paketWeg && (
+        <Loeschdialog
+          name={paket.titel}
+          was="Das Arbeitspaket mit seinen Aufgaben"
+          milder={{
+            text: "Auf „verworfen“ setzen",
+            tun: () => {
+              setPaketWeg(false);
+              versuchen(() => speichern(`/pakete/${paket.id}/`, { status: "verworfen" }));
+            },
+          }}
+          abbrechen={() => setPaketWeg(false)}
+          loeschen={() => {
+            setPaketWeg(false);
+            // Der Server lässt ein Paket mit gebuchter Zeit nicht entfernen —
+            // die Antwort steht dann in der Fehlerzeile.
+            versuchen(() => speichern(`/pakete/${paket.id}/`, null, "DELETE"));
           }}
         />
       )}
@@ -876,7 +960,7 @@ function Zeitplan({
     .filter((g) => !gefiltert(filter) || g.aufgaben.length > 0);
 
   if (planung.pakete.length === 0)
-    return <Leerstelle was="Noch keine Arbeitspakete" satz="Unter „Aufgaben“ legst du das erste Paket an." />;
+    return <Leerstelle was="Noch keine Arbeitspakete" satz="Pakete legst du unter „Bearbeiten“ an." />;
   return (
     <>
       <Gantt achse={planung.achse} heute={planung.heute} etikett="Paket und Aufgabe" rechts="Stunden">
@@ -995,7 +1079,7 @@ function Ganttaufgabe({
   );
 }
 
-/* --- Stunden & Antrag ---------------------------------------------------------- */
+/* --- Antrag -------------------------------------------------------------------- */
 
 /**
  * Alles, was man nachschlägt statt täglich liest: woraus die Phase bezahlt
@@ -1022,7 +1106,7 @@ function Antragsansicht({ planung, ich, wechseln }: { planung: Planung; ich: Ich
 
   return (
     <>
-      <section className="pl-tafel pl-bezahlt">
+      <section className="pl-abschnitt pl-bezahlt">
         <div>
           <h2>Bezahlt aus</h2>
           {antrag && antragsweg && (
@@ -1067,10 +1151,10 @@ function Antragsansicht({ planung, ich, wechseln }: { planung: Planung; ich: Ich
         <Fehlerzeile text={fehler} />
       </section>
 
-      <section className="pl-tafel">
-        <h2>Stunden je Arbeitspaket</h2>
+      <section className="pl-abschnitt">
+        <h2>Welches Paket in welches Antragspaket abrechnet</h2>
         {planung.pakete.length === 0 ? (
-          <Leerstelle was="Noch keine Arbeitspakete" satz="Unter „Aufgaben“ legst du das erste Paket an." />
+          <Leerstelle was="Noch keine Arbeitspakete" satz="Pakete legst du unter „Bearbeiten“ an." />
         ) : (
           <div className="pl-stundenliste">
             {planung.pakete.map((p, i) => {
@@ -1080,7 +1164,6 @@ function Antragsansicht({ planung, ich, wechseln }: { planung: Planung; ich: Ich
                   <div className="pl-stundenkopf">
                     <span className="pl-nr">{String(i + 1).padStart(2, "0")}</span>
                     <b>{p.titel}</b>
-                    <Stundenstand gebucht={p.gebucht} soll={p.soll} sollBisHeute={p.soll_bis_heute} />
                   </div>
                   <div className="pl-stundenraster">
                     <div className="pl-antragsteil">
@@ -1120,30 +1203,7 @@ function Antragsansicht({ planung, ich, wechseln }: { planung: Planung; ich: Ich
                         </details>
                       )}
                     </div>
-                    <div className="pl-personen">
-                      {p.personen.length === 0 ? (
-                        <span className="pl-sub">Weder Soll noch gebuchte Zeit.</span>
-                      ) : (
-                        p.personen.map((person) => (
-                          <div className="pl-person" key={`${person.nutzer ?? person.name}`}>
-                            <span>{person.name}</span>
-                            {person.soll !== null && Number(person.soll) > 0 ? (
-                              <span className="pl-balken" data-ueber={Number(person.gebucht) > Number(person.soll) || undefined}>
-                                <i style={{ width: `${Math.min(100, (100 * Number(person.gebucht)) / Number(person.soll))}%` }} />
-                              </span>
-                            ) : (
-                              <span className="pl-sub">{person.soll === null ? "nicht im Soll" : ""}</span>
-                            )}
-                            <span className="zahl">
-                              {alsH(person.gebucht)} / {alsH(person.soll)}
-                            </span>
-                          </div>
-                        ))
-                      )}
-                      <span className="pl-sub zahl">
-                        Aufgaben planen {alsH(p.aufgaben_stunden)} von {alsH(p.soll)}
-                      </span>
-                    </div>
+                    <Stundenstand gebucht={p.gebucht} soll={p.soll} sollBisHeute={p.soll_bis_heute} />
                   </div>
                 </div>
               );
@@ -1166,7 +1226,7 @@ function Ziele({ planung }: { planung: Planung }) {
   const antrag = planung.antrag!;
   const arbeit = new Map(planung.pakete.filter((p) => p.foerderpaket !== null).map((p) => [p.foerderpaket!, p]));
   return (
-    <section className="pl-tafel pl-ziele">
+    <section className="pl-abschnitt pl-ziele">
       <h2>Ziele und Ergebnisse laut Antrag</h2>
       {antrag.pakete.length === 0 ? (
         <Leerstelle was="Der Antrag hat keine Pakete" satz="Pakete, Ziele und Ergebnisse stehen im Antrag unter Förderungen." />

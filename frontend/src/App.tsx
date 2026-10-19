@@ -1,6 +1,6 @@
 import { useIch } from "./basis/daten";
 import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
-import { designAusWeg, foerderauslastungAusWeg, foerderungAusWeg, planungAusWeg, teilZuWeg, themaAusWeg } from "./basis/module";
+import { designAusWeg, foerderauslastungAusWeg, foerderungAusWeg, teilZuWeg, themaAusWeg } from "./basis/module";
 import { useSeite, type Seite } from "./basis/router";
 import { Zustand } from "./basis/Zustand";
 import { Zeichen } from "./bausteine/Zeichen";
@@ -27,7 +27,7 @@ const TITEL: Record<Seite, { titel: string; unter: string }> = {
   // Eintrag hier ist trotzdem nötig, damit der Record vollständig bleibt und
   // eine neue Seite ohne Zeile nicht durchrutscht.
   start: { titel: "Übersicht", unter: "Was ansteht" },
-  projekt: { titel: "Projekt", unter: "Projektphasen, Arbeitspakete, Pensum" },
+  projekt: { titel: "Projekt", unter: "Phasen, Pakete, Stunden und Aufgaben" },
   zeit: { titel: "Zeit", unter: "Buchungen und Nachträge" },
   aufgaben: { titel: "Aufgaben", unter: "Was ansteht — nach Fälligkeit" },
   kontakte: { titel: "Kontakte", unter: "Organisationen und Personen" },
@@ -58,7 +58,6 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   "module/praktikum-ideen": { titel: "Praktikantenstellen", unter: "Sonstige Ideen" },
   "module/thoughts": { titel: "Thoughts", unter: "Was frei ist, was wartet" },
   "module/foerderungen": { titel: "Förderungen", unter: "Fördergeber, Programme, Anträge" },
-  "module/planung": { titel: "Projektplanung", unter: "Phasen mit Paketen und Aufgaben" },
   "module/runway": { titel: "Runway-Planung", unter: "Wie lange das Geld reicht" },
 };
 
@@ -84,7 +83,6 @@ export function App() {
     ort.seite === "module"
       ? (themaAusWeg(ort.unter) ??
         foerderungAusWeg(ort.unter) ??
-        planungAusWeg(ort.unter) ??
         designAusWeg(ort.unter) ??
         (auslastung && { ...auslastung, teil: { ...auslastung.teil, titel: "Auslastung" } }))
       : null;
@@ -147,7 +145,12 @@ export function App() {
         <main className="seite" data-voll={ort.seite === "module" && ort.unter === "thoughts" ? "ja" : undefined}>
           {ort.seite === "start" && <Uebersicht ich={ich.data} wechseln={wechseln} />}
           {ort.seite === "projekt" && (
-            <Projekt ich={ich.data} bearbeiten={bearbeiten} wechseln={wechseln} />
+            <Projekt
+              ich={ich.data}
+              bearbeiten={bearbeiten}
+              phase={ort.seite === "projekt" && ort.unter && /^\d+$/.test(ort.unter) ? Number(ort.unter) : null}
+              wechseln={wechseln}
+            />
           )}
           {ort.seite === "zeit" && <Zeit ich={ich.data} />}
           {ort.seite === "aufgaben" && (

@@ -288,7 +288,7 @@ export function Zeit({ ich }: { ich: Ich }) {
         <div className="zeitkopf">
           <div className="monatswahl">
             <button type="button" className="mini" aria-label="Monat davor" onClick={() => setMonat(monatVerschieben(monat, -1))}>
-              <Zeichen name="zeiger" klasse="zeichen-links" />
+              <Zeichen name="zeiger" klasse="zeiger-zurueck" />
             </button>
             <h2>{MONATSNAME.format(new Date(`${monat}-01T00:00:00`))}</h2>
             <button

@@ -335,8 +335,9 @@ function Projekte({ wechseln }: Teile) {
   return (
     <Gantt achse={achseUeber(zeilen.flatMap(({ ph }) => [ph.von, ph.bis]), heute)} heute={heute} etikett="Phase" rechts="Gebucht">
       {zeilen.map(({ pr, ph }) => {
-        const weg = `planung/${ph.id}`;
-        const planen = () => wechseln("module", weg, { ruecksprung: true });
+        // Die Phase geht auf der Projektseite unter dem Gantt auf.
+        const weg = String(ph.id);
+        const planen = () => wechseln("projekt", weg);
         const gebucht = ph.pakete.reduce((summe, x) => summe + x.gebuchte_sekunden, 0);
         return (
           <GanttZeile
@@ -345,7 +346,7 @@ function Projekte({ wechseln }: Teile) {
             etikett={
               <a
                 className="gantt-wahl"
-                href={alsPfad("module", weg)}
+                href={alsPfad("projekt", weg)}
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey) return;
                   e.preventDefault();

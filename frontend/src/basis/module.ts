@@ -22,16 +22,13 @@ export type Kartenteil = { weg: string; titel: string; schluessel: "thoughts" };
 /** Die Förderungen: Programme mit Anträgen — eine eigene Seite, Anträge darunter. */
 export type Foerderteil = { weg: string; titel: string; schluessel: "foerderung" };
 
-/** Die Projektplanung: die Phasen als Liste, je Phase eine eigene Seite darunter. */
-export type Planungsteil = { weg: string; titel: string; schluessel: "planung" };
-
 /** Die Runway-Planung: eine Seite, keine Unterseiten. */
 export type Runwayteil = { weg: string; titel: string; schluessel: "runway" };
 
 /** Die Designentscheidungen: eine Liste, je Entscheidung eine eigene Seite darunter. */
 export type Designteil = { weg: string; titel: string; schluessel: "design" };
 
-export type Teil = Themenliste | Kartenteil | Foerderteil | Planungsteil | Runwayteil | Designteil;
+export type Teil = Themenliste | Kartenteil | Foerderteil | Runwayteil | Designteil;
 
 export type Modul = {
   /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
@@ -68,16 +65,9 @@ export const MODULE: Modul[] = [
     zeichen: "foerderung",
     teile: [{ weg: "foerderungen", titel: "Fördergeber, Programme, Anträge", schluessel: "foerderung" }],
   },
-  {
-    // Ein eigenes Modul und nicht Teil der Förderungen (Wunsch Bernd): Hier
-    // wird die Arbeit geplant, die nach der Zusage getan wird — der Antrag
-    // ist dabei der Maßstab, nicht der Ort.
-    weg: "planung",
-    titel: "Projektplanung",
-    wozu: "Eine Phase mit Paketen, Aufgaben und Antrag im Gantt planen",
-    zeichen: "gantt",
-    teile: [{ weg: "planung", titel: "Phasen", schluessel: "planung" }],
-  },
+  // Die Projektplanung stand bis 2026-10-19 hier als eigenes Modul. Sie ist
+  // in die Projektseite gezogen: Unter dem Gantt steht die gewählte Phase mit
+  // Paketen, Stunden und Aufgaben (ansichten/Planung.tsx).
   {
     // Ein Modul neben der Kennzahl auf dem Dashboard, nicht an ihrer Stelle
     // (Bernd, 2026-10-14: „mal zum Testen"). Bewährt es sich, kommt die
@@ -149,17 +139,6 @@ export const AUSLASTUNGSWEG = "foerderungen/auslastung";
 export function foerderauslastungAusWeg(unter: string | null): { modul: Modul; teil: Foerderteil } | null {
   const gefunden = unter === AUSLASTUNGSWEG ? teilZuWeg("foerderungen") : null;
   return gefunden && gefunden.teil.schluessel === "foerderung" ? { modul: gefunden.modul, teil: gefunden.teil } : null;
-}
-
-/**
- * Die Planung einer Phase hinter `planung/28` — oder nichts. Die Nummer ist
- * die der Projektphase; ob es sie gibt, sagt erst der Server.
- */
-export function planungAusWeg(unter: string | null): { modul: Modul; teil: Planungsteil; phase: number } | null {
-  const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
-  const gefunden = treffer && teilZuWeg(treffer[1]);
-  if (!treffer || !gefunden || gefunden.teil.schluessel !== "planung") return null;
-  return { modul: gefunden.modul, teil: gefunden.teil, phase: Number(treffer[2]) };
 }
 
 /**

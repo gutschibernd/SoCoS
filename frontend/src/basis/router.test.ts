@@ -43,7 +43,9 @@ describe("ausPfad", () => {
     expect(ausPfad("/module/praktikum/quatsch")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/spg/12")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/design/7")).toEqual({ seite: "module", unter: "design/7" });
-    expect(ausPfad("/module/planung/28")).toEqual({ seite: "module", unter: "planung/28" });
+    // Die Planung ist in die Projektseite gezogen; alte Lesezeichen führen dorthin.
+    expect(ausPfad("/module/planung/28")).toEqual({ seite: "projekt", unter: "28" });
+    expect(ausPfad("/module/planung")).toEqual({ seite: "projekt", unter: null });
     // Die dritte Stufe gilt nur, wo sie vorgesehen ist.
     expect(ausPfad("/kontakte/12/34")).toEqual({ seite: "kontakte", unter: null });
   });
@@ -57,6 +59,7 @@ describe("ausPfad", () => {
   // den niemand vorgesehen hat — sie wird verworfen, die Seite bleibt.
   it("verwirft eine unbekannte Unterseite", () => {
     expect(ausPfad("/projekt/loeschen")).toEqual({ seite: "projekt", unter: null });
+    expect(ausPfad("/projekt/28")).toEqual({ seite: "projekt", unter: "28" });
     expect(ausPfad("/zeit/bearbeiten")).toEqual({ seite: "zeit", unter: null });
     expect(ausPfad("/kontakte/quatsch")).toEqual({ seite: "kontakte", unter: null });
   });
@@ -126,20 +129,20 @@ describe("alsPfad", () => {
 });
 
 describe("wohinZurueck", () => {
-  const planung = { seite: "module", unter: "planung/28" } as const;
+  const planung = { seite: "module", unter: "design/7" } as const;
 
   it("geht eine Stufe hoch, auch wenn es eine Geschichte gibt", () => {
-    expect(wohinZurueck(planung, { tiefe: 3 })).toEqual({ seite: "module", unter: "planung" });
+    expect(wohinZurueck(planung, { tiefe: 3 })).toEqual({ seite: "module", unter: "design" });
   });
 
-  // Von der Phase im Projekt-Gantt in die Planung — und wieder ins Projekt.
+  // Von einem Verweis in eine Entscheidung — und wieder dorthin, woher man kam.
   it("springt mit Rücksprung dorthin, woher man kam", () => {
     expect(wohinZurueck(planung, { tiefe: 3, ruecksprung: true })).toBe("geschichte");
   });
 
   // Ein Rücksprung ohne Geschichte davor (Lesezeichen) trüge aus SoCoS heraus.
   it("übergeht den Rücksprung ohne Geschichte", () => {
-    expect(wohinZurueck(planung, { tiefe: 0, ruecksprung: true })).toEqual({ seite: "module", unter: "planung" });
+    expect(wohinZurueck(planung, { tiefe: 0, ruecksprung: true })).toEqual({ seite: "module", unter: "design" });
   });
 
   // Ein Modul steht im Menü wie jede Seite — über ihm liegt keine Modulübersicht mehr.

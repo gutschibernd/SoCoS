@@ -229,8 +229,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
           {[
             { seite: "aufgaben" as const, zeichen: "aufgaben" as const, titel: "Aufgaben", text: "Die gemeinsame Tafel: was ansteht, nach Fälligkeit." },
             { seite: "module" as const, unter: "thoughts", zeichen: "thoughts" as const, titel: "Thoughts", text: "Was in welchem Thema ansteht und worauf gewartet wird." },
-            { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Phasen und Pakete im Gantt, das Pensum." },
-            { seite: "module" as const, unter: "planung", zeichen: "gantt" as const, titel: "Projektplanung", text: "Eine Phase mit Paketen, Aufgaben und Antrag planen." },
+            { seite: "projekt" as const, zeichen: "projekt" as const, titel: "Projekt", text: "Phasen im Gantt; darunter die gewählte mit Paketen, Stunden und Aufgaben." },
             { seite: "zeit" as const, zeichen: "zeit" as const, titel: "Zeit", text: "Buchungen, Nachträge, Zeitnachweis." },
             { seite: "kontakte" as const, zeichen: "kontakte" as const, titel: "Kontakte", text: "Organisationen, Personen, Verlauf." },
             { seite: "meetings" as const, zeichen: "meeting" as const, titel: "Meetings", text: "Vorbereiten, mitschreiben, Protokoll." },
@@ -504,8 +503,8 @@ function ProjektDoku() {
         </p>
         <Schritte
           schritte={[
-            "In der Paketzeile steht die Summe über alle Personen: gebucht / Pensum · Prozent.",
-            "Aufgeklappt steht das Pensum je Person — wie viel du selbst hier noch offen hast.",
+            "Rechts in der Paketzeile steht die Summe: gebucht / Soll, mit einem Balken und einem Strich, wo man laut Antrag heute stehen sollte.",
+            "Unter dem Titel des Pakets steht es je Person, als Kürzel: „BG 12/40 h“ — wie viel du selbst hier noch offen hast.",
             "Das Pensum selbst kommt aus dem Arbeitsplan und wird mit den Projektdaten eingespielt.",
           ]}
         />
@@ -518,26 +517,75 @@ function ProjektDoku() {
       <Abschnitt
         zeichen="gantt"
         titel="Die Phasen als Gantt"
-        vorspann="Jedes Projekt zeigt oben seine Phasen auf einer Zeitachse, mit einem Strich für heute. Darunter steht die eine Phase, die du gewählt hast, mit ihren Paketen."
+        vorspann="Jedes Projekt zeigt oben seine Phasen auf einer Zeitachse, mit einem Strich für heute. Darunter steht die eine Phase, die du gewählt hast, mit ihren Paketen, Stunden und Aufgaben."
       >
         <Schritte
           schritte={[
-            "Ein Klick auf den Namen oder den Balken einer Phase öffnet ihre Planung im Modul Projektplanung. „Zurück“ führt von dort wieder ins Projekt.",
-            "Ein Klick rechts auf „Gebucht · Pakete“ zeigt die Phase mit ihren Paketen darunter. Beim Öffnen steht dort die laufende Phase, in der heute liegt.",
+            "Ein Klick auf den Namen, den Balken oder „Gebucht · Pakete“ einer Phase öffnet sie darunter. Beim Öffnen steht dort die laufende Phase, in der heute liegt.",
+            "Im Gantt stehen nur Phasen mit Zeitraum. Phasen ohne siehst du unter „Bearbeiten“.",
             "Einen Balken ziehen verschiebt die Phase, an einem Rand ziehen verlängert oder kürzt sie. Gespeichert wird beim Loslassen. Mit der Tastatur: Balken anwählen, ← → verschiebt um eine Woche, mit Umschalt nur das Ende.",
-            "Eine Phase ohne Zeitraum bekommt einen, wenn du in ihre leere Zeile klickst: drei Monate ab dem Tag, auf den du geklickt hast.",
+            "Eine Phase ohne Zeitraum bekommt unter „Bearbeiten“ einen, wenn du in ihre leere Zeile klickst: drei Monate ab dem Tag, auf den du geklickt hast.",
           ]}
         />
         <p className="doku-text">
           Den Stand (offen, läuft, abgeschlossen) stellst du direkt an der gewählten
-          Phase um. Eine abgeschlossene Phase nimmt keine Zeit mehr an. Pakete klappen
-          von selbst nur auf, wenn Zeit darauf gebucht ist oder sie auf „läuft“ stehen.
+          Phase um. Eine abgeschlossene Phase nimmt keine Zeit mehr an.
         </p>
         <p className="doku-text">
           Das Overhead-Projekt steht <b>quer über den anderen</b>. Dort landet alles,
           was zu keinem Paket gehört: Networking, Meetings, Gespräche mit Personen. Es
           ist ein gewöhnliches Projekt — nur eines, das zu allen gehört.
         </p>
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="gantt"
+        titel="Die gewählte Phase: Pakete, Stunden, Aufgaben"
+        vorspann="Unter dem Gantt steht die gewählte Phase: oben ihre Zahlen, darunter je Paket eine Zeile. Wird die Phase aus einem Förderantrag bezahlt, steht der Antrag als Maßstab daneben. Der Plan darf sich ändern."
+      >
+        <Schritte
+          schritte={[
+            "Die Reiter wählen die Ansicht: „Pakete & Stunden“ ist die Arbeitsliste, „Zeitplan“ der Gantt der Aufgaben, „Antrag“ alles zum Nachschlagen. Die Seite merkt sich die Wahl.",
+            "Jedes Paket ist eine Zeile: Nummer, Titel, darunter die Antragsmonate (M1–M6) und die Stunden je Person, rechts Status, Aufgaben erledigt, Stunden gegen Soll und ▶ für die Uhr.",
+            "Ein Klick auf den Pfeil klappt das Paket auf: seine Beschreibung und seine Aufgaben. In die letzte Zeile tippen und Enter legt eine Aufgabe an. Wer, Beginn, Ende und Stunden änderst du direkt in der Zeile; über „…“ schiebst du eine Aufgabe in ein anderes Paket.",
+            "Den Status eines Pakets setzt du gleich in der Zeile. Pakete anlegen, umbenennen, umordnen, in eine andere Phase ziehen und entfernen geht unter „Bearbeiten“.",
+            "„Offen“, „Jetzt dran“ und die Wahl einer Person filtern Liste und Zeitplan. Ist eine Person gewählt, gehört ihr eine neu angelegte Aufgabe gleich. Ein Klick auf „jetzt dran“ oben zeigt, was läuft und was überfällig ist.",
+            "Im Zeitplan in die leere Zeile einer Aufgabe klicken gibt ihr eine Woche ab diesem Tag; den Balken ziehen verschiebt, an einem Rand ziehen verlängert.",
+            "Unter „Antrag“ wählst du den Förderantrag, aus dem die Phase bezahlt wird, und je Paket das Antragspaket, in das seine Stunden gehören.",
+          ]}
+        />
+        <Begriffe
+          paare={[
+            {
+              begriff: "Laut Antrag",
+              text: "Die Stunden aus dem Antrag, über alle Pakete. So viele müssen auf die Pakete gebucht werden. Ohne Antrag steht dort das Pensum der Pakete.",
+            },
+            {
+              begriff: "Soll bis heute",
+              text: "Was laut Antrag bis heute gearbeitet sein sollte — die Stunden jedes Pakets gleichmäßig über die Tage seiner Monate verteilt. Das ist eine Annahme, der Antrag sagt nicht, wann im Paket gearbeitet wird. Darunter steht, wie viel über oder unter diesem Plan gebucht ist; am Stundenbalken jedes Pakets ist es der kleine Strich.",
+            },
+            {
+              begriff: "Die zwei Balken eines Pakets",
+              text: "Oben gestrichelt der Zeitraum laut Antrag, darunter hell, welchen Zeitraum seine Aufgaben belegen. Liegen sie auseinander, weicht die Arbeit vom Antrag ab — das darf sie.",
+            },
+            {
+              begriff: "Aufgaben dürfen abweichen, Stunden nicht",
+              text: "Die Aufgaben sind der echte Plan und dürfen anders aussehen als im Antrag. Gebucht wird aber aufs Arbeitspaket, und dessen Stunden gehören bei der Abrechnung in das zugeordnete Antragspaket. Wer in einem Paket gebucht hat, ohne im Antrag zu stehen, steht dort mit „nicht im Soll“.",
+            },
+            {
+              begriff: "Geplante Stunden",
+              text: "Die Stunden an einer Aufgabe sind ein Plan, gegen den nichts gebucht wird. Unter den Stunden des Pakets steht, wie viel die Aufgaben zusammen planen — gegen das Soll.",
+            },
+            {
+              begriff: "Ziele und Ergebnisse",
+              text: "Unter „Antrag“ stehen die Ergebnisse der Antragspakete mit ihrem Termin. „Erreicht“ heißt: Das zugeordnete Arbeitspaket steht auf „fertig“. Die Texte des Antrags sind darunter zum Nachlesen.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen dürfen alle. Pakete und Aufgaben anlegen, ändern, verschieben und abhaken dürfen Admin und Bearbeiter; eine Aufgabe entfernen nur der Admin — milder ist, sie abzuhaken. Ein Paket entfernt ein Admin unter „Bearbeiten“; milder ist „verworfen“.",
+            },
+          ]}
+        />
       </Abschnitt>
 
       <Abschnitt
@@ -553,7 +601,7 @@ function ProjektDoku() {
             },
             {
               begriff: "Umziehen",
-              text: "Eine Phase zieht über das Feld „Projekt“ in ein anderes Projekt, ein Paket über das Auswahlfeld in seiner Zeile in eine andere Phase — auch eines anderen Projekts. Gebuchte Zeit zieht mit, sie hängt am Paket.",
+              text: "Eine Phase zieht über das Feld „Projekt“ in ein anderes Projekt, ein Paket über das Auswahlfeld im aufgeklappten Paket in eine andere Phase — auch eines anderen Projekts. Gebuchte Zeit zieht mit, sie hängt am Paket.",
             },
             {
               begriff: "Reihenfolge",
@@ -800,7 +848,7 @@ function ModuleDoku() {
       <Abschnitt
         zeichen="module"
         titel="Werkzeuge neben Projekt und Zeit"
-        vorspann="Thoughts, Projektplanung, Förderungen, Runway-Planung, Designentscheidungen und Praktikantenstellen stehen in der Leiste dort, wozu sie dienen — unter Arbeit, Geld oder Ablage."
+        vorspann="Thoughts, Förderungen, Runway-Planung, Designentscheidungen und Praktikantenstellen stehen in der Leiste dort, wozu sie dienen — unter Arbeit, Geld oder Ablage. Die Projektplanung ist seit Oktober 2026 Teil der Projektseite."
       >
         <Begriffe
           paare={[
@@ -1030,55 +1078,6 @@ function ModuleDoku() {
         />
       </Abschnitt>
 
-      <Abschnitt
-        zeichen="gantt"
-        titel="Projektplanung: eine Phase mit Paketen und Aufgaben"
-        vorspann="Für eine Phase planen, welche Aufgaben in welchem Paket anstehen, wer sie macht und wann — und, wenn die Phase aus einem Förderantrag bezahlt wird, daneben sehen, was beantragt ist. Der Plan darf sich ändern: Pakete und Aufgaben legst du hier an, benennst sie um und schiebst sie herum."
-      >
-        <Schritte
-          schritte={[
-            "Hin kommst du mit einem Klick auf eine Phase im Gantt der Projektseite oder unter Arbeit · Projektplanung. Von der Projektseite aus führt „Zurück“ wieder ins Projekt.",
-            "Oben rechts wählst du die Ansicht: „Aufgaben“ ist die Arbeitsliste, „Zeitplan“ der Gantt, „Stunden & Antrag“ alles zum Nachschlagen. Die Seite merkt sich die Wahl.",
-            "Unter „Aufgaben“ steht jedes Paket mit seinen Aufgaben. In die letzte Zeile eines Pakets tippen und Enter legt eine Aufgabe an. Titel, wer, Beginn, Ende und Stunden änderst du direkt in der Zeile; über „…“ schiebst du eine Aufgabe in ein anderes Paket.",
-            "Ein Paket benennst du mit einem Klick auf seinen Namen um, daneben setzt du seinen Status. Ganz unten legst du ein neues Paket an.",
-            "„Offen“, „Jetzt dran“ und die Wahl einer Person filtern Liste und Zeitplan. Ist eine Person gewählt, gehört ihr eine neu angelegte Aufgabe gleich. Ein Klick auf die Kachel „Jetzt dran“ zeigt, was läuft und was überfällig ist.",
-            "Im Zeitplan in die leere Zeile einer Aufgabe klicken gibt ihr eine Woche ab diesem Tag; den Balken ziehen verschiebt, an einem Rand ziehen verlängert.",
-            "Unter „Stunden & Antrag“ wählst du den Förderantrag, aus dem die Phase bezahlt wird, und je Paket das Antragspaket, in das seine Stunden gehören.",
-          ]}
-        />
-        <Begriffe
-          paare={[
-            {
-              begriff: "Laut Antrag",
-              text: "Die Stunden aus dem Antrag, über alle Pakete. So viele müssen auf die Pakete gebucht werden. Ohne Antrag steht dort das Pensum der Pakete.",
-            },
-            {
-              begriff: "Soll bis heute",
-              text: "Was laut Antrag bis heute gearbeitet sein sollte — die Stunden jedes Pakets gleichmäßig über die Tage seiner Monate verteilt. Das ist eine Annahme, der Antrag sagt nicht, wann im Paket gearbeitet wird. Darunter steht, wie viel über oder unter diesem Plan gebucht ist; am Stundenbalken jedes Pakets ist es der kleine Strich.",
-            },
-            {
-              begriff: "Die zwei Balken eines Pakets",
-              text: "Oben gestrichelt der Zeitraum laut Antrag, darunter hell, welchen Zeitraum seine Aufgaben belegen. Liegen sie auseinander, weicht die Arbeit vom Antrag ab — das darf sie.",
-            },
-            {
-              begriff: "Aufgaben dürfen abweichen, Stunden nicht",
-              text: "Die Aufgaben sind der echte Plan und dürfen anders aussehen als im Antrag. Gebucht wird aber aufs Arbeitspaket, und dessen Stunden gehören bei der Abrechnung in das zugeordnete Antragspaket. Wer in einem Paket gebucht hat, ohne im Antrag zu stehen, steht dort mit „nicht im Soll“.",
-            },
-            {
-              begriff: "Geplante Stunden",
-              text: "Die Stunden an einer Aufgabe sind ein Plan, gegen den nichts gebucht wird. Unter den Stunden des Pakets steht, wie viel die Aufgaben zusammen planen — gegen das Soll.",
-            },
-            {
-              begriff: "Ziele und Ergebnisse",
-              text: "Unter „Stunden & Antrag“ stehen die Ergebnisse der Antragspakete mit ihrem Termin. „Erreicht“ heißt: Das zugeordnete Arbeitspaket steht auf „fertig“. Die Texte des Antrags sind darunter zum Nachlesen.",
-            },
-            {
-              begriff: "Wer was darf",
-              text: "Sehen dürfen alle. Pakete und Aufgaben anlegen, ändern, verschieben und abhaken dürfen Admin und Bearbeiter; eine Aufgabe entfernen nur der Admin — milder ist, sie abzuhaken. Ein Paket entfernt man auf der Projektseite.",
-            },
-          ]}
-        />
-      </Abschnitt>
 
       <Abschnitt
         zeichen="schild"

@@ -7,6 +7,43 @@ betrifft.
 
 ---
 
+## 2026-10-19 — Projektplanung in die Projektseite gezogen
+
+**Bernd:** „Projekt und Projektplanung etwas aufräumen, ich hab da massiv die
+Übersicht verloren." Wichtig sind der Gantt, wo wir heute stehen, und bei
+einer Phase mit Förderung, welche Pakete in der Förderung sind — mit den
+Stunden, aber kompakter. Die Phasen ohne Zeitraum (Finanzierung, Ziele,
+Claire@home, Entwicklung) „laufen immer bissl mit, random" und können weg.
+
+**Entscheidung:** Ein Menüpunkt. Die Projektseite zeigt den Gantt (nur Phasen
+mit Zeitraum, außer im Bearbeiten) und darunter **die gewählte Phase als
+eigene Karte** mit der Planung (`Phasenplanung` aus ansichten/Planung.tsx):
+vier Zahlen in einer Zeile, Reiter „Pakete & Stunden · Zeitplan · Antrag",
+je Paket eine Zeile mit Antragsmonaten, Stunden je Person als Kürzel, Status,
+Stand gegen Soll und ▶. Pakete sind beim Öffnen zugeklappt. Die alte
+Paketliste der Projektseite (`PaketZeile` mit Pensum und Clock-in) ist weg —
+dieselben Pakete standen vorher an zwei Orten.
+
+- **Gliedern bleibt unter „Bearbeiten"**, auch für die Planung: Pakete
+  anlegen, umbenennen, umordnen, umziehen, entfernen. Status, Aufgaben und
+  ▶ gehen in beiden Modi. Vorher legte die Planungsseite Pakete jederzeit an,
+  die Projektseite nur im Bearbeiten — zwei Regeln für dieselbe Sache.
+- **Wege:** `/projekt/28` öffnet Phase 28; `/module/planung/…` führt dorthin
+  (`router.alterWeg`), damit alte Lesezeichen und die „Ansehen"-Knöpfe alter
+  Neuigkeiten weiter funktionieren. Das Modul „planung" gibt es nicht mehr.
+- **Optik:** Grundoptik. Die Klassen `.pl-*` sind geblieben, weil die
+  Designentscheidungen sie weiter in der runden Optik tragen; unter
+  `.projektphase .pl` zeigen die `--rw-*`-Namen auf die Grundtöne. Die
+  entstehenden Paare sind in test_kontrast.py schon gerechnet.
+- **Die vier Phasen ohne Zeitraum** löst `manage.py phasen_aufloesen` auf:
+  Buchungen (auch weich gelöschte) gehen aufs Auffangpaket (Overhead), dann
+  werden Aufgaben, Pensen, Pakete und Phase weich entfernt — wiederherstellbar.
+  Ohne `--ausfuehren` nur Anzeige; `--als` schreibt den Namen ins Protokoll.
+  Ein Befehl und kein Knopf: einmaliger Fall, und ein Knopf wäre ein zweiter
+  Löschweg neben dem gewöhnlichen.
+
+---
+
 ## 2026-10-19 — Zeit in einer Zeile, Runway mit weniger Text
 
 **Bernd:** Bei Zeit sei es „etwas unübersichtlich geworden mit dem Buchen, was

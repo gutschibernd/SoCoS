@@ -7,7 +7,6 @@ import {
   entscheidungsZahl,
   betragAusEingabe,
   betragZumBearbeiten,
-  planungAusWeg,
   punkteAusText,
   teilZuWeg,
   themaAusWeg,
@@ -16,8 +15,8 @@ import {
 } from "./module";
 
 describe("die Wege der Module", () => {
-  it("kennt die Praktikantenstellen, Thoughts, die Förderungen und die Planung", () => {
-    expect(MODULWEGE).toEqual(["praktikum", "praktikum-ideen", "thoughts", "foerderungen", "planung", "runway", "design"]);
+  it("kennt die Praktikantenstellen, Thoughts, die Förderungen, Runway und Design", () => {
+    expect(MODULWEGE).toEqual(["praktikum", "praktikum-ideen", "thoughts", "foerderungen", "runway", "design"]);
     expect(teilZuWeg("thoughts")?.teil.schluessel).toBe("thoughts");
     expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikantenstellen");
     expect(teilZuWeg("praktikum")?.teil.titel).toBe("Haupt-Aufgabenstellungen");
@@ -35,22 +34,11 @@ describe("die Wege der Module", () => {
     expect(themaAusWeg(null)).toBeNull();
   });
 
-  it("findet die Phase hinter dem Weg der Planung", () => {
-    expect(planungAusWeg("planung/28")?.phase).toBe(28);
-    expect(planungAusWeg("planung")).toBeNull();
-    expect(planungAusWeg("planung/28/1")).toBeNull();
-    // Ein Thema der Praktika ist keine Phase — und umgekehrt.
-    expect(planungAusWeg("praktikum/12")).toBeNull();
-    expect(themaAusWeg("planung/28")).toBeNull();
-  });
-
   it("findet die Designentscheidung hinter dem Weg", () => {
     expect(designAusWeg("design/7")?.id).toBe(7);
     expect(designAusWeg("design")).toBeNull();
     expect(designAusWeg("design/7/1")).toBeNull();
-    // Eine Phase der Planung ist keine Entscheidung — und umgekehrt.
     expect(designAusWeg("planung/7")).toBeNull();
-    expect(planungAusWeg("design/7")).toBeNull();
     expect(themaAusWeg("design/7")).toBeNull();
   });
 

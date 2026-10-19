@@ -7,7 +7,6 @@ import {
   designAusWeg,
   foerderauslastungAusWeg,
   foerderungAusWeg,
-  planungAusWeg,
   teilZuWeg,
   themaAusWeg,
 } from "../basis/module";
@@ -63,7 +62,6 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[]; klappt?: true }[] =
       { seite: "aufgaben", titel: "Aufgaben", zeichen: "aufgaben" },
       modul("thoughts"),
       { seite: "projekt", titel: "Projekt", zeichen: "projekt" },
-      modul("planung"),
       { seite: "zeit", titel: "Zeit", zeichen: "zeit" },
     ],
   },
@@ -97,8 +95,7 @@ function modulAm(unter: string | null) {
     themaAusWeg(unter) ??
     designAusWeg(unter) ??
     foerderungAusWeg(unter) ??
-    foerderauslastungAusWeg(unter) ??
-    planungAusWeg(unter)
+    foerderauslastungAusWeg(unter)
   )?.modul;
 }
 

@@ -1,5 +1,5 @@
 /**
- * Module · Projektplanung: was die Seite aus den Daten der Planung macht —
+ * Die Planung einer Phase (auf der Projektseite): was sie aus den Daten macht —
  * Reihenfolge, Texte, Eingaben. Gerechnet (Soll, Lage, was als Nächstes
  * ansteht) wird am Server, in socos/services/planung.py.
  */
