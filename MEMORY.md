@@ -37,6 +37,15 @@ leichter bedienbar machen, Struktur ungefähr gleich lassen.
 - **Nicht** angefasst: die Neuzeile der Aufgaben und die letzte Zeile der
   Designentscheidungen. Beide sind „Titel tippen, Enter" für etwas, das man
   oft und schnell anlegt — dort ist die immer offene Zeile richtig.
+- **Nachgezogen in den Förderungen:** Fragen, Bedarf, Abschnitte und
+  Arbeitspakete legt jetzt die eingebettete Anlegekarte an (ein Helfer
+  `Anlegen` in `Foerderungen.tsx`, mit Titel als Karte, ohne eingebettet).
+  **Bewusst ohne Anlegekarte**, aber mit derselben Sperre während des
+  Speicherns: die Zeilen für Stunden und Sachposten (sie stehen im Raster
+  der Zeilen darüber, Beschriftungen über den Feldern brächen es auf), das
+  neue Paket in der Projektplanung (Optik `.pl`, die Karte ist „Werkbank")
+  und das Themenfenster der Praktikumsstellen (legt an und bearbeitet; jetzt
+  ein `<form>`, Enter im Titel, ⌘↵ in den Textfeldern).
 
 ---
 

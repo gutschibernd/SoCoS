@@ -626,7 +626,7 @@ function Themenfenster({
   const bereit = entwurf.titel.trim() !== "" && geaendert;
 
   async function speichern() {
-    if (!bereit) return;
+    if (!bereit || laeuft) return;
     setLaeuft(true);
     const daten = {
       titel: entwurf.titel.trim(),
@@ -684,7 +684,25 @@ function Themenfenster({
   return (
     <>
       <div className="dialog-grund" role="dialog" aria-modal="true" aria-label="Thema" onClick={zurueck}>
-        <div className="dialog dialog-arbeit" onClick={(e) => e.stopPropagation()}>
+        {/* Ein `<form>`, wie die Anlegekarte: Enter im Titel speichert. In
+            den Textfeldern bleibt Enter der Zeilenumbruch — dort speichert
+            ⌘↵ / Strg+↵ wie im Notizdialog. Keine Anlegekarte selbst: Das
+            Fenster legt an und bearbeitet, mit einem Knopf für beides. */}
+        <form
+          className="dialog dialog-arbeit"
+          noValidate
+          onClick={(e) => e.stopPropagation()}
+          onSubmit={(e) => {
+            e.preventDefault();
+            speichern();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              e.currentTarget.requestSubmit();
+            }
+          }}
+        >
           <div className="dialog-kopf">
             <div className="dialog-kopf-text">
               <h2>{thema ? thema.titel : art === "idee" ? "Neue Idee" : "Neues Thema"}</h2>
@@ -694,7 +712,7 @@ function Themenfenster({
               <button type="button" className="knopf-still" onClick={zurueck} disabled={laeuft}>
                 Abbrechen
               </button>
-              <button type="button" className="knopf" onClick={speichern} disabled={laeuft || !bereit}>
+              <button type="submit" className="knopf" disabled={laeuft || !bereit}>
                 Speichern
               </button>
             </div>
@@ -742,7 +760,7 @@ function Themenfenster({
               </div>
             )}
           </div>
-        </div>
+        </form>
       </div>
 
       {fragtLoeschen && thema && (

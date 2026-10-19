@@ -739,21 +739,32 @@ function NeueAufgabe({
   );
 }
 
-/** Ein Paket gleich hier anlegen — die Arbeit hält sich nicht an die Pakete aus dem Antrag. */
+/**
+ * Ein Paket gleich hier anlegen — die Arbeit hält sich nicht an die Pakete aus dem Antrag.
+ *
+ * Keine Anlegekarte: Deren Feld und Knopf sind „Werkbank", die Planung hat
+ * ihre eigene Optik (`.pl`), und eine Werkbank-Zeile darin mischte zwei.
+ * Wie die Aufgabenzeile darüber: tippen, Enter — gesperrt, solange der
+ * Server arbeitet, sonst ergibt ein Doppelklick zwei Pakete.
+ */
 function NeuesPaket({ planung }: { planung: Planung }) {
   const speichern = useSpeichern();
   const [titel, setTitel] = useState("");
   const [fehler, setFehler] = useState("");
+  const [laeuft, setLaeuft] = useState(false);
 
   async function anlegen() {
     const t = titel.trim();
-    if (!t) return;
+    if (!t || laeuft) return;
     setFehler("");
+    setLaeuft(true);
     try {
       await speichern("/pakete/", { phase: planung.phase.id, titel: t, reihenfolge: planung.pakete.length + 1 }, "POST");
       setTitel("");
     } catch (e) {
       setFehler(fehlertext(e));
+    } finally {
+      setLaeuft(false);
     }
   }
 
@@ -772,7 +783,7 @@ function NeuesPaket({ planung }: { planung: Planung }) {
         aria-label="Neues Arbeitspaket"
         onChange={(e) => setTitel(e.target.value)}
       />
-      <button type="submit" className="pl-knopf" disabled={!titel.trim()}>
+      <button type="submit" className="pl-knopf" disabled={!titel.trim() || laeuft}>
         <Zeichen name="plus" />
         Paket
       </button>

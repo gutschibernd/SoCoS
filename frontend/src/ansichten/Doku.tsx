@@ -918,8 +918,8 @@ function ModuleDoku() {
             "Unter Förderungen steht je Fördergeber eine Kachel mit seinen Programmen und dem Höchstbetrag. Ein Klick öffnet ihn, ein Klick auf ein Programm das Programm. „Fördergeber dazu“ und „Programm dazu“ legen Neues an.",
             "Auf der Seite des Programms steht je Antrag eine Kachel: wie viel Geld er belegt, wie seine Pakete in der Zeit liegen und wie viele Punkte der Antragsreife erfüllt sind. Ein Klick öffnet den Antrag.",
             "Oben im Antrag stehen die Arbeitspakete als Zeitleiste. Einen Balken ziehst du in der Mitte, um ihn zu verschieben, an einem Rand, um ihn zu verlängern. Mit der Tastatur geht es mit ← und →, mit Umschalt verschiebst du nur das Ende.",
-            "Ein Klick auf den Titel eines Pakets klappt es auf: Ziel und Inhalt, Ergebnis, Monate, Reihenfolge. Ein Klick auf den Betrag ändert ihn. Ein neues Paket ist die Zeile unter der Leiste: tippen, Enter.",
-            "Darunter stehen die Texte: zuerst die Beschreibung für das Online-Formular, dann die Abschnitte, die der Antrag selbst führt. Welche das sind, legst du je Antrag an — „Abschnitt“ ganz unten, Überschrift tippen, Enter. Ein Klick auf die Überschrift ändert sie, die Pfeile daneben schieben den Abschnitt nach oben oder unten. Die Texte speichern sich beim Tippen.",
+            "Ein Klick auf den Titel eines Pakets klappt es auf: Ziel und Inhalt, Ergebnis, Monate, Reihenfolge. Ein Klick auf den Betrag ändert ihn. Ein neues Paket legst du unter der Leiste an, im Feld „Neues Arbeitspaket“: tippen, Enter.",
+            "Darunter stehen die Texte: zuerst die Beschreibung für das Online-Formular, dann die Abschnitte, die der Antrag selbst führt. Welche das sind, legst du je Antrag an — ganz unten unter „Neuer Abschnitt“ die Überschrift tippen, Enter. Ein Klick auf die Überschrift ändert sie, die Pfeile daneben schieben den Abschnitt nach oben oder unten. Die Texte speichern sich beim Tippen.",
             "Rechts steht, was noch fehlt. Ein Klick auf einen Punkt springt an die Stelle, an der du ihn erledigst.",
           ]}
         />

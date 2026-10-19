@@ -2890,6 +2890,8 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-leise { color: var(--text-sehr-leise); font-size: 12.5px; }
 .fd-klein { min-height: 36px; padding: 6px 10px; font-size: 13px; }
 .fd-neu { margin-top: 12px; }
+/* Allein in der Karte (ein neuer Abschnitt ohne Leerstelle davor) ohne Abstand. */
+.fd-neu:first-child { margin-top: 0; }
 .fd-knopfzeile { margin-top: 8px; }
 .fd-rechts { margin-left: auto; }
 .fd-kartenkopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
@@ -3086,9 +3088,6 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-abschnittskopf > h2 { min-width: 0; }
 .fd-abschnittsknoepfe { display: flex; gap: 4px; flex: 0 0 auto; margin-left: auto; }
 .fd-abschnittsknoepfe .knopf-still { min-width: var(--griff); justify-content: center; padding-inline: 8px; }
-.fd-abschnitt-neu { display: flex; gap: 8px; }
-.fd-abschnitt-neu > .feld { flex: 1 1 auto; min-width: 0; }
-.fd-abschnitt .leerstelle + .fd-abschnitt-neu { margin-top: 12px; }
 .fd-fussknopf { display: flex; justify-content: flex-end; }
 
 /* Rechts: Geld, Reife, Bedarf. */
@@ -3116,7 +3115,8 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .fd-reife li > button > i .zeichen { width: 12px; height: 12px; }
 .fd-reife em { display: block; font-style: normal; font-size: 12px; color: var(--warnung); margin-top: 1px; }
 
-.fd-bedarf label {
+/* `li`: Die Beschriftung über dem Feld zum Anlegen ist auch ein `label`. */
+.fd-bedarf li label {
   display: flex; align-items: center; gap: 10px; min-height: var(--griff);
   border-top: 1px solid var(--flaeche-leise); font-size: 13.5px; cursor: pointer;
 }

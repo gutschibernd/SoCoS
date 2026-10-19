@@ -232,36 +232,48 @@ function Geberkachel({
   );
 }
 
-/** Ein Feld, ein Knopf: einen Namen eintippen, anlegen, dorthin wechseln. */
+/**
+ * Ein Feld, ein Knopf: einen Namen eintippen, anlegen. Mit Titel als eigene
+ * Karte (Geber, Programm), ohne als letzte Zeile einer Karte, die schon sagt,
+ * worum es geht (Fragen, Bedarf, Abschnitte, Pakete).
+ */
 function Anlegen({
   titel,
+  beschriftung = "Name",
   knopf,
   platzhalter,
+  leer = "Ohne Namen gibt es nichts anzulegen.",
   abbrechen,
   anlegen,
 }: {
-  titel: string;
+  /** Fehlt, wenn die Zeile in einer Karte steht — dann eingebettet. */
+  titel?: string;
+  beschriftung?: string;
   knopf: string;
-  platzhalter: string;
+  platzhalter?: string;
+  /** Die Antwort auf „Anlegen" bei leerem Feld. */
+  leer?: string;
   /** Fehlt, wenn es noch nichts gibt — dann ist Anlegen das Einzige. */
   abbrechen?: () => void;
   anlegen: (name: string) => Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [fehler, setFehler] = useState("");
-  return (
+  const karte = (
     <Anlegekarte
       titel={titel}
+      eingebettet={!titel}
       knopf={knopf}
       abbrechen={abbrechen}
       fehler={fehler}
       anlegen={async () => {
-        if (!name.trim()) return setFehler("Ohne Namen gibt es nichts anzulegen.");
+        if (!name.trim()) return setFehler(leer);
         setFehler("");
         await anlegen(name.trim());
+        setName("");
       }}
     >
-      <Beschriftet text="Name" art="breit">
+      <Beschriftet text={beschriftung} art="breit">
         <input
           className="feld"
           value={name}
@@ -272,6 +284,7 @@ function Anlegen({
       </Beschriftet>
     </Anlegekarte>
   );
+  return titel ? karte : <div className="fd-neu">{karte}</div>;
 }
 
 function GeberAnlegen({ wechseln, abbrechen }: { wechseln: Wechseln; abbrechen?: () => void }) {
@@ -703,14 +716,11 @@ function Geldbalken({ anteil, ueber }: { anteil: number; ueber: boolean }) {
 function Fragenkarte({ programm, darf, darfLoeschen }: { programm: Foerderprogramm; darf: boolean; darfLoeschen: boolean }) {
   const speichern = useAendern();
   const [offen, setOffen] = useState<number | null>(null);
-  const [neu, setNeu] = useState("");
   const fragen = fragenSortiert(programm.fragen);
 
-  async function dazu() {
-    if (!neu.trim()) return;
+  async function dazu(frage: string) {
     const reihenfolge = Math.max(0, ...programm.fragen.map((f) => f.reihenfolge)) + 1;
-    await speichern("/foerderfragen/", { programm: programm.id, frage: neu.trim(), reihenfolge }, "POST");
-    setNeu("");
+    await speichern("/foerderfragen/", { programm: programm.id, frage, reihenfolge }, "POST");
   }
 
   return (
@@ -733,25 +743,7 @@ function Fragenkarte({ programm, darf, darfLoeschen }: { programm: Foerderprogra
         ))}
       </ul>
       {darf && (
-        <form
-          className="feld-reihe fd-neu"
-          onSubmit={(e) => {
-            e.preventDefault();
-            dazu();
-          }}
-        >
-          <input
-            className="feld"
-            value={neu}
-            placeholder="Neue Frage — Enter legt sie an"
-            aria-label="Neue Frage an die Förderstelle"
-            onChange={(e) => setNeu(e.target.value)}
-          />
-          <button type="submit" className="knopf-still" disabled={!neu.trim()}>
-            <Zeichen name="plus" />
-            Frage
-          </button>
-        </form>
+        <Anlegen beschriftung="Neue Frage" knopf="Frage anlegen" leer="Ohne Text gibt es keine Frage." anlegen={dazu} />
       )}
     </section>
   );
@@ -1180,15 +1172,12 @@ function Antrag({
 function Abschnitte({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; darf: boolean; darfLoeschen: boolean }) {
   const speichern = useAendern();
   const neuLaden = useNeuLaden();
-  const [titel, setTitel] = useState("");
   const [entfernen, setEntfernen] = useState<Foerderabschnitt | null>(null);
   const reihe = antrag.abschnitte;
 
-  async function dazu() {
-    if (!titel.trim()) return;
+  async function dazu(titel: string) {
     const reihenfolge = Math.max(0, ...reihe.map((a) => a.reihenfolge)) + 1;
-    await speichern("/foerderabschnitte/", { antrag: antrag.id, titel: titel.trim(), reihenfolge }, "POST");
-    setTitel("");
+    await speichern("/foerderabschnitte/", { antrag: antrag.id, titel, reihenfolge }, "POST");
   }
 
   /** Wie bei den Paketen: tauschen, dann die ganze Reihe neu durchzählen. */
@@ -1254,25 +1243,13 @@ function Abschnitte({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; dar
             />
           )}
           {darf && (
-            <form
-              className="fd-abschnitt-neu"
-              onSubmit={(e) => {
-                e.preventDefault();
-                dazu();
-              }}
-            >
-              <input
-                className="feld"
-                value={titel}
-                placeholder="Neuer Abschnitt, z. B. Kostenprognose Regelbetrieb"
-                aria-label="Überschrift des neuen Abschnitts"
-                onChange={(e) => setTitel(e.target.value)}
-              />
-              <button type="submit" className="knopf-still" disabled={!titel.trim()}>
-                <Zeichen name="plus" />
-                Abschnitt
-              </button>
-            </form>
+            <Anlegen
+              beschriftung="Neuer Abschnitt"
+              knopf="Abschnitt anlegen"
+              platzhalter="z. B. Kostenprognose Regelbetrieb"
+              leer="Ohne Überschrift gibt es keinen Abschnitt."
+              anlegen={dazu}
+            />
           )}
         </section>
       )}
@@ -1371,7 +1348,6 @@ function Reifekarte({ antrag }: { antrag: Foerderantrag }) {
 /** Was wir noch brauchen — abhaken mit einem Tipp, neu mit einer Zeile. */
 function Bedarfskarte({ antrag, darf }: { antrag: Foerderantrag; darf: boolean }) {
   const speichern = useAendern();
-  const [neu, setNeu] = useState("");
   const punkte = bedarfspunkte(antrag.datenbedarf);
   const pfad = `/foerderantraege/${antrag.id}/`;
   const offen = punkte.filter((p) => !p.da).length;
@@ -1400,23 +1376,12 @@ function Bedarfskarte({ antrag, darf }: { antrag: Foerderantrag; darf: boolean }
         </ul>
       )}
       {darf && (
-        <form
-          className="fd-neu"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!neu.trim()) return;
-            await speichern(pfad, { datenbedarf: bedarfDazu(antrag.datenbedarf, neu) });
-            setNeu("");
-          }}
-        >
-          <input
-            className="feld"
-            value={neu}
-            placeholder="Was fehlt noch? Enter"
-            aria-label="Neuer Punkt"
-            onChange={(e) => setNeu(e.target.value)}
-          />
-        </form>
+        <Anlegen
+          beschriftung="Was fehlt noch?"
+          knopf="Punkt anlegen"
+          leer="Ohne Text gibt es keinen Punkt."
+          anlegen={(punkt) => speichern(pfad, { datenbedarf: bedarfDazu(antrag.datenbedarf, punkt) })}
+        />
       )}
     </section>
   );
@@ -1455,7 +1420,6 @@ function Zeitplan({
   const [aufgeklappt, setAufgeklappt] = useState<number | null>(null);
   const [zug, setZug] = useState<Zug | null>(null);
   const [vorschau, setVorschau] = useState<{ id: number; von: number; bis: number } | null>(null);
-  const [neu, setNeu] = useState("");
   const monate = Array.from({ length: anzahl }, (_, i) => i + 1);
   // Bei vielen Monaten nicht jeden beschriften — sonst stehen die Namen
   // übereinander. Die Linien bleiben je Monat.
@@ -1501,15 +1465,9 @@ function Zeitplan({
     verschieben(paket, gezogen(paket, e.shiftKey ? "ende" : "mitte", um, anzahl));
   }
 
-  async function dazu() {
-    if (!neu.trim()) return;
+  async function dazu(titel: string) {
     const reihenfolge = Math.max(0, ...antrag.pakete.map((p) => p.reihenfolge)) + 1;
-    await speichern(
-      "/foerderpakete/",
-      { antrag: antrag.id, titel: neu.trim(), reihenfolge, ...neuePaketmonate(antrag, anzahl) },
-      "POST",
-    );
-    setNeu("");
+    await speichern("/foerderpakete/", { antrag: antrag.id, titel, reihenfolge, ...neuePaketmonate(antrag, anzahl) }, "POST");
   }
 
   return (
@@ -1634,25 +1592,13 @@ function Zeitplan({
       </div>
 
       {darf && (
-        <form
-          className="feld-reihe fd-neu"
-          onSubmit={(e) => {
-            e.preventDefault();
-            dazu();
-          }}
-        >
-          <input
-            className="feld"
-            value={neu}
-            placeholder={antrag.pakete.length ? "Neues Arbeitspaket — Enter" : "Erstes Arbeitspaket, z. B. Anforderungserhebung"}
-            aria-label="Neues Arbeitspaket"
-            onChange={(e) => setNeu(e.target.value)}
-          />
-          <button type="submit" className="knopf-still" disabled={!neu.trim()}>
-            <Zeichen name="plus" />
-            Paket
-          </button>
-        </form>
+        <Anlegen
+          beschriftung={antrag.pakete.length ? "Neues Arbeitspaket" : "Erstes Arbeitspaket"}
+          knopf="Arbeitspaket anlegen"
+          platzhalter={antrag.pakete.length ? undefined : "z. B. Anforderungserhebung"}
+          leer="Ohne Titel gibt es kein Arbeitspaket."
+          anlegen={dazu}
+        />
       )}
     </section>
   );
@@ -1952,10 +1898,14 @@ function Paketstunden({
   const [wer, setWer] = useState("");
   const [person, setPerson] = useState("");
   const [stunden, setStunden] = useState("");
+  const [laeuft, setLaeuft] = useState(false);
   const [entfernen, setEntfernen] = useState<Foerderstunden | null>(null);
   const ohneKonto = wer === OHNE_KONTO;
   const vollstaendig = wer !== "" && (!ohneKonto || person.trim() !== "") && stunden.trim() !== "";
 
+  // Keine Anlegekarte wie bei Fragen und Paketen: Die Zeile steht im Raster
+  // der Stunden darüber, Beschriftungen über den Feldern brächen es auf.
+  // Die Sperre während des Speicherns ist dieselbe.
   async function dazu() {
     const zahl = betragAusEingabe(stunden);
     if (!vollstaendig || !zahl) {
@@ -1963,10 +1913,17 @@ function Paketstunden({
       return;
     }
     const wen = ohneKonto ? { person: person.trim() } : { nutzer: Number(wer) };
-    await speichern("/foerderstunden/", { paket: paket.id, ...wen, stunden: zahl }, "POST");
-    setWer("");
-    setPerson("");
-    setStunden("");
+    setLaeuft(true);
+    try {
+      await speichern("/foerderstunden/", { paket: paket.id, ...wen, stunden: zahl }, "POST");
+      setWer("");
+      setPerson("");
+      setStunden("");
+    } catch {
+      // `hole` hat den Grund schon gemeldet; die Eingaben bleiben stehen.
+    } finally {
+      setLaeuft(false);
+    }
   }
 
   if (!darf && paket.stunden.length === 0) return null;
@@ -2041,7 +1998,7 @@ function Paketstunden({
             aria-label="Stunden"
             onChange={(e) => setStunden(e.target.value)}
           />
-          <button type="submit" className="knopf-still" disabled={!vollstaendig}>
+          <button type="submit" className="knopf-still" disabled={!vollstaendig || laeuft}>
             <Zeichen name="plus" />
             Stunden
           </button>
@@ -2079,9 +2036,11 @@ function Kalkulation({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; da
   const k = antrag.kosten;
   const [bezeichnung, setBezeichnung] = useState("");
   const [betrag, setBetrag] = useState("");
+  const [laeuft, setLaeuft] = useState(false);
   const [entfernen, setEntfernen] = useState<Foerderposten | null>(null);
   const nummer = (id: number | null) => antrag.pakete.findIndex((p) => p.id === id) + 1;
 
+  // Im Raster der Posten wie die Stunden — siehe `Paketstunden`.
   async function dazu() {
     const zahl = betragAusEingabe(betrag);
     if (!bezeichnung.trim() || !zahl) {
@@ -2089,9 +2048,16 @@ function Kalkulation({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; da
       return;
     }
     const reihenfolge = Math.max(0, ...antrag.posten.map((p) => p.reihenfolge)) + 1;
-    await speichern("/foerderposten/", { antrag: antrag.id, bezeichnung: bezeichnung.trim(), betrag: zahl, reihenfolge }, "POST");
-    setBezeichnung("");
-    setBetrag("");
+    setLaeuft(true);
+    try {
+      await speichern("/foerderposten/", { antrag: antrag.id, bezeichnung: bezeichnung.trim(), betrag: zahl, reihenfolge }, "POST");
+      setBezeichnung("");
+      setBetrag("");
+    } catch {
+      // `hole` hat den Grund schon gemeldet; die Eingaben bleiben stehen.
+    } finally {
+      setLaeuft(false);
+    }
   }
 
   // Beim Drittleister sind die Stunden geschätzter Aufwand: kein Satz, keine Personalzeile.
@@ -2207,7 +2173,7 @@ function Kalkulation({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; da
             aria-label="Betrag des Postens"
             onChange={(e) => setBetrag(e.target.value)}
           />
-          <button type="submit" className="knopf-still" disabled={!bezeichnung.trim() || !betrag.trim()}>
+          <button type="submit" className="knopf-still" disabled={!bezeichnung.trim() || !betrag.trim() || laeuft}>
             <Zeichen name="plus" />
             Posten
           </button>
