@@ -23,7 +23,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-10-21",
-        "titel": "Der Verlauf hat Platz für Notizen",
+        "titel": "Notizen im Verlauf, Förderanträge mit Beginn und Ende",
         "punkte": [
             {
                 "titel": "Calls und Mails in einem Fenster",
@@ -41,6 +41,15 @@ VERSIONEN = [
                     "Wer was geändert hat, steht im Änderungsprotokoll."
                 ),
                 "wo": "kontakte",
+            },
+            {
+                "titel": "Der Förderzeitraum steht oben im Antrag",
+                "text": (
+                    "Unter dem Titel stehen jetzt geplanter Beginn und geplantes Ende. Der Zeitplan reicht genau "
+                    "von einem zum anderen, jeder Monat fängt am Tag des Beginns an — bei Beginn 19.10. läuft M1 "
+                    "bis 18.11. Der Regler für die Monate im Zeitplan fällt weg; die Länge ergibt sich aus dem Ende."
+                ),
+                "wo": "module/foerderungen",
             },
         ],
     },

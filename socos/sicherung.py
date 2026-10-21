@@ -144,6 +144,12 @@ LOESCHREIHENFOLGE = [
 # Die Planposten (Migration 0052): stehen seitdem im Dokument des Runway-Plans.
 ENTFERNTE_MODELLE = {"socos.vorhaben", "socos.canvaspunkt", "socos.persona", "socos.planposten"}
 
+# Dasselbe für Felder: `loaddata` bricht an einem Feld ab, das es nicht mehr
+# gibt, und mit ihm das ganze Archiv.
+#
+# Die Monate im Zeitplan (Migration 0055): stehen seitdem als geplantes Ende.
+ENTFERNTE_FELDER = {"socos.foerderantrag": {"zeitachse"}}
+
 DATENBANK_IM_ARCHIV = "datenbank.json"
 MEDIEN_IM_ARCHIV = "medien"
 
@@ -273,7 +279,7 @@ def archiv_einspielen(quelle):
 
 
 def _entfernte_uebergehen(datenbank):
-    """Schreibt `datenbank` ohne die Zeilen der entfernten Modelle zurück."""
+    """Schreibt `datenbank` ohne die Zeilen der entfernten Modelle und die entfernten Felder zurück."""
     try:
         zeilen = json.loads(datenbank.read_text(encoding="utf-8"))
     except ValueError as fehler:
@@ -281,7 +287,14 @@ def _entfernte_uebergehen(datenbank):
     if not isinstance(zeilen, list):
         raise ArchivFehler(f"{DATENBANK_IM_ARCHIV} ist keine Liste von Datensätzen.")
     behalten = [z for z in zeilen if str(z.get("model", "")).lower() not in ENTFERNTE_MODELLE]
-    if len(behalten) != len(zeilen):
+    geaendert = len(behalten) != len(zeilen)
+    for zeile in behalten:
+        felder = zeile.get("fields")
+        for feld in ENTFERNTE_FELDER.get(str(zeile.get("model", "")).lower(), ()):
+            if isinstance(felder, dict) and feld in felder:
+                del felder[feld]
+                geaendert = True
+    if geaendert:
         datenbank.write_text(json.dumps(behalten, ensure_ascii=False), encoding="utf-8")
 
 

@@ -1992,10 +1992,14 @@ class Foerderantrag(Basismodell):
     # Geld und nie in der Reife (`services/foerderung.stunden_kosten_geld`).
     rolle = models.CharField("Unsere Rolle", max_length=14, choices=Rolle.choices, default=Rolle.FOERDERWERBER)
     beginn = models.DateField("Geplanter Beginn", null=True, blank=True)
-    # Wie viele Monate der Zeitplan zeigt. Leer heißt: so viele, wie das
-    # Programm höchstens erlaubt. Kürzer als die Pakete wird die Achse nie —
-    # das rechnet die Seite, damit kein Balken über den Rand fällt.
-    zeitachse = models.PositiveSmallIntegerField("Monate im Zeitplan", null=True, blank=True)
+    # Beginn und Ende sind der Förderzeitraum: der Rahmen des Zeitplans, und
+    # in ihm liegen die Projektmonate (`services/foerderung.projektmonat`).
+    # Leer heißt: noch offen — dann zeigt der Zeitplan so viele Monate, wie
+    # das Programm höchstens erlaubt. Bis 2026-10-21 stand hier statt des
+    # Endes eine Monatszahl für die Achse (`zeitachse`, Migration 0055);
+    # zwei Stellen, die beide sagen, wie lang der Antrag läuft, liefen
+    # auseinander.
+    ende = models.DateField("Geplantes Ende", null=True, blank=True)
     # Das Formular nimmt 500 Zeichen. **Nicht** hart begrenzt: Beim Schreiben
     # ist ein Satz zu viel normal; die Seite zählt mit und sagt es.
     beschreibung = models.TextField("Beschreibung des Vorhabens", blank=True)

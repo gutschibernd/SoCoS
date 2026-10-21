@@ -6,7 +6,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  beginnVerschieben,
   ganzeStunden,
   istJahresanfang,
   istPlanbarerBeginn,
@@ -16,6 +15,7 @@ import {
   standUmschalten,
   tonVon,
   waermestufe,
+  zeitraumVerschieben,
 } from "./foerderauslastung";
 
 describe("die Wärmekarte", () => {
@@ -56,11 +56,14 @@ describe("Monate", () => {
     expect(istJahresanfang("2027-12")).toBe(false);
   });
 
-  it("verschieben einen Beginn über den Jahreswechsel und behalten den Tag", () => {
-    expect(beginnVerschieben("2027-12-10", 1)).toBe("2028-01-10");
-    expect(beginnVerschieben("2027-01-10", -1)).toBe("2026-12-10");
-    expect(beginnVerschieben("2027-01-31", 1)).toBe("2027-02-28");
-    expect(beginnVerschieben("2028-01-31", 1)).toBe("2028-02-29");
+  it("verschieben Beginn und Ende gemeinsam, über den Jahreswechsel, und behalten den Tag", () => {
+    expect(zeitraumVerschieben({ beginn: "2027-12-10", ende: "2028-06-09" }, 1)).toEqual({
+      beginn: "2028-01-10",
+      ende: "2028-07-09",
+    });
+    expect(zeitraumVerschieben({ beginn: "2027-01-10", ende: null }, -1)).toEqual({ beginn: "2026-12-10", ende: null });
+    expect(zeitraumVerschieben({ beginn: "2027-01-31", ende: null }, 1).beginn).toBe("2027-02-28");
+    expect(zeitraumVerschieben({ beginn: "2028-01-31", ende: null }, 1).beginn).toBe("2028-02-29");
   });
 });
 

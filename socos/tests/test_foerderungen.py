@@ -79,6 +79,89 @@ class TestRechnung:
         assert foerderung.laufzeit(antrag) == 0
 
 
+class TestFoerderzeitraum:
+    """
+    Beginn und Ende sind der Rahmen. Ein Projektmonat fängt am Tag des
+    Beginns an — beim Beginn 19.10. nicht am 1. Oktober.
+    """
+
+    def test_projektmonat_beginnt_am_tag_des_beginns(self):
+        from datetime import date
+
+        beginn = date(2026, 10, 19)
+        assert foerderung.projektmonat(beginn, None, 1) == (date(2026, 10, 19), date(2026, 11, 18))
+        assert foerderung.projektmonat(beginn, None, 4) == (date(2027, 1, 19), date(2027, 2, 18))
+        assert foerderung.zeitraum(beginn, None, 2, 3) == (date(2026, 11, 19), date(2027, 1, 18))
+
+    def test_am_monatsende_bleibt_der_tag_nicht_am_28_haengen(self):
+        from datetime import date
+
+        assert foerderung.monate_dazu(date(2027, 1, 31), 1) == date(2027, 2, 28)
+        assert foerderung.monate_dazu(date(2027, 1, 31), 2) == date(2027, 3, 31)
+        assert foerderung.monate_dazu(date(2028, 1, 31), 1) == date(2028, 2, 29)
+        assert foerderung.monate_dazu(date(2027, 11, 15), 2) == date(2028, 1, 15)
+
+    def test_das_ende_kuerzt_nur_seinen_monat(self):
+        from datetime import date
+
+        beginn, ende = date(2026, 10, 19), date(2027, 3, 31)
+        assert foerderung.projektmonat(beginn, ende, 6) == (date(2027, 3, 19), date(2027, 3, 31))
+        assert foerderung.projektmonat(beginn, ende, 5) == (date(2027, 2, 19), date(2027, 3, 18))
+        # Ein Monat hinter dem Ende schrumpft nicht auf nichts — die Reife sagt, dass er nicht passt.
+        assert foerderung.projektmonat(beginn, ende, 7) == (date(2027, 4, 19), date(2027, 5, 18))
+
+    def test_rahmen_und_laufzeit(self, antrag):
+        from datetime import date
+
+        _paket(antrag, "Bau", 1, 4, "1000")
+        assert foerderung.rahmen(antrag) is None
+        assert foerderung.laufzeit(antrag) == 4
+
+        antrag.beginn, antrag.ende = date(2026, 10, 19), date(2027, 4, 18)
+        assert foerderung.rahmen(antrag) == 6
+        # Der Zeitraum ist die Laufzeit, nicht das letzte Paket.
+        assert foerderung.laufzeit(antrag) == 6
+        assert foerderung.paketende(antrag) == 4
+        # Liegt das Ende mitten im Monat, zählt der Monat mit.
+        antrag.ende = date(2027, 3, 31)
+        assert foerderung.rahmen(antrag) == 6
+        antrag.ende = antrag.beginn
+        assert foerderung.rahmen(antrag) == 1
+
+    def test_paket_ueber_das_ende_hinaus_ist_nicht_reif(self, antrag):
+        from datetime import date
+
+        antrag.beginn, antrag.ende = date(2026, 10, 19), date(2027, 4, 18)
+        antrag.save()
+        paket = _paket(antrag, "Bau", 1, 8, "1000")
+        laufzeit = _reife(antrag)["laufzeit"]
+        assert not laufzeit["erfuellt"]
+        assert laufzeit["hinweis"] == "Pakete reichen bis M8, das Ende liegt in M6."
+
+        paket.bis = 6
+        paket.save()
+        assert _reife(antrag)["laufzeit"]["erfuellt"]
+
+    def test_ende_ueber_die_schnittstelle(self, client, bearbeiter, antrag):
+        client.force_login(bearbeiter)
+        pfad = f"/api/foerderantraege/{antrag.pk}/"
+
+        def patch(daten):
+            return client.patch(pfad, daten, content_type="application/json")
+
+        assert patch({"ende": "2027-04-18"}).status_code == 400  # ohne Beginn kein Ende
+        geholt = patch({"beginn": "2026-10-19", "ende": "2027-04-18"}).json()
+        assert (geholt["beginn"], geholt["ende"], geholt["rahmen"], geholt["laufzeit"]) == (
+            "2026-10-19", "2027-04-18", 6, 6,
+        )
+        assert patch({"ende": "2026-10-18"}).status_code == 400  # vor dem Beginn
+        assert patch({"beginn": "2027-05-01"}).status_code == 400  # Beginn hinter das Ende
+        assert patch({"beginn": None}).status_code == 400  # das Ende bliebe ohne Beginn
+        assert patch({"ende": "2036-10-19"}).status_code == 400  # zehn Jahre
+        geleert = patch({"beginn": None, "ende": None}).json()
+        assert (geleert["beginn"], geleert["ende"], geleert["rahmen"]) == (None, None, None)
+
+
 class TestKalkulation:
     """Der Kostenplan des KWF-Antrags vom August 2026 — die Zahlen müssen genau aufgehen."""
 
@@ -315,14 +398,6 @@ class TestSchnittstelle:
         assert [(a["titel"], a["text"]) for a in geholt["abschnitte"]] == [("Nutzen", "Spart Zeit.")]
         assert geholt["reife"][2]["text"] == "Nutzen" and geholt["reife"][2]["erfuellt"]
 
-    def test_zeitachse_einstellen(self, client, bearbeiter, antrag):
-        client.force_login(bearbeiter)
-        pfad = f"/api/foerderantraege/{antrag.pk}/"
-        assert client.patch(pfad, {"zeitachse": 36}, content_type="application/json").json()["zeitachse"] == 36
-        assert client.patch(pfad, {"zeitachse": 0}, content_type="application/json").status_code == 400
-        assert client.patch(pfad, {"zeitachse": 121}, content_type="application/json").status_code == 400
-        assert client.patch(pfad, {"zeitachse": None}, content_type="application/json").json()["zeitachse"] is None
-
     def test_stunden_und_posten_ueber_die_schnittstelle(self, client, bearbeiter, antrag):
         paket = _paket(antrag, "Bau", 1, 2, None)
         client.force_login(bearbeiter)
@@ -481,9 +556,14 @@ class TestUebersicht:
 
         ohne = Foerderantrag(beginn=None)
         assert zeitraum(ohne, 4, 15) == "M4–15"
-        mit = Foerderantrag(beginn=date(2026, 11, 20))
-        assert monat(mit, 3) == "Jän 27"
-        assert zeitraum(mit, 1, 1).startswith("Nov 26<br/>")
+        am_ersten = Foerderantrag(beginn=date(2026, 11, 1))
+        assert monat(am_ersten, 3) == "Jän 27"
+        assert zeitraum(am_ersten, 1, 1).startswith("Nov 26<br/>")
+        # Mitten im Monat steht der Tag da — „Nov 26" hieße ab dem Ersten.
+        mitten = Foerderantrag(beginn=date(2026, 11, 20), ende=date(2027, 2, 10))
+        assert monat(mitten, 3) == "20.01.27"
+        assert zeitraum(mitten, 1, 1).startswith("20.11.26 – 19.12.26<br/>")
+        assert zeitraum(mitten, 2, 3).startswith("20.12.26 – 10.02.27<br/>")
 
     def test_kuerzen_am_wortende(self):
         from socos.services.antragsuebersicht import gekuerzt
@@ -505,19 +585,41 @@ class TestAuslastung:
     """
 
     def test_verteilen_geht_auf(self):
-        assert foerderung.verteilen(Decimal("100"), 3) == [Decimal("33.25"), Decimal("33.25"), Decimal("33.50")]
-        assert foerderung.verteilen(Decimal("10"), 1) == [Decimal("10")]
-        krumm = foerderung.verteilen(Decimal("10.10"), 4)
+        from fractions import Fraction
+
+        drittel, viertel = [Fraction(1, 3)] * 3, [Fraction(1, 4)] * 4
+        assert foerderung.verteilen(Decimal("100"), drittel) == [Decimal("33.25"), Decimal("33.25"), Decimal("33.50")]
+        assert foerderung.verteilen(Decimal("10"), [Fraction(1)]) == [Decimal("10")]
+        krumm = foerderung.verteilen(Decimal("10.10"), viertel)
         assert krumm == [Decimal("2.50"), Decimal("2.50"), Decimal("2.50"), Decimal("2.60")]
         assert sum(krumm) == Decimal("10.10")
         with pytest.raises(ValueError):
-            foerderung.verteilen(Decimal("1"), 0)
+            foerderung.verteilen(Decimal("1"), [])
 
-    def test_kalendermonat_ueber_den_jahreswechsel(self):
+    def test_kalenderanteile_am_ersten_wie_gleich_verteilt(self):
         from datetime import date
+        from fractions import Fraction
 
-        assert foerderung.kalendermonat(date(2027, 11, 15), 1) == "2027-11"
-        assert foerderung.kalendermonat(date(2027, 11, 15), 3) == "2028-01"
+        assert foerderung.kalenderanteile(date(2027, 11, 1), None, 1, 3) == {
+            "2027-11": Fraction(1, 3), "2027-12": Fraction(1, 3), "2028-01": Fraction(1, 3),
+        }
+
+    def test_kalenderanteile_mitten_im_monat_nach_tagen(self):
+        """
+        Beginn 19.10.: M1 (19.10.–18.11., 31 Tage) liegt 13 Tage im Oktober und
+        18 im November, M2 (19.11.–18.12., 30 Tage) 12 im November und 18 im
+        Dezember. Jeder Projektmonat trägt die Hälfte.
+        """
+        from datetime import date
+        from fractions import Fraction
+
+        anteile = foerderung.kalenderanteile(date(2026, 10, 19), None, 1, 2)
+        assert anteile == {
+            "2026-10": Fraction(1, 2) * Fraction(13, 31),
+            "2026-11": Fraction(1, 2) * Fraction(18, 31) + Fraction(1, 2) * Fraction(12, 30),
+            "2026-12": Fraction(1, 2) * Fraction(18, 30),
+        }
+        assert sum(anteile.values()) == 1
 
     @pytest.fixture
     def lage(self, programm):
@@ -528,7 +630,7 @@ class TestAuslastung:
         Foerderkapazitaet.objects.create(nutzer=bg, stunden_je_monat=Decimal("60"))
         Foerderkapazitaet.objects.create(nutzer=frei, stunden_je_monat=Decimal("40"))
 
-        a = Foerderantrag.objects.create(programm=programm, titel="A", stand="eingereicht", beginn=date(2027, 1, 10))
+        a = Foerderantrag.objects.create(programm=programm, titel="A", stand="eingereicht", beginn=date(2027, 1, 1))
         ap1 = _paket(a, "AP1", 1, 3, None)
         Foerderstunden.objects.create(paket=ap1, nutzer=bg, stunden=Decimal("100"))
         Foerderstunden.objects.create(paket=ap1, person="N. N.", stunden=Decimal("30"))
@@ -580,6 +682,24 @@ class TestAuslastung:
         # Mit Kapazität, aber ohne Stunden: steht da, mit nichts.
         frei = personen[f"n{lage['frei'].pk}"]
         assert (frei["stunden"], frei["je_monat"], frei["kapazitaet"]) == (Decimal("0.00"), {}, Decimal("40.00"))
+
+    def test_beginn_mitten_im_monat_teilt_nach_tagen(self, programm):
+        """Bei Beginn 19.10. liegt im Oktober nur, was auf seine 13 Tage fällt."""
+        from datetime import date
+
+        bg = Nutzer.objects.create_user(email="bg@example.invalid", name="Bernd Gutschi")
+        antrag = Foerderantrag.objects.create(
+            programm=programm, titel="Spender", stand="eingereicht", beginn=date(2026, 10, 19), ende=date(2027, 4, 18),
+        )
+        Foerderstunden.objects.create(paket=_paket(antrag, "AP1", 1, 2, None), nutzer=bg, stunden=Decimal("100"))
+
+        ergebnis = foerderung.auslastung(["eingereicht"], heute=date(2026, 10, 21))
+        assert ergebnis["je_monat"] == {
+            "2026-10": Decimal("20.75"), "2026-11": Decimal("49.00"), "2026-12": Decimal("30.25"),
+        }
+        paket = ergebnis["antraege"][0]["pakete"][0]
+        assert (paket["von"], paket["bis"]) == ("2026-10", "2026-12")
+        assert ergebnis["antraege"][0]["ende"] == date(2027, 4, 18)
 
     def test_achse_reicht_bis_heute(self, lage):
         """Verschiebt man den ersten Antrag, bleibt die Achse am laufenden Monat stehen."""

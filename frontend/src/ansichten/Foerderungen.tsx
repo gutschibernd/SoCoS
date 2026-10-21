@@ -46,6 +46,7 @@ import {
   type Ich,
   type Teammitglied,
 } from "../basis/daten";
+import { istPlanbarerBeginn } from "../basis/foerderauslastung";
 import {
   ROLLEN,
   STAENDE,
@@ -61,8 +62,9 @@ import {
   gezogen,
   istAufgeschluesselt,
   istOffen,
+  grenzmonat,
   monatsanzahl,
-  achsengrenzen,
+  monatsletzter,
   monatsname,
   neuePaketmonate,
   paketsumme,
@@ -1053,6 +1055,8 @@ function Antrag({
             Kurzbezeichnung · {titelZeichen} / {antrag.zeichen.titel}
           </span>
 
+          <Foerderzeitraum antrag={antrag} darf={darf} />
+
           <div className="fd-kopfzeile">
             <div className="spannenwahl fd-standwahl" role="group" aria-label="Stand des Antrags">
               {STAENDE.map((s) => (
@@ -1090,16 +1094,6 @@ function Antrag({
                 aendern={darf}
                 platzhalter="Wer reicht ein?"
                 speichern={(foerderwerber) => speichern(pfad, { foerderwerber })}
-              />
-            </label>
-            <label className="fd-kopffeld">
-              <span className="beschriftung-klein">Geplanter Beginn</span>
-              <input
-                type="date"
-                className="feld"
-                value={antrag.beginn ?? ""}
-                disabled={!darf}
-                onChange={(e) => speichern(pfad, { beginn: e.target.value || null })}
               />
             </label>
           </div>
@@ -1181,6 +1175,61 @@ function Antrag({
           }}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Der Förderzeitraum, ganz oben im Antrag: Beginn und Ende. Er ist der Rahmen
+ * des Zeitplans darunter — die Achse geht vom Beginn bis zum Ende, und jeder
+ * Monat fängt am Tag des Beginns an. Ohne Beginn gibt es kein Ende, also wird
+ * mit dem Beginn auch das Ende geleert.
+ *
+ * Gespeichert wird nur ein ganzes Datum: Beim Tippen ins Jahr kommt erst
+ * „0002-…" an, und das wäre ein Ende vor dem Beginn — eine Fehlermeldung je Ziffer.
+ */
+function Foerderzeitraum({ antrag, darf }: { antrag: Foerderantrag; darf: boolean }) {
+  const speichern = useAendern();
+  const pfad = `/foerderantraege/${antrag.id}/`;
+  return (
+    <div className="fd-zeitraum" id="fd-zeitraum">
+      <label className="fd-kopffeld">
+        <span className="beschriftung-klein">Geplanter Beginn</span>
+        <input
+          type="date"
+          className="feld"
+          value={antrag.beginn ?? ""}
+          disabled={!darf}
+          onChange={(e) => {
+            const wert = e.target.value;
+            if (!wert) speichern(pfad, { beginn: null, ende: null });
+            else if (istPlanbarerBeginn(wert)) speichern(pfad, { beginn: wert });
+          }}
+        />
+      </label>
+      <label className="fd-kopffeld">
+        <span className="beschriftung-klein">Geplantes Ende</span>
+        <input
+          type="date"
+          className="feld"
+          value={antrag.ende ?? ""}
+          min={antrag.beginn ?? undefined}
+          disabled={!darf || !antrag.beginn}
+          onChange={(e) => {
+            const wert = e.target.value;
+            if (!wert || istPlanbarerBeginn(wert)) speichern(pfad, { ende: wert || null });
+          }}
+        />
+      </label>
+      <span className="fd-zeitraumdauer">
+        {antrag.rahmen !== null ? (
+          <>
+            <b className="zahl">{antrag.rahmen}</b> {antrag.rahmen === 1 ? "Monat" : "Monate"}
+          </>
+        ) : (
+          <span className="fd-leise">{antrag.beginn ? "Ende offen" : "Zeitraum offen"}</span>
+        )}
+      </span>
     </div>
   );
 }
@@ -1331,7 +1380,7 @@ function Reifekarte({ antrag }: { antrag: Foerderantrag }) {
     beschreibung: "fd-beschreibung",
     pakete: "fd-zeitplan",
     summe: "fd-zeitplan",
-    laufzeit: "fd-zeitplan",
+    laufzeit: "fd-zeitraum",
   };
   return (
     <section className="karte fd-reife">
@@ -1435,17 +1484,20 @@ function Zeitplan({
   darfLoeschen: boolean;
 }) {
   const speichern = useAendern();
-  // Solange der Regler gezogen wird, zeichnet die Achse schon mit.
-  const [achse, setAchse] = useState<number | null>(null);
-  const anzahl = achse ?? monatsanzahl(antrag, programm);
-  useEffect(() => setAchse(null), [antrag.zeitachse]);
+  const anzahl = monatsanzahl(antrag, programm);
+  // Was hinter dieser Grenze liegt, wird nicht gefördert und steht rot da.
+  const grenze = grenzmonat(antrag, programm);
   const [aufgeklappt, setAufgeklappt] = useState<number | null>(null);
   const [zug, setZug] = useState<Zug | null>(null);
   const [vorschau, setVorschau] = useState<{ id: number; von: number; bis: number } | null>(null);
   const monate = Array.from({ length: anzahl }, (_, i) => i + 1);
   // Bei vielen Monaten nicht jeden beschriften — sonst stehen die Namen
-  // übereinander. Die Linien bleiben je Monat.
-  const jede = anzahl > 18 ? 3 : anzahl > 12 ? 2 : 1;
+  // übereinander. Die Linien bleiben je Monat. Ein Tag („19.10.26") ist
+  // breiter als ein Monatsname und braucht früher Abstand.
+  const mitTag = antrag.beginn !== null && !antrag.beginn.endsWith("-01");
+  const jede = mitTag
+    ? anzahl > 18 ? 6 : anzahl > 12 ? 3 : anzahl > 6 ? 2 : 1
+    : anzahl > 18 ? 3 : anzahl > 12 ? 2 : 1;
 
   async function verschieben(paket: Foerderpaket, ziel: { von: number; bis: number }) {
     if (ziel.von === paket.von && ziel.bis === paket.bis) return;
@@ -1499,7 +1551,6 @@ function Zeitplan({
         <span className="fd-leise">
           {darf ? "Balken ziehen verschiebt, Ränder ziehen verlängert" : `${antrag.pakete.length} Pakete`}
         </span>
-        {darf && <Achsenregler antrag={antrag} programm={programm} anzahl={anzahl} ziehen={setAchse} />}
       </div>
 
       <div className="fd-zeilen" role="list">
@@ -1511,7 +1562,7 @@ function Zeitplan({
               <span
                 key={m}
                 className="fd-monat"
-                data-ueber={(programm.max_monate !== null && m > programm.max_monate) || undefined}
+                data-ueber={(grenze !== null && m > grenze) || undefined}
               >
                 {(m - 1) % jede === 0 ? monatsname(m, antrag.beginn) : ""}
               </span>
@@ -1534,7 +1585,7 @@ function Zeitplan({
                   onClick={() => setAufgeklappt(offen ? null : p.id)}
                 >
                   <span>{p.titel}</span>
-                  <em className="zahl">{spanne(lage.von, lage.bis, antrag.beginn)}</em>
+                  <em className="zahl">{spanne(lage.von, lage.bis, antrag.beginn, antrag.ende)}</em>
                 </button>
                 <div className="fd-achse">
                   <Raster anzahl={anzahl} />
@@ -1542,13 +1593,13 @@ function Zeitplan({
                     className="fd-balken"
                     role="slider"
                     tabIndex={darf ? 0 : -1}
-                    aria-label={`${p.titel}: ${spanne(lage.von, lage.bis, antrag.beginn)}`}
+                    aria-label={`${p.titel}: ${spanne(lage.von, lage.bis, antrag.beginn, antrag.ende)}`}
                     aria-valuemin={1}
                     aria-valuemax={anzahl}
                     aria-valuenow={lage.von}
-                    aria-valuetext={spanne(lage.von, lage.bis, antrag.beginn)}
+                    aria-valuetext={spanne(lage.von, lage.bis, antrag.beginn, antrag.ende)}
                     data-zieht={zug?.id === p.id || undefined}
-                    data-ueber={(programm.max_monate !== null && lage.bis > programm.max_monate) || undefined}
+                    data-ueber={(grenze !== null && lage.bis > grenze) || undefined}
                     style={{ ["--von" as string]: lage.von, ["--bis" as string]: lage.bis }}
                     onPointerDown={(e) => runter(e, p)}
                     onPointerMove={bewegen}
@@ -1583,6 +1634,7 @@ function Zeitplan({
                   reihe={antrag.pakete}
                   anzahl={anzahl}
                   beginn={antrag.beginn}
+                  ende={antrag.ende}
                   stundenSindGeld={antrag.stunden_sind_geld}
                   darf={darf}
                   darfLoeschen={darfLoeschen}
@@ -1626,86 +1678,6 @@ function Zeitplan({
   );
 }
 
-/**
- * Wie viele Monate der Zeitplan zeigt — ein Regler vom Ende des letzten
- * Pakets bis zur Höchstlaufzeit des Programms, eingeklappt hinter einem
- * Knopf mit der Monatszahl: eingestellt wird selten. Gespeichert wird beim
- * Loslassen (das native `change`), sonst wäre jeder Monat dazwischen ein
- * Protokolleintrag. Ganz rechts heißt „wie Programm" und wird als leer
- * gespeichert, damit die Achse einer geänderten Programmgrenze folgt.
- */
-function Achsenregler({
-  antrag,
-  programm,
-  anzahl,
-  ziehen,
-}: {
-  antrag: Foerderantrag;
-  programm: Foerderprogramm;
-  anzahl: number;
-  ziehen: (monate: number | null) => void;
-}) {
-  const speichern = useAendern();
-  const regler = useRef<HTMLInputElement>(null);
-  const [offen, setOffen] = useState(false);
-  const { kuerzeste, laengste } = achsengrenzen(antrag, programm);
-
-  useEffect(() => {
-    const feld = regler.current;
-    if (!feld) return;
-    async function los() {
-      const monate = Number(feld!.value);
-      const zeitachse = monate >= laengste ? null : monate;
-      // Die Vorschau bleibt stehen, bis der neue Wert vom Server zurück ist
-      // (siehe Zeitplan) — sonst spränge die Achse kurz auf den alten zurück.
-      if (zeitachse === antrag.zeitachse) return ziehen(null);
-      try {
-        await speichern(`/foerderantraege/${antrag.id}/`, { zeitachse });
-      } catch {
-        ziehen(null);
-      }
-    }
-    feld.addEventListener("change", los);
-    return () => feld.removeEventListener("change", los);
-  }, [antrag.id, antrag.zeitachse, kuerzeste, laengste, speichern, ziehen, offen]);
-
-  // Nichts zu wählen: Die Pakete füllen das Programm schon aus.
-  if (kuerzeste >= laengste) return null;
-  return (
-    <>
-      <button
-        type="button"
-        className="knopf-still fd-achsenknopf"
-        aria-expanded={offen}
-        aria-label={`Monate im Zeitplan: ${anzahl}`}
-        onClick={() => setOffen((o) => !o)}
-      >
-        <span className="zahl">{anzahl} Monate</span>
-        <Zeichen name="zeiger" klasse="zeiger-klapp" />
-      </button>
-      {offen && (
-        <div className="fd-achsenregler">
-          <input
-            ref={regler}
-            type="range"
-            min={kuerzeste}
-            max={laengste}
-            step={1}
-            value={anzahl}
-            aria-label="Monate im Zeitplan"
-            aria-valuetext={`${anzahl} Monate`}
-            onChange={(e) => ziehen(Number(e.target.value))}
-          />
-          <span className="fd-achsenmarken" aria-hidden="true">
-            <span>Paketende · {monatsname(kuerzeste, antrag.beginn)}</span>
-            <span>wie Programm · {monatsname(laengste, antrag.beginn)}</span>
-          </span>
-        </div>
-      )}
-    </>
-  );
-}
-
 /** Die Monatslinien hinter einem Balken. */
 function Raster({ anzahl }: { anzahl: number }) {
   return (
@@ -1723,6 +1695,7 @@ function Paketdetail({
   reihe,
   anzahl,
   beginn,
+  ende,
   stundenSindGeld,
   darf,
   darfLoeschen,
@@ -1732,6 +1705,7 @@ function Paketdetail({
   reihe: Foerderpaket[];
   anzahl: number;
   beginn: string | null;
+  ende: string | null;
   stundenSindGeld: boolean;
   darf: boolean;
   darfLoeschen: boolean;
@@ -1825,7 +1799,7 @@ function Paketdetail({
             .filter((m) => m >= paket.von)
             .map((m) => (
               <option key={m} value={m}>
-                {monatsname(m, beginn)}
+                {monatsletzter(m, beginn, ende)}
               </option>
             ))}
         </select>
