@@ -1099,6 +1099,10 @@ class FoerderantragSerializer(serializers.ModelSerializer):
     kosten = serializers.SerializerMethodField()
     summe = serializers.SerializerMethodField()
     laufzeit = serializers.SerializerMethodField()
+    # Wie viele Monate der Förderzeitraum hat und wo das letzte Paket endet —
+    # gerechnet hier, damit die Seite die Monate nicht ein zweites Mal zählt.
+    rahmen = serializers.SerializerMethodField()
+    paketende = serializers.SerializerMethodField()
     reife = serializers.SerializerMethodField()
     zeichen = serializers.SerializerMethodField()
     # Ob die Stunden Geld sind. Die Regel steht in `services/foerderung.py`;
@@ -1108,10 +1112,10 @@ class FoerderantragSerializer(serializers.ModelSerializer):
     class Meta:
         model = Foerderantrag
         fields = [
-            "id", "programm", "nummer", "titel", "stand", "foerderwerber", "rolle", "beginn", "zeitachse",
+            "id", "programm", "nummer", "titel", "stand", "foerderwerber", "rolle", "beginn", "ende",
             "beschreibung", "datenbedarf",
             "stundensatz", "gemeinkosten", "foerderquote",
-            "abschnitte", "pakete", "posten", "kosten", "summe", "laufzeit", "reife", "zeichen", "stunden_sind_geld",
+            "abschnitte", "pakete", "posten", "kosten", "summe", "laufzeit", "rahmen", "paketende", "reife", "zeichen", "stunden_sind_geld",
             "geaendert_am",
         ]
         read_only_fields = ["geaendert_am"]
@@ -1139,8 +1143,16 @@ class FoerderantragSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({feld: "Der Wert ist nicht negativ."})
         if daten.get("foerderquote") is not None and daten["foerderquote"] > 100:
             raise serializers.ValidationError({"foerderquote": "Mehr als 100 % gibt es nicht."})
-        if daten.get("zeitachse") is not None and not 1 <= daten["zeitachse"] <= 120:
-            raise serializers.ValidationError({"zeitachse": "Der Zeitplan zeigt 1 bis 120 Monate."})
+        beginn = daten.get("beginn", getattr(self.instance, "beginn", None))
+        ende = daten.get("ende", getattr(self.instance, "ende", None))
+        if ende is not None and beginn is None:
+            raise serializers.ValidationError({"ende": "Ohne Beginn gibt es kein Ende."})
+        if ende is not None and ende < beginn:
+            raise serializers.ValidationError({"ende": "Das Ende liegt vor dem Beginn."})
+        # Zehn Jahre sind kein Förderzeitraum, sondern ein Tippfehler im Jahr —
+        # und die Achse bekäme 120 Spalten.
+        if ende is not None and ende >= foerderung.monate_dazu(beginn, 120):
+            raise serializers.ValidationError({"ende": "Ein Förderzeitraum dauert höchstens zehn Jahre."})
         return daten
 
     def get_summe(self, antrag):
@@ -1148,6 +1160,12 @@ class FoerderantragSerializer(serializers.ModelSerializer):
 
     def get_laufzeit(self, antrag):
         return foerderung.laufzeit(antrag)
+
+    def get_rahmen(self, antrag):
+        return foerderung.rahmen(antrag)
+
+    def get_paketende(self, antrag):
+        return foerderung.paketende(antrag)
 
     def get_reife(self, antrag):
         return foerderung.reife(antrag)

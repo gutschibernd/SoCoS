@@ -70,43 +70,92 @@ export function paketsumme(pakete: Foerderpaket[]): string {
 /* --- Die Zeitleiste -------------------------------------------------------- */
 
 /**
- * Wie viele Monate die Zeitleiste zeigt: die erlaubte Laufzeit, damit man
- * sieht, wie viel Platz noch ist — mindestens aber so viele, wie der Antrag
- * schon belegt. Ohne Grenze ein Jahr oder die Laufzeit.
+ * Wie viele Monate die Zeitleiste zeigt: der Förderzeitraum, wenn er
+ * feststeht — sonst die erlaubte Laufzeit, damit man sieht, wie viel Platz
+ * noch ist. Ohne Grenze ein Jahr. Nie weniger, als die Pakete belegen: Reicht
+ * eines weiter, wächst die Achse mit (und der Überhang steht rot da) — sonst
+ * verschwände ein Balken stillschweigend.
  */
 export function monatsanzahl(antrag: Foerderantrag, programm: Foerderprogramm): number {
-  const { kuerzeste, laengste } = achsengrenzen(antrag, programm);
-  // Die eingestellte Achse ist ein Wunsch, keine Schere: Reichen die Pakete
-  // weiter, wächst sie mit — sonst verschwände ein Balken stillschweigend.
-  return Math.min(Math.max(antrag.zeitachse ?? laengste, kuerzeste), Math.max(laengste, kuerzeste));
+  return Math.max(antrag.rahmen ?? programm.max_monate ?? 12, antrag.paketende, 1);
 }
 
-/**
- * Wie kurz und wie lang der Zeitplan sein darf: vom Ende des letzten Pakets
- * bis zur Höchstlaufzeit des Programms. Länger als das Programm braucht es
- * nicht — dort läge nur, was ohnehin nicht gefördert wird.
- */
-export function achsengrenzen(antrag: Foerderantrag, programm: Foerderprogramm): { kuerzeste: number; laengste: number } {
-  return { kuerzeste: Math.max(antrag.laufzeit, 1), laengste: programm.max_monate ?? 12 };
+/** Ab wann nicht mehr gefördert wird: nach dem Förderzeitraum, ohne ihn nach der Höchstlaufzeit. */
+export function grenzmonat(antrag: Foerderantrag, programm: Foerderprogramm): number | null {
+  return antrag.rahmen ?? programm.max_monate;
 }
 
 const MONATE = ["Jän", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+const zwei = (n: number) => String(n).padStart(2, "0");
+
+/** „Mär 27" für „2027-03". */
+export function kalendermonatsname(jahrMonat: string): string {
+  const [jahr, monat] = jahrMonat.split("-").map(Number);
+  return `${MONATE[monat - 1]} ${zwei(jahr % 100)}`;
+}
 
 /**
- * Wie ein Projektmonat heißt: „M3" — oder, sobald ein Beginn feststeht, der
- * Kalendermonat („Mär 27"). Der Beginn ist ein Datum; gezählt wird ab seinem Monat.
+ * Ein Datum um `um` Monate verschoben, als „JJJJ-MM-TT". Der Tag bleibt, wo
+ * es ihn gibt; der 31. wird im Februar zum 28. (oder 29.) — sonst rutschte
+ * ein Datum still einen Monat weiter. Wie `monate_dazu` am Server.
+ */
+export function monateDazu(datum: string, um: number): string {
+  const [jahr, monat, tag] = datum.split("-").map(Number);
+  const stelle = jahr * 12 + (monat - 1) + um;
+  const neuJahr = Math.floor(stelle / 12);
+  const neuMonat = (stelle % 12) + 1;
+  const letzter = new Date(Date.UTC(neuJahr, neuMonat, 0)).getUTCDate();
+  return `${neuJahr}-${zwei(neuMonat)}-${zwei(Math.min(tag, letzter))}`;
+}
+
+function tagDavor(datum: string): string {
+  const [jahr, monat, tag] = datum.split("-").map(Number);
+  return new Date(Date.UTC(jahr, monat - 1, tag - 1)).toISOString().slice(0, 10);
+}
+
+/** „2026-10-19" → „19.10.26". */
+const tagKurz = (datum: string) => `${datum.slice(8, 10)}.${datum.slice(5, 7)}.${datum.slice(2, 4)}`;
+
+/**
+ * Erster und letzter Tag eines Projektmonats. **Er beginnt am Tag des
+ * Beginns**, nicht am Monatsersten — wie `projektmonat` am Server; das Ende
+ * schneidet den Monat ab, in dem es liegt.
+ */
+export function projektmonat(beginn: string, ende: string | null, monat: number): [string, string] {
+  const erster = monateDazu(beginn, monat - 1);
+  let letzter = tagDavor(monateDazu(beginn, monat));
+  if (ende && erster <= ende && ende < letzter) letzter = ende;
+  return [erster, letzter];
+}
+
+/**
+ * Wie ein Projektmonat heißt: „M3" ohne Beginn; beginnt der Antrag am
+ * Ersten, der Kalendermonat („Mär 27"), sonst der Tag, mit dem der Monat
+ * anfängt („19.10.26"). Ein Monatsname wäre dort falsch: „Okt 26" sagt „ab
+ * Anfang Oktober", wo erst ab dem 19. gefördert wird.
  */
 export function monatsname(monat: number, beginn: string | null): string {
   if (!beginn) return `M${monat}`;
-  const [jahr, mon] = beginn.split("-").map(Number);
-  const stelle = mon - 1 + (monat - 1);
-  return `${MONATE[stelle % 12]} ${String((jahr + Math.floor(stelle / 12)) % 100).padStart(2, "0")}`;
+  const erster = monateDazu(beginn, monat - 1);
+  return beginn.endsWith("-01") ? kalendermonatsname(erster.slice(0, 7)) : tagKurz(erster);
 }
 
-/** „M1–M3", „M4" — oder mit Beginn „Jän 27 – Mär 27". */
-export function spanne(von: number, bis: number, beginn: string | null): string {
-  if (von === bis) return monatsname(von, beginn);
-  return beginn ? `${monatsname(von, beginn)} – ${monatsname(bis, beginn)}` : `M${von}–M${bis}`;
+/**
+ * Wie das Ende eines Projektmonats heißt — für „bis": „M3", „Mär 27", oder
+ * der letzte Tag („18.04.27"). Der erste Tag stünde dort falsch, ein Paket
+ * „bis 19.03." liefe in Wahrheit bis zum 18.04.
+ */
+export function monatsletzter(monat: number, beginn: string | null, ende: string | null): string {
+  if (!beginn || beginn.endsWith("-01")) return monatsname(monat, beginn);
+  return tagKurz(projektmonat(beginn, ende, monat)[1]);
+}
+
+/** „M1–M3", „M4" — mit Beginn am Ersten „Jän 27 – Mär 27", sonst auf den Tag: „19.10.26 – 18.01.27". */
+export function spanne(von: number, bis: number, beginn: string | null, ende: string | null = null): string {
+  if (!beginn) return von === bis ? `M${von}` : `M${von}–M${bis}`;
+  if (beginn.endsWith("-01"))
+    return von === bis ? monatsname(von, beginn) : `${monatsname(von, beginn)} – ${monatsname(bis, beginn)}`;
+  return `${tagKurz(projektmonat(beginn, ende, von)[0])} – ${tagKurz(projektmonat(beginn, ende, bis)[1])}`;
 }
 
 export type Griff = "mitte" | "anfang" | "ende";
@@ -136,7 +185,7 @@ export function gezogen(
  * drei Monate lang — solange das in die Achse passt.
  */
 export function neuePaketmonate(antrag: Foerderantrag, anzahl: number): { von: number; bis: number } {
-  const von = Math.min(antrag.laufzeit + 1, anzahl);
+  const von = Math.min(antrag.paketende + 1, anzahl);
   return { von, bis: Math.min(von + 2, anzahl) };
 }
 
@@ -298,6 +347,7 @@ export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, 
   z.push(`- **Förderwerber:** ${antrag.foerderwerber || "noch offen"}`);
   if (!antrag.stunden_sind_geld) z.push("- **Unsere Rolle:** Drittleister");
   z.push(`- **Geplanter Beginn:** ${antrag.beginn ?? "noch offen"}`);
+  z.push(`- **Geplantes Ende:** ${antrag.ende ?? "noch offen"}`);
   z.push(
     `- **Laufzeit:** ${antrag.laufzeit} Monate` + (programm.max_monate ? ` (höchstens ${programm.max_monate})` : ""),
   );
@@ -338,7 +388,7 @@ export function projektinhalt(antrag: Foerderantrag, programm: Foerderprogramm, 
   pakete.forEach((p, i) => {
     z.push(`### AP${i + 1} · ${p.titel || "(ohne Titel)"}`, "");
     const monate = spanne(p.von, p.bis, null);
-    z.push(`- **Zeitraum:** ${monate}${antrag.beginn ? ` (${spanne(p.von, p.bis, antrag.beginn)})` : ""}`);
+    z.push(`- **Zeitraum:** ${monate}${antrag.beginn ? ` (${spanne(p.von, p.bis, antrag.beginn, antrag.ende)})` : ""}`);
     z.push(`- **Dauer:** ${p.bis - p.von + 1} Monate`);
     if (p.stunden.length)
       z.push(

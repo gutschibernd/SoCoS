@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from socos.services import auswertung
-from socos.services.foerderung import kalendermonat, lebende_abschnitte, lebende_pakete, lebende_stunden
+from socos.services.foerderung import lebende_abschnitte, lebende_pakete, lebende_stunden, zeitraum
 
 #: Wie viele anstehende Aufgaben unter „Als Nächstes" stehen, nach den
 #: überfälligen und den laufenden. Mehr ist keine nächste Aufgabe mehr,
@@ -34,13 +34,6 @@ def _monatsanfang(tag: date) -> date:
 
 def _monatsende(tag: date) -> date:
     return tag.replace(day=calendar.monthrange(tag.year, tag.month)[1])
-
-
-def monatsspanne(beginn: date, von: int, bis: int) -> tuple[date, date]:
-    """Projektmonate M`von`–M`bis` als Kalendertage: vom Ersten bis zum Letzten."""
-    erster = date.fromisoformat(kalendermonat(beginn, von) + "-01")
-    letzter = date.fromisoformat(kalendermonat(beginn, bis) + "-01")
-    return erster, _monatsende(letzter)
 
 
 def soll_bis(stunden: Decimal, von: date, bis: date, heute: date) -> Decimal:
@@ -112,13 +105,13 @@ def _stunden(sekunden: int) -> Decimal:
     return (Decimal(sekunden) / 3600).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def _antrag(antrag, beginn) -> dict | None:
+def _antrag(antrag, beginn, ende) -> dict | None:
     if antrag is None:
         return None
     programm = antrag.programm
     pakete = []
     for nummer, fp in enumerate(sorted(lebende_pakete(antrag), key=lambda p: (p.reihenfolge, p.id)), start=1):
-        von, bis = monatsspanne(beginn, fp.von, fp.bis) if beginn else (None, None)
+        von, bis = zeitraum(beginn, ende, fp.von, fp.bis) if beginn else (None, None)
         pakete.append(
             {
                 "id": fp.id,
@@ -161,7 +154,10 @@ def planung(phase, heute: date | None = None) -> dict:
     if antrag is not None and antrag.geloescht_am is not None:
         antrag = None
     beginn = (antrag.beginn or phase.von) if antrag else None
-    antragsdaten = _antrag(antrag, beginn)
+    # Das Ende gilt nur zum eigenen Beginn: Mit dem geliehenen der Phase
+    # gibt es keins (ohne Beginn lässt die Schnittstelle keins zu).
+    ende = antrag.ende if antrag and antrag.beginn else None
+    antragsdaten = _antrag(antrag, beginn, ende)
     antragspakete = {p["id"]: p for p in (antragsdaten["pakete"] if antragsdaten else [])}
 
     je_paket = auswertung.sekunden_je_paket()

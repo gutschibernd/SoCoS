@@ -7,6 +7,45 @@ betrifft.
 
 ---
 
+## 2026-10-21 — Der Förderzeitraum ist der Rahmen des Zeitplans
+
+**Bernd** (Antrag „Demonstratorentwicklung", Beginn 19.10.2026): „die
+arbeitspakete im gantt fangen anfang oktober an; es soll Geplanter Beginn und
+ende der förderung ganz oben sein und das soll der rahmen sein, in dem die
+arbeitspakete und die entsprechende berechnung stattfindet."
+
+**Ursache:** M1 war der *Kalendermonat* des Beginns (`kalendermonat`, „der Tag
+zählt nicht"). Bei Beginn 19.10. stand das erste Paket ab „Okt 26" da, und die
+Förderauslastung legte seine Stunden auf den ganzen Oktober. Ein Ende gab es
+nicht, nur eine Monatszahl für die Achse (`zeitachse`, Regler über dem Gantt).
+
+**Jetzt** (`services/foerderung.py`, Abschnitt „Der Förderzeitraum"):
+
+- **`Foerderantrag.ende`** („Geplantes Ende") ersetzt `zeitachse`. Migration
+  0055 rechnet die Monatszahl in ein Ende um (Beginn + n Monate − 1 Tag) und
+  entfernt das Feld; ohne Beginn bleibt das Ende leer. Ohne Beginn ist kein
+  Ende erlaubt, vor dem Beginn auch nicht. Ältere Archive tragen noch
+  `zeitachse` — `sicherung.ENTFERNTE_FELDER` übergeht es beim Einspielen.
+- **Ein Projektmonat beginnt am Tag des Beginns** (`projektmonat`): M1 =
+  19.10.–18.11. Gezählt wird immer vom Beginn aus (`monate_dazu`), damit ein
+  Beginn am 31. nach dem Februar nicht am 28. hängen bleibt. Das Ende kürzt
+  den Monat, in dem es liegt; ein Paket dahinter behält seine Monate, und die
+  Reife sagt „Pakete reichen bis M8, das Ende liegt in M6".
+- **Laufzeit ist der Förderzeitraum**, wenn er feststeht (`rahmen`), sonst das
+  Ende des letzten Pakets (`paketende`). Die Achse des Gantt geht genau über
+  den Rahmen und wächst nur, wenn ein Paket überhängt (rot).
+- **Die Auslastung teilt nach Tagen** (`kalenderanteile`): Jeder Projektmonat
+  trägt gleich viel; einer, der über einen Monatswechsel reicht, teilt seinen
+  Teil nach Tagen auf die zwei Kalendermonate. Bewusst nicht „nach Tagen übers
+  ganze Paket": Mit Beginn am Ersten bleiben die Zahlen genau die alten, statt
+  dass der Jänner mehr trägt als der Februar.
+- **Beschriftung:** Beginnt der Antrag am Ersten, stehen Kalendermonate da
+  („Mär 27"), sonst der Tag, mit dem ein Monat anfängt („19.10.26"); „bis"
+  nennt den letzten Tag. Die Regel steht zweimal — `monatsname` im Frontend
+  und `antragsuebersicht.monat` fürs PDF —, die Rechnung (`projektmonat`) am
+  Server und als Spiegel in `basis/foerderungen.ts`, beide getestet.
+- Die Pfeile der Auslastung verschieben **Beginn und Ende zusammen**.
+
 ## 2026-10-19 — „Zurück" führt dorthin, woher man kam
 
 **Bernd:** „die zurück buttons führen oft nicht daher wo man herkommt. z.B.

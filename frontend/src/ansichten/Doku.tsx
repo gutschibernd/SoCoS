@@ -1004,11 +1004,11 @@ function ModuleDoku() {
           paare={[
             {
               begriff: "Projektmonate",
-              text: "Die Zeitleiste zählt M1, M2 … ab dem Projektbeginn, denn der hängt an der Förderzusage. Trägst du oben einen geplanten Beginn ein, stehen dort die Kalendermonate.",
+              text: "Die Zeitleiste zählt M1, M2 … ab dem Projektbeginn, denn der hängt an der Förderzusage. Steht oben ein geplanter Beginn, fängt jeder Monat an dessen Tag an: Bei Beginn 19.10. läuft M1 vom 19.10. bis 18.11., und über der Leiste steht der Tag, mit dem ein Monat anfängt. Beginnt der Antrag am Ersten, stehen dort die Kalendermonate.",
             },
             {
-              begriff: "Länge der Zeitleiste",
-              text: "Der Knopf mit der Monatszahl rechts über der Zeitleiste klappt einen Regler auf. Er stellt ein, wie viele Monate sie zeigt — von „Paketende“ (wo das letzte Paket aufhört) bis „wie Programm“ (die Höchstlaufzeit). Länger als das Programm geht nicht, kürzer als die Pakete auch nicht: Reicht ein Paket weiter, wächst die Leiste mit. Füllen die Pakete das Programm schon aus, gibt es nichts einzustellen, und der Knopf fehlt.",
+              begriff: "Förderzeitraum",
+              text: "Ganz oben im Antrag stehen geplanter Beginn und geplantes Ende. Sie sind der Rahmen: Die Zeitleiste reicht genau vom Beginn bis zum Ende, und die Pakete liegen darin. Liegt das Ende mitten in einem Monat, hört der letzte Monat dort auf. Reicht ein Paket über das Ende hinaus, wächst die Leiste mit, der Überhang wird rot, und die Antragsreife sagt es. Ohne Ende zeigt die Leiste die Höchstlaufzeit des Programms.",
             },
             {
               begriff: "Stunden und Kalkulation",
@@ -1024,7 +1024,7 @@ function ModuleDoku() {
             },
             {
               begriff: "Mit Entwürfen planen",
-              text: "Schalte oben „Entwurf“ dazu, dann liegt auch der Antrag mit drin, an dem du gerade schreibst. Mit ‹ › neben seinem Namen wandert sein Beginn um einen Monat; Säulen und Personen rechnen sofort mit. Gespeichert wird das als geplanter Beginn des Antrags — derselbe Wert wie oben im Antrag. Bewilligte Anträge haben keine Pfeile, ihr Beginn steht fest. Ein Antrag ohne Beginn steht unten unter „Ohne Termin“; trag dort einen vermuteten ein, und er rückt auf die Achse.",
+              text: "Schalte oben „Entwurf“ dazu, dann liegt auch der Antrag mit drin, an dem du gerade schreibst. Mit ‹ › neben seinem Namen wandert sein Förderzeitraum um einen Monat, Beginn und Ende zusammen; Säulen und Personen rechnen sofort mit. Gespeichert wird das am Antrag — dieselben Werte wie oben im Antrag. Fängt ein Monat mitten im Kalendermonat an, teilt er seine Stunden nach Tagen auf die beiden Kalendermonate. Bewilligte Anträge haben keine Pfeile, ihr Beginn steht fest. Ein Antrag ohne Beginn steht unten unter „Ohne Termin“; trag dort einen vermuteten ein, und er rückt auf die Achse.",
             },
             {
               begriff: "Kapazität",

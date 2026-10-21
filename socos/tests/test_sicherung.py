@@ -559,3 +559,41 @@ def test_ein_archiv_mit_entfernten_modellen_laesst_sich_einspielen(tmp_path, med
     call_command("sicherung_einspielen", str(alt), ja_bestand_ersetzen=True, verbosity=0)
 
     assert Aufgabe.objects.filter(text="Bleibt").exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_foerderzeitraum_wandert_mit_und_alte_monatszahl_stoert_nicht(tmp_path, medien):
+    """
+    Das geplante Ende kommt zurück. Und ein Archiv von vor Migration 0055
+    trägt am Antrag noch `zeitachse` — das Feld gibt es nicht mehr, und
+    `loaddata` bräche daran ab, mit ihm alles andere im Archiv.
+    """
+    import json
+    import tarfile
+
+    from socos.models import Foerderantrag, Foerdergeber, Foerderprogramm
+
+    programm = Foerderprogramm.objects.create(geber=Foerdergeber.objects.create(name="KWF"), name="Umsetzung")
+    Foerderantrag.objects.create(programm=programm, titel="Spender", beginn=date(2026, 10, 19), ende=date(2027, 4, 18))
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+
+    entpackt = tmp_path / "entpackt"
+    with tarfile.open(archiv, "r:gz") as datei:
+        datei.extractall(entpackt, filter="data")
+    datenbank = entpackt / sicherung.DATENBANK_IM_ARCHIV
+    zeilen = json.loads(datenbank.read_text(encoding="utf-8"))
+    for zeile in zeilen:
+        if zeile["model"] == "socos.foerderantrag":
+            zeile["fields"]["zeitachse"] = 6
+    datenbank.write_text(json.dumps(zeilen), encoding="utf-8")
+    alt = tmp_path / "alt.tar.gz"
+    with tarfile.open(alt, "w:gz") as datei:
+        datei.add(datenbank, arcname=sicherung.DATENBANK_IM_ARCHIV)
+        datei.add(entpackt / sicherung.MEDIEN_IM_ARCHIV, arcname=sicherung.MEDIEN_IM_ARCHIV)
+
+    Foerderantrag.objects.all().hart_loeschen()
+    call_command("sicherung_einspielen", str(alt), ja_bestand_ersetzen=True, verbosity=0)
+
+    antrag = Foerderantrag.objects.get(titel="Spender")
+    assert (antrag.beginn, antrag.ende) == (date(2026, 10, 19), date(2027, 4, 18))

@@ -63,8 +63,12 @@ class TestRechnung:
         assert dienst.soll_bis(Decimal("40"), date(2026, 12, 1), date(2026, 12, 31), HEUTE) == Decimal("0.00")
         assert dienst.soll_bis(Decimal("40"), date(2026, 10, 1), date(2026, 10, 31), HEUTE) == Decimal("40")
 
-    def test_monatsspanne_ueber_den_jahreswechsel(self):
-        assert dienst.monatsspanne(date(2026, 10, 1), 3, 5) == (date(2026, 12, 1), date(2027, 2, 28))
+    def test_paketzeitraum_ueber_den_jahreswechsel(self):
+        from socos.services.foerderung import zeitraum
+
+        assert zeitraum(date(2026, 10, 1), None, 3, 5) == (date(2026, 12, 1), date(2027, 2, 28))
+        # Mitten im Monat begonnen: auf den Tag, und das Ende schneidet ab.
+        assert zeitraum(date(2026, 10, 19), date(2027, 2, 10), 3, 4) == (date(2026, 12, 19), date(2027, 2, 10))
 
     def test_lage_erledigt_gewinnt(self):
         aufgabe = Unteraufgabe(titel="x", erledigt=True, von=date(2026, 10, 1), bis=date(2026, 10, 2))

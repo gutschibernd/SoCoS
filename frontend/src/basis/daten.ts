@@ -644,10 +644,10 @@ export type Foerderantrag = {
   rolle: "foerderwerber" | "drittleister";
   /** Ob die Stunden in die Kalkulation gehen — beim Drittleister sind sie geschätzter Aufwand. */
   stunden_sind_geld: boolean;
-  /** Geplanter Beginn — rechnet Projektmonate in Kalendermonate um. */
+  /** Geplanter Beginn — M1 fängt an diesem Tag an. */
   beginn: string | null;
-  /** Monate im Zeitplan; leer heißt: wie das Programm (siehe monatsanzahl). */
-  zeitachse: number | null;
+  /** Geplantes Ende; mit dem Beginn der Förderzeitraum, der Rahmen des Zeitplans. */
+  ende: string | null;
   beschreibung: string;
   /** Die Texte, die das Programm verlangt — je Antrag frei angelegt, in ihrer Reihenfolge. */
   abschnitte: Foerderabschnitt[];
@@ -661,7 +661,12 @@ export type Foerderantrag = {
   posten: Foerderposten[];
   kosten: Antragskosten;
   summe: string;
+  /** Der Förderzeitraum in Monaten, wenn er feststeht — sonst bis zum Ende des letzten Pakets. */
   laufzeit: number;
+  /** Wie viele Projektmonate Beginn bis Ende umfassen; leer, solange eins davon fehlt. */
+  rahmen: number | null;
+  /** In welchem Monat das letzte Paket endet. */
+  paketende: number;
   reife: Reifepunkt[];
   /** Was das Online-Formular höchstens nimmt. */
   zeichen: { titel: number; beschreibung: number };
@@ -718,6 +723,7 @@ export type Auslastungsantrag = {
   stand: Antragsstand;
   rolle: Foerderantrag["rolle"];
   beginn: string | null;
+  ende: string | null;
   geber: number;
   /** Kürzel, sonst der Name. */
   geber_name: string;

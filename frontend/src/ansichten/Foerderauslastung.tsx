@@ -27,7 +27,6 @@ import {
 import {
   ANFANGSSTAENDE,
   AUSLASTUNGSSTAENDE,
-  beginnVerschieben,
   ganzeStunden,
   istJahresanfang,
   istPlanbarerBeginn,
@@ -37,8 +36,9 @@ import {
   standUmschalten,
   tonVon,
   waermestufe,
+  zeitraumVerschieben,
 } from "../basis/foerderauslastung";
-import { alsStunden, antragsstandText } from "../basis/foerderungen";
+import { alsStunden, antragsstandText, monatsname } from "../basis/foerderungen";
 import type { Seite } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Leerstelle } from "../bausteine/Leerstelle";
@@ -283,19 +283,23 @@ function Antragsspur({ antrag, monate, ich, wechseln }: { antrag: Antrag; monate
               type="button"
               className="knopf-still"
               aria-label={`${antrag.titel} einen Monat früher`}
-              onClick={() => speichern(`/foerderantraege/${antrag.id}/`, { beginn: beginnVerschieben(antrag.beginn!, -1) })}
+              onClick={() =>
+                speichern(`/foerderantraege/${antrag.id}/`, zeitraumVerschieben({ beginn: antrag.beginn!, ende: antrag.ende }, -1))
+              }
             >
               <Zeichen name="zeiger" klasse="zeiger-zurueck" />
             </button>
             <span className="zahl">
               <span className="fa-ab">ab </span>
-              {monatskurz(antrag.beginn!.slice(0, 7))}
+              {monatsname(1, antrag.beginn)}
             </span>
             <button
               type="button"
               className="knopf-still"
               aria-label={`${antrag.titel} einen Monat später`}
-              onClick={() => speichern(`/foerderantraege/${antrag.id}/`, { beginn: beginnVerschieben(antrag.beginn!, 1) })}
+              onClick={() =>
+                speichern(`/foerderantraege/${antrag.id}/`, zeitraumVerschieben({ beginn: antrag.beginn!, ende: antrag.ende }, 1))
+              }
             >
               <Zeichen name="zeiger" />
             </button>

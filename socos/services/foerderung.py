@@ -7,7 +7,10 @@ den der Antrag führt. Stünde sie im Frontend, gäbe es eine zweite Stelle, die
 weiß, was ein Antrag braucht — und die liefe beim nächsten Feld auseinander.
 """
 
+import calendar
+from datetime import date, timedelta
 from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
+from fractions import Fraction
 
 # Was das Online-Formular des Landes NÖ höchstens nimmt. Die Kurzbezeichnung
 # begrenzt schon die Datenbank (`Foerderantrag.titel`); die Beschreibung nicht,
@@ -111,9 +114,69 @@ def summe(antrag) -> Decimal:
     return kosten(antrag)["zuschuss"]
 
 
-def laufzeit(antrag) -> int:
-    """Wie viele Monate der Antrag läuft — bis zum Ende des letzten Pakets."""
+# --- Der Förderzeitraum ----------------------------------------------------------
+#
+# **Ein Projektmonat beginnt am Tag des Beginns, nicht am Monatsersten.** Bei
+# Beginn 19.10. läuft M1 vom 19.10. bis 18.11. Bis 2026-10-21 war M1 der
+# Kalendermonat des Beginns, und der Zeitplan zeigte Pakete ab Anfang Oktober,
+# obwohl vor dem 19. nichts gefördert wird (Bernd: „die arbeitspakete fangen
+# anfang oktober an"). Das Ende schneidet den letzten Monat ab, wo es mitten
+# in ihm liegt.
+
+
+def monate_dazu(tag: date, monate: int) -> date:
+    """Derselbe Tag `monate` später — am Monatsende der letzte, den es gibt (31.01. → 28.02.)."""
+    stelle = tag.year * 12 + tag.month - 1 + monate
+    jahr, monat = divmod(stelle, 12)
+    return date(jahr, monat + 1, min(tag.day, calendar.monthrange(jahr, monat + 1)[1]))
+
+
+def projektmonat(beginn: date, ende: date | None, monat: int) -> tuple[date, date]:
+    """
+    Erster und letzter Tag von M`monat`. Immer vom Beginn aus gezählt und
+    nicht von Monat zu Monat weiter — sonst bliebe nach einem Februar jeder
+    Monat am 28. hängen.
+    """
+    erster = monate_dazu(beginn, monat - 1)
+    letzter = monate_dazu(beginn, monat) - timedelta(days=1)
+    # Nur der Monat, in dem das Ende liegt, wird gekürzt. Ein Paket, das
+    # darüber hinausreicht, behält seine Monate — die Reife sagt, dass es
+    # nicht passt, statt dass es still auf null Tage schrumpft.
+    if ende is not None and erster <= ende < letzter:
+        letzter = ende
+    return erster, letzter
+
+
+def zeitraum(beginn: date, ende: date | None, von: int, bis: int) -> tuple[date, date]:
+    """M`von`–M`bis` als Kalendertage."""
+    return projektmonat(beginn, ende, von)[0], projektmonat(beginn, ende, bis)[1]
+
+
+def rahmen(antrag) -> int | None:
+    """
+    Wie viele Projektmonate der Förderzeitraum hat — der letzte zählt, auch
+    wenn das Ende mitten in ihm liegt. Ohne Beginn oder Ende gibt es keinen.
+    """
+    if antrag.beginn is None or antrag.ende is None:
+        return None
+    monate = 1
+    while monate_dazu(antrag.beginn, monate) <= antrag.ende:
+        monate += 1
+    return monate
+
+
+def paketende(antrag) -> int:
+    """In welchem Monat das letzte Paket endet."""
     return max((p.bis for p in lebende_pakete(antrag)), default=0)
+
+
+def laufzeit(antrag) -> int:
+    """
+    Wie viele Monate der Antrag läuft: der Förderzeitraum, wenn er feststeht,
+    sonst bis zum Ende des letzten Pakets.
+    """
+    monate = rahmen(antrag)
+    return paketende(antrag) if monate is None else monate
 
 
 def _euro(betrag) -> str:
@@ -162,6 +225,9 @@ def reife(antrag) -> list[dict]:
 
     if programm.max_monate is not None and monate > programm.max_monate:
         laufzeit_ok, laufzeit_hinweis = False, f"{monate} Monate — erlaubt sind {programm.max_monate}."
+    elif rahmen(antrag) is not None and paketende(antrag) > monate:
+        laufzeit_ok = False
+        laufzeit_hinweis = f"Pakete reichen bis M{paketende(antrag)}, das Ende liegt in M{monate}."
     else:
         laufzeit_ok, laufzeit_hinweis = monate > 0, "Noch keine Laufzeit."
 
@@ -197,27 +263,51 @@ VIERTEL = Decimal("0.25")
 NULL = Decimal("0.00")
 
 
-def verteilen(stunden: Decimal, monate: int) -> list[Decimal]:
+def verteilen(stunden: Decimal, anteile: list) -> list[Decimal]:
     """
-    Teilt Stunden auf Monate, je Monat auf die Viertelstunde abgerundet; der
-    Rest kommt in den letzten Monat. 100 h auf drei Monate sind 33,25 · 33,25 ·
-    33,50.
+    Teilt Stunden nach `anteile` (die zusammen 1 ergeben), je Teil auf die
+    Viertelstunde abgerundet; der Rest kommt in den letzten. 100 h zu je einem
+    Drittel sind 33,25 · 33,25 · 33,50.
 
     **Warum nicht einfach geteilt:** 100 / 3 hat keine Darstellung in zwei
     Nachkommastellen, und dreimal 33,33 sind 99,99. Über ein Jahr und mehrere
     Anträge summiert stünden dann Stunden in der Auslastung, die sich keinem
     Antrag mehr zuordnen lassen.
     """
-    if monate < 1:
+    if not anteile:
         raise ValueError("Ein Paket läuft mindestens einen Monat.")
-    je_monat = (stunden / monate / VIERTEL).to_integral_value(rounding=ROUND_DOWN) * VIERTEL
-    return [je_monat] * (monate - 1) + [stunden - je_monat * (monate - 1)]
+    teile = [
+        (stunden * Decimal(a.numerator) / Decimal(a.denominator) / VIERTEL).to_integral_value(rounding=ROUND_DOWN)
+        * VIERTEL
+        for a in anteile[:-1]
+    ]
+    return teile + [stunden - sum(teile, NULL)]
 
 
-def kalendermonat(beginn, projektmonat: int) -> str:
-    """M1 ist der Monat des Beginns — „2027-03"; der Tag zählt nicht."""
-    stelle = beginn.year * 12 + beginn.month - 1 + projektmonat - 1
-    return f"{stelle // 12:04d}-{stelle % 12 + 1:02d}"
+def kalenderanteile(beginn: date, ende: date | None, von: int, bis: int) -> dict[str, Fraction]:
+    """
+    Welcher Anteil eines Pakets auf welchen Kalendermonat fällt („2026-10" →
+    13/90). Jeder Projektmonat trägt gleich viel; einer, der über einen
+    Monatswechsel reicht, teilt seinen Teil nach Tagen.
+
+    **Warum nicht gleich nach Tagen übers ganze Paket:** Mit Beginn am Ersten
+    deckt sich jeder Projektmonat mit einem Kalendermonat, und dann soll jeder
+    gleich viel tragen wie bisher — nicht der Jänner mehr als der Februar,
+    weil er drei Tage länger ist.
+    """
+    anteile: dict[str, Fraction] = {}
+    je_monat = Fraction(1, bis - von + 1)
+    for monat in range(von, bis + 1):
+        erster, letzter = projektmonat(beginn, ende, monat)
+        tage = (letzter - erster).days + 1
+        tag = erster
+        while tag <= letzter:
+            monatsletzter = date(tag.year, tag.month, calendar.monthrange(tag.year, tag.month)[1])
+            bis_dahin = min(letzter, monatsletzter)
+            schluessel = f"{tag.year:04d}-{tag.month:02d}"
+            anteile[schluessel] = anteile.get(schluessel, Fraction(0)) + je_monat * ((bis_dahin - tag).days + 1) / tage
+            tag = bis_dahin + timedelta(days=1)
+    return anteile
 
 
 def _monatsreihe(erster: str, letzter: str) -> list[str]:
@@ -281,6 +371,7 @@ def auslastung(staende, heute=None) -> dict:
             "stand": antrag.stand,
             "rolle": antrag.rolle,
             "beginn": antrag.beginn,
+            "ende": antrag.ende,
             "geber": geber.id,
             "geber_name": geber.kurz or geber.name,
             "programm": antrag.programm_id,
@@ -313,12 +404,13 @@ def auslastung(staende, heute=None) -> dict:
 
         eintraege = []
         for paket in pakete:
-            monate = [kalendermonat(antrag.beginn, m) for m in range(paket.von, paket.bis + 1)]
+            anteile = kalenderanteile(antrag.beginn, antrag.ende, paket.von, paket.bis)
+            monate = sorted(anteile)
             enden += [monate[0], monate[-1]]
             stunden = NULL
             for zeile in lebende_stunden(paket):
                 wer = person(zeile)
-                for monat, teil in zip(monate, verteilen(zeile.stunden, len(monate))):
+                for monat, teil in zip(monate, verteilen(zeile.stunden, [anteile[m] for m in monate])):
                     if teil:
                         verteilung.append(
                             {"monat": monat, "antrag": antrag.id, "paket": paket.id, "person": wer, "stunden": teil}

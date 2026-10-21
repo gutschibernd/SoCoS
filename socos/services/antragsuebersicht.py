@@ -90,19 +90,29 @@ def zahl(wert) -> str:
 
 
 def monat(antrag, projektmonat: int, jahr=True) -> str:
-    """„Mär 27" — ohne Beginn „M3"."""
+    """
+    Wie ein Projektmonat heißt: „M3" ohne Beginn, „Mär 27", wenn er am Ersten
+    beginnt — sonst der Tag, mit dem er anfängt, „19.10.26". Ein Monatsname
+    wäre dort falsch: Er sagte „ab Oktober", wo erst ab dem 19. gefördert wird.
+    """
     if antrag.beginn is None:
         return f"M{projektmonat}"
-    kalender = foerderung.kalendermonat(antrag.beginn, projektmonat)
-    kurz = KURZMONATE[int(kalender[5:]) - 1]
-    return f"{kurz} {kalender[2:4]}" if jahr else kurz
+    erster, _ = foerderung.projektmonat(antrag.beginn, antrag.ende, projektmonat)
+    if antrag.beginn.day != 1:
+        return f"{erster:%d.%m.%y}" if jahr else f"{erster:%d.%m.}"
+    kurz = KURZMONATE[erster.month - 1]
+    return f"{kurz} {erster:%y}" if jahr else kurz
 
 
 def zeitraum(antrag, von: int, bis: int) -> str:
     projekt = f"M{von}" if von == bis else f"M{von}–{bis}"
     if antrag.beginn is None:
         return projekt
-    kalender = monat(antrag, von) if von == bis else f"{monat(antrag, von)} – {monat(antrag, bis)}"
+    if antrag.beginn.day != 1:
+        erster, letzter = foerderung.zeitraum(antrag.beginn, antrag.ende, von, bis)
+        kalender = f"{erster:%d.%m.%y} – {letzter:%d.%m.%y}"
+    else:
+        kalender = monat(antrag, von) if von == bis else f"{monat(antrag, von)} – {monat(antrag, bis)}"
     return f"{kalender}<br/><font color='#565C58'>{projekt}</font>"
 
 
@@ -203,14 +213,14 @@ class _Zeitplan(Flowable):
 
     def _heute_stelle(self):
         beginn = self.antrag.beginn
-        if beginn is None:
+        if beginn is None or self.heute < beginn:
             return None
-        import calendar
-
-        tage = calendar.monthrange(self.heute.year, self.heute.month)[1]
-        stelle = (self.heute.year * 12 + self.heute.month) - (beginn.year * 12 + beginn.month)
-        stelle += (self.heute.day - 1) / tage
-        return stelle if 0 <= stelle <= self.anzahl else None
+        for m in range(1, self.anzahl + 1):
+            erster = foerderung.monate_dazu(beginn, m - 1)
+            naechster = foerderung.monate_dazu(beginn, m)
+            if self.heute < naechster:
+                return m - 1 + (self.heute - erster).days / (naechster - erster).days
+        return None
 
     def draw(self):
         c = self.canv
@@ -224,7 +234,7 @@ class _Zeitplan(Flowable):
         for m in range(1, self.anzahl + 1):
             x = x0 + (m - 1) * spalte
             if self.antrag.beginn is not None:
-                kalender = int(foerderung.kalendermonat(self.antrag.beginn, m)[5:])
+                kalender = foerderung.monate_dazu(self.antrag.beginn, m - 1).month
                 zeigen = m == 1 or (kalender - 1) % schritt == 0
                 jahreswechsel = kalender == 1 and m > 1
                 text = monat(self.antrag, m, jahr=m == 1 or kalender == 1)
@@ -334,11 +344,14 @@ def _kennzahlen(antrag, s, k, pakete, breite):
     if not monate:
         laufzeit_unter = "noch keine Pakete"
     elif antrag.beginn is not None:
-        laufzeit_unter = f"{monat(antrag, 1)} – {monat(antrag, monate)}"
+        erster, letzter = foerderung.zeitraum(antrag.beginn, antrag.ende, 1, monate)
+        laufzeit_unter = f"{erster:%d.%m.%y} – {letzter:%d.%m.%y}"
     else:
         laufzeit_unter = "Beginn noch offen"
     if programm.max_monate is not None and monate > programm.max_monate:
         laufzeit_unter = f"<font color='#963D22'>erlaubt sind {programm.max_monate}</font>"
+    elif foerderung.rahmen(antrag) is not None and foerderung.paketende(antrag) > monate:
+        laufzeit_unter = "<font color='#963D22'>Pakete reichen über das Ende</font>"
 
     stunden_unter = (
         f"{zahl(k['stunden'])} h geplant" if foerderung.stunden_kosten_geld(antrag) else f"{zahl(k['stunden'])} h Aufwand"
@@ -583,7 +596,9 @@ def erzeugen(antrag, heute=None):
     meta.append(f"Förderwerber: {antrag.foerderwerber}" if antrag.foerderwerber.strip() else "Förderwerber noch offen")
     if not foerderung.stunden_kosten_geld(antrag):
         meta.append("wir als Drittleister")
-    if antrag.beginn is not None:
+    if antrag.beginn is not None and antrag.ende is not None:
+        meta.append(f"Förderzeitraum {antrag.beginn:%d.%m.%Y} – {antrag.ende:%d.%m.%Y}")
+    elif antrag.beginn is not None:
         meta.append(f"Beginn {antrag.beginn:%d.%m.%Y}")
 
     inhalt = [
@@ -604,7 +619,7 @@ def erzeugen(antrag, heute=None):
     )
 
     if pakete:
-        anzahl = max(foerderung.laufzeit(antrag), 1)
+        anzahl = max(foerderung.laufzeit(antrag), foerderung.paketende(antrag), 1)
         inhalt += _abschnitt("Zeitplan", _Zeitplan(antrag, pakete, anzahl, heute))
         inhalt.append(Spacer(0, 2 * mm))
         inhalt += _abschnitt("Arbeitspakete", *_paketliste(antrag, s, pakete, breite))

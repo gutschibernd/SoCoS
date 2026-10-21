@@ -13,15 +13,18 @@ import {
   fragenStand,
   geldlage,
   gezogen,
+  grenzmonat,
   inCent,
   istAufgeschluesselt,
+  monateDazu,
   monatsanzahl,
-  achsengrenzen,
+  monatsletzter,
   monatsname,
   neuePaketmonate,
   offeneFragenDerOrganisation,
   paketsumme,
   projektinhalt,
+  projektmonat,
   spanne,
   steckbriefpunkte,
   telefonatQuelle,
@@ -29,7 +32,8 @@ import {
 } from "./foerderungen";
 import { alsEuro, foerderauslastungAusWeg, foerderungAusWeg, themaAusWeg } from "./module";
 
-const antrag = (teil: Partial<Foerderantrag> = {}) => ({ laufzeit: 0, ...teil }) as Foerderantrag;
+const antrag = (teil: Partial<Foerderantrag> = {}) =>
+  ({ laufzeit: 0, rahmen: null, paketende: 0, ende: null, ...teil }) as Foerderantrag;
 const programm = (teil: Partial<Foerderprogramm> = {}) => ({ max_monate: 24, ...teil }) as Foerderprogramm;
 const frage = (id: number, beantwortet: boolean, reihenfolge = id) =>
   ({ id, beantwortet, antwort: "", reihenfolge, frage: `F${id}` }) as Foerderfrage;
@@ -52,27 +56,55 @@ describe("Geld in Cent", () => {
 });
 
 describe("die Zeitleiste", () => {
-  it("zeigt die erlaubte Laufzeit, aber nie weniger als belegt", () => {
-    expect(monatsanzahl(antrag({ laufzeit: 18 }), programm())).toBe(24);
-    expect(monatsanzahl(antrag({ laufzeit: 30 }), programm())).toBe(30);
+  it("zeigt ohne Förderzeitraum die erlaubte Laufzeit, aber nie weniger als belegt", () => {
+    expect(monatsanzahl(antrag({ paketende: 18 }), programm())).toBe(24);
+    expect(monatsanzahl(antrag({ paketende: 30 }), programm())).toBe(30);
     expect(monatsanzahl(antrag(), programm({ max_monate: null }))).toBe(12);
   });
 
-  it("nimmt die eingestellte Achse zwischen Paketende und Programm", () => {
-    expect(monatsanzahl(antrag({ zeitachse: 20, laufzeit: 18 }), programm())).toBe(20);
-    expect(monatsanzahl(antrag({ zeitachse: 36, laufzeit: 18 }), programm())).toBe(24);
-    expect(monatsanzahl(antrag({ zeitachse: 12, laufzeit: 20 }), programm())).toBe(20);
-    expect(monatsanzahl(antrag({ zeitachse: 12, laufzeit: 30 }), programm())).toBe(30);
-    expect(achsengrenzen(antrag({ laufzeit: 0 }), programm())).toEqual({ kuerzeste: 1, laengste: 24 });
+  it("nimmt den Förderzeitraum als Rahmen und wächst nur mit überhängenden Paketen", () => {
+    expect(monatsanzahl(antrag({ rahmen: 6, paketende: 6 }), programm())).toBe(6);
+    expect(monatsanzahl(antrag({ rahmen: 6, paketende: 4 }), programm())).toBe(6);
+    expect(monatsanzahl(antrag({ rahmen: 6, paketende: 8 }), programm())).toBe(8);
+    expect(grenzmonat(antrag({ rahmen: 6 }), programm())).toBe(6);
+    expect(grenzmonat(antrag(), programm())).toBe(24);
   });
 
-  it("nennt Projektmonate, mit Beginn Kalendermonate", () => {
+  it("nennt Projektmonate, mit Beginn am Ersten Kalendermonate", () => {
     expect(monatsname(3, null)).toBe("M3");
-    expect(monatsname(1, "2027-01-15")).toBe("Jän 27");
+    expect(monatsname(1, "2027-01-01")).toBe("Jän 27");
     expect(monatsname(13, "2026-12-01")).toBe("Dez 27");
     expect(spanne(1, 3, null)).toBe("M1–M3");
     expect(spanne(4, 4, null)).toBe("M4");
     expect(spanne(1, 3, "2027-01-01")).toBe("Jän 27 – Mär 27");
+  });
+
+  it("zählt ab dem Tag des Beginns, wenn er nicht am Ersten liegt", () => {
+    // Beginn 19.10.: M1 ist der 19.10. bis 18.11., nicht der Oktober.
+    expect(monatsname(1, "2026-10-19")).toBe("19.10.26");
+    expect(monatsname(4, "2026-10-19")).toBe("19.01.27");
+    expect(spanne(1, 1, "2026-10-19")).toBe("19.10.26 – 18.11.26");
+    expect(spanne(2, 3, "2026-10-19")).toBe("19.11.26 – 18.01.27");
+    expect(projektmonat("2026-10-19", null, 6)).toEqual(["2027-03-19", "2027-04-18"]);
+    // „bis" nennt den letzten Tag, nicht den ersten.
+    expect(monatsletzter(6, "2026-10-19", null)).toBe("18.04.27");
+    expect(monatsletzter(6, "2026-10-01", null)).toBe("Mär 27");
+    expect(monatsletzter(6, null, null)).toBe("M6");
+  });
+
+  it("lässt den Monat, in dem das Ende liegt, dort aufhören", () => {
+    expect(projektmonat("2026-10-19", "2027-03-31", 6)).toEqual(["2027-03-19", "2027-03-31"]);
+    expect(spanne(5, 6, "2026-10-19", "2027-03-31")).toBe("19.02.27 – 31.03.27");
+    // Ein Monat hinter dem Ende bleibt, wie er ist — dass er nicht passt, sagt die Reife.
+    expect(projektmonat("2026-10-19", "2027-03-31", 7)).toEqual(["2027-04-19", "2027-05-18"]);
+  });
+
+  it("rechnet Monate vom Beginn aus und bleibt nicht am 28. hängen", () => {
+    expect(monateDazu("2027-01-31", 1)).toBe("2027-02-28");
+    expect(monateDazu("2027-01-31", 2)).toBe("2027-03-31");
+    expect(monateDazu("2028-01-31", 1)).toBe("2028-02-29");
+    expect(monateDazu("2027-12-10", 1)).toBe("2028-01-10");
+    expect(projektmonat("2027-01-31", null, 1)).toEqual(["2027-01-31", "2027-02-27"]);
   });
 
   it("verschiebt einen Balken ganz und bleibt in der Achse", () => {
@@ -88,9 +120,9 @@ describe("die Zeitleiste", () => {
   });
 
   it("setzt ein neues Paket hinter das Geplante", () => {
-    expect(neuePaketmonate(antrag({ laufzeit: 6 }), 24)).toEqual({ von: 7, bis: 9 });
+    expect(neuePaketmonate(antrag({ paketende: 6 }), 24)).toEqual({ von: 7, bis: 9 });
     expect(neuePaketmonate(antrag(), 24)).toEqual({ von: 1, bis: 3 });
-    expect(neuePaketmonate(antrag({ laufzeit: 24 }), 24)).toEqual({ von: 24, bis: 24 });
+    expect(neuePaketmonate(antrag({ paketende: 24 }), 24)).toEqual({ von: 24, bis: 24 });
   });
 });
 

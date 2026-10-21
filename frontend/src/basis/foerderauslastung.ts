@@ -5,7 +5,7 @@
  */
 
 import type { Antragsstand } from "./daten";
-import { monatsname } from "./foerderungen";
+import { kalendermonatsname, monateDazu } from "./foerderungen";
 
 /** Die Stände, die man dazuschalten kann — Entwürfe zum Planen rundherum. */
 export const AUSLASTUNGSSTAENDE: { wert: Antragsstand; text: string }[] = [
@@ -24,7 +24,19 @@ export function standUmschalten(gewaehlt: Antragsstand[], stand: Antragsstand): 
 }
 
 /** „Mär 27" für „2027-03". */
-export const monatskurz = (monat: string) => monatsname(1, monat);
+export const monatskurz = kalendermonatsname;
+
+/**
+ * Der Förderzeitraum um `um` Monate verschoben — Beginn **und** Ende. Wanderte
+ * nur der Beginn, schrumpfte der Antrag beim Verschieben nach hinten, bis er
+ * an seinem Ende anstieße.
+ */
+export function zeitraumVerschieben(
+  antrag: { beginn: string; ende: string | null },
+  um: number,
+): { beginn: string; ende: string | null } {
+  return { beginn: monateDazu(antrag.beginn, um), ende: antrag.ende && monateDazu(antrag.ende, um) };
+}
 
 /** Der Jänner fängt ein neues Jahr an — dort steht die Jahreszahl und eine kräftigere Linie. */
 export const istJahresanfang = (monat: string) => monat.endsWith("-01");
@@ -60,20 +72,6 @@ export function stapelhoehe(jeMonat: Record<string, string>, kapazitaet: string 
 /** Anteil an der Stapelhöhe in Prozent, für die Höhe eines Abschnitts. */
 export const prozentVon = (stunden: string | number, hoehe: number) => (Number(stunden) / hoehe) * 100;
 
-/**
- * Der Beginn um `um` Monate verschoben, als Datum „JJJJ-MM-TT". Der Tag
- * bleibt, wo es ihn gibt; der 31. wird im Februar zum 28. (oder 29.) —
- * sonst rutschte ein Antrag beim Verschieben still einen Monat weiter.
- */
-export function beginnVerschieben(beginn: string, um: number): string {
-  const [jahr, monat, tag] = beginn.split("-").map(Number);
-  const stelle = jahr * 12 + (monat - 1) + um;
-  const neuJahr = Math.floor(stelle / 12);
-  const neuMonat = (stelle % 12) + 1;
-  const letzter = new Date(Date.UTC(neuJahr, neuMonat, 0)).getUTCDate();
-  const zwei = (n: number) => String(n).padStart(2, "0");
-  return `${neuJahr}-${zwei(neuMonat)}-${zwei(Math.min(tag, letzter))}`;
-}
 
 /**
  * Ob ein Datum aus dem Datumsfeld ein Beginn sein kann: vollständig und ab
