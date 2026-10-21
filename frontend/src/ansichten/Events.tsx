@@ -38,6 +38,7 @@ import {
   type Kontakt,
   type Organisation,
   type Teammitglied,
+  type Verlaufseintrag,
 } from "../basis/daten";
 import {
   alsAnfrage,
@@ -64,7 +65,9 @@ import { Feldtext } from "../bausteine/Feldtext";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
+import { Notiztext } from "../bausteine/Notizfeld";
 import { Suchfeld } from "../bausteine/Suchfeld";
+import { Verlaufsdialog, type Verlaufswerte, type Zielgruppe } from "../bausteine/Verlaufsdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 
 const STAENDE: { wert: Eventziel["stand"]; text: string }[] = [
@@ -928,95 +931,62 @@ function Verlaufskarte({
   ich: Ich;
   neuLaden: () => void;
 }) {
-  const [eintrag, setEintrag] = useState(() => ({
-    ziel: "",
-    datum: event.von,
-    titel: "",
-    text: "",
-  }));
-  const [fehler, setFehler] = useState("");
+  // Offen ist ein neuer Eintrag (mit einer vorgewählten Person, wenn sie
+  // gerade angelegt wurde) oder ein bestehender.
+  const [offen, setOffen] = useState<{ ziel: string } | { eintrag: Verlaufseintrag } | null>(null);
 
+  // Alle Kontakte, nicht nur die Hitlist: Wen man trifft, entscheidet der Gang
+  // über den Flur. Die geplanten Namen stehen trotzdem oben — sie sind die
+  // häufigste Wahl.
   const wahl = wenGetroffen(organisationen, kontakte, event.ziele);
+  const alsWahl = (auswahl: Auswahl[]) =>
+    auswahl.map((a) => ({ wert: a.wert, name: a.dazu ? `${a.name} — ${a.dazu}` : a.name }));
+  const ziele: Zielgruppe[] = [
+    { titel: "Von der Hitlist", auswahl: alsWahl(wahl.hitlist) },
+    { titel: "Personen", auswahl: alsWahl(wahl.personen) },
+    { titel: "Organisationen", auswahl: alsWahl(wahl.organisationen) },
+  ];
 
-  async function anlegen() {
-    const wohin = alsAnfrage(eintrag.ziel);
-    if (!wohin) return setFehler("Wähl aus, mit wem geredet wurde.");
-    if (!eintrag.titel.trim())
-      return setFehler("Trag ein, worum es ging. Ein Eintrag ohne Anlass hilft später niemandem.");
-    setFehler("");
-    await hole("/verlauf/", {
-      method: "POST",
-      body: JSON.stringify({
-        ...wohin,
-        event: event.id,
-        // Auf einem Event ist die Art „Event". Ein Auswahlfeld daneben fragte
-        // nach etwas, das der Ort des Eintrags schon beantwortet.
-        art: "event",
-        datum: eintrag.datum,
-        titel: eintrag.titel.trim(),
-        text: eintrag.text.trim(),
-      }),
-    });
-    setEintrag({ ...eintrag, titel: "", text: "" });
+  async function speichern(w: Verlaufswerte) {
+    const felder = {
+      ...alsAnfrage(w.ziel),
+      event: event.id,
+      // Auf einem Event ist die Art „Event". Ein Auswahlfeld daneben fragte
+      // nach etwas, das der Ort des Eintrags schon beantwortet.
+      art: "event",
+      datum: w.datum,
+      titel: w.titel,
+      text: w.text,
+    };
+    if (offen && "eintrag" in offen)
+      await hole(`/verlauf/${offen.eintrag.id}/`, { method: "PATCH", body: JSON.stringify(felder) });
+    else await hole("/verlauf/", { method: "POST", body: JSON.stringify(felder) });
     neuLaden();
   }
 
+  const darf = ich.darf.bearbeiten;
+
   return (
     <div className="karte">
-      <h2>Verlauf</h2>
+      <div className="kartenkopf verlauf-kopf">
+        <h2>Verlauf</h2>
+        {darf && (
+          <div className="verlauf-neu">
+            <button type="button" className="knopf-still" onClick={() => setOffen({ ziel: "" })}>
+              <Zeichen name="plus" />
+              Gespräch eintragen
+            </button>
+          </div>
+        )}
+      </div>
 
-      {/* Der Knopf ist nie stillgelegt: Ein grauer Knopf sagt nicht, was
-          fehlt. Er nimmt den Klick an und antwortet in der Zeile darunter. */}
-      {ich.darf.bearbeiten && (
+      {darf && (
         <div className="nachbuchen">
-          <Anlegekarte eingebettet knopf="Eintragen" anlegen={anlegen} fehler={fehler}>
-            {/* Alle Kontakte, nicht nur die Hitlist: Wen man trifft,
-                entscheidet der Gang über den Flur. Die geplanten Namen stehen
-                trotzdem oben — sie sind die häufigste Wahl. */}
-            <Beschriftet text="Mit wem">
-              <select
-                className="feld"
-                value={eintrag.ziel}
-                onChange={(e) => setEintrag({ ...eintrag, ziel: e.target.value })}
-              >
-                <option value="">Bitte wählen …</option>
-                <Zielgruppe titel="Von der Hitlist" auswahl={wahl.hitlist} />
-                <Zielgruppe titel="Personen" auswahl={wahl.personen} />
-                <Zielgruppe titel="Organisationen" auswahl={wahl.organisationen} />
-              </select>
-            </Beschriftet>
-            <Beschriftet text="Tag" art="tag">
-              <input
-                type="date"
-                className="feld"
-                value={eintrag.datum}
-                min={event.von}
-                max={letzterTag(event)}
-                onChange={(e) => setEintrag({ ...eintrag, datum: e.target.value })}
-              />
-            </Beschriftet>
-            <Beschriftet text="Worum ging es?" art="breit">
-              <input
-                className="feld"
-                value={eintrag.titel}
-                onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })}
-              />
-            </Beschriftet>
-            <Beschriftet text="Ergebnis" art="breit">
-              <input
-                className="feld"
-                placeholder="Nächster Schritt, Zusage, offene Frage …"
-                value={eintrag.text}
-                onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })}
-              />
-            </Beschriftet>
-          </Anlegekarte>
-
           <Kennengelernt
             event={event}
             organisationen={organisationen}
             neuLaden={neuLaden}
-            gewaehlt={(schluessel) => setEintrag({ ...eintrag, ziel: schluessel })}
+            gewaehlt={(schluessel) => setOffen({ ziel: schluessel })}
           />
         </div>
       )}
@@ -1031,49 +1001,67 @@ function Verlaufskarte({
           {event.verlauf.map((v) => (
             <li key={v.id}>
               <span className="zahl datum">{alsDatum(v.datum)}</span>
-              <div style={{ flex: 1 }}>
-                <b>{v.titel}</b>
-                {v.text && <p>{v.text}</p>}
+              <div className="verlauf-inhalt">
+                {darf ? (
+                  <button type="button" className="verlauf-titel" onClick={() => setOffen({ eintrag: v })}>
+                    {v.titel}
+                  </button>
+                ) : (
+                  <b>{v.titel}</b>
+                )}
+                {v.text && <Notiztext text={v.text} />}
                 <span className="verlauf-fuss">
                   {artText(v.art)} · {v.kontakt_name || v.organisation_name}
                   {v.wer_name && ` · notiert von ${v.wer_name}`}
                 </span>
               </div>
-              {ich.darf.loeschen && (
+              {darf && (
                 <button
                   type="button"
                   className="mini"
-                  aria-label="Eintrag entfernen"
-                  onClick={async () => {
-                    await hole(`/verlauf/${v.id}/`, { method: "DELETE" });
-                    neuLaden();
-                  }}
+                  aria-label={`Eintrag „${v.titel}“ bearbeiten`}
+                  title="Bearbeiten"
+                  onClick={() => setOffen({ eintrag: v })}
                 >
-                  <Zeichen name="kreuz" />
+                  <Zeichen name="stift" />
                 </button>
               )}
             </li>
           ))}
         </ul>
       )}
-    </div>
-  );
-}
 
-/**
- * Eine Gruppe im Auswahlfeld — leer wird sie gar nicht erst gezeichnet, sonst
- * stünde auf einem frischen Event eine Überschrift ohne Einträge darunter.
- */
-function Zielgruppe({ titel, auswahl }: { titel: string; auswahl: Auswahl[] }) {
-  if (auswahl.length === 0) return null;
-  return (
-    <optgroup label={titel}>
-      {auswahl.map((a) => (
-        <option key={a.wert} value={a.wert}>
-          {a.dazu ? `${a.name} — ${a.dazu}` : a.name}
-        </option>
-      ))}
-    </optgroup>
+      {offen && (
+        <Verlaufsdialog
+          ueberschrift={"eintrag" in offen ? "Eintrag bearbeiten" : `Gespräch auf ${event.titel}`}
+          anfang={
+            "eintrag" in offen
+              ? {
+                  art: offen.eintrag.art,
+                  ziel: offen.eintrag.kontakt !== null ? `k${offen.eintrag.kontakt}` : `o${offen.eintrag.organisation}`,
+                  datum: offen.eintrag.datum,
+                  titel: offen.eintrag.titel,
+                  text: offen.eintrag.text,
+                }
+              : { art: "event", ziel: offen.ziel, datum: event.von, titel: "", text: "" }
+          }
+          ziele={ziele}
+          datumVon={event.von}
+          datumBis={letzterTag(event)}
+          knopf={"eintrag" in offen ? "Speichern" : "Eintragen"}
+          speichern={speichern}
+          entfernen={
+            "eintrag" in offen && ich.darf.loeschen
+              ? async () => {
+                  await hole(`/verlauf/${offen.eintrag.id}/`, { method: "DELETE" });
+                  neuLaden();
+                }
+              : undefined
+          }
+          schliessen={() => setOffen(null)}
+        />
+      )}
+    </div>
   );
 }
 

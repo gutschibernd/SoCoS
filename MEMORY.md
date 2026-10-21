@@ -7,6 +7,36 @@ betrifft.
 
 ---
 
+## 2026-10-21 — Verlaufseinträge im Fenster, mit Aufzählungen (kein Schema)
+
+**Bernd:** „die kontaktverlaufsverwaltung … das feld ist extrem klein was man
+dazu schreiben kann und man kann es nicht bearbeiten."
+
+**Vorher:** fünf Felder dauerhaft über dem Verlauf, das Ergebnis ein
+einzeiliges `<input>`, keine Bearbeitung, und das Kreuz an der Zeile entfernte
+ohne Nachfrage.
+
+**Jetzt** (`bausteine/Verlaufsdialog.tsx`, für Kontakte und Events gleich):
+
+- **Ein Fenster** hinter „Call"/„Mail" (Kontakte) bzw. „Gespräch eintragen"
+  (Event). Dasselbe Fenster öffnet einen bestehenden Eintrag — über den Titel
+  oder den Stift. Gespeichert wird am Stück wie im Protokolldialog der
+  Meetings, mit Nachfrage beim Hinausklicken; sonst stünde jeder
+  Zwischenstand im Änderungsprotokoll. Entfernen nur noch dort, mit dem
+  Löschdialog, der den Titel nennt.
+- **`wer` bleibt beim Bearbeiten der, der den Eintrag geschrieben hat.** Wer
+  ändert, steht im Änderungsprotokoll (Test in `test_api.TestVerlauf`).
+- **Der Text bleibt Klartext**: Aufzählungen sind Zeilen mit `- `, Nummern
+  `1. ` — dieselbe Regel wie im Designtext und im Meetingprotokoll. Kein
+  HTML, kein Markdown darüber hinaus: Der Text steht auch im
+  Änderungsprotokoll als alt → neu und muss dort lesbar sein. Gezeichnet wird
+  daraus eine echte Liste (`bloecke` in `basis/notiz.ts`); auch `– ` (so
+  schreibt das Telefonat zur Förderung seine offenen Fragen) und `•` gelten
+  als Punkt.
+- **Die Knöpfe setzen über `document.execCommand("insertText")` ein**, nicht
+  über einen neuen Wert — sonst wäre ⌘Z nach einem Klick auf „Aufzählung"
+  wirkungslos. Fällt es weg, geht es ohne Rückgängig weiter (`setRangeText`).
+
 ## 2026-10-19 — „Zurück" führt dorthin, woher man kam
 
 **Bernd:** „die zurück buttons führen oft nicht daher wo man herkommt. z.B.

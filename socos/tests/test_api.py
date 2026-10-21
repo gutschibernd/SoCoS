@@ -22,6 +22,8 @@ from socos.models import (
     Phasenstand,
     Projekt,
     Projektphase,
+    Protokolleintrag,
+    Verlaufseintrag,
     Zeitbuchung,
 )
 
@@ -557,6 +559,48 @@ class TestVerlauf:
             content_type="application/json",
         ).json()
         assert daten["wer"] == bearbeiter.pk
+
+    def test_bearbeiten_steht_mit_alt_und_neu_im_protokoll(self, client, bearbeiter, admin_nutzer):
+        """
+        Seit ein Eintrag im Fenster bearbeitet wird, ist „wer hat das Ergebnis
+        dieses Telefonats nachträglich geändert" eine echte Frage. Und wer ihn
+        geschrieben hat, bleibt der, der ihn geschrieben hat — wer ändert,
+        steht im Protokoll, nicht im Feld „notiert von".
+        """
+        org = Organisation.objects.create(name="Wirtschaftsagentur")
+        client.force_login(bearbeiter)
+        eintrag = client.post(
+            "/api/verlauf/",
+            {"organisation": org.pk, "art": "call", "titel": "Rückruf", "text": "Frist offen"},
+            content_type="application/json",
+        ).json()
+
+        client.force_login(admin_nutzer)
+        antwort = client.patch(
+            f"/api/verlauf/{eintrag['id']}/",
+            {"text": "- Frist 31.03.\n- Budget bestätigt"},
+            content_type="application/json",
+        )
+        assert antwort.status_code == 200
+        assert antwort.json()["wer"] == bearbeiter.pk
+
+        protokoll = Protokolleintrag.objects.filter(
+            modell="socos.Verlaufseintrag", objekt_id=str(eintrag["id"]), aktion="geaendert"
+        ).latest("pk")
+        assert protokoll.nutzer == admin_nutzer
+        assert protokoll.aenderungen["text"] == {
+            "alt": "Frist offen",
+            "neu": "- Frist 31.03.\n- Budget bestätigt",
+        }
+
+    def test_ein_leser_bearbeitet_nicht(self, client, leser):
+        org = Organisation.objects.create(name="aws")
+        eintrag = Verlaufseintrag.objects.create(organisation=org, art="mail", titel="Unterlagen")
+        client.force_login(leser)
+        antwort = client.patch(
+            f"/api/verlauf/{eintrag.pk}/", {"titel": "Anders"}, content_type="application/json"
+        )
+        assert antwort.status_code == 403
 
 
 @pytest.mark.django_db

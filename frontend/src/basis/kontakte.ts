@@ -134,10 +134,12 @@ export function sortiereOrganisationen(
  * Verlauf zeigt. Zwei Listen liefen beim nächsten neuen Wert auseinander — und
  * die Werte selbst kommen ohnehin aus `Verlaufsart` in socos/models.py.
  */
+// Nach Häufigkeit: Im Fenster stehen sie als Reihe nebeneinander, und das
+// Häufigste gehört nach vorn.
 export const VERLAUFSARTEN = [
-  { wert: "meeting", text: "Meeting" },
-  { wert: "mail", text: "Mail" },
   { wert: "call", text: "Call" },
+  { wert: "mail", text: "Mail" },
+  { wert: "meeting", text: "Meeting" },
   { wert: "event", text: "Event" },
 ] as const;
 
@@ -169,6 +171,11 @@ export type Verlaufszeile = {
   wem: string;
   wer_name: string;
   event_titel: string;
+  /**
+   * An wem der Eintrag hängt, als Wert der Auswahl „Mit wem": die Nummer der
+   * Person oder `haus`. Leer bei einem Meeting — das wird hier nicht bearbeitet.
+   */
+  ziel: string;
 };
 
 function ausEintrag(eintrag: Verlaufseintrag, wem: string): Verlaufszeile {
@@ -182,6 +189,7 @@ function ausEintrag(eintrag: Verlaufseintrag, wem: string): Verlaufszeile {
     wem,
     wer_name: eintrag.wer_name,
     event_titel: eintrag.event_titel,
+    ziel: eintrag.kontakt === null ? "haus" : String(eintrag.kontakt),
   };
 }
 
@@ -199,6 +207,7 @@ function ausMeeting(meeting: Meetingzeile, wem: string): Verlaufszeile {
     wem,
     wer_name: "",
     event_titel: "",
+    ziel: "",
   };
 }
 

@@ -687,6 +687,49 @@
    sie betrifft. */
 .dialog-offen { font-size: 12.5px; color: var(--text-sehr-leise); }
 
+/*
+ * Ein Verlaufseintrag (bausteine/Verlaufsdialog.tsx). Schmaler als der
+ * Protokolldialog: Es ist ein Gespräch, kein Dokument, und eine Zeile über
+ * 640 px liest sich in einer Notiz schlecht.
+ */
+.verlaufsdialog { max-width: 640px; }
+.verlaufsdialog-koerper { display: flex; flex-direction: column; gap: 16px; padding-top: 18px; }
+.verlauf-arten { align-self: flex-start; }
+.verlauf-arten button { min-height: 36px; }
+.verlauf-felder { display: flex; flex-wrap: wrap; gap: 12px 12px; }
+.verlauf-felder > .feldblock:first-child { flex: 1 1 240px; }
+.verlauf-notiz-kopf { display: flex; align-items: center; gap: 6px; }
+.verlauf-entfernen { border-top: 1px solid var(--rand); padding-top: 14px; }
+
+/* Das Notizfeld: Leiste und Schreibfläche in einem Kasten, wie beim Feld für
+   neue Aufgaben — die Knöpfe gehören sichtbar zu diesem Feld und zu keinem
+   anderen. */
+.notizfeld {
+  background: var(--flaeche); border: 1px solid var(--rand-stark); border-radius: var(--kante);
+}
+.notizfeld:focus-within { border-color: var(--marke); }
+.notiz-leiste {
+  display: flex; gap: 4px; padding: 4px; border-bottom: 1px solid var(--rand);
+  background: var(--flaeche-leise); border-radius: var(--kante) var(--kante) 0 0;
+}
+.notiz-knopf {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px;
+  border: 1px solid transparent; border-radius: var(--kante-klein); background: none;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--text-leise); cursor: pointer;
+}
+.notiz-knopf:hover { color: var(--text); background: var(--flaeche); }
+.notiz-knopf[aria-pressed="true"] { color: var(--text); background: var(--flaeche); border-color: var(--rand-stark); }
+.notiz-marke { min-width: 1em; text-align: center; font-weight: 700; }
+.notizfeld > textarea.feld {
+  display: block; border: 0; border-radius: 0 0 var(--kante) var(--kante);
+  padding: 12px 14px; line-height: 1.55; resize: vertical;
+}
+/* Der Kasten zeigt den Fokus schon; ein zweiter Rahmen im Feld stünde doppelt. */
+.notizfeld > textarea.feld:focus-visible { outline: none; }
+@media (pointer: coarse) {
+  .notiz-knopf, .verlauf-arten button { min-height: var(--griff); }
+}
+
 /* Zwei Abschnitte in einem Dialog — Herunterladen und Wiederherstellen. Die
    Linie dazwischen trennt zwei Dinge, von denen das zweite den Bestand
    ersetzt; sie sollen nicht wie ein Knopfpaar nebeneinander wirken. */
@@ -1374,11 +1417,42 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .ball-nichts { background: var(--gut-hell); color: var(--gut); }
 
 .verlauf { list-style: none; margin: 0; padding: 0; }
-.verlauf li { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--flaeche-leise); }
-.verlauf li:last-child { border-bottom: 0; }
+/* `>` und nicht nur `.verlauf li`: In der Notiz stehen jetzt Listen, und
+   deren Punkte bekämen sonst Zeilenrahmen und Flex-Gerüst der Verlaufszeile. */
+.verlauf > li { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--flaeche-leise); }
+.verlauf > li:last-child { border-bottom: 0; }
 .verlauf .datum { flex: 0 0 92px; font-size: 12px; color: var(--text-sehr-leise); padding-top: 2px; }
-.verlauf b { font-size: 14px; font-weight: 600; }
-.verlauf p { margin: 3px 0 0; font-size: 13px; color: var(--text-leise); line-height: 1.5; white-space: pre-line; }
+.verlauf-inhalt { flex: 1 1 auto; min-width: 0; }
+/* Oben und nicht gestreckt: Seit eine Notiz zehn Zeilen haben kann, wäre der
+   Knopf sonst so hoch wie der Eintrag. */
+.verlauf > li > .mini { align-self: flex-start; }
+/* Am Handy steht das Datum über dem Eintrag statt daneben: Die Spalte nahm
+   der Notiz ein Viertel der Breite, und jede zweite Zeile brach um. */
+@media (max-width: 720px) {
+  .verlauf > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; }
+  .verlauf .datum { grid-row: 1; grid-column: 1; padding-top: 0; }
+  .verlauf-inhalt { grid-row: 2; grid-column: 1; }
+  .verlauf > li > .mini { grid-row: 1 / span 2; grid-column: 2; }
+}
+.verlauf-inhalt > b { font-size: 14px; font-weight: 600; }
+/* Der Titel ist der Griff zum Bearbeiten. Er sieht aus wie ein Titel und
+   nicht wie ein Knopf — erst unter der Maus zeigt er, dass er einer ist. */
+.verlauf-titel {
+  display: inline; padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 600; color: var(--text); text-align: left;
+}
+.verlauf-titel:hover { color: var(--marke); text-decoration: underline; text-underline-offset: 2px; }
+.verlauf-kopf > .verlauf-neu { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Die Notiz gelesen (bausteine/Notizfeld.tsx). Im vollen Textton und nicht
+   mehr leise: Seit das Feld groß ist, ist die Notiz der Inhalt des Eintrags
+   und nicht seine Fußnote. Leise bleibt nur die Marke vor dem Punkt. */
+.notiztext { margin-top: 4px; font-size: 14px; line-height: 1.55; color: var(--text); }
+.notiztext > p { margin: 0 0 6px; white-space: pre-line; }
+.notiztext > ul, .notiztext > ol { margin: 0 0 6px; padding-left: 20px; }
+.notiztext li { margin: 2px 0; padding-left: 2px; }
+.notiztext li::marker { color: var(--text-sehr-leise); }
+.notiztext > :last-child { margin-bottom: 0; }
 
 /* --- Events --------------------------------------------------------------- */
 

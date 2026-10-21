@@ -22,6 +22,29 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-10-21",
+        "titel": "Der Verlauf hat Platz für Notizen",
+        "punkte": [
+            {
+                "titel": "Calls und Mails in einem Fenster",
+                "text": (
+                    "Über dem Verlauf eines Kontakts stehen jetzt „Call“ und „Mail“, auf einem Event "
+                    "„Gespräch eintragen“. Das Fenster hat ein großes Feld für Notizen, und mit "
+                    "„Aufzählung“ oder „Nummeriert“ werden daraus Punkte — Enter setzt sie fort."
+                ),
+                "wo": "kontakte",
+            },
+            {
+                "titel": "Einträge lassen sich ändern",
+                "text": (
+                    "Ein Klick auf den Titel eines Eintrags oder auf den Stift daneben öffnet ihn wieder. "
+                    "Wer was geändert hat, steht im Änderungsprotokoll."
+                ),
+                "wo": "kontakte",
+            },
+        ],
+    },
+    {
         # Der 20. und nicht der 19.: Der Eintrag vom 19. ist schon ausgeliefert
         # und von beiden gesehen — Punkte, die dort dazukämen, gingen nie auf.
         "version": "2026-10-20",

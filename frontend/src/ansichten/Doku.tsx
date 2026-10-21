@@ -646,6 +646,10 @@ function KontakteDoku() {
               text: "Gespräche mit Personen und Post ans Haus stehen in einem Faden. Sonst sieht man den Verlauf nur halb.",
             },
             {
+              begriff: "Eintragen und ändern",
+              text: "„Call“ oder „Mail“ über dem Verlauf öffnet ein Fenster mit einem großen Feld für Notizen. „Aufzählung“ und „Nummeriert“ machen aus Zeilen Punkte, Enter beginnt den nächsten, Enter in einem leeren Punkt beendet die Liste. Ein Klick auf den Titel eines Eintrags öffnet ihn wieder zum Ändern; entfernen kann ihn dort nur ein Admin.",
+            },
+            {
               begriff: "Über die Person",
               text: "In jeder Personenkachel zum Aufklappen: Hintergrund, gemeinsame Themen und was man lieber nicht anspricht. Zugeklappt steht daneben, was schon ausgefüllt ist — ein Blick vor dem Gespräch genügt.",
             },

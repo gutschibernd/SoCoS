@@ -16,6 +16,7 @@ export function Loeschdialog({
   name,
   was,
   milder,
+  folgen,
   abbrechen,
   loeschen,
   laeuft,
@@ -23,6 +24,9 @@ export function Loeschdialog({
   name: string;
   was: string;
   milder?: { text: string; tun: () => void };
+  /** Was danach bleibt — wo der Satz über Zeiten und Verlauf nicht passt,
+      etwa beim Entfernen eines Verlaufseintrags selbst. */
+  folgen?: string;
   abbrechen: () => void;
   loeschen: () => void;
   laeuft?: boolean;
@@ -45,9 +49,9 @@ export function Loeschdialog({
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <h2 id="loeschdialog-titel">„{name}“ entfernen?</h2>
         <p>
-          {was} verschwindet aus allen Listen. Gebuchte Zeiten und der Verlauf bleiben
-          erhalten und stehen weiter im Änderungsprotokoll — ein Admin kann das
-          Entfernen rückgängig machen.
+          {was} verschwindet aus allen Listen.{" "}
+          {folgen ??
+            "Gebuchte Zeiten und der Verlauf bleiben erhalten und stehen weiter im Änderungsprotokoll — ein Admin kann das Entfernen rückgängig machen."}
         </p>
         <div className="dialog-knoepfe">
           <button ref={behalten} type="button" className="knopf-still" onClick={abbrechen}>

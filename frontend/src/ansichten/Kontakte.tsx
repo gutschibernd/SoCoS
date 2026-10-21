@@ -65,7 +65,9 @@ import { Feldtext } from "../bausteine/Feldtext";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
+import { Notiztext } from "../bausteine/Notizfeld";
 import { Suchfeld } from "../bausteine/Suchfeld";
+import { Verlaufsdialog, type Verlaufswerte, type Zielgruppe } from "../bausteine/Verlaufsdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 
 /** Der Weg zu den Personen ohne Organisation. Kein Name kann so heißen. */
@@ -1541,108 +1543,64 @@ function Verlaufskarte({
   /** Der Weg zur Meetingseite — die Zeile wird dort bearbeitet, nicht hier. */
   zumMeeting: (id: number) => void;
 }) {
-  const [eintrag, setEintrag] = useState(() => ({
-    art: "call",
-    ziel: andasHaus === null ? String(kontakte[0]?.id ?? "") : "haus",
-    datum: heuteAlsDatum(),
-    titel: "",
-    text: "",
-  }));
+  // Offen ist entweder ein neuer Eintrag (mit seiner Art) oder ein bestehender.
+  const [offen, setOffen] = useState<{ neu: string } | { zeile: Verlaufszeile } | null>(null);
 
-  // Ohne Ziel kann nichts eingetragen werden: An das Haus geht es nur, wenn es
-  // eines gibt; an eine Person nur, wenn eine da ist.
-  const kannEintragen = eintrag.ziel === "haus" ? andasHaus !== null : Boolean(eintrag.ziel);
-  const [fehler, setFehler] = useState("");
+  const ziele: Zielgruppe[] = [
+    {
+      auswahl: [
+        ...(andasHaus !== null ? [{ wert: "haus", name: "An die Organisation" }] : []),
+        ...kontakte.map((k) => ({ wert: String(k.id), name: k.name })),
+      ],
+    },
+  ];
+  // Ein Telefonat führt man mit einer Person. Gibt es nur eine, ist sie
+  // gemeint; bei mehreren bleibt das Haus vorbelegt — dort war es vorher auch.
+  const vorbelegt =
+    kontakte.length === 1 || andasHaus === null ? String(kontakte[0]?.id ?? "") : "haus";
 
-  async function anlegen() {
-    if (!kannEintragen)
-      return setFehler("Es gibt niemanden, an den der Eintrag gehen könnte — leg zuerst eine Person an.");
-    if (!eintrag.titel.trim())
-      return setFehler("Trag ein, worum es ging. Ein Eintrag ohne Anlass hilft in einem halben Jahr niemandem.");
-    setFehler("");
-    await hole("/verlauf/", {
-      method: "POST",
-      body: JSON.stringify({
-        // Genau eines von beiden — das prüft auch der Serializer.
-        organisation: eintrag.ziel === "haus" ? andasHaus : null,
-        kontakt: eintrag.ziel === "haus" ? null : Number(eintrag.ziel),
-        art: eintrag.art,
-        datum: eintrag.datum,
-        titel: eintrag.titel.trim(),
-        text: eintrag.text.trim(),
-      }),
-    });
-    setEintrag({ ...eintrag, titel: "", text: "", datum: heuteAlsDatum() });
+  async function speichern(w: Verlaufswerte) {
+    const felder = {
+      // Genau eines von beiden — das prüft auch der Serializer.
+      organisation: w.ziel === "haus" ? andasHaus : null,
+      kontakt: w.ziel === "haus" ? null : Number(w.ziel),
+      art: w.art,
+      datum: w.datum,
+      titel: w.titel,
+      text: w.text,
+    };
+    if (offen && "zeile" in offen)
+      await hole(`/verlauf/${offen.zeile.id}/`, { method: "PATCH", body: JSON.stringify(felder) });
+    else await hole("/verlauf/", { method: "POST", body: JSON.stringify(felder) });
     neuLaden();
   }
 
+  const neu = (art: string) => setOffen({ neu: art });
+  const darf = ich.darf.bearbeiten;
+
   return (
     <div className="karte">
-      <h2>Verlauf</h2>
-
-      {/* Der Knopf ist nie stillgelegt: Ein grauer Knopf sagt nicht, was
-          fehlt. Er nimmt den Klick an und antwortet in der Zeile darunter. */}
-      {ich.darf.bearbeiten && (
-        <div className="nachbuchen">
-          <Anlegekarte eingebettet knopf="Eintragen" anlegen={anlegen} fehler={fehler}>
-            <Beschriftet text="Art">
-              <select
-                className="feld"
-                value={eintrag.art}
-                onChange={(e) => setEintrag({ ...eintrag, art: e.target.value })}
-              >
-                {VERLAUFSARTEN.map((a) => (
-                  <option key={a.wert} value={a.wert}>
-                    {a.text}
-                  </option>
-                ))}
-              </select>
-            </Beschriftet>
-            <Beschriftet text="Mit wem">
-              <select
-                className="feld"
-                value={eintrag.ziel}
-                onChange={(e) => setEintrag({ ...eintrag, ziel: e.target.value })}
-              >
-                {andasHaus !== null && <option value="haus">An die Organisation</option>}
-                {kontakte.map((k) => (
-                  <option key={k.id} value={String(k.id)}>
-                    {k.name}
-                  </option>
-                ))}
-              </select>
-            </Beschriftet>
-            <Beschriftet text="Tag" art="tag">
-              <input
-                type="date"
-                className="feld"
-                value={eintrag.datum}
-                onChange={(e) => setEintrag({ ...eintrag, datum: e.target.value })}
-              />
-            </Beschriftet>
-            <Beschriftet text="Worum ging es?" art="breit">
-              <input
-                className="feld"
-                value={eintrag.titel}
-                onChange={(e) => setEintrag({ ...eintrag, titel: e.target.value })}
-              />
-            </Beschriftet>
-            <Beschriftet text="Ergebnis" art="breit">
-              <input
-                className="feld"
-                placeholder="Nächster Schritt, Zusage, offene Frage …"
-                value={eintrag.text}
-                onChange={(e) => setEintrag({ ...eintrag, text: e.target.value })}
-              />
-            </Beschriftet>
-          </Anlegekarte>
-        </div>
-      )}
+      <div className="kartenkopf verlauf-kopf">
+        <h2>Verlauf</h2>
+        {darf && (
+          <div className="verlauf-neu">
+            <button type="button" className="knopf-still" onClick={() => neu("call")}>
+              <Zeichen name="hoerer" />
+              Call
+            </button>
+            <button type="button" className="knopf-still" onClick={() => neu("mail")}>
+              <Zeichen name="brief" />
+              Mail
+            </button>
+          </div>
+        )}
+      </div>
 
       {zeilen.length === 0 ? (
         <Leerstelle
           was="Noch kein Verlauf"
           satz="Halte hier fest, was besprochen wurde — in einem halben Jahr weiß es sonst niemand mehr."
+          aktion={darf ? { text: "Ersten Call eintragen", tun: () => neu("call") } : undefined}
         />
       ) : (
         <ul className="verlauf">
@@ -1651,9 +1609,17 @@ function Verlaufskarte({
           {zeilen.map((z) => (
             <li key={`${z.quelle}${z.id}`}>
               <span className="zahl datum">{alsDatum(z.datum)}</span>
-              <div style={{ flex: 1 }}>
-                <b>{z.titel}</b>
-                {z.text && <p>{z.text}</p>}
+              <div className="verlauf-inhalt">
+                {/* Der Titel ist der Griff zum Bearbeiten — die größte
+                    Fläche der Zeile, nicht nur der Stift rechts außen. */}
+                {darf && z.quelle === "verlauf" ? (
+                  <button type="button" className="verlauf-titel" onClick={() => setOffen({ zeile: z })}>
+                    {z.titel}
+                  </button>
+                ) : (
+                  <b>{z.titel}</b>
+                )}
+                {z.text && <Notiztext text={z.text} />}
                 <span className="verlauf-fuss">
                   {artText(z.art)} · {z.wem || "an die Organisation"}
                   {/* Woher der Eintrag kommt. Ohne das steht auf der
@@ -1676,23 +1642,45 @@ function Verlaufskarte({
                   <Zeichen name="zeiger" />
                 </button>
               ) : (
-                ich.darf.loeschen && (
+                darf && (
                   <button
                     type="button"
                     className="mini"
-                    aria-label="Eintrag entfernen"
-                    onClick={async () => {
-                      await hole(`/verlauf/${z.id}/`, { method: "DELETE" });
-                      neuLaden();
-                    }}
+                    aria-label={`Eintrag „${z.titel}“ bearbeiten`}
+                    title="Bearbeiten"
+                    onClick={() => setOffen({ zeile: z })}
                   >
-                    <Zeichen name="kreuz" />
+                    <Zeichen name="stift" />
                   </button>
                 )
               )}
             </li>
           ))}
         </ul>
+      )}
+
+      {offen && (
+        <Verlaufsdialog
+          ueberschrift={"zeile" in offen ? "Eintrag bearbeiten" : `${artText(offen.neu)} eintragen`}
+          anfang={
+            "zeile" in offen
+              ? { art: offen.zeile.art, ziel: offen.zeile.ziel, datum: offen.zeile.datum, titel: offen.zeile.titel, text: offen.zeile.text }
+              : { art: offen.neu, ziel: vorbelegt, datum: heuteAlsDatum(), titel: "", text: "" }
+          }
+          arten={VERLAUFSARTEN}
+          ziele={ziele}
+          knopf={"zeile" in offen ? "Speichern" : "Eintragen"}
+          speichern={speichern}
+          entfernen={
+            "zeile" in offen && ich.darf.loeschen
+              ? async () => {
+                  await hole(`/verlauf/${offen.zeile.id}/`, { method: "DELETE" });
+                  neuLaden();
+                }
+              : undefined
+          }
+          schliessen={() => setOffen(null)}
+        />
       )}
     </div>
   );
