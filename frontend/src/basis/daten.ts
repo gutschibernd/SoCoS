@@ -437,6 +437,22 @@ export const useBuchungen = (parameter: Record<string, string> = {}) => {
   });
 };
 
+/**
+ * Die eigenen Entwürfe — abgeschnittene Clock-outs, die noch bestätigt
+ * werden wollen. Eigener Abruf, **nicht** aus der Monatsliste gefiltert:
+ * Die Übersicht meldet alle offenen, die Liste zeigt nur den gewählten
+ * Monat. Ein Entwurf vom Monatsende stand dann in der Übersicht und war in
+ * der Zeitliste nicht zu finden (Bernd, 2026-11-03).
+ *
+ * Der Schlüssel beginnt mit „zeiten", damit `useNeuLaden` ihn nach dem
+ * Bestätigen mit verwirft.
+ */
+export const useEntwuerfe = () =>
+  useQuery({
+    queryKey: ["zeiten", "entwuerfe"],
+    queryFn: () => hole<Buchung[]>("/zeiten/entwuerfe/"),
+  });
+
 export type Teammitglied = {
   id: number;
   name: string;

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { hole } from "../basis/api";
 import {
   useBuchungen,
+  useEntwuerfe,
   useLaufend,
   useNeuLaden,
   useProjekte,
@@ -208,6 +209,7 @@ export function Zeit({ ich }: { ich: Ich }) {
   if (person !== "alle") filter.person = person;
 
   const buchungen = useBuchungen(filter);
+  const entwuerfe = useEntwuerfe();
   // Die eigenen der letzten dreißig Tage, für „zuletzt gebucht" — unabhängig
   // davon, welcher Monat und wessen Zeit gerade unten in der Liste steht.
   const meine = useBuchungen({ person: String(ich.id), von: vorDreissigTagen() });
@@ -221,7 +223,6 @@ export function Zeit({ ich }: { ich: Ich }) {
 
   if (!buchungen.data) return <Zustand abfrage={buchungen} erneut={() => buchungen.refetch()} />;
 
-  const entwuerfe = buchungen.data.filter((b) => b.ist_entwurf);
   const tage = nachTagen(buchungen.data);
   const gesamt = tage.reduce((s, t) => s + t.sekunden, 0);
   const alle = person === "alle";
@@ -246,10 +247,10 @@ export function Zeit({ ich }: { ich: Ich }) {
 
   return (
     <div className="spalte">
-      {entwuerfe.length > 0 && (
+      {entwuerfe.data && entwuerfe.data.length > 0 && (
         <div className="karte karte-achtung">
           <h2>Bitte bestätigen</h2>
-          {entwuerfe.map((b) => (
+          {entwuerfe.data.map((b) => (
             <EntwurfZeile key={b.id} buchung={b} neuLaden={neuLaden} />
           ))}
         </div>
