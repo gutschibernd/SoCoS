@@ -2853,6 +2853,14 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .feldblock-uhrzeit { flex: 1 1 0; width: auto; }
   .feldblock-dauern { flex: 1 1 100%; }
 
+  /* In der Entwurfszeile („Bitte bestätigen") der Text über die ganze Breite,
+     darunter „Bis" und der Knopf. Neben dem Text blieben dem Uhrzeitfeld
+     rund 30 px, und ein time-Feld, das schmaler ist als seine Ziffern, zeigt
+     gar nichts — es sah leer aus, obwohl 23:59 drinstand. */
+  .entwurfzeile > .entwurf-wer { flex: 1 1 100%; }
+  .entwurfzeile > .feldblock-uhrzeit { flex: 1 1 120px; }
+  .entwurfzeile > .knopf { flex: 1 1 auto; }
+
   /* Jeder Text, den man antippen kann, ist ein Fingerziel — auch einer, der
      wie Fließtext aussieht. Am Rechner bleibt er kompakt, dort trifft die
      Maus auch 24 px. */
