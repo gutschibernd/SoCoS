@@ -1149,3 +1149,19 @@ export const ARTEN: { wert: Lageschritt["art"]; text: string; kurz: string }[] =
   { wert: "entscheidung", text: "Entscheidung", kurz: "Entscheidung" },
   { wert: "termin", text: "Termin", kurz: "Termin" },
 ];
+
+/**
+ * Welche Kacheln ein gezogener Rahmen berührt — mit `a` und `b` als zwei
+ * beliebigen Ecken, in welcher Richtung auch gezogen wurde. Eine Kachel steht
+ * mit ihrer Mitte in `x`/`y`; berührt genügt, ganz drin muss sie nicht sein:
+ * Wer am Rand einer Gruppe vorbeizieht, meint die Kachel, die er streift.
+ */
+export function imRahmen(kacheln: { id: number; x: number; y: number; w: number; h: number }[], a: P, b: P): number[] {
+  const x0 = Math.min(a.x, b.x);
+  const x1 = Math.max(a.x, b.x);
+  const y0 = Math.min(a.y, b.y);
+  const y1 = Math.max(a.y, b.y);
+  return kacheln
+    .filter((k) => k.x + k.w / 2 >= x0 && k.x - k.w / 2 <= x1 && k.y + k.h / 2 >= y0 && k.y - k.h / 2 <= y1)
+    .map((k) => k.id);
+}

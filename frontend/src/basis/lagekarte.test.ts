@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Karte, Lageschritt, Lagethema, Lageverbindung } from "./daten";
 import {
+  imRahmen,
   ORDNUNG,
   RASTER,
   alsBuendel,
@@ -466,5 +467,31 @@ describe("Das Fangfeld", () => {
   it("ohne passendes Thema bleibt der ganze Text stehen — und der Gedanke lose", () => {
     expect(fang("Wien: Messe anfragen", themen)).toEqual({ titel: "Wien: Messe anfragen", thema: null });
     expect(fang("  Messe anfragen ", themen)).toEqual({ titel: "Messe anfragen", thema: null });
+  });
+});
+
+describe("imRahmen", () => {
+  // Drei Kacheln, 200 × 50, mit der Mitte bei x/y.
+  const kacheln = [
+    { id: 1, x: 0, y: 0, w: 200, h: 50 },
+    { id: 2, x: 300, y: 0, w: 200, h: 50 },
+    { id: 3, x: 0, y: 200, w: 200, h: 50 },
+  ];
+
+  it("nimmt, was der Rahmen berührt — ganz drin muss eine Kachel nicht sein", () => {
+    // Von der Mitte der ersten bis knapp an den linken Rand der zweiten (bei 200).
+    expect(imRahmen(kacheln, { x: 0, y: 0 }, { x: 205, y: 10 })).toEqual([1, 2]);
+    expect(imRahmen(kacheln, { x: 0, y: 0 }, { x: 195, y: 10 })).toEqual([1]);
+  });
+
+  it("gilt in jeder Zugrichtung gleich", () => {
+    const vor = imRahmen(kacheln, { x: -150, y: -50 }, { x: 50, y: 250 });
+    expect(vor).toEqual([1, 3]);
+    expect(imRahmen(kacheln, { x: 50, y: 250 }, { x: -150, y: -50 })).toEqual(vor);
+    expect(imRahmen(kacheln, { x: 50, y: -50 }, { x: -150, y: 250 })).toEqual(vor);
+  });
+
+  it("nimmt nichts, wenn der Rahmen nur Leere streift", () => {
+    expect(imRahmen(kacheln, { x: 120, y: 60 }, { x: 180, y: 160 })).toEqual([]);
   });
 });

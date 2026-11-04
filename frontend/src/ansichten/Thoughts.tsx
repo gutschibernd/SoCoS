@@ -45,6 +45,9 @@ import { Leerstelle } from "../bausteine/Leerstelle";
 
 type Wechseln = (seite: Seite, unter?: string | null) => void;
 
+/** Unter diesem Schlüssel merkt sich der Browser, ob die Lage-Spalte weggeklappt ist. */
+const SPALTE = "socos.thoughts.spalte";
+
 export function Thoughts({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }) {
   const karte = useLagekarte();
   // Abgeschlossene Themen stehen nur in der Seitenspalte; Bühne, Lage und
@@ -136,6 +139,23 @@ function useKartenSchreiben() {
         schritte: k.schritte.filter((s) => s.id !== id),
         verbindungen: k.verbindungen.filter((v) => v.von !== id && v.nach !== id),
       })),
+    // Mehrere auf einmal: einmal vorab zeichnen und einmal neu laden, wenn
+    // alle zurück sind — nicht je Schritt, sonst flackerte die Karte durch
+    // jeden halben Stand.
+    schritteEntfernen(ids: number[]) {
+      const weg = new Set(ids);
+      setze((k) => ({
+        ...k,
+        schritte: k.schritte.filter((s) => !weg.has(s.id)),
+        verbindungen: k.verbindungen.filter((v) => !weg.has(v.von) && !weg.has(v.nach)),
+      }));
+      return Promise.all(ids.map((id) => schreibe(`/lageschritte/${id}/`, "DELETE", undefined, undefined, null))).finally(neuLaden);
+    },
+    schritteAendern(ids: number[], felder: Partial<Lageschritt>) {
+      const ziel = new Set(ids);
+      setze((k) => ({ ...k, schritte: k.schritte.map((s) => (ziel.has(s.id) ? { ...s, ...felder } : s)) }));
+      return Promise.all(ids.map((id) => schreibe(`/lageschritte/${id}/`, "PATCH", felder, undefined, null))).finally(neuLaden);
+    },
     themaAufloesen: (id: number) =>
       schreibe(`/lagethemen/${id}/`, "DELETE", undefined, (k) => ({
         ...k,
@@ -182,6 +202,22 @@ function Kartenseite({
   const [auswahl, setAuswahl] = useState<Auswahl>(null);
   const [nachfrage, setNachfrage] = useState(false);
   const [blatt, setBlatt] = useState(false);
+  // Am Laptop nimmt die Spalte ein Drittel der Karte. Wer sie wegklappt, will
+  // das beim nächsten Besuch auch so — gemerkt im Browser, nicht am Server.
+  const [spalteZu, setSpalteZu] = useState(() => {
+    try {
+      return localStorage.getItem(SPALTE) === "zu";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(SPALTE, spalteZu ? "zu" : "auf");
+    } catch {
+      /* ohne Speicher eben nur bis zum Neuladen */
+    }
+  }, [spalteZu]);
   const [fangText, setFangText] = useState("");
   const s = useKartenSchreiben();
   const g = useMemo(() => graph(daten), [daten]);
@@ -219,6 +255,8 @@ function Kartenseite({
     entfernen: (a) => {
       waehle(a);
       setNachfrage(true);
+      // Die Nachfrage steht in der Spalte — weggeklappt sähe sie niemand.
+      setSpalteZu(false);
     },
   };
 
@@ -280,7 +318,7 @@ function Kartenseite({
   const zahlen = `${l.wartet.length + l.haengt.length} warten · ${l.frei.length} frei`;
 
   return (
-    <div className="thoughts">
+    <div className="thoughts" data-spalte={spalteZu ? "zu" : undefined}>
       <main className="lk-buehne" ref={buehneRef}>
         <div className="lk-host" ref={hostRef} />
 
@@ -345,7 +383,19 @@ function Kartenseite({
         </div>
       </main>
 
-      <aside className="lk-seite" data-offen={blatt ? "ja" : undefined}>
+      <button
+        type="button"
+        className="lk-spalte-griff"
+        aria-expanded={!spalteZu}
+        aria-controls="lk-seite"
+        aria-label={spalteZu ? "Lage einblenden" : "Lage ausblenden"}
+        title={spalteZu ? "Lage einblenden" : "Lage ausblenden"}
+        onClick={() => setSpalteZu(!spalteZu)}
+      >
+        {spalteZu ? "‹" : "›"}
+      </button>
+
+      <aside id="lk-seite" className="lk-seite" data-offen={blatt ? "ja" : undefined}>
         <button type="button" className="lk-seite-griff" onClick={() => setBlatt(!blatt)} aria-expanded={blatt}>
           Lage <span className="zahl">{zahlen}</span>
         </button>
@@ -384,6 +434,10 @@ type Spaltenzeug = {
 
 function Seitenspalte(p: Spaltenzeug & { auswahl: Auswahl; wechseln: Wechseln }) {
   const { g, auswahl } = p;
+  if (auswahl?.art === "mehrere") {
+    const xs = auswahl.ids.map((id) => g.schritt(id)).filter((x): x is Lageschritt => !!x);
+    if (xs.length > 1) return <Mehrfachblatt {...p} schritte={xs} />;
+  }
   if (auswahl?.art === "schritt") {
     const x = g.schritt(auswahl.id);
     if (x) return <Schrittblatt key={x.id} {...p} schritt={x} />;
@@ -430,6 +484,95 @@ function Abschnitt({ titel, zahl, children }: { titel: string; zahl?: number; ch
         {titel} {zahl !== undefined && <span className="zahl">{zahl}</span>}
       </h3>
       {children}
+    </>
+  );
+}
+
+/**
+ * Mehrere Schritte zugleich gewählt. Gelöscht wird mit **einer** Nachfrage für
+ * alle — wer zehn alte Gedanken wegräumt, will nicht zehnmal bestätigen.
+ */
+function Mehrfachblatt({ g, zeige, s, b, darf, nachfrage, setNachfrage, schritte }: Spaltenzeug & { schritte: Lageschritt[] }) {
+  const ids = schritte.map((x) => x.id);
+  const offen = schritte.filter((x) => x.status !== "erledigt");
+  const namen = schritte.slice(0, 3).map((x) => `„${x.titel}“`).join(", ");
+  const rest = schritte.length - 3;
+  const ueberschrift = `${schritte.length} Gedanken löschen?`;
+  return (
+    <>
+      <Zurueck zeige={zeige} />
+      <h2 className="lk-h2">{schritte.length} Gedanken gewählt</h2>
+      <div className="lk-mehrere">
+        {schritte.map((x) => (
+          <Posten key={x.id} g={g} x={x} zeige={zeige}>
+            {themaName(g, x)}
+            {x.status === "erledigt" ? " · erledigt" : ""}
+          </Posten>
+        ))}
+      </div>
+      {darf.bearbeiten && (
+        <div className="lk-aktionen">
+          {offen.length > 0 && (
+            <button
+              type="button"
+              className="knopf"
+              onClick={() => {
+                void s.schritteAendern(
+                  offen.map((x) => x.id),
+                  { status: "erledigt" },
+                );
+                b.current?.melde(`${offen.length} als erledigt geführt`);
+              }}
+            >
+              Alle abhaken
+            </button>
+          )}
+          {darf.loeschen && (
+            <button type="button" className="knopf-still" onClick={() => setNachfrage(true)}>
+              Alle löschen … <kbd>Entf</kbd>
+            </button>
+          )}
+        </div>
+      )}
+      {nachfrage && darf.loeschen && (
+        <Nachfrage titel={ueberschrift}>
+          <p>
+            {namen}
+            {rest > 0 ? ` und ${rest} weitere` : ""} löschen? Milder: als erledigt führen — dann bleibt sichtbar, dass es gemacht wurde.
+          </p>
+          <div className="lk-aktionen">
+            {offen.length > 0 && (
+              <button
+                type="button"
+                className="knopf"
+                onClick={() => {
+                  void s.schritteAendern(
+                    offen.map((x) => x.id),
+                    { status: "erledigt" },
+                  );
+                  setNachfrage(false);
+                }}
+              >
+                Als erledigt führen
+              </button>
+            )}
+            <button
+              type="button"
+              className="knopf-still lk-gefahr"
+              onClick={() => {
+                void s.schritteEntfernen(ids);
+                zeige(null);
+                b.current?.melde(`${ids.length} Gedanken gelöscht`);
+              }}
+            >
+              Alle {ids.length} löschen
+            </button>
+            <button type="button" className="knopf-still" onClick={() => setNachfrage(false)}>
+              Behalten
+            </button>
+          </div>
+        </Nachfrage>
+      )}
     </>
   );
 }

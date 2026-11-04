@@ -970,7 +970,11 @@ function ModuleDoku() {
             },
             {
               begriff: "Weitere Griffe",
-              text: "Doppelklick auf die freie Fläche legt dort einen Gedanken an, Doppelklick auf eine Kachel ändert den Titel. Leertaste hakt die gewählte Kachel ab, Escape hebt die Auswahl auf, + und − zoomen. Das Mausrad zoomt; geschwenkt wird durch Ziehen auf der freien Fläche.",
+              text: "Doppelklick auf die freie Fläche legt dort einen Gedanken an, Doppelklick in den Titel einer Kachel ändert ihn — die Schreibmarke steht dort, wo du geklickt hast. Leertaste hakt die gewählte Kachel ab, Escape hebt die Auswahl auf, + und − zoomen. Das Mausrad zoomt; geschwenkt wird durch Ziehen auf der freien Fläche. Am Laptop klappt der Griff an der Kante der Seitenspalte sie weg und wieder her.",
+            },
+            {
+              begriff: "Mehrere auf einmal",
+              text: "Shift- oder ⌘-Klick nimmt eine Kachel zur Auswahl dazu oder wieder heraus. Shift gedrückt halten und auf der freien Fläche ziehen spannt einen Rahmen auf — alles, was er berührt, ist gewählt. Ziehst du eine der gewählten Kacheln, wandern alle mit. Entf oder „Alle löschen …“ rechts fragt einmal für alle nach; milder ist „Alle abhaken“.",
             },
             {
               begriff: "Ein Thema auflösen",

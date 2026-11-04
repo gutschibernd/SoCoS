@@ -38,6 +38,7 @@ import {
   gesperrt,
   graph,
   hubZeilen,
+  imRahmen,
   istBuendel,
   istSchritt,
   istThema,
@@ -56,7 +57,11 @@ import {
   type Schluessel,
 } from "../basis/lagekarte";
 
-export type Auswahl = { art: "schritt" | "thema" | "verbindung"; id: number } | null;
+export type Auswahl =
+  | { art: "schritt" | "thema" | "verbindung"; id: number }
+  /** Mehrere Schritte zugleich (Shift- oder ⌘-Klick, Rahmen ziehen) — nur Schritte: Ein Thema mitzulöschen hieße, seine Schritte lose zu machen. */
+  | { art: "mehrere"; ids: number[] }
+  | null;
 export type Stufe = "lage" | "karte" | "detail";
 export type Ansicht = "stern" | "straenge";
 
@@ -86,6 +91,18 @@ export type Rechte = { bearbeiten: boolean; loeschen: boolean };
 
 /** Die Nummer eines Entwurfs, solange er noch nicht am Server ist. */
 const NEU = -1;
+
+/**
+ * Ab diesem Zoom fächert die Lage in ihre Schritte auf, ab dem zweiten
+ * kommen die Notizen dazu.
+ *
+ * Die erste Schwelle stand bis 2026-11-04 bei 0,6. Am Laptop zeichnet die Lage
+ * kleiner (`lageM`), und man drehte lange am Rad, bis sich etwas tat (Bernd:
+ * „erst extrem spät"). Unter 0,5 darf sie nicht: Die Lage beginnt bei
+ * `lageM · 0,9` ≤ 0,45 und stünde sonst schon aufgefächert da.
+ */
+const AB_KARTE = 0.52;
+const AB_DETAIL = 1.15;
 
 /** Unterhalb dieser Breite wird die Seitenspalte zum Blatt von unten — dieselbe Grenze wie die Schublade. */
 export const SCHMAL = 900;
@@ -121,7 +138,10 @@ type Modus =
       punkt: boolean;
       start: { x: number; y: number; kinder: [Lageschritt, number, number][] };
       ziel?: Schluessel;
+      /** Mit Shift oder ⌘ gedrückt: Ein Klick nimmt dazu oder heraus, statt allein zu wählen. */
+      zusatz: boolean;
     }
+  | { art: "rahmen"; x0: number; y0: number; bewegt: boolean; basis: number[] }
   | { art: "verbinden"; von: number; x0: number; y0: number; px?: number; py?: number; ziel?: number | null }
   | {
       art: "umhaengen";
@@ -152,6 +172,8 @@ export class Lagebuehne {
   private ansicht: Ansicht;
   private stufe: Stufe = "lage";
   private sel: Schluessel | null = null;
+  /** Mehrere gewählte Schritte. Ab zwei ist `sel` leer — es gibt nie beides zugleich. */
+  private menge = new Set<number>();
   /** Gerade angelegt, aber noch nicht vom Server zurück — die Auswahl bleibt, bis er da ist. */
   private erwartet: Schluessel | null = null;
   private hinflug = false;
@@ -187,6 +209,7 @@ export class Lagebuehne {
   private etikett: HTMLElement;
   private etikettFeld: HTMLInputElement;
   private meldung: HTMLElement;
+  private rahmenEl: HTMLElement;
 
   constructor(
     private buehne: HTMLElement,
@@ -200,6 +223,7 @@ export class Lagebuehne {
       <div class="lk-welt"><div class="lk-baender"></div><svg class="lk-linien"></svg><div class="lk-schicht"></div></div>
       <div class="lk-klein" aria-label="Übersicht"></div>
       <div class="lk-etikett" hidden><input placeholder="Beschriftung …" maxlength="40" aria-label="Beschriftung des Pfeils"></div>
+      <div class="lk-rahmen" hidden></div>
       <div class="lk-meldung" role="status"></div>`;
     const $ = <T extends Element>(s: string) => host.querySelector(s) as T;
     this.raster = $(".lk-raster");
@@ -211,6 +235,7 @@ export class Lagebuehne {
     this.etikett = $(".lk-etikett");
     this.etikettFeld = $(".lk-etikett input");
     this.meldung = $(".lk-meldung");
+    this.rahmenEl = $(".lk-rahmen");
     buehne.dataset.ansicht = ansicht;
     buehne.dataset.stufe = this.stufe;
     this.lauschen();
@@ -240,6 +265,8 @@ export class Lagebuehne {
 
   /** Die Ansicht wählt etwas aus (Seitenspalte, Fangfeld). Die Bühne meldet es nicht zurück. */
   waehle(a: Auswahl, hinfliegen = false) {
+    if (a?.art === "mehrere") return this.setzeMenge(a.ids, false);
+    this.menge.clear();
     this.selKante = a?.art === "verbindung" ? a.id : null;
     this.etikettOffen = false;
     this.sel = a?.art === "schritt" ? alsSchritt(a.id) : a?.art === "thema" ? alsThema(a.id) : null;
@@ -261,7 +288,7 @@ export class Lagebuehne {
     // Die Kacheln fliegen von ihrem alten an den neuen Platz; die Kamera folgt.
     if (this.stufe === "lage") this.zurLage();
     else if (this.sel) this.fliegeZu(this.sel);
-    else this.blende(this.sichtbareIds(), 0.62, 1, 60);
+    else this.blende(this.sichtbareIds(), AB_KARTE + 0.02, 1, 60);
     this.dirty = true;
   }
 
@@ -292,7 +319,7 @@ export class Lagebuehne {
 
   zurKarte() {
     if (this.sel) return this.fliegeZu(this.sel, 0.8);
-    this.blende(this.sichtbareIds(), 0.62, 1, 60);
+    this.blende(this.sichtbareIds(), AB_KARTE + 0.02, 1, 60);
   }
 
   detail() {
@@ -312,7 +339,7 @@ export class Lagebuehne {
 
   themaFokus(id: number) {
     const k = alsThema(id);
-    this.blende([k, ...this.D.schritte.filter((s) => s.thema === id).map((s) => alsSchritt(s.id))], 0.62, 1.1, 70);
+    this.blende([k, ...this.D.schritte.filter((s) => s.thema === id).map((s) => alsSchritt(s.id))], AB_KARTE + 0.02, 1.1, 70);
     this.sel = k;
     this.selKante = null;
     this.dirty = true;
@@ -387,7 +414,7 @@ export class Lagebuehne {
     this.e.verschieben(lageNeu);
     // Die Kacheln gleiten an ihren neuen Platz; die Kamera nimmt alles ins Bild.
     if (this.stufe === "lage") this.zurLage();
-    else this.blende(this.sichtbareIds(), 0.62, 1, 60);
+    else this.blende(this.sichtbareIds(), AB_KARTE + 0.02, 1, 60);
     this.dirty = true;
     this.melde("Neu angeordnet");
   }
@@ -438,6 +465,10 @@ export class Lagebuehne {
       this.hinflug = false;
     }
     if (this.sel && !this.objekt(this.sel) && this.sel !== this.erwartet) this.sel = null;
+    if (this.menge.size) {
+      const bleibt = [...this.menge].filter((id) => this.g.schritt(id));
+      if (bleibt.length !== this.menge.size) this.setzeMenge(bleibt);
+    }
     if (this.selKante !== null && !this.kante(this.selKante)) {
       this.selKante = null;
       this.etikettOffen = false;
@@ -866,7 +897,7 @@ export class Lagebuehne {
       e.style.top = c.y + "px";
       if (id === MITTE || istThema(id)) e.style.setProperty("--g", String(this.skal(id)));
       e.classList.toggle("lk-leise", !!fokus && !fokus.has(id));
-      e.classList.toggle("lk-gewaehlt", id === this.sel);
+      e.classList.toggle("lk-gewaehlt", id === this.sel || (istSchritt(id) && this.menge.has(nummer(id))));
     }
     const m = this.modus;
     const umh = m?.art === "umhaengen" && m.bewegt ? m : null;
@@ -980,7 +1011,7 @@ export class Lagebuehne {
       }
       this.dirty = true;
     }
-    const s: Stufe = cam.k < 0.6 ? "lage" : cam.k < 1.15 ? "karte" : "detail";
+    const s: Stufe = cam.k < AB_KARTE ? "lage" : cam.k < AB_DETAIL ? "karte" : "detail";
     if (s !== this.stufe) {
       this.stufe = s;
       this.buehne.dataset.stufe = s;
@@ -1089,6 +1120,7 @@ export class Lagebuehne {
   /* ---------------------------------------------------------- Handlungen */
 
   private waehleIntern(id: Schluessel | null) {
+    this.menge.clear();
     this.selKante = null;
     this.etikettOffen = false;
     this.sel = id === MITTE ? null : id;
@@ -1102,6 +1134,7 @@ export class Lagebuehne {
   }
 
   private waehleKante(id: number, etikett: boolean) {
+    this.menge.clear();
     this.selKante = id;
     this.sel = null;
     this.etikettOffen = etikett && this.darf.bearbeiten;
@@ -1109,6 +1142,65 @@ export class Lagebuehne {
     this.etikettFokus = this.etikettOffen;
     this.dirty = true;
     this.e.auswahl({ art: "verbindung", id });
+  }
+
+  /** Was gerade gewählt ist, als Schrittnummern — für Shift-Klick und Rahmen der Ausgangspunkt. */
+  private gewaehlteSchritte(): number[] {
+    if (this.menge.size) return [...this.menge];
+    return this.sel && istSchritt(this.sel) && nummer(this.sel) !== NEU ? [nummer(this.sel)] : [];
+  }
+
+  /** Shift- oder ⌘-Klick: nimmt einen Schritt zur Auswahl dazu oder wieder heraus. */
+  private umMenge(k: Schluessel) {
+    if (!istSchritt(k) || nummer(k) === NEU) return;
+    const ids = new Set(this.gewaehlteSchritte());
+    const id = nummer(k);
+    if (ids.has(id)) ids.delete(id);
+    else ids.add(id);
+    this.setzeMenge([...ids]);
+  }
+
+  /**
+   * Setzt die Mehrfachauswahl. Bleibt einer oder keiner übrig, ist es wieder
+   * die gewöhnliche Auswahl — die Seitenspalte zeigt dann sein Blatt.
+   */
+  private setzeMenge(ids: number[], melden = true) {
+    this.selKante = null;
+    this.etikettOffen = false;
+    this.dirty = true;
+    if (ids.length < 2) {
+      this.menge.clear();
+      this.sel = ids.length ? alsSchritt(ids[0]) : null;
+      if (melden) this.e.auswahl(this.auswahlVon(this.sel));
+      return;
+    }
+    this.menge = new Set(ids);
+    this.sel = null;
+    if (melden) this.e.auswahl({ art: "mehrere", ids: [...this.menge] });
+  }
+
+  /** Der Rahmen beim Ziehen mit Shift: Was er berührt, ist gewählt — dazu, was vorher schon gewählt war. */
+  private ziehRahmen(m: Extract<Modus, { art: "rahmen" }>, ev: PointerEvent) {
+    const r = this.flaeche();
+    const { cam } = this;
+    const x0 = Math.min(m.x0, ev.clientX) - r.left;
+    const x1 = Math.max(m.x0, ev.clientX) - r.left;
+    const y0 = Math.min(m.y0, ev.clientY) - r.top;
+    const y1 = Math.max(m.y0, ev.clientY) - r.top;
+    Object.assign(this.rahmenEl.style, { left: `${x0}px`, top: `${y0}px`, width: `${x1 - x0}px`, height: `${y1 - y0}px` });
+    this.rahmenEl.hidden = false;
+    const kacheln = this.D.schritte.flatMap((s) => {
+      const k = alsSchritt(s.id);
+      const c = this.cur[k];
+      const g = this.groesse[k];
+      return s.id === NEU || !this.sichtbar(k) || !c || !g ? [] : [{ id: s.id, x: c.x, y: c.y, w: g.w, h: g.h }];
+    });
+    const treffer = imRahmen(
+      kacheln,
+      { x: (x0 - cam.x) / cam.k, y: (y0 - cam.y) / cam.k },
+      { x: (x1 - cam.x) / cam.k, y: (y1 - cam.y) / cam.k },
+    );
+    this.setzeMenge([...new Set([...m.basis, ...treffer])], false);
   }
 
   private schliesseEtikett(speichern: boolean) {
@@ -1174,7 +1266,7 @@ export class Lagebuehne {
   }
 
   /** Der Titel direkt an der Kachel. Ein neuer Gedanke ohne Titel verschwindet wieder. */
-  private bearbeite(k: Schluessel) {
+  private bearbeite(k: Schluessel, punkt?: { x: number; y: number }) {
     if (!this.darf.bearbeiten) return;
     const e = this.el[k];
     const t = e?.querySelector<HTMLElement>(".lk-k-titel, .lk-hub-name");
@@ -1182,11 +1274,18 @@ export class Lagebuehne {
     this.bearbeitet = true;
     t.contentEditable = "true";
     t.focus();
-    const bereich = document.createRange();
-    bereich.selectNodeContents(t);
+    // Ein Doppelklick in den Text setzt die Schreibmarke dorthin, wo geklickt
+    // wurde — wer ein Wort ausbessern will, tippt nicht den ganzen Titel neu.
+    // Enter, Tab und ein neuer Gedanke markieren dagegen alles.
     const auswahl = getSelection();
+    const stelle = punkt ? stelleBei(t, punkt.x, punkt.y) : null;
     auswahl?.removeAllRanges();
-    auswahl?.addRange(bereich);
+    if (stelle) auswahl?.collapse(stelle.node, stelle.offset);
+    else {
+      const bereich = document.createRange();
+      bereich.selectNodeContents(t);
+      auswahl?.addRange(bereich);
+    }
     let fertig = false;
 
     const ende = async (ok: boolean, weiter = false) => {
@@ -1305,6 +1404,7 @@ export class Lagebuehne {
       this.camZiel = null;
       const t = ev.target as Element;
       const id = t.closest<HTMLElement>("[data-id]")?.dataset.id;
+      const zusatz = ev.shiftKey || ev.metaKey || ev.ctrlKey;
       const ende = t.closest<SVGElement>("[data-ende]");
       const treffer = t.closest<SVGElement>("[data-kante]");
       if (ende && this.selKante !== null) {
@@ -1326,15 +1426,24 @@ export class Lagebuehne {
         this.modus = { art: "verbinden", von: nummer(id), x0: ev.clientX, y0: ev.clientY };
         return;
       }
+      // Shift oder ⌘ neben den Kacheln zieht einen Rahmen statt zu schwenken.
+      // Nur mit Taste: Ohne schwenkt das Ziehen — das Rad zoomt, und anders
+      // käme man mit der Maus nicht mehr über die Karte.
+      if (zusatz && this.stufe !== "lage" && (!id || id === MITTE || istThema(id))) {
+        this.modus = { art: "rahmen", x0: ev.clientX, y0: ev.clientY, bewegt: false, basis: this.gewaehlteSchritte() };
+        return;
+      }
       if (id && id !== MITTE) {
         const o = this.objekt(id);
         if (!o) return;
+        // Wer einen von mehreren gewählten Schritten zieht, zieht alle.
+        const mit = istSchritt(id) && this.menge.has(o.id) ? this.D.schritte.filter((s) => s.id !== o.id && this.menge.has(s.id)) : [];
         this.modus = {
-          art: "knoten", id, x0: ev.clientX, y0: ev.clientY, bewegt: false,
+          art: "knoten", id, x0: ev.clientX, y0: ev.clientY, bewegt: false, zusatz,
           punkt: !!t.closest(".lk-k-punkt"),
           start: {
             x: o.x, y: o.y,
-            kinder: istThema(id) ? this.D.schritte.filter((s) => s.thema === o.id).map((s) => [s, s.x, s.y]) : [],
+            kinder: (istThema(id) ? this.D.schritte.filter((s) => s.thema === o.id) : mit).map((s) => [s, s.x, s.y]),
           },
         };
         return;
@@ -1382,7 +1491,9 @@ export class Lagebuehne {
         return;
       }
       if (m.art === "umhaengen" && !this.darf.bearbeiten) return;
-      if (m.art === "pan") {
+      if (m.art === "rahmen") {
+        this.ziehRahmen(m, ev);
+      } else if (m.art === "pan") {
         this.cam.x = m.cx + dx;
         this.cam.y = m.cy + dy;
         this.dirty = true;
@@ -1402,7 +1513,8 @@ export class Lagebuehne {
         this.cur[m.id] = this.zielPos(m.id);
         // Ein Bündel sitzt auf seinem Anker und zieht mit, ohne nachzugleiten.
         for (const bd of this.B.buendel) this.cur[alsBuendel(bd.thema)] = this.zielPos(alsBuendel(bd.thema));
-        if (istSchritt(m.id)) {
+        // Einer allein lässt sich auf ein Thema legen; mehrere werden nur verschoben.
+        if (istSchritt(m.id) && !m.start.kinder.length) {
           this.el[m.id]?.classList.add("lk-gezogen");
           const u = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>(".lk-hub, .lk-mitte");
           b.querySelectorAll(".lk-ziel").forEach((x) => x !== u && x.classList.remove("lk-ziel"));
@@ -1435,20 +1547,25 @@ export class Lagebuehne {
       this.modus = null;
       b.querySelectorAll(".lk-ziel, .lk-gezogen").forEach((x) => x.classList.remove("lk-ziel", "lk-gezogen"));
       if (m.art === "pan" && !m.bewegt) this.waehleIntern(null);
-      else if (m.art === "knoten") {
+      else if (m.art === "rahmen") {
+        this.rahmenEl.hidden = true;
+        if (m.bewegt) this.setzeMenge(this.gewaehlteSchritte());
+      } else if (m.art === "knoten") {
         if (!m.bewegt) {
-          if (m.punkt && istSchritt(m.id) && this.darf.bearbeiten) this.umschalten(nummer(m.id));
+          if (m.zusatz && istSchritt(m.id)) this.umMenge(m.id);
+          else if (m.punkt && istSchritt(m.id) && this.darf.bearbeiten) this.umschalten(nummer(m.id));
           else if (istThema(m.id) && this.stufe === "lage") this.themaFokus(nummer(m.id));
           else this.waehleIntern(m.id);
         } else if (nummer(m.id) === NEU) {
           // Ein Entwurf ohne Titel wird nicht gespeichert — auch nicht seine Lage.
-        } else if (istSchritt(m.id) && m.ziel) this.ordneZu(nummer(m.id), m.ziel);
+        } else if (istSchritt(m.id) && m.ziel && !m.start.kinder.length) this.ordneZu(nummer(m.id), m.ziel);
         else {
           const o = this.objekt(m.id)!;
+          const kinder = m.start.kinder.map(([s]) => ({ id: s.id, x: s.x, y: s.y }));
           this.e.verschieben(
             istThema(m.id)
-              ? { themen: [{ id: o.id, x: o.x, y: o.y }], schritte: m.start.kinder.map(([s]) => ({ id: s.id, x: s.x, y: s.y })) }
-              : { themen: [], schritte: [{ id: o.id, x: o.x, y: o.y }] },
+              ? { themen: [{ id: o.id, x: o.x, y: o.y }], schritte: kinder }
+              : { themen: [], schritte: [{ id: o.id, x: o.x, y: o.y }, ...kinder] },
           );
         }
       } else if (m.art === "umhaengen") {
@@ -1463,11 +1580,16 @@ export class Lagebuehne {
     an(b, "pointercancel", zeigerEnde);
 
     an(b, "dblclick", (ev) => {
-      if (!this.darf.bearbeiten) return;
-      const t = ev.target as Element;
+      if (!this.darf.bearbeiten || ev.shiftKey || ev.metaKey || ev.ctrlKey) return;
+      // Nicht `ev.target`: Die Bühne fängt beim Drücken den Zeiger
+      // (`setPointerCapture`), und Chrome schickt Klick und Doppelklick dann
+      // an sie statt an die Kachel. Bis 2026-11-04 legte ein Doppelklick auf
+      // eine Kachel deshalb einen neuen, leeren Gedanken an, statt ihren Titel
+      // zu öffnen. Was wirklich unter dem Zeiger liegt, weiß elementFromPoint.
+      const t = (document.elementFromPoint(ev.clientX, ev.clientY) ?? ev.target) as Element;
       if (ausserhalb(t) || t.closest("[data-kante], [data-ende]")) return;
       const id = t.closest<HTMLElement>("[data-id]")?.dataset.id;
-      if (id && id !== MITTE) return this.bearbeite(id);
+      if (id && id !== MITTE) return this.bearbeite(id, { x: ev.clientX, y: ev.clientY });
       if (this.ansicht !== "stern" || this.stufe === "lage") return this.neuerSchritt({});
       const p = this.weltPunkt(ev);
       const q = { x: Math.round(p.x), y: Math.round(p.y) };
@@ -1564,6 +1686,9 @@ export class Lagebuehne {
       } else if (k === " " && this.sel && istSchritt(this.sel) && this.darf.bearbeiten) {
         ev.preventDefault();
         this.umschalten(nummer(this.sel));
+      } else if ((k === "Backspace" || k === "Delete") && this.menge.size > 1 && this.darf.loeschen) {
+        ev.preventDefault();
+        this.e.entfernen({ art: "mehrere", ids: [...this.menge] });
       } else if ((k === "Backspace" || k === "Delete") && this.selKante !== null && this.darf.loeschen) {
         ev.preventDefault();
         this.e.loesen(this.selKante);
@@ -1582,4 +1707,20 @@ export class Lagebuehne {
     this.aufraeumen.push(() => beobachter.disconnect());
     this.takt = requestAnimationFrame(this.schritt);
   }
+}
+
+/**
+ * Die Stelle im Text unter dem Zeiger — oder nichts, wenn der Zeiger nicht im
+ * Text liegt. Firefox kennt nur `caretPositionFromPoint`, Safari nur
+ * `caretRangeFromPoint`, Chrome beide.
+ */
+function stelleBei(t: HTMLElement, x: number, y: number): { node: Node; offset: number } | null {
+  const d = document as unknown as {
+    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+  };
+  const p = d.caretPositionFromPoint?.(x, y);
+  if (p) return t.contains(p.offsetNode) ? { node: p.offsetNode, offset: p.offset } : null;
+  const r = d.caretRangeFromPoint?.(x, y);
+  return r && t.contains(r.startContainer) ? { node: r.startContainer, offset: r.startOffset } : null;
 }

@@ -2485,6 +2485,35 @@ span.lk-k-punkt { cursor: inherit; }
 .lk-seite { background: var(--flaeche); border-left: 1px solid var(--rand); overflow: auto; min-height: 0; }
 .lk-seite-griff { display: none; }
 .lk-seite-inhalt { padding: 18px 18px 28px; }
+
+/* Der Griff an der Kante der Spalte klappt sie weg. Er hängt in der Mitte der
+   Kante und nicht oben bei den Werkzeugen: Oben läuft die Leiste mit dem
+   Fangfeld bis an den Rand, unten liegt die Übersicht — die Mitte ist frei.
+   Nur ab 901 px; darunter ist die Spalte ohnehin ein Blatt von unten. */
+.lk-spalte-griff { display: none; }
+@media (min-width: 901px) {
+  .lk-spalte-griff {
+    display: grid; place-items: center; position: absolute; z-index: 7;
+    top: 50%; right: 344px; transform: translateY(-50%);
+    width: 22px; height: 64px; padding: 0;
+    background: var(--flaeche); color: var(--text-leise);
+    border: 1px solid var(--rand); border-right: 0; border-radius: var(--kante) 0 0 var(--kante);
+    font-size: 18px; line-height: 1; cursor: pointer;
+  }
+  .lk-spalte-griff:hover { color: var(--akzent); }
+  .thoughts[data-spalte="zu"] { grid-template-columns: minmax(0, 1fr) 0; }
+  .thoughts[data-spalte="zu"] .lk-seite { display: none; }
+  .thoughts[data-spalte="zu"] .lk-spalte-griff { right: 0; }
+}
+
+/* Der Rahmen beim Ziehen mit Shift. Die Fläche nur angehaucht: Darunter
+   müssen die Kacheln lesbar bleiben, die er gerade einsammelt. */
+.lk-rahmen {
+  position: absolute; z-index: 4; pointer-events: none;
+  border: 1px solid var(--akzent); border-radius: var(--kante-klein);
+  background: color-mix(in srgb, var(--akzent) 8%, transparent);
+}
+.lk-mehrere { margin-top: 14px; }
 .lk-h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 10px; }
 .lk-h2 .zahl { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-sehr-leise); }
 .lk-h3 {
