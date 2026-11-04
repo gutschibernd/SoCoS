@@ -166,6 +166,10 @@ Dasselbe geht ohne SSH: **das Zahnrad rechts oben in der Kopfleiste** — nur f�
 Admins, herunterladen und wiederherstellen. Das Wiederherstellen ersetzt den
 gesamten Bestand samt Konten und meldet danach ab.
 
+Am Server läuft jeden Tag eine Sicherung, behalten werden vier Wochen
+([betrieb/LIESMICH.md](betrieb/LIESMICH.md)). Einmal die Woche holt Bernds Laptop
+eine nach Synology Drive ([skripte/LIESMICH.md](skripte/LIESMICH.md)).
+
 **Wer etwas Neues baut, das gespeichert wird, sorgt im selben Commit dafür, dass es
 im Archiv landet.** Ein Export, der die Hälfte mitnimmt, ist schlimmer als keiner —
 der Verlust fällt erst beim Wiederherstellen auf.

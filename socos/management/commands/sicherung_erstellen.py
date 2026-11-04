@@ -24,6 +24,13 @@ class Command(BaseCommand):
             default=None,
             help="Pfad der Archivdatei. Vorgabe: sicherungen/socos-<zeitpunkt>.tar.gz",
         )
+        parser.add_argument(
+            "--alte-entfernen",
+            type=int,
+            default=None,
+            metavar="TAGE",
+            help="Danach im selben Ordner die Archive entfernen, die älter als TAGE sind.",
+        )
 
     def handle(self, *args, **optionen):
         if optionen["ziel"]:
@@ -40,3 +47,12 @@ class Command(BaseCommand):
         self.stdout.write(
             "Enthalten: " + ", ".join(sicherung.MODELLE_IM_ARCHIV) + " und die Medien."
         )
+
+        # Erst nach dem Schreiben aufräumen: Scheitert das neue Archiv, sind
+        # die alten noch alle da. Und das gerade geschriebene ist nie zu alt.
+        if optionen["alte_entfernen"] is not None:
+            entfernt = sicherung.alte_archive_entfernen(
+                ziel.parent, optionen["alte_entfernen"], timezone.localtime()
+            )
+            for pfad in entfernt:
+                self.stdout.write(f"Entfernt: {pfad.name}")

@@ -597,3 +597,45 @@ def test_foerderzeitraum_wandert_mit_und_alte_monatszahl_stoert_nicht(tmp_path, 
 
     antrag = Foerderantrag.objects.get(titel="Spender")
     assert (antrag.beginn, antrag.ende) == (date(2026, 10, 19), date(2027, 4, 18))
+
+
+# --- Aufräumen am Server ----------------------------------------------------
+
+
+def test_alte_archive_werden_nach_dem_namen_entfernt(tmp_path):
+    """
+    Gerechnet wird mit dem Zeitpunkt im Namen, nicht mit dem Änderungsdatum:
+    Hier sind alle Dateien gerade eben angelegt und trotzdem verschieden alt.
+    """
+    from datetime import datetime
+
+    jetzt = datetime(2026, 11, 4, 3, 15)
+    for name in (
+        "socos-20261006-031500.tar.gz",  # 29 Tage — weg
+        "socos-20261007-031501.tar.gz",  # knapp unter 28 Tagen — bleibt
+        "socos-20261104-031500.tar.gz",  # heute — bleibt
+        "socos-von-hand.tar.gz",         # fremder Name — bleibt
+        "notiz.txt",
+    ):
+        (tmp_path / name).write_text("x")
+
+    entfernt = sicherung.alte_archive_entfernen(tmp_path, 28, jetzt)
+
+    assert [p.name for p in entfernt] == ["socos-20261006-031500.tar.gz"]
+    assert sorted(p.name for p in tmp_path.iterdir()) == [
+        "notiz.txt",
+        "socos-20261007-031501.tar.gz",
+        "socos-20261104-031500.tar.gz",
+        "socos-von-hand.tar.gz",
+    ]
+
+
+def test_erstellen_raeumt_erst_nach_dem_schreiben_auf(tmp_path, medien, admin_nutzer):
+    alt = tmp_path / "socos-20200101-000000.tar.gz"
+    alt.write_text("x")
+    ziel = tmp_path / "socos-neu.tar.gz"
+
+    call_command("sicherung_erstellen", ziel=str(ziel), alte_entfernen=28, verbosity=0)
+
+    assert ziel.exists()
+    assert not alt.exists()

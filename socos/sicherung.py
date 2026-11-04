@@ -163,6 +163,33 @@ def archivname(zeitpunkt):
     return f"socos-{zeitpunkt:%Y%m%d-%H%M%S}.tar.gz"
 
 
+def alte_archive_entfernen(ordner, tage, jetzt):
+    """
+    Entfernt im `ordner` die Archive, die älter als `tage` sind, und gibt ihre
+    Pfade zurück.
+
+    Das Alter kommt aus dem **Dateinamen**, nicht aus dem Änderungsdatum der
+    Datei. Ein `docker compose cp` oder ein Kopieren von Hand setzt das
+    Änderungsdatum neu; nach dem Namen gerechnet bleibt ein Archiv so alt, wie
+    der Stand ist, den es enthält.
+
+    Angefasst wird nur, was genau wie `archivname` heißt. Eine Datei, die
+    jemand von Hand in den Ordner gelegt und anders genannt hat, bleibt —
+    der Ordner gehört nicht diesem Befehl allein.
+    """
+    grenze = jetzt.replace(tzinfo=None) - timedelta(days=tage)
+    entfernt = []
+    for pfad in sorted(Path(ordner).glob("socos-*.tar.gz")):
+        try:
+            zeitpunkt = datetime.strptime(pfad.name, "socos-%Y%m%d-%H%M%S.tar.gz")
+        except ValueError:
+            continue
+        if zeitpunkt < grenze:
+            pfad.unlink()
+            entfernt.append(pfad)
+    return entfernt
+
+
 # --- Der Mechanismus --------------------------------------------------------
 #
 # Die Logik steht hier und nicht in den Management-Befehlen, weil sie zwei
@@ -175,6 +202,7 @@ import json
 import shutil
 import tarfile
 import tempfile
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from django.conf import settings

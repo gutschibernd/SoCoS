@@ -1,0 +1,19 @@
+# Tägliche Sicherung am Server — wird nach /etc/cron.d/socos-sicherung kopiert
+# (siehe betrieb/LIESMICH.md, Abschnitt Sicherung).
+#
+# **Der Name dort hat keinen Punkt**, und das ist Absicht: cron überliest in
+# /etc/cron.d jede Datei, deren Name einen Punkt enthält — ohne Meldung. Unter
+# dem Namen dieser Datei hier liefe also nie etwas.
+#
+# Behalten werden 28 Tage. Das Aufräumen gilt für den ganzen Ordner, also auch
+# für die Archive, die deploy.sh vor jedem Deploy schreibt — sonst sammelten
+# sich die weiter an. Die Kopie außer Haus holt der Laptop wöchentlich ab
+# (skripte/sicherung_holen.sh); was älter als 28 Tage ist, liegt nur noch dort.
+#
+# Eine Änderung an dieser Datei wirkt erst, wenn sie neu nach /etc/cron.d
+# kopiert wird. Ein Deploy tut das nicht.
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+15 3 * * * root cd /opt/socos && docker compose -f betrieb/anwendung.yml exec -T anwendung python manage.py sicherung_erstellen --no-color --alte-entfernen 28 >> /var/log/socos-sicherung.log 2>&1

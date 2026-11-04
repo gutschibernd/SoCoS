@@ -133,10 +133,33 @@ alles, **auch die Konten**: Wer danach hineinwill, braucht ein Konto aus dem
 Archiv. Sind am Server frisch angelegte Konten dabei, die im Archiv fehlen, sind
 sie danach weg.
 
-> **Das Datenbank-Volume ist keine Sicherung.** Es liegt auf derselben Platte
-> derselben Maschine. Auch ein Hetzner-Snapshot ist es nur halb: derselbe
-> Anbieter, dasselbe Konto. **Kopie außer Haus und Verschlüsselung sind ein
-> offener Punkt** — siehe MEMORY.md.
+### Täglich, vier Wochen lang
+
+Ein cron-Eintrag schreibt jede Nacht um 03:15 eine Sicherung und entfernt
+danach alle, die älter als 28 Tage sind — auch die von `deploy.sh`. Einmal
+einrichten (und wieder, wenn sich `betrieb/sicherung.cron` ändert; ein Deploy
+tut das nicht):
+
+```bash
+cd /opt/socos && install -m 644 betrieb/sicherung.cron /etc/cron.d/socos-sicherung
+```
+
+**Der Name dort ohne Punkt.** cron überliest in `/etc/cron.d` jede Datei, deren
+Name einen Punkt enthält, ohne Meldung. Ob es läuft:
+
+```bash
+tail /var/log/socos-sicherung.log
+```
+
+### Außer Haus
+
+> **Das Datenbank-Volume ist keine Sicherung**, die täglichen Archive auch nicht:
+> Sie liegen auf derselben Platte derselben Maschine. Auch ein Hetzner-Snapshot
+> ist es nur halb: derselbe Anbieter, dasselbe Konto.
+
+Die Kopie außer Haus holt Bernds Laptop einmal die Woche nach Synology Drive
+(`skripte/sicherung_holen.sh`, siehe [skripte/LIESMICH.md](../skripte/LIESMICH.md)).
+Der Server schickt dafür nichts hinaus und hat keinen Zugang zur Synology.
 
 Und: **Ein Restore ohne Test ist kein Backup.** Einmal durchspielen, bevor die
 ersten echten Daten drin sind, und das Datum in die Tabelle in SERVER.md.

@@ -7,6 +7,40 @@ betrifft.
 
 ---
 
+## 2026-11-04 — Täglich am Server, wöchentlich außer Haus
+
+**Bernd:** einmal die Woche holt sein Laptop die Daten vom Server und legt sie
+in Synology Drive ab; am Server nur die letzten vier Wochen, täglich, „es
+sollen nicht ewig viele Daten herumliegen".
+
+- **Am Server:** cron (`betrieb/sicherung.cron` → `/etc/cron.d/socos-sicherung`)
+  ruft um 03:15 `sicherung_erstellen --alte-entfernen 28`. Das Aufräumen gilt
+  dem ganzen Ordner, also auch den Archiven von `deploy.sh`.
+- **Das Alter kommt aus dem Dateinamen**, nicht aus dem Änderungsdatum — ein
+  `docker compose cp` setzt das neu. Angefasst wird nur, was genau wie
+  `archivname` heißt.
+- **Außer Haus:** `skripte/sicherung_holen.sh`, eingerichtet mit
+  `sicherung_einrichten.command` als launchd-Auftrag. Er läuft alle zwei
+  Stunden an und holt nur, wenn die letzte Kopie älter als sieben Tage ist —
+  ein fester Wochentermin fiele aus, wenn der Laptop gerade aus ist.
+- **Der Laptop lässt eigens eine frische Sicherung schreiben**, statt die
+  letzte nächtliche zu nehmen. Scheitert der cron-Lauf seit Tagen, fiele das
+  sonst nicht auf; so wird der ganze Weg jede Woche einmal geprüft. Prüfsumme
+  gegen den Server und `datenbank.json` im Archiv, sonst wird nichts abgelegt.
+- **Das Skript läuft aus einer Kopie unter `~/Library/Application Support`**,
+  nicht aus dem Repository: Unter `~/Documents` verweigert macOS einem
+  Hintergrundauftrag das Lesen, solange bash keinen vollen Plattenzugriff hat.
+- **Pull statt Push:** Der Server bekommt keinen Zugang zur Synology. Ein
+  eigener, eingeschränkter SSH-Schlüssel für das Holen brächte nichts, solange
+  derselbe Laptop den root-Schlüssel ohnehin hat — er nimmt `ssh socos`.
+- **Unverschlüsselt**, weil das Ziel die eigene Synology ist
+  (`00_Managment/SoCoS-Sicherungen`, ein Ordner mit engem Zugriff). Liegt die
+  Kopie je bei einem fremden Anbieter, kommt die Verschlüsselung dazu.
+- **Auf der Synology wird nichts gelöscht.** Ein Archiv hat heute rund 12 MB,
+  im Jahr also gut 600 MB. Wird das zu viel, kommt das Aufräumen dort dazu.
+
+---
+
 ## 2026-10-21 — Der Förderzeitraum ist der Rahmen des Zeitplans
 
 **Bernd** (Antrag „Demonstratorentwicklung", Beginn 19.10.2026): „die
@@ -3756,7 +3790,7 @@ Die Zeitdokumentation **muss auditierbar sein**.
   Versehen:** Universal SSL deckt nur eine Subdomain-Ebene ab, `socos.test.…`
   ist zwei. Orange scheitert schon am Handshake, und Let's Encrypt käme nicht
   durch. Begründung in SERVER.md.
-- **Sicherung außer Haus und Restore-Test: offener Punkt**, siehe unten.
+- **Restore-Test: offener Punkt**, siehe unten. Die Kopie außer Haus steht seit 2026-11-04.
 
 ---
 
@@ -4011,9 +4045,9 @@ nicht überall gibt. Es gibt keinen Grund, das Risiko für nichts einzugehen.
 
 ## Offene Punkte
 
-- [ ] **Kopie außer Haus** — wohin, und verschlüsselt ja/nein. Bei Personendaten
-      wäre verschlüsselt die Antwort; dann braucht der Schlüssel einen Ort, der
-      nicht im selben Archiv liegt.
+- [x] **Kopie außer Haus** — seit 2026-11-04 wöchentlich auf die eigene
+      Synology, unverschlüsselt (siehe Eintrag von dem Tag). Kommt je ein
+      fremder Anbieter als Ziel dazu, muss verschlüsselt werden.
 - [ ] **Restore-Test mit Datum** in SERVER.md. Ein Restore ohne Test ist kein Backup.
 - [ ] **Zeitbuchung auf Unteraufgaben** — vorerst bewusst nicht (gebucht wird
       aufs Paket). Bernd hält sich offen, das später zu ändern. Der Umbau wäre
