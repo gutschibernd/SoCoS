@@ -706,6 +706,7 @@ function Organisationsseite({
           <div style={{ minWidth: 200 }}>
             <h3>
               <Feldtext
+                hoechstens={200}
                 wert={org.name}
                 aendern={ich.darf.bearbeiten}
                 speichern={async (name) => {
@@ -716,6 +717,7 @@ function Organisationsseite({
             </h3>
             <div className="unter">
               <Feldtext
+                hoechstens={80}
                 wert={org.typ}
                 platzhalter="Typ …"
                 aendern={ich.darf.bearbeiten}
@@ -1184,6 +1186,7 @@ function Personenkachel({
         <div style={{ minWidth: 0 }}>
           <div className="person-name">
             <Feldtext
+              hoechstens={160}
               wert={kontakt.name}
               aendern={ich.darf.bearbeiten}
               speichern={(name) => speichern({ name })}
@@ -1191,6 +1194,7 @@ function Personenkachel({
           </div>
           <div className="person-rolle">
             <Feldtext
+              hoechstens={160}
               wert={kontakt.funktion}
               platzhalter="Rolle …"
               aendern={ich.darf.bearbeiten}
@@ -1231,6 +1235,7 @@ function Personenkachel({
             </a>
           ) : (
             <Feldtext
+              hoechstens={254}
               wert={kontakt.email}
               platzhalter="E-Mail …"
               aendern={ich.darf.bearbeiten}
@@ -1246,6 +1251,7 @@ function Personenkachel({
             </a>
           ) : (
             <Feldtext
+              hoechstens={60}
               wert={kontakt.telefon}
               platzhalter="Telefon …"
               klasse="zahl"
@@ -1272,6 +1278,7 @@ function Personenkachel({
       <div className="person-punkt">
         <span className="beschriftung-klein">Offener Punkt</span>
         <Feldtext
+          hoechstens={250}
           wert={kontakt.offener_punkt}
           platzhalter="Was steht als Nächstes an?"
           aendern={ich.darf.bearbeiten}

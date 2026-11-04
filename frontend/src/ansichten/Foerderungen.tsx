@@ -356,6 +356,7 @@ export function Geberseite({ ich, id, wechseln }: { ich: Ich; id: number; wechse
         <span className="modul-siegel fd-kuerzel">{geber.kurz || <Zeichen name="foerderung" />}</span>
         <div className="vorhaben-kopf">
           <Feldtext
+            hoechstens={160}
             wert={geber.name}
             aendern={darf}
             klasse="fd-programmname"
@@ -535,12 +536,14 @@ function Programm({ programm, ich, wechseln }: { programm: Foerderprogramm; ich:
       <div className="vorhabenleiste">
         <div className="vorhaben-kopf">
           <Feldtext
+            hoechstens={160}
             wert={programm.name}
             aendern={darf}
             klasse="fd-programmname"
             speichern={(name) => speichern(`/foerderprogramme/${programm.id}/`, { name })}
           />
           <Feldtext
+            hoechstens={250}
             wert={programm.stelle}
             aendern={darf}
             klasse="fd-stelle"
@@ -815,6 +818,7 @@ function Fragezeile({
           <label className="profilfeld">
             <span className="beschriftung-klein">Quelle</span>
             <Feldtext
+              hoechstens={200}
               wert={frage.quelle}
               aendern={darf}
               platzhalter="Wer hat es gesagt, wo steht es?"
@@ -1044,6 +1048,7 @@ function Antrag({
             </span>
           </div>
           <Feldtext
+            hoechstens={200}
             wert={antrag.titel}
             aendern={darf}
             mehrzeilig
@@ -1090,6 +1095,7 @@ function Antrag({
             <label className="fd-kopffeld">
               <span className="beschriftung-klein">Förderwerber</span>
               <Feldtext
+                hoechstens={200}
                 wert={antrag.foerderwerber}
                 aendern={darf}
                 platzhalter="Wer reicht ein?"
@@ -1268,7 +1274,7 @@ function Abschnitte({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; dar
         <section key={a.id} className="karte fd-abschnitt" id={`fd-abschnitt-${a.id}`}>
           <div className="fd-kartenkopf fd-abschnittskopf">
             <h2>
-              <Feldtext wert={a.titel} aendern={darf} speichern={(t) => speichern(`/foerderabschnitte/${a.id}/`, { titel: t })} />
+              <Feldtext hoechstens={200} wert={a.titel} aendern={darf} speichern={(t) => speichern(`/foerderabschnitte/${a.id}/`, { titel: t })} />
             </h2>
             {darf && (
               <span className="fd-abschnittsknoepfe">
@@ -1735,7 +1741,7 @@ function Paketdetail({
     <div className="fd-paketdetail">
       <label className="profilfeld fd-breit">
         <span className="beschriftung-klein">Titel</span>
-        <Feldtext wert={paket.titel} aendern={darf} speichern={(titel) => speichern(pfad, { titel })} />
+        <Feldtext hoechstens={200} wert={paket.titel} aendern={darf} speichern={(titel) => speichern(pfad, { titel })} />
       </label>
       <label className="profilfeld fd-breit">
         <span className="beschriftung-klein">Ziel und Inhalt</span>
@@ -1751,6 +1757,7 @@ function Paketdetail({
       <label className="profilfeld fd-breit">
         <span className="beschriftung-klein">Ergebnis</span>
         <Feldtext
+          hoechstens={250}
           wert={paket.ergebnis}
           aendern={darf}
           platzhalter="Was am Ende vorliegt."
@@ -1944,7 +1951,7 @@ function Paketstunden({
               <Personenwahl team={team.data} behalten={s.nutzer} name={s.name} />
             </select>
             {s.nutzer === null && (
-              <Feldtext wert={s.person} aendern={darf} speichern={(p) => speichern(`/foerderstunden/${s.id}/`, { person: p })} />
+              <Feldtext hoechstens={80} wert={s.person} aendern={darf} speichern={(p) => speichern(`/foerderstunden/${s.id}/`, { person: p })} />
             )}
           </div>
           <Betragsfeld
@@ -2118,7 +2125,7 @@ function Kalkulation({ antrag, darf, darfLoeschen }: { antrag: Foerderantrag; da
       )}
       {antrag.posten.map((p) => (
         <div key={p.id} className="fd-postenzeile">
-          <Feldtext wert={p.bezeichnung} aendern={darf} speichern={(b) => speichern(`/foerderposten/${p.id}/`, { bezeichnung: b })} />
+          <Feldtext hoechstens={250} wert={p.bezeichnung} aendern={darf} speichern={(b) => speichern(`/foerderposten/${p.id}/`, { bezeichnung: b })} />
           <select
             className="feld"
             value={p.paket ?? ""}

@@ -495,6 +495,7 @@ function Eventseite({
           <div style={{ minWidth: 200 }}>
             <h3>
               <Feldtext
+                hoechstens={200}
                 wert={event.titel}
                 aendern={ich.darf.bearbeiten}
                 speichern={(titel) => speichern({ titel })}
@@ -502,6 +503,7 @@ function Eventseite({
             </h3>
             <div className="unter">
               <Feldtext
+                hoechstens={160}
                 wert={event.ort}
                 platzhalter="Ort …"
                 aendern={ich.darf.bearbeiten}
@@ -869,6 +871,7 @@ function Hitlistzeile({
       </td>
       <td data-spalte="Anliegen" data-breit="ja">
         <Feldtext
+          hoechstens={250}
           wert={ziel.anliegen}
           platzhalter="Was wollen wir von ihnen?"
           aendern={ich.darf.bearbeiten}

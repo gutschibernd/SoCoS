@@ -472,6 +472,7 @@ function Meetingseite({
           <div style={{ minWidth: 200 }}>
             <h3>
               <Feldtext
+                hoechstens={200}
                 wert={meeting.titel}
                 aendern={ich.darf.bearbeiten}
                 speichern={(titel) => speichern({ titel })}
@@ -481,6 +482,7 @@ function Meetingseite({
               {wann(meeting)}
               {" · "}
               <Feldtext
+                hoechstens={160}
                 wert={meeting.ort}
                 platzhalter="Ort oder Link …"
                 aendern={ich.darf.bearbeiten}

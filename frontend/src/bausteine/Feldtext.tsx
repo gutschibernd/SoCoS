@@ -10,9 +10,17 @@ import { useEffect, useRef, useState } from "react";
  * **Ohne Speichern-Knopf ist der neue Text selbst die Bestätigung.** Deshalb
  * steht nach dem Schließen der eigene Entwurf da und nicht `wert`: Der Prop
  * trägt noch den alten Stand, bis das Nachladen ankommt, und in der Lücke sah
- * es aus, als hätte das Feld die Eingabe weggeworfen. Scheitert das Speichern,
- * geht der Entwurf auf `wert` zurück — sonst stünde ein Text auf dem
- * Bildschirm, den der Server nicht hat.
+ * es aus, als hätte das Feld die Eingabe weggeworfen.
+ *
+ * **Scheitert das Speichern, bleibt das Feld offen und der Entwurf darin.**
+ * Bis 2026-11-04 ging er auf `wert` zurück, damit kein Text dasteht, den der
+ * Server nicht hat — nur war damit alles weg, was jemand gerade geschrieben
+ * hatte, und die Warnung daneben erklärte, warum. Ein offenes Feld sagt
+ * dasselbe („noch nicht gespeichert"), ohne den Text zu nehmen. Escape nimmt
+ * ihn zurück, wer das will.
+ *
+ * `hoechstens` ist die Länge des Feldes am Server. Ohne sie tippt man über die
+ * Grenze hinaus und erfährt es erst beim Speichern.
  */
 export function Feldtext({
   wert,
@@ -22,9 +30,11 @@ export function Feldtext({
   zeilen,
   platzhalter,
   klasse,
+  hoechstens,
 }: {
   wert: string;
-  speichern: (neu: string) => void | Promise<void>;
+  /** Wirft oder liefert `false`, wenn nicht gespeichert wurde — beides hält den Entwurf im Feld. */
+  speichern: (neu: string) => void | boolean | Promise<void | boolean>;
   aendern: boolean;
   mehrzeilig?: boolean;
   /** Wie hoch das aufgeklappte Feld ist. Drei Zeilen reichen für eine Notiz,
@@ -32,6 +42,7 @@ export function Feldtext({
   zeilen?: number;
   platzhalter?: string;
   klasse?: string;
+  hoechstens?: number;
 }) {
   const [offen, setOffen] = useState(false);
   const [entwurf, setEntwurf] = useState(wert);
@@ -67,13 +78,13 @@ export function Feldtext({
     const neu = entwurf.trim();
     setEntwurf(neu);
     if (neu === wert) return;
+    let geklappt = true;
     try {
-      await speichern(neu);
+      geklappt = (await speichern(neu)) !== false;
     } catch {
-      // `hole` hat den Grund schon gemeldet. Hier bleibt nur, den Entwurf
-      // wieder auf den Stand zu setzen, den der Server tatsächlich hat.
-      setEntwurf(wert);
+      geklappt = false; // `hole` hat den Grund schon gemeldet.
     }
+    if (!geklappt) setOffen(true);
   };
 
   const beiTaste = (e: React.KeyboardEvent) => {
@@ -92,6 +103,7 @@ export function Feldtext({
       ref={feld}
       className="feld"
       rows={zeilen ?? 3}
+      maxLength={hoechstens}
       value={entwurf}
       placeholder={platzhalter}
       onChange={(e) => setEntwurf(e.target.value)}
@@ -102,6 +114,7 @@ export function Feldtext({
     <input
       ref={feld}
       className="feld"
+      maxLength={hoechstens}
       value={entwurf}
       placeholder={platzhalter}
       onChange={(e) => setEntwurf(e.target.value)}

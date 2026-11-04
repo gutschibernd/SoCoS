@@ -262,10 +262,16 @@ function Kartenseite({
     const { titel, thema } = fang(fangText, daten.themen);
     if (!titel) return;
     // Das Feld wird vor der Antwort geleert — wer gleich weitertippt, verlöre sonst seinen Text.
+    // Scheitert das Anlegen, kommt das Getippte zurück, sofern nicht schon
+    // Neues im Feld steht: Sonst wäre der Gedanke weg und nur die Warnung da.
+    const getippt = fangText;
     setFangText("");
     const p = platzFuer(daten, { thema });
     const id = await s.anlegen({ titel, thema, x: p.x, y: p.y, haengt_an: null });
-    if (id === null) return;
+    if (id === null) {
+      setFangText((jetzt) => jetzt || getippt);
+      return;
+    }
     bRef.current?.melde(thema !== null ? `In „${g.thema(thema)?.name}“ abgelegt` : "Als loser Gedanke um die Mitte gelegt");
     zeige({ art: "schritt", id });
   };

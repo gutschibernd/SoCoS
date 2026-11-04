@@ -281,6 +281,7 @@ function OverheadKarte({
         <div style={{ minWidth: 200 }}>
           <h3>
             <Feldtext
+              hoechstens={160}
               wert={projekt.titel}
               aendern={ich.darf.bearbeiten && bearbeiten}
               speichern={async (titel) => {
@@ -291,6 +292,7 @@ function OverheadKarte({
           </h3>
           <div className="unter">
             <Feldtext
+              hoechstens={200}
               wert={projekt.untertitel}
               platzhalter="Untertitel …"
               aendern={ich.darf.bearbeiten && bearbeiten}
@@ -393,6 +395,7 @@ function ProjektKarte({
                   Bildschirm stand weiter der alte Titel, und es sah aus, als
                   hätte das Feld die Änderung verworfen. */}
               <Feldtext
+                hoechstens={160}
                 wert={projekt.titel}
                 aendern={gliedern}
                 speichern={async (titel) => {
@@ -403,6 +406,7 @@ function ProjektKarte({
             </h3>
             <div className="unter">
               <Feldtext
+                hoechstens={200}
                 wert={projekt.untertitel}
                 platzhalter="Untertitel …"
                 aendern={gliedern}
@@ -638,6 +642,7 @@ function Phasenblock({
     <section className="karte projektphase">
       <h2 className="phase-kopf">
         <Feldtext
+          hoechstens={160}
           wert={phase.titel}
           aendern={gliedern}
           speichern={async (titel) => {

@@ -344,7 +344,7 @@ function Entscheidung({
           </a>
           <h1 className="pl-titel de-titel">
             <span className="de-kennung">{e.kennung}</span>
-            <Feldtext wert={e.titel} aendern={darf} speichern={(titel) => speichern({ titel })} />
+            <Feldtext hoechstens={200} wert={e.titel} aendern={darf} speichern={(titel) => speichern({ titel })} />
           </h1>
           <span className="pl-sub de-kopfstand">
             <Standpille wert={e.stand} />
@@ -587,6 +587,7 @@ function Standtafel({ e, ich, zurueck }: { e: Designentscheidung; ich: Ich; zuru
       <div className="de-feld">
         <span className="pl-eyebrow">Entschieden von</span>
         <Feldtext
+          hoechstens={200}
           wert={e.entschieden_von}
           aendern={darf}
           platzhalter="Namen, auch ohne Konto"

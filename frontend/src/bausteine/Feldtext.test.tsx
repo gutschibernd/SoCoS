@@ -29,14 +29,43 @@ describe("Feldtext", () => {
     expect(screen.queryByText("Alt")).not.toBeInTheDocument();
   });
 
-  it("nimmt den Entwurf zurück, wenn das Speichern scheitert", async () => {
+  it("behält den Entwurf im offenen Feld, wenn das Speichern scheitert", async () => {
     const speichern = vi.fn().mockRejectedValue(new Error("nein"));
+    render(<Feldtext wert="Alt" aendern speichern={speichern} />);
+
+    aendere("Ein langer Text, den niemand zweimal tippen will");
+
+    // Bis 2026-11-04 stand hier wieder „Alt" — und alles Getippte war weg,
+    // nur die Warnung blieb. Das offene Feld zeigt, dass nichts gespeichert ist.
+    const feld = await screen.findByRole("textbox");
+    expect(feld).toHaveValue("Ein langer Text, den niemand zweimal tippen will");
+  });
+
+  it("behält den Entwurf auch, wenn `speichern` den Fehler schluckt und `false` liefert", async () => {
+    const speichern = vi.fn().mockResolvedValue(false);
     render(<Feldtext wert="Alt" aendern speichern={speichern} />);
 
     aendere("Neu");
 
-    // Sonst stünde ein Text auf dem Bildschirm, den der Server nicht hat.
-    expect(await screen.findByText("Alt")).toBeInTheDocument();
+    expect(await screen.findByRole("textbox")).toHaveValue("Neu");
+  });
+
+  it("nimmt nach einem gescheiterten Speichern mit Escape auf den alten Stand zurück", async () => {
+    const speichern = vi.fn().mockRejectedValue(new Error("nein"));
+    render(<Feldtext wert="Alt" aendern speichern={speichern} />);
+
+    aendere("Neu");
+    fireEvent.keyDown(await screen.findByRole("textbox"), { key: "Escape" });
+
+    expect(screen.getByText("Alt")).toBeInTheDocument();
+  });
+
+  it("lässt nicht mehr Zeichen zu, als der Server annimmt", () => {
+    render(<Feldtext wert="" aendern hoechstens={250} speichern={vi.fn()} />);
+
+    fireEvent.click(screen.getByTitle("Zum Ändern klicken"));
+
+    expect(screen.getByRole("textbox")).toHaveAttribute("maxLength", "250");
   });
 
   it("speichert nicht, wenn sich nichts geändert hat", () => {

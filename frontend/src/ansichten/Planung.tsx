@@ -446,12 +446,17 @@ function Paketgruppe({
     .map((x) => `${kuerzel(x.nutzer, x.name)} ${Number(x.gebucht).toLocaleString("de-AT", { maximumFractionDigits: 0 })}/${x.soll === null ? "–" : alsH(x.soll, 0)}`);
   const unterzeile = [ap ? `M${ap.monat_von}–M${ap.monat_bis}` : "", ...personen].filter(Boolean).join(" · ");
 
-  async function versuchen(tun: () => Promise<void>) {
+  // Liefert, ob es geklappt hat: Ein `Feldtext` behält mit `false` den
+  // Entwurf im Feld. Ohne die Rückmeldung hielt er den geschluckten Fehler
+  // für Erfolg und zeigte einen Text, den der Server nicht hat.
+  async function versuchen(tun: () => Promise<void>): Promise<boolean> {
     setFehler("");
     try {
       await tun();
+      return true;
     } catch (e) {
       setFehler(fehlertext(e));
+      return false;
     }
   }
 
@@ -463,7 +468,7 @@ function Paketgruppe({
         </button>
         <span className="pl-nr">{String(nummer).padStart(2, "0")}</span>
         <span className="pl-pakettitel">
-          <Feldtext wert={paket.titel} aendern={gliedern} speichern={(titel) => versuchen(() => speichern(`/pakete/${paket.id}/`, { titel }))} />
+          <Feldtext hoechstens={250} wert={paket.titel} aendern={gliedern} speichern={(titel) => versuchen(() => speichern(`/pakete/${paket.id}/`, { titel }))} />
           {unterzeile && <em className="zahl">{unterzeile}</em>}
         </span>
         {darf ? (
@@ -655,13 +660,15 @@ function Aufgabenzeile({
   planung: Planung;
   darf: boolean;
   entfernen: (() => void) | undefined;
-  versuchen: (tun: () => Promise<void>) => Promise<void>;
+  versuchen: (tun: () => Promise<void>) => Promise<boolean>;
 }) {
   const speichern = useSpeichern();
   const team = useTeam();
   const [mehr, setMehr] = useState(false);
   const aktive = (team.data ?? []).filter((t) => t.is_active || t.id === a.verantwortlich);
-  const aendern = (daten: Record<string, unknown>) => versuchen(() => speichern(`/unteraufgaben/${a.id}/`, daten));
+  const aendern = async (daten: Record<string, unknown>) => {
+    await versuchen(() => speichern(`/unteraufgaben/${a.id}/`, daten));
+  };
 
   return (
     <div className="pl-zeile" role="listitem" data-lage={a.lage}>
@@ -675,6 +682,7 @@ function Aufgabenzeile({
       />
       <span className="pl-aufgabentitel" data-feld="Aufgabe">
         <Feldtext
+          hoechstens={250}
           wert={a.titel}
           aendern={darf}
           speichern={(titel) => versuchen(() => speichern(`/unteraufgaben/${a.id}/`, { titel }))}
@@ -768,7 +776,7 @@ function NeueAufgabe({
 }: {
   paket: Planungspaket;
   person: number | null;
-  versuchen: (tun: () => Promise<void>) => Promise<void>;
+  versuchen: (tun: () => Promise<void>) => Promise<boolean>;
 }) {
   const speichern = useSpeichern();
   const [neu, setNeu] = useState("");
@@ -1095,12 +1103,14 @@ function Antragsansicht({ planung, ich, wechseln }: { planung: Planung; ich: Ich
   const antragspakete = new Map((antrag?.pakete ?? []).map((p) => [p.id, p]));
   const antragsweg = antrag && `foerderungen/${antrag.geber}/${antrag.programm}/${antrag.id}`;
 
-  async function versuchen(tun: () => Promise<void>) {
+  async function versuchen(tun: () => Promise<void>): Promise<boolean> {
     setFehler("");
     try {
       await tun();
+      return true;
     } catch (e) {
       setFehler(fehlertext(e));
+      return false;
     }
   }
 
