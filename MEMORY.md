@@ -3790,7 +3790,7 @@ Die Zeitdokumentation **muss auditierbar sein**.
   Versehen:** Universal SSL deckt nur eine Subdomain-Ebene ab, `socos.test.…`
   ist zwei. Orange scheitert schon am Handshake, und Let's Encrypt käme nicht
   durch. Begründung in SERVER.md.
-- **Restore-Test: offener Punkt**, siehe unten. Die Kopie außer Haus steht seit 2026-11-04.
+- **Kopie außer Haus und Restore-Test** stehen seit 2026-11-04 (SERVER.md).
 
 ---
 
@@ -4048,7 +4048,7 @@ nicht überall gibt. Es gibt keinen Grund, das Risiko für nichts einzugehen.
 - [x] **Kopie außer Haus** — seit 2026-11-04 wöchentlich auf die eigene
       Synology, unverschlüsselt (siehe Eintrag von dem Tag). Kommt je ein
       fremder Anbieter als Ziel dazu, muss verschlüsselt werden.
-- [ ] **Restore-Test mit Datum** in SERVER.md. Ein Restore ohne Test ist kein Backup.
+- [x] **Restore-Test mit Datum** in SERVER.md — 2026-11-04 bestanden. Ein Restore ohne Test ist kein Backup.
 - [ ] **Zeitbuchung auf Unteraufgaben** — vorerst bewusst nicht (gebucht wird
       aufs Paket). Bernd hält sich offen, das später zu ändern. Der Umbau wäre
       ein nullbares Feld `unteraufgabe` an `Zeitbuchung` plus eine Entscheidung,

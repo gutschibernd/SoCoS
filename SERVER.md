@@ -127,7 +127,17 @@ Dateien.
 
 | Datum | Von welchem Archiv | Ergebnis | Wer |
 |---|---|---|---|
-| — | — | noch keiner durchgeführt | — |
+| 2026-11-04 | `socos-20261104-165451.tar.gz` aus Synology Drive (die erste wöchentliche Kopie), lokal in eine leere Datenbank eingespielt | **bestanden** — 2907 Datensätze (davon 3 Konten) und 8 Mediendateien; erneut ausgeführt Feld für Feld und Datei für Datei gleich | Bernd, mit Claude |
+
+**So wurde geprüft** (zum Wiederholen): Archiv in eine eigene, leere Datenbank
+(`POSTGRES_DB=…`) und einen eigenen Medienordner (Einstellungsdatei, die nur
+`MEDIA_ROOT` umbiegt) einspielen, daraus sofort wieder `sicherung_erstellen`,
+beide `datenbank.json` und `medien/` vergleichen. **Nie in die lokale
+Datenbank und nie nach `medien/`** — das Einspielen leert beides.
+
+Eine Abweichung ist erwartet und kein Verlust: Djangos JSON kürzt Zeitstempel
+auf Millisekunden. Ein Zeitpunkt mit weniger als einer Millisekunde nach der
+Sekunde steht im Archiv als `…:05.000Z` und nach dem Einspielen als `…:05Z`.
 
 ## Wiederkehrende Prüfungen
 
