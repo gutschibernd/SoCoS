@@ -135,7 +135,7 @@ sie danach weg.
 
 ### Täglich, vier Wochen lang
 
-Ein cron-Eintrag schreibt jede Nacht um 03:15 eine Sicherung und entfernt
+Ein cron-Eintrag schreibt jede Nacht um 03:15 UTC (die Uhr des Servers) eine Sicherung und entfernt
 danach alle, die älter als 28 Tage sind — auch die von `deploy.sh`. Einmal
 einrichten (und wieder, wenn sich `betrieb/sicherung.cron` ändert; ein Deploy
 tut das nicht):

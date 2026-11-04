@@ -14,7 +14,7 @@ in Synology Drive ab; am Server nur die letzten vier Wochen, täglich, „es
 sollen nicht ewig viele Daten herumliegen".
 
 - **Am Server:** cron (`betrieb/sicherung.cron` → `/etc/cron.d/socos-sicherung`)
-  ruft um 03:15 `sicherung_erstellen --alte-entfernen 28`. Das Aufräumen gilt
+  ruft um 03:15 UTC `sicherung_erstellen --alte-entfernen 28`. Das Aufräumen gilt
   dem ganzen Ordner, also auch den Archiven von `deploy.sh`.
 - **Das Alter kommt aus dem Dateinamen**, nicht aus dem Änderungsdatum — ein
   `docker compose cp` setzt das neu. Angefasst wird nur, was genau wie

@@ -117,7 +117,7 @@ Dateien.
 | | |
 |---|---|
 | Lokales Archiv | `python manage.py sicherung_erstellen` — Datenbank und Medien in **einer** Datei |
-| Täglich am Server | 03:15 über `/etc/cron.d/socos-sicherung`, behalten werden **28 Tage**; Protokoll `/var/log/socos-sicherung.log` |
+| Täglich am Server | 03:15 UTC (in Wien 04:15, im Sommer 05:15) über `/etc/cron.d/socos-sicherung`, behalten werden **28 Tage**; Protokoll `/var/log/socos-sicherung.log` |
 | Kopie außer Haus | **wöchentlich** — Bernds Laptop holt eine frische ab und legt sie in Synology Drive unter `00_Managment/SoCoS-Sicherungen` (`skripte/sicherung_holen.sh`) |
 | Verschlüsselung | keine — das Ziel ist die eigene Synology. Bei einem fremden Anbieter als Ziel wäre „ja" die Antwort |
 
