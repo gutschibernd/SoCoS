@@ -599,6 +599,34 @@ def test_foerderzeitraum_wandert_mit_und_alte_monatszahl_stoert_nicht(tmp_path, 
     assert (antrag.beginn, antrag.ende) == (date(2026, 10, 19), date(2027, 4, 18))
 
 
+@pytest.mark.django_db(transaction=True)
+def test_foerderplanung_wandert_mit(tmp_path, medien):
+    """Schreiben, Einreichung, Entscheidung, Priorität, Vermerk und der neue Stand kommen zurück."""
+    from socos.models import Foerderantrag, Foerdergeber, Foerderprogramm
+
+    programm = Foerderprogramm.objects.create(geber=Foerdergeber.objects.create(name="aws"), name="Preseed")
+    Foerderantrag.objects.create(
+        programm=programm,
+        titel="AMS",
+        stand=Foerderantrag.Stand.VERFALLEN,
+        schreiben_ab=date(2026, 8, 1),
+        einreichung=date(2026, 10, 1),
+        entscheidung=date(2026, 11, 6),
+        prioritaet=2,
+        vermerk="kein Vollzeitengagement",
+    )
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    Foerderantrag.objects.all().hart_loeschen()
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    antrag = Foerderantrag.objects.get(titel="AMS")
+    assert (antrag.stand, antrag.schreiben_ab, antrag.einreichung, antrag.entscheidung) == (
+        "verfallen", date(2026, 8, 1), date(2026, 10, 1), date(2026, 11, 6),
+    )
+    assert (antrag.prioritaet, antrag.vermerk) == (2, "kein Vollzeitengagement")
+
+
 # --- Aufräumen am Server ----------------------------------------------------
 
 

@@ -3097,6 +3097,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
 .stand[data-antrag="eingereicht"] { background: var(--marke-hell);   color: var(--marke); }
 .stand[data-antrag="bewilligt"]   { background: var(--gut-hell);     color: var(--gut); }
 .stand[data-antrag="abgelehnt"]   { background: var(--warnung-hell); color: var(--warnung); }
+.stand[data-antrag="verfallen"]   { background: var(--ruhend-hell);  color: var(--ruhend); }
 
 .fd-geldzeile { display: flex; align-items: baseline; gap: 10px; font-size: 13px; color: var(--text-leise); }
 .fd-geldzeile b { color: var(--text); font-size: 15px; font-weight: 500; }
@@ -3429,7 +3430,7 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
  * dort gegen jeden Untergrund gerechnet: --auf-ton auf --t ≥ 6,10, --text auf
  * --f ≥ 13,11.
  */
-.fd-uebersichtskopf { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.fd-uebersichtskopf { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 
 /* `minmax(0, 1fr)`, nicht `1fr`: Sonst wächst die Spalte auf die Breite der
    Achse, und statt der Achse in ihrer Karte rollt die ganze Seite. */
@@ -3740,6 +3741,103 @@ a.gantt-wahl { text-decoration: none; }
   .gantt-rollbar { margin: 0 -18px; padding: 0 18px; }
   .gantt { --etikett: 136px; --rechts: 76px; min-width: calc(var(--etikett) + var(--rechts) + 480px); }
   .gantt-rechts { font-size: 12px; }
+}
+
+/* --- Förderplanung (ansichten/Foerderplanung.tsx) --------------------------- */
+
+/* Die drei Abschnitte einer Förderung, wie auf der Folie „Förderübersicht":
+   schreiben im Kupfer (das ist unsere Handlung), Prüfung im Ton „wartend"
+   (es liegt bei der Förderstelle), Laufzeit in der Marke — voll, sobald
+   bewilligt, hell, solange sie nur geplant ist. Was vorbei ist, ruht. */
+.fp-seite { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.fp-gruppe h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 16px; }
+.fp-zahl { font-size: 12px; font-weight: 600; color: var(--text-leise); }
+.fp-leise { color: var(--text-leise); font-size: 13px; font-weight: 400; }
+.fp-aufklapper {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: var(--griff);
+  padding: 0; background: none; border: 0; color: var(--text); font: inherit; font-weight: inherit; text-align: left; cursor: pointer;
+}
+.fp-gruppe h2:has(.fp-aufklapper) { margin: 0; }
+.fp-aufklapper[aria-expanded="true"] { margin-bottom: 8px; }
+
+.fp-legende { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--text-leise); }
+.fp-legende > span { display: inline-flex; align-items: center; gap: 6px; }
+.fp-muster { display: inline-block; width: 18px; height: 10px; border-radius: 2px; border: 1px solid; }
+
+.fp-name > b { display: flex; align-items: center; gap: 6px; }
+.fp-platz {
+  flex: 0 0 auto; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+  background: var(--akzent); color: var(--auf-marke); font-size: 11px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+.gantt-balken[data-art="fp-schreiben"], .fp-muster[data-art="schreiben"] {
+  background: var(--akzent-hell); border-color: var(--akzent); color: var(--text);
+}
+.gantt-balken[data-art="fp-pruefung"], .fp-muster[data-art="pruefung"] {
+  background: var(--wartend-hell); border-color: var(--wartend); color: var(--text);
+}
+/* Wer auf eigenes Risiko vor der Entscheidung beginnt, hat eine Laufzeit
+   unter der Prüfung — dann liegt die Prüfung oben und bleibt zu sehen. */
+.gantt-balken[data-art="fp-schreiben"], .gantt-balken[data-art="fp-pruefung"] { z-index: 2; top: 13px; bottom: 13px; }
+.gantt-balken[data-art="fp-laufzeit"], .fp-muster[data-art="laufzeit"] {
+  background: var(--marke-hell); border-color: var(--marke-rand); color: var(--text);
+}
+.gantt-balken[data-art="fp-laufzeit"][data-stand="bewilligt"] { background: var(--marke); border-color: var(--marke); color: var(--auf-marke); }
+.gantt-balken[data-art="fp-laufzeit"][data-stand="angenommen"], .fp-muster[data-angenommen] { border-style: dashed; background: transparent; }
+.gantt-balken[data-art^="fp-"][data-stand="abgelehnt"],
+.gantt-balken[data-art^="fp-"][data-stand="verfallen"] {
+  background: var(--ruhend-hell); border-color: var(--rand-stark); color: var(--text-leise);
+}
+
+/* Ein Tag als Zeichen auf der Spur — über den Balken, damit die Frist auch
+   dort zu sehen ist, wo Schreiben und Prüfung aneinanderstoßen. */
+.fp-marke, .fp-marke-muster {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 8px; border: 1.5px solid var(--warnung);
+  background: var(--flaeche); color: var(--warnung); font-style: normal; font-size: 11px; font-weight: 800; line-height: 1;
+}
+.fp-marke {
+  position: absolute; top: 50%; z-index: 3; transform: translate(-50%, -50%); pointer-events: auto;
+  left: calc((var(--a) + 0.5) / var(--tage) * 100%);
+}
+.fp-marke[data-art="einreichung"]:not([data-stand="entwurf"]) { border-color: var(--wartend); color: var(--wartend); }
+.fp-marke[data-art="entscheidung"], .fp-marke-muster[data-art="entscheidung"] {
+  width: 11px; height: 11px; border-radius: 2px; border: 0; background: var(--wartend);
+}
+.fp-marke[data-art="entscheidung"] { transform: translate(-50%, -50%) rotate(45deg); }
+.fp-marke-muster[data-art="entscheidung"] { transform: rotate(45deg); }
+.fp-marke[data-art="entscheidung"][data-stand="bewilligt"] { background: var(--gut); }
+.fp-marke[data-art="entscheidung"][data-stand="abgelehnt"] { background: var(--warnung); }
+.fp-marke[data-stand="verfallen"] { border-color: var(--ruhend); color: var(--ruhend); }
+.fp-marke[data-art="entscheidung"][data-stand="verfallen"] { background: var(--ruhend); }
+
+.fp-detail { display: grid; gap: 14px; scroll-margin-top: 72px; }
+.fp-detailkopf { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.fp-detailtitel h2 { margin: 0 0 2px; font-size: 18px; }
+.fp-antragsverweis { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; color: var(--marke); font-size: 14px; text-decoration: none; }
+.fp-antragsverweis:hover { color: var(--akzent); }
+.fp-schliessen { flex: 0 0 auto; }
+.fp-standwahl { flex-wrap: wrap; }
+.fp-daten { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.fp-fusszeile { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.fp-geld { font-size: 14px; color: var(--text-leise); }
+.fp-geld b { color: var(--text); font-weight: 600; }
+.fp-fokusknoepfe { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+
+.fp-programme { list-style: none; margin: 0; padding: 0; }
+.fp-programme li {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: var(--griff); padding: 4px 0; border-top: 1px solid var(--rand); font-size: 14px;
+}
+.fp-programme li:first-child { border-top: 0; }
+
+@media (max-width: 720px) {
+  .fp-daten { grid-template-columns: 1fr 1fr; }
+  /* Die Etikettspalte ist am Handy 136 px schmal; „Pflegeinnovation NÖ"
+     abgeschnitten nach „Pflegeinnovatio" sagt nicht mehr, welche es ist. */
+  .fp-name > b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 13px; }
+  .fp-name > b .fp-platz { display: inline-flex; margin-right: 4px; vertical-align: 1px; }
 }
 
 /* --- Projektplanung (ansichten/Planung.tsx) ---------------------------------- */

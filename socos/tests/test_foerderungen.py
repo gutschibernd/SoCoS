@@ -162,6 +162,51 @@ class TestFoerderzeitraum:
         assert (geleert["beginn"], geleert["ende"], geleert["rahmen"]) == (None, None, None)
 
 
+class TestPlanung:
+    """Die Felder der Förderplanung: Schreiben → Einreichen → Entscheiden, Priorität, Vermerk."""
+
+    def test_planung_ueber_die_schnittstelle(self, client, bearbeiter, antrag):
+        client.force_login(bearbeiter)
+        pfad = f"/api/foerderantraege/{antrag.pk}/"
+
+        def patch(daten):
+            return client.patch(pfad, daten, content_type="application/json")
+
+        geholt = patch({
+            "schreiben_ab": "2026-08-01", "einreichung": "2026-10-01", "entscheidung": "2026-11-06",
+            "prioritaet": 1, "vermerk": "Stichtag",
+        }).json()
+        assert (geholt["schreiben_ab"], geholt["einreichung"], geholt["entscheidung"]) == (
+            "2026-08-01", "2026-10-01", "2026-11-06",
+        )
+        assert (geholt["prioritaet"], geholt["vermerk"]) == (1, "Stichtag")
+        assert patch({"prioritaet": None}).json()["prioritaet"] is None
+
+    def test_die_reihenfolge_der_daten(self, client, bearbeiter, antrag):
+        client.force_login(bearbeiter)
+        pfad = f"/api/foerderantraege/{antrag.pk}/"
+
+        def patch(daten):
+            return client.patch(pfad, daten, content_type="application/json")
+
+        assert patch({"einreichung": "2026-10-01", "entscheidung": "2026-11-06"}).status_code == 200
+        falsch = patch({"entscheidung": "2026-09-30"})
+        assert falsch.status_code == 400
+        assert "vor der Einreichung" in json.dumps(falsch.json(), ensure_ascii=False)
+        assert patch({"schreiben_ab": "2026-10-02"}).status_code == 400
+        # Ohne Einreichung wird Schreiben gegen die Entscheidung geprüft.
+        assert patch({"einreichung": None, "schreiben_ab": "2026-12-01"}).status_code == 400
+        assert patch({"einreichung": None, "schreiben_ab": "2026-11-01"}).status_code == 200
+        # Die Laufzeit darf vor der Entscheidung beginnen.
+        assert patch({"beginn": "2026-10-01", "ende": "2027-09-30"}).status_code == 200
+
+    def test_nicht_eingereicht_ist_ein_stand(self, client, bearbeiter, antrag):
+        client.force_login(bearbeiter)
+        pfad = f"/api/foerderantraege/{antrag.pk}/"
+        assert client.patch(pfad, {"stand": "verfallen"}, content_type="application/json").json()["stand"] == "verfallen"
+        assert client.get("/api/foerderauslastung/?stand=verfallen").status_code == 200
+
+
 class TestKalkulation:
     """Der Kostenplan des KWF-Antrags vom August 2026 — die Zahlen müssen genau aufgehen."""
 

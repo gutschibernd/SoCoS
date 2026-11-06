@@ -1086,6 +1086,15 @@ class FoerderpaketSerializer(serializers.ModelSerializer):
         return daten
 
 
+# Wie die Planungsdaten in einer Fehlermeldung heißen — „Die Entscheidung
+# liegt vor der Einreichung."
+_PLANNAMEN = {
+    "schreiben_ab": ("Der Schreibbeginn", "dem Schreibbeginn"),
+    "einreichung": ("Die Einreichung", "der Einreichung"),
+    "entscheidung": ("Die Entscheidung", "der Entscheidung"),
+}
+
+
 class FoerderantragSerializer(serializers.ModelSerializer):
     """
     Ein Antrag samt Paketen und dem, was daraus gerechnet wird — Summe,
@@ -1113,6 +1122,7 @@ class FoerderantragSerializer(serializers.ModelSerializer):
         model = Foerderantrag
         fields = [
             "id", "programm", "nummer", "titel", "stand", "foerderwerber", "rolle", "beginn", "ende",
+            "schreiben_ab", "einreichung", "entscheidung", "prioritaet", "vermerk",
             "beschreibung", "datenbedarf",
             "stundensatz", "gemeinkosten", "foerderquote",
             "abschnitte", "pakete", "posten", "kosten", "summe", "laufzeit", "rahmen", "paketende", "reife", "zeichen", "stunden_sind_geld",
@@ -1153,6 +1163,17 @@ class FoerderantragSerializer(serializers.ModelSerializer):
         # und die Achse bekäme 120 Spalten.
         if ende is not None and ende >= foerderung.monate_dazu(beginn, 120):
             raise serializers.ValidationError({"ende": "Ein Förderzeitraum dauert höchstens zehn Jahre."})
+        # Schreiben, Einreichen, Entscheiden folgen aufeinander. Die Laufzeit
+        # prüft nicht dagegen: Manche Programme lassen ab der Einreichung
+        # beginnen, und wer auf eigenes Risiko früher anfängt, plant das so.
+        reihe = [
+            (feld, daten.get(feld, getattr(self.instance, feld, None)))
+            for feld in ("schreiben_ab", "einreichung", "entscheidung")
+        ]
+        gesetzt = [(feld, tag) for feld, tag in reihe if tag is not None]
+        for (feld_vor, vor), (feld, tag) in zip(gesetzt, gesetzt[1:]):
+            if tag < vor:
+                raise serializers.ValidationError({feld: f"{_PLANNAMEN[feld][0]} liegt vor {_PLANNAMEN[feld_vor][1]}."})
         return daten
 
     def get_summe(self, antrag):

@@ -1027,6 +1027,14 @@ function ModuleDoku() {
               text: "Oben im Antrag steht, was wir sind. Förderwerber heißt: Wir reichen ein. Drittleister heißt: Ein anderer reicht ein — beim Land NÖ das Pflegeheim —, und wir liefern zu. Dann sind die Stunden in den Paketen unser geschätzter Aufwand: Sie zählen für die Planung, aber nicht als Geld, und einen Stundensatz braucht es nicht. Die Pakete behalten ihre Pauschalbeträge.",
             },
             {
+              begriff: "Planung",
+              text: "Der Knopf „Planung“ über den Fördergebern legt alle Förderungen auf eine Zeitachse, eine Zeile je Antrag: kupfern, wann wir ihn schreiben, das „!“ die Einreichung (vorher die Frist), lila die Prüfung bis zur Entscheidung, die Raute die Entscheidung selbst (grün bewilligt, rot abgelehnt), petrol die Laufzeit. Oben steht der Fokus — die Förderungen, auf die wir setzen, nach Priorität —, darunter die weiteren Möglichkeiten nach Termin, eingeklappt was abgelehnt oder nie eingereicht wurde, und ganz unten die Programme, unter denen noch kein Antrag steht.",
+            },
+            {
+              begriff: "In der Planung arbeiten",
+              text: "Ein Klick auf den Namen öffnet unter der Achse alle Daten zum Eintragen, den Stand, einen Vermerk und den Platz im Fokus mit ↑ ↓. Ein Balken lässt sich ziehen: als Ganzes wandert die ganze Zeile — schreiben, einreichen, entscheiden, Laufzeit —, an einem Rand nur dieses eine Datum. „Einplanen“ bei einem Programm ohne Antrag legt einen Antrag im Entwurf an; Arbeitspakete und Texte kommen später auf seiner Seite dazu. „Nicht eingereicht“ ist der Stand für einen Antrag, dessen Ausschreibung vorher schloss.",
+            },
+            {
               begriff: "Auslastung",
               text: "Der Knopf „Auslastung“ über den Fördergebern legt alle Anträge der gewählten Stände auf eine Zeitachse: oben die Stunden je Monat als Säulen, darunter jeder Antrag mit seinen Paketen, unten je Person die Stunden je Monat. Bewilligt ist voll gezeichnet, eingereicht hell mit Rand, ein Entwurf nur gestrichelt umrandet — so sieht man, welcher Teil der Last feststeht. Ein Klick auf einen Monat schlüsselt ihn auf: wer woran wie viel, und welche Pakete in ihm enden. Die Achse reicht immer bis zum laufenden Monat, er ist kupfern unterstrichen.",
             },

@@ -141,6 +141,15 @@ export function foerderauslastungAusWeg(unter: string | null): { modul: Modul; t
   return gefunden && gefunden.teil.schluessel === "foerderung" ? { modul: gefunden.modul, teil: gefunden.teil } : null;
 }
 
+/** Der Weg der Förderplanung — wie die Auslastung eine Seite neben den Fördergebern. */
+export const PLANUNGSWEG = "foerderungen/planung";
+
+/** Die Förderplanung hinter `foerderungen/planung` — oder nichts. */
+export function foerderplanungAusWeg(unter: string | null): { modul: Modul; teil: Foerderteil } | null {
+  const gefunden = unter === PLANUNGSWEG ? teilZuWeg("foerderungen") : null;
+  return gefunden && gefunden.teil.schluessel === "foerderung" ? { modul: gefunden.modul, teil: gefunden.teil } : null;
+}
+
 /**
  * Eine Designentscheidung hinter `design/7` — oder nichts. Die Nummer im Weg
  * ist die `id`, nicht die Kennung DE-007: Die id ändert sich nie, und der

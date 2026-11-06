@@ -30,7 +30,7 @@ import {
   telefonatQuelle,
   telefonatText,
 } from "./foerderungen";
-import { alsEuro, foerderauslastungAusWeg, foerderungAusWeg, themaAusWeg } from "./module";
+import { alsEuro, foerderauslastungAusWeg, foerderplanungAusWeg, foerderungAusWeg, themaAusWeg } from "./module";
 
 const antrag = (teil: Partial<Foerderantrag> = {}) =>
   ({ laufzeit: 0, rahmen: null, paketende: 0, ende: null, ...teil }) as Foerderantrag;
@@ -203,6 +203,10 @@ describe("der Weg zu einem Antrag", () => {
     expect(foerderungAusWeg("foerderungen/auslastung")).toBeNull();
     expect(foerderauslastungAusWeg("foerderungen/auslastung")).not.toBeNull();
     expect(foerderauslastungAusWeg("foerderungen/2")).toBeNull();
+    // Die Planung ebenso.
+    expect(foerderungAusWeg("foerderungen/planung")).toBeNull();
+    expect(foerderplanungAusWeg("foerderungen/planung")).not.toBeNull();
+    expect(foerderplanungAusWeg("foerderungen/auslastung")).toBeNull();
     expect(themaAusWeg("foerderungen/12")).toBeNull();
     expect(foerderungAusWeg("foerderungen")).toBeNull();
   });

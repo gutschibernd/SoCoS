@@ -1958,6 +1958,10 @@ class Foerderantrag(Basismodell):
         EINGEREICHT = "eingereicht", "eingereicht"
         BEWILLIGT = "bewilligt", "bewilligt"
         ABGELEHNT = "abgelehnt", "abgelehnt"
+        # Fertig oder halb fertig, aber nie eingereicht — die Ausschreibung
+        # schloss vorher (FFG ALS 24/26, 2026-11-05). Kein „abgelehnt": Es hat
+        # niemand Nein gesagt, und der Text taugt für die nächste Gelegenheit.
+        VERFALLEN = "verfallen", "nicht eingereicht"
 
     class Rolle(models.TextChoices):
         """
@@ -2014,6 +2018,32 @@ class Foerderantrag(Basismodell):
         "Gemeinkostenpauschale in %", max_digits=5, decimal_places=2, null=True, blank=True
     )
     foerderquote = models.DecimalField("Förderquote in %", max_digits=5, decimal_places=2, null=True, blank=True)
+
+    # --- Die Förderplanung (seit 2026-11-06) ---------------------------------
+    #
+    # Was die Folie „Förderübersicht" je Zeile zeigte: wann wir schreiben,
+    # wann eingereicht wird, wann entschieden wird — und davor, wie wichtig
+    # der Antrag gerade ist. Die Laufzeit danach sind `beginn` und `ende`.
+    #
+    # **Am Antrag und nicht in einem eigenen Planungsmodell:** Eine Zeile der
+    # Planung ist ein Antrag, auch einer, von dem es erst den Namen gibt.
+    # Eine zweite Tabelle „geplante Förderung" daneben hätte beim Schreiben
+    # des Antrags ein zweites Ende und einen zweiten Stand, und welcher gilt,
+    # wüsste niemand.
+    #
+    # Die Daten heißen nach dem Ereignis, nicht nach „geplant" oder
+    # „tatsächlich": Vor der Einreichung ist `einreichung` die Frist, danach
+    # der Tag. Zwei Felder je Ereignis hätten immer eins, das veraltet ist.
+    schreiben_ab = models.DateField("Antrag schreiben ab", null=True, blank=True)
+    einreichung = models.DateField("Einreichung", null=True, blank=True)
+    entscheidung = models.DateField("Entscheidung", null=True, blank=True)
+    # Leer heißt: nicht im Fokus. 1 ist das Wichtigste. Gereiht wird auf der
+    # Planungsseite; dass zwei dieselbe Zahl haben, ist kein Fehler — dann
+    # entscheidet die Einreichung.
+    prioritaet = models.PositiveSmallIntegerField("Priorität", null=True, blank=True)
+    # Ein Satz neben dem Balken: „abgelehnt: kein Vollzeitengagement",
+    # „Stichtag 31.12.". Lange Begründungen gehören in einen Textabschnitt.
+    vermerk = models.CharField("Vermerk", max_length=250, blank=True)
 
     class Meta(Basismodell.Meta):
         verbose_name = "Förderantrag"

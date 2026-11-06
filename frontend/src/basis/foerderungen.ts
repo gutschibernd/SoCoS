@@ -304,6 +304,7 @@ export const STAENDE: { wert: Foerderantrag["stand"]; text: string }[] = [
   { wert: "eingereicht", text: "eingereicht" },
   { wert: "bewilligt", text: "bewilligt" },
   { wert: "abgelehnt", text: "abgelehnt" },
+  { wert: "verfallen", text: "nicht eingereicht" },
 ];
 
 export const ROLLEN: { wert: Foerderantrag["rolle"]; text: string }[] = [

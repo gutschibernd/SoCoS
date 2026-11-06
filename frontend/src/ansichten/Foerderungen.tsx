@@ -75,7 +75,7 @@ import {
   type Griff,
 } from "../basis/foerderungen";
 import { melden } from "../basis/meldungen";
-import { AUSLASTUNGSWEG, alsEuro, betragAusEingabe, betragZumBearbeiten } from "../basis/module";
+import { AUSLASTUNGSWEG, PLANUNGSWEG, alsEuro, betragAusEingabe, betragZumBearbeiten } from "../basis/module";
 import type { Wechseln } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Anlegekarte, Beschriftet } from "../bausteine/Anlegekarte";
@@ -138,6 +138,17 @@ export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }
   return (
     <>
       <div className="fd-uebersichtskopf">
+        <a
+          className="knopf fd-auslastungsknopf"
+          href={`/module/${PLANUNGSWEG}`}
+          onClick={(e) => {
+            e.preventDefault();
+            wechseln("module", PLANUNGSWEG);
+          }}
+        >
+          <Zeichen name="gantt" />
+          Planung
+        </a>
         <a
           className="knopf fd-auslastungsknopf"
           href={`/module/${AUSLASTUNGSWEG}`}

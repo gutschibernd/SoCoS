@@ -588,7 +588,8 @@ export const useLagekarte = () =>
 
 /* --- Förderungen ------------------------------------------------------------ */
 
-export type Antragsstand = "entwurf" | "eingereicht" | "bewilligt" | "abgelehnt";
+/** „verfallen" heißt: nie eingereicht — die Ausschreibung schloss vorher. */
+export type Antragsstand = "entwurf" | "eingereicht" | "bewilligt" | "abgelehnt" | "verfallen";
 
 /** Ein Arbeitspaket eines Antrags. Die Laufzeit in Projektmonaten (M1 …). */
 export type Foerderpaket = {
@@ -664,6 +665,17 @@ export type Foerderantrag = {
   beginn: string | null;
   /** Geplantes Ende; mit dem Beginn der Förderzeitraum, der Rahmen des Zeitplans. */
   ende: string | null;
+  /**
+   * Die Förderplanung: wann wir schreiben, einreichen, entschieden wird. Vor
+   * dem Ereignis die Frist oder Erwartung, danach der Tag.
+   */
+  schreiben_ab: string | null;
+  einreichung: string | null;
+  entscheidung: string | null;
+  /** 1 ist das Wichtigste; leer heißt: nicht im Fokus. */
+  prioritaet: number | null;
+  /** Ein Satz neben dem Balken. */
+  vermerk: string;
   beschreibung: string;
   /** Die Texte, die das Programm verlangt — je Antrag frei angelegt, in ihrer Reihenfolge. */
   abschnitte: Foerderabschnitt[];

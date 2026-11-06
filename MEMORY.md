@@ -7,6 +7,36 @@ betrifft.
 
 ---
 
+## 2026-11-06 — Förderplanung: eine Zeile je Antrag
+
+**Bernd:** Die Folie „Förderübersicht" (Folie 1 alle Möglichkeiten, Folie 2
+„Fokus AMS — gereiht nach Prio") soll in SoCoS stehen, als Knopf „Planung"
+neben „Auslastung". Anlass: aws Preseed am 06.11. abgelehnt, FFG ALS 24/26
+am 05.11. geschlossen, bevor der fertige Antrag eingereicht war.
+
+- **Die Zeile ist der Antrag**, kein eigenes Planungsmodell. Neu am
+  `Foerderantrag` (Migration 0056): `schreiben_ab`, `einreichung`,
+  `entscheidung`, `prioritaet`, `vermerk`. Ein Programm ohne Antrag wird mit
+  „Einplanen" zu einem Antrag im Entwurf. Eine zweite Tabelle hätte einen
+  zweiten Stand und ein zweites Ende neben dem Antrag gehabt.
+- **Ein Datum je Ereignis, nicht „geplant" und „tatsächlich"**: Vor der
+  Einreichung ist `einreichung` die Frist, danach der Tag. Der Server prüft nur
+  die Reihenfolge schreiben ≤ einreichen ≤ entscheiden; die Laufzeit darf
+  früher beginnen (manche Programme lassen ab Einreichung zu).
+- **Fokus = Priorität gesetzt.** Folie 2 war eine Auswahl, gereiht; hier ist
+  das eine Zahl, leer heißt „nicht im Fokus". Abgelehnte fallen heraus, auch
+  mit Zahl. Gereiht wird 1, 2, 3 … neu durchnummeriert.
+- **Neuer Stand `verfallen`** („nicht eingereicht"): nicht „abgelehnt", weil
+  niemand Nein gesagt hat und der Text für die nächste Gelegenheit taugt.
+- **Ziehen nimmt die ganze Zeile mit** (`basis/foerderplanung.gezogeneDaten`),
+  ein Rand ändert nur sein Datum. Folie-3-Fokus (MedUni) bewusst nicht
+  abgebildet — ein zweiter Fokus wäre eine zweite Zahl je Antrag; erst wenn
+  er gebraucht wird.
+- **Ohne Ende** zeichnet die Laufzeit gestrichelt bis zur Höchstlaufzeit des
+  Programms (sonst ein Jahr) — eine Annahme, kein gespeicherter Wert.
+
+---
+
 ## 2026-11-04 — Täglich am Server, wöchentlich außer Haus
 
 **Bernd:** einmal die Woche holt sein Laptop die Daten vom Server und legt sie

@@ -22,6 +22,22 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-11-06",
+        "titel": "Förderplanung",
+        "punkte": [
+            {
+                "titel": "Alle Förderungen auf einer Zeitachse",
+                "text": (
+                    "Unter Förderungen steht neben „Auslastung“ jetzt „Planung“: je Antrag, wann wir "
+                    "schreiben, einreichen, wann entschieden wird und wann das Projekt liefe — oben der "
+                    "Fokus nach Priorität, darunter die weiteren Möglichkeiten. Ein Klick auf den Namen "
+                    "öffnet die Daten zum Eintragen, die Balken lassen sich ziehen."
+                ),
+                "wo": "module/foerderungen/planung",
+            },
+        ],
+    },
+    {
         "version": "2026-10-21",
         "titel": "Notizen im Verlauf, Förderanträge mit Beginn und Ende",
         "punkte": [

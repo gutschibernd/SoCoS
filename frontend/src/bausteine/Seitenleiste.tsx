@@ -6,6 +6,7 @@ import {
   MODULE,
   designAusWeg,
   foerderauslastungAusWeg,
+  foerderplanungAusWeg,
   foerderungAusWeg,
   teilZuWeg,
   themaAusWeg,
@@ -95,7 +96,8 @@ function modulAm(unter: string | null) {
     themaAusWeg(unter) ??
     designAusWeg(unter) ??
     foerderungAusWeg(unter) ??
-    foerderauslastungAusWeg(unter)
+    foerderauslastungAusWeg(unter) ??
+    foerderplanungAusWeg(unter)
   )?.modul;
 }
 
