@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Foerderantrag, Foerderprogramm } from "./daten";
-import { balken, foerdername, gezogeneDaten, gruppiert, hintenAn, neueReihung, type Planzeile } from "./foerderplanung";
+import { balken, foerdername, gezogeneDaten, gruppiert, hintenAn, neueReihung, zeilengeld, type Planzeile } from "./foerderplanung";
 
 function antrag(teil: Partial<Foerderantrag> & { id: number }): Foerderantrag {
   return {
@@ -93,6 +93,39 @@ describe("die Reihung im Fokus", () => {
   it("hängt Neues hinten an", () => {
     expect(hintenAn(fokus)).toBe(6);
     expect(hintenAn([])).toBe(1);
+  });
+});
+
+describe("das Geld einer Zeile", () => {
+  const kosten = (gesamt: string) => ({ gesamt }) as Foerderantrag["kosten"];
+  it("nimmt mit Kalkulation die Gesamtkosten vom Server", () => {
+    expect(zeilengeld({ summe: "49320.00", foerderquote: "70.00", kosten: kosten("70457.14") }, { max_foerderung: null })).toEqual({
+      foerderung: "49320.00",
+      bis: false,
+      quote: "70.00",
+      gesamt: "70457.14",
+    });
+  });
+  it("zeigt ohne Quote 100 %, weil der Server dann die ganze Summe fördert", () => {
+    expect(zeilengeld({ summe: "40000.00", foerderquote: null, kosten: kosten("40000.00") }, { max_foerderung: "50000.00" })?.quote).toBe("100");
+  });
+  it("rechnet ohne Kalkulation die Grenze durch die Quote", () => {
+    expect(zeilengeld({ summe: "0.00", foerderquote: "45.00", kosten: kosten("0.00") }, { max_foerderung: "300000.00" })).toEqual({
+      foerderung: "300000.00",
+      bis: true,
+      quote: "45.00",
+      gesamt: "666667",
+    });
+    expect(zeilengeld({ summe: "0.00", foerderquote: "70.00", kosten: kosten("0.00") }, { max_foerderung: "356000.00" })?.gesamt).toBe("508571");
+  });
+  it("lässt die Gesamtkosten ohne Quote offen", () => {
+    expect(zeilengeld({ summe: "0.00", foerderquote: null, kosten: kosten("0.00") }, { max_foerderung: "75000.00" })).toEqual({
+      foerderung: "75000.00",
+      bis: true,
+      quote: null,
+      gesamt: null,
+    });
+    expect(zeilengeld({ summe: "0.00", foerderquote: null, kosten: kosten("0.00") }, { max_foerderung: null })).toBeNull();
   });
 });
 

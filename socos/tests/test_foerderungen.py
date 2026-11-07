@@ -207,6 +207,100 @@ class TestPlanung:
         assert client.get("/api/foerderauslastung/?stand=verfallen").status_code == 200
 
 
+class TestPlanungAlsPdf:
+    """
+    Das PDF der Förderplanung. Die Regeln stehen auch in
+    frontend/src/basis/foerderplanung.ts — die Fälle hier sind dieselben wie dort.
+    """
+
+    def _antrag(self, programm, nr, **felder):
+        from datetime import date
+
+        werte = {k: date.fromisoformat(v) if isinstance(v, str) and v[:2] == "20" else v for k, v in felder.items()}
+        return Foerderantrag.objects.create(programm=programm, titel=f"Antrag {nr}", **werte)
+
+    def test_die_gruppen(self, programm):
+        from socos.services.foerderplanung import gruppen
+
+        a = {
+            1: self._antrag(programm, 1, prioritaet=2),
+            2: self._antrag(programm, 2, prioritaet=1),
+            3: self._antrag(programm, 3, einreichung="2027-03-01"),
+            4: self._antrag(programm, 4),
+            5: self._antrag(programm, 5, schreiben_ab="2026-12-01", einreichung="2027-04-01"),
+            6: self._antrag(programm, 6, stand="abgelehnt", prioritaet=1, entscheidung="2026-11-06"),
+            7: self._antrag(programm, 7, stand="verfallen", einreichung="2026-11-05"),
+            8: self._antrag(programm, 8, stand="bewilligt", beginn="2026-01-01"),
+        }
+        nummer = {v.pk: k for k, v in a.items()}
+        fokus, weitere, vorbei = gruppen(list(a.values()))
+
+        assert [nummer[x.pk] for x in fokus] == [2, 1]
+        assert [nummer[x.pk] for x in weitere] == [8, 5, 3, 4]
+        assert [nummer[x.pk] for x in vorbei] == [6, 7]
+
+    def test_die_angenommene_laufzeit(self, programm):
+        from datetime import date
+
+        from socos.services.foerderplanung import balken
+
+        programm.max_monate = 12
+        antrag = self._antrag(programm, 1, beginn="2027-03-01")
+        assert balken(antrag) == [("laufzeit", date(2027, 3, 1), date(2028, 2, 29), True)]
+
+    def test_quote_und_gesamtkosten(self, programm):
+        from socos.services.foerderplanung import geld, prozent
+
+        # Ohne Quote rechnet der Server die ganze Summe als Zuschuss: 100 %.
+        nö = self._antrag(programm, 1)
+        _paket(nö, "Alles", 1, 18, "40000")
+        assert geld(nö) == (Decimal("40000.00"), False, Decimal(100), Decimal("40000.00"))
+
+        # Ohne Kalkulation: Grenze des Programms ÷ Quote.
+        programm.max_foerderung = Decimal("300000.00")
+        wien = self._antrag(programm, 2, foerderquote=Decimal("45"))
+        assert geld(wien) == (Decimal("300000.00"), True, Decimal("45"), Decimal("666667"))
+        ohne = self._antrag(programm, 3)
+        assert geld(ohne) == (Decimal("300000.00"), True, None, None)
+        assert prozent(Decimal("45.00")) == "45 %" and prozent(Decimal("12.50")) == "12,5 %"
+
+    def _seiten(self, pdf):
+        import re
+
+        return len(re.findall(rb"/Type /Page\b(?!s)", pdf))
+
+    def test_immer_genau_eine_seite(self, client, leser, programm):
+        for nr in range(60):
+            self._antrag(programm, nr, schreiben_ab="2026-12-01", einreichung="2026-12-31", beginn="2027-04-01",
+                         prioritaet=nr if nr < 5 else None, stand="abgelehnt" if nr > 50 else "entwurf")
+        client.force_login(leser)
+
+        antwort = client.get("/api/foerderantraege/planung-pdf/")
+
+        assert antwort.status_code == 200
+        assert antwort["Content-Type"] == "application/pdf"
+        assert 'filename="Foerderplanung_' in antwort["Content-Disposition"]
+        assert self._seiten(antwort.content) == 1
+
+    def test_auch_leer_eine_seite(self, db):
+        from socos.services import foerderplanung
+
+        assert self._seiten(foerderplanung.erzeugen([])) == 1
+
+    def test_ohne_entfernte_antraege(self, client, leser, programm, monkeypatch):
+        from socos.services import foerderplanung
+
+        bleibt = self._antrag(programm, 1)
+        self._antrag(programm, 2).delete()
+        gesehen = []
+        echt = foerderplanung.erzeugen
+        monkeypatch.setattr(foerderplanung, "erzeugen", lambda antraege: gesehen.extend(antraege) or echt([]))
+        client.force_login(leser)
+
+        assert client.get("/api/foerderantraege/planung-pdf/").status_code == 200
+        assert [a.pk for a in gesehen] == [bleibt.pk]
+
+
 class TestKalkulation:
     """Der Kostenplan des KWF-Antrags vom August 2026 — die Zahlen müssen genau aufgehen."""
 

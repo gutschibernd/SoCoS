@@ -30,10 +30,11 @@ import {
   istVorbei,
   neueReihung,
   planzeilen,
+  zeilengeld,
   type Planbalken,
   type Planzeile,
 } from "../basis/foerderplanung";
-import { STAENDE, antragsstandText } from "../basis/foerderungen";
+import { STAENDE, alsProzent, antragsstandText } from "../basis/foerderungen";
 import { achseUeber, heuteIso, kurzdatum, lageAuf, type Achse } from "../basis/gantt";
 import { alsEuro } from "../basis/module";
 import type { Wechseln } from "../basis/router";
@@ -44,7 +45,7 @@ import { Gantt, GanttBalken, GanttZeile } from "../bausteine/Gantt";
 import { Hinweis } from "../bausteine/Hinweis";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Zeichen } from "../bausteine/Zeichen";
-import { useAendern } from "./Foerderungen";
+import { Betragsfeld, useAendern } from "./Foerderungen";
 
 const antragsweg = (z: Planzeile) => `foerderungen/${z.programm.geber}/${z.programm.id}/${z.antrag.id}`;
 const pfadVon = (a: Foerderantrag) => `/foerderantraege/${a.id}/`;
@@ -95,7 +96,14 @@ export function Foerderplanung({ ich, wechseln }: { ich: Ich; wechseln: Wechseln
 
   return (
     <div className="fp-seite">
-      <Legende />
+      <div className="fp-kopfzeile">
+        <Legende />
+        {/* Ein Link und kein fetch, wie bei den anderen PDFs: Die Datei soll im Download-Ordner landen. */}
+        <a className="knopf-still" href="/api/foerderantraege/planung-pdf/">
+          <Zeichen name="pdf" />
+          PDF
+        </a>
+      </div>
 
       <section className="karte fp-gruppe">
         <h2>
@@ -214,7 +222,7 @@ function Planachse({
     <Gantt achse={achse} heute={heute} etikett="Förderung" rechts="Förderung €">
       {zeilen.map((z) => {
         const a = z.antrag;
-        const summe = Number(a.summe);
+        const geld = zeilengeld(a, z.programm);
         return (
           <GanttZeile
             key={a.id}
@@ -236,11 +244,18 @@ function Planachse({
             }
             rechts={
               <>
-                {summe > 0 ? (
-                  <span className="zahl">{alsEuro(a.summe)}</span>
-                ) : z.programm.max_foerderung ? (
-                  <span className="gantt-leise zahl">bis {alsEuro(z.programm.max_foerderung)}</span>
-                ) : null}
+                {geld && (
+                  <span className={geld.bis ? "gantt-leise zahl" : "zahl"}>
+                    {geld.bis && "bis "}
+                    {alsEuro(geld.foerderung)}
+                  </span>
+                )}
+                {geld?.quote && (
+                  <span className="gantt-leise fp-quote zahl">
+                    {alsProzent(geld.quote)}
+                    {geld.gesamt && <> von {alsEuro(geld.gesamt)}</>}
+                  </span>
+                )}
                 <span className="stand" data-antrag={a.stand}>
                   {antragsstandText(a.stand)}
                 </span>
@@ -379,6 +394,17 @@ function Plandetail({
         {datum("entscheidung", "Entscheidung")}
         {datum("beginn", "Laufzeit ab")}
         {datum("ende", "Laufzeit bis")}
+        <label className="fd-kopffeld fp-datum">
+          <span className="beschriftung-klein">Förderquote</span>
+          <Betragsfeld
+            betrag={a.foerderquote}
+            aendern={darf}
+            leer="—"
+            anzeigen={alsProzent}
+            beschriftung="Förderquote in Prozent"
+            speichern={(foerderquote) => speichern(pfad, { foerderquote })}
+          />
+        </label>
       </div>
 
       <label className="fd-kopffeld fp-vermerk">
@@ -397,6 +423,10 @@ function Plandetail({
           {Number(a.summe) > 0 && (
             <>
               Beantragt <b className="zahl">{alsEuro(a.summe)}</b>
+              <span className="fp-leise">
+                {" "}
+                von <span className="zahl">{alsEuro(a.kosten.gesamt)}</span> Gesamtkosten
+              </span>
             </>
           )}
           {zeile.programm.max_foerderung && (

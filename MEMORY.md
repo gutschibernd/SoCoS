@@ -67,6 +67,18 @@ am 05.11. geschlossen, bevor der fertige Antrag eingereicht war.
   er gebraucht wird.
 - **Ohne Ende** zeichnet die Laufzeit gestrichelt bis zur Höchstlaufzeit des
   Programms (sonst ein Jahr) — eine Annahme, kein gespeicherter Wert.
+- **2026-11-07: Quote, Gesamtkosten und PDF.** Rechts je Zeile Quote und
+  Gesamtkosten (mit Kalkulation aus `foerderung.kosten`, sonst Grenze ÷ Quote
+  auf ganze Euro; ohne Quote 100 %, weil der Server dann die ganze Summe
+  fördert). Das PDF (`/api/foerderantraege/planung-pdf/`,
+  `services/foerderplanung.py`) ist **immer genau eine A4-Seite quer**: Bei
+  vielen Zeilen schrumpfen Höhe und Schrift, die Breite bleibt.
+  **Die Regeln (Gruppen, Balken, Name, Quote) stehen damit zweimal** — in
+  `basis/foerderplanung.ts` für die Seite, die beim Ziehen sofort zeichnen
+  muss, und in Python für das PDF, das ein gewöhnlicher Link bleibt. Beide
+  Tests prüfen dieselben Fälle. Ein PDF im Browser hätte eine PDF-Bibliothek
+  im Bundle gebraucht, ein vom Browser geschickter Zeilenstapel einen
+  POST-Download — beides mehr als die zweite, kleine Regelkopie.
 
 ---
 

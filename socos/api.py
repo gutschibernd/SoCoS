@@ -1466,6 +1466,18 @@ class FoerderantragViewSet(SocosViewSet):
         antwort["Content-Disposition"] = f'attachment; filename="{antragsuebersicht.dateiname(antrag)}"'
         return antwort
 
+    @action(detail=False, methods=["get"], url_path="planung-pdf")
+    def planung_pdf(self, request):
+        """Die Förderplanung auf einer A4-Seite — Fokus, weitere, vorbei."""
+        from socos.services import foerderplanung
+
+        # Kein Filter auf entfernte Programme: Ein Programm, an dem noch ein
+        # Antrag hängt, lässt sich gar nicht entfernen (ProtectedError).
+        antraege = self.get_queryset().select_related("programm__geber")
+        antwort = HttpResponse(foerderplanung.erzeugen(antraege), content_type="application/pdf")
+        antwort["Content-Disposition"] = f'attachment; filename="{foerderplanung.dateiname()}"'
+        return antwort
+
     @transaction.atomic
     def perform_destroy(self, antrag):
         """

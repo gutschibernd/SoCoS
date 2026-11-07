@@ -1035,6 +1035,14 @@ function ModuleDoku() {
               text: "Ein Klick auf den Namen öffnet unter der Achse alle Daten zum Eintragen, den Stand, einen Vermerk und den Platz im Fokus mit ↑ ↓. Ein Balken lässt sich ziehen: als Ganzes wandert die ganze Zeile — schreiben, einreichen, entscheiden, Laufzeit —, an einem Rand nur dieses eine Datum. „Einplanen“ bei einem Programm ohne Antrag legt einen Antrag im Entwurf an; Arbeitspakete und Texte kommen später auf seiner Seite dazu. „Nicht eingereicht“ ist der Stand für einen Antrag, dessen Ausschreibung vorher schloss.",
             },
             {
+              begriff: "Quote und Gesamtkosten in der Planung",
+              text: "Rechts in jeder Zeile steht unter der Förderung klein die Quote und, was insgesamt ausgegeben und abgerechnet werden muss: „45 % von 666 667 €“. Hat der Antrag schon Pakete mit Beträgen, kommen beide Zahlen aus seiner Kalkulation. Ohne Kalkulation steht die Grenze des Programms da, und die Gesamtkosten sind Grenze ÷ Quote, auf ganze Euro. Ohne Quote rechnet SoCoS die ganze Summe als Förderung, dort steht 100 % — so wie beim Land NÖ. Die Quote trägst du in der Karte unter der Achse ein.",
+            },
+            {
+              begriff: "Planung als PDF",
+              text: "Der Knopf „PDF“ legt die ganze Planung auf eine A4-Seite quer: Fokus, weitere Möglichkeiten und was vorbei ist, mit Quote und Gesamtkosten. Je mehr Anträge, desto enger rücken die Zeilen, damit es immer genau eine Seite bleibt.",
+            },
+            {
               begriff: "Auslastung",
               text: "Der Knopf „Auslastung“ über den Fördergebern legt alle Anträge der gewählten Stände auf eine Zeitachse: oben die Stunden je Monat als Säulen, darunter jeder Antrag mit seinen Paketen, unten je Person die Stunden je Monat. Bewilligt ist voll gezeichnet, eingereicht hell mit Rand, ein Entwurf nur gestrichelt umrandet — so sieht man, welcher Teil der Last feststeht. Ein Klick auf einen Monat schlüsselt ihn auf: wer woran wie viel, und welche Pakete in ihm enden. Die Achse reicht immer bis zum laufenden Monat, er ist kupfern unterstrichen.",
             },

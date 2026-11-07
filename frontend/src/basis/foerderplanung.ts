@@ -116,6 +116,43 @@ export function hintenAn(fokus: Pick<Foerderantrag, "prioritaet">[]): number {
   return fokus.reduce((hoechste, a) => Math.max(hoechste, a.prioritaet ?? 0), 0) + 1;
 }
 
+export type Zeilengeld = {
+  /** Die Förderung — beantragt, oder ohne Kalkulation die Grenze des Programms. */
+  foerderung: string;
+  /** `foerderung` ist die Grenze des Programms („bis …"), nicht gerechnet. */
+  bis: boolean;
+  quote: string | null;
+  /** Was insgesamt ausgegeben und abgerechnet werden muss, damit die Förderung fließt. */
+  gesamt: string | null;
+};
+
+/**
+ * Förderung, Quote und Gesamtkosten einer Zeile.
+ *
+ * Mit Kalkulation kommen die Gesamtkosten vom Server. **Ohne Quote rechnet er
+ * die ganze Summe als Zuschuss** (Land NÖ: die Paketbeträge sind schon die
+ * Förderung) — hier steht dann 100 %, damit es nicht wie eine fehlende Angabe
+ * aussieht.
+ *
+ * Ohne Kalkulation steht die Grenze des Programms da, und mit Quote, was man
+ * ausgeben müsste, um sie auszuschöpfen: Grenze ÷ Quote — auf ganze Euro,
+ * denn es ist eine Größenordnung, keine Kalkulation.
+ *
+ * Dieselbe Regel steht für das PDF in `socos/services/foerderplanung.py`.
+ */
+export function zeilengeld(
+  a: Pick<Foerderantrag, "summe" | "foerderquote" | "kosten">,
+  programm: Pick<Foerderprogramm, "max_foerderung">,
+): Zeilengeld | null {
+  if (Number(a.summe) > 0) {
+    return { foerderung: a.summe, bis: false, quote: a.foerderquote ?? "100", gesamt: a.kosten.gesamt };
+  }
+  if (!programm.max_foerderung) return null;
+  const quote = a.foerderquote && Number(a.foerderquote) > 0 ? a.foerderquote : null;
+  const gesamt = quote ? String(Math.round((Number(programm.max_foerderung) * 100) / Number(quote))) : null;
+  return { foerderung: programm.max_foerderung, bis: true, quote, gesamt };
+}
+
 function monateDazu(iso: string, monate: number): string {
   const [j, m, t] = iso.split("-").map(Number);
   const stelle = j * 12 + m - 1 + monate;
