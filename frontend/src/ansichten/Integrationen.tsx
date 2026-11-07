@@ -1,5 +1,6 @@
 /**
- * Integrationen — was SoCoS nach draußen gibt. Bisher eines: das Kalender-Abo.
+ * Integrationen — was SoCoS nach draußen gibt: das Kalender-Abo und den
+ * Schlüssel für den Assistenten (Telegram-Bot, socos/assistent.py).
  *
  * **Die Anleitung steht hier und nicht in der Doku**, anders als sonst: Sie
  * wird genau einmal gebraucht, genau in dem Moment, in dem man den Link
@@ -16,6 +17,18 @@ import { melden } from "../basis/meldungen";
 import { Zustand } from "../basis/Zustand";
 
 type Kalenderlink = { link: string };
+type Assistent = { ausgegeben: boolean; schluessel?: string };
+
+async function inZwischenablage(text: string, was: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    melden("gut", `${was} ist in der Zwischenablage.`);
+  } catch {
+    // Ohne HTTPS oder ohne Erlaubnis gibt es keine Zwischenablage. Der Text
+    // steht im Feld daneben und lässt sich von Hand markieren.
+    melden("fehler", "Kopieren ging nicht — bitte im Feld markieren.");
+  }
+}
 
 export function Integrationen() {
   const abfrage = useQuery({
@@ -29,16 +42,7 @@ export function Integrationen() {
   if (!abfrage.data) return <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />;
   const { link } = abfrage.data;
 
-  async function kopieren() {
-    try {
-      await navigator.clipboard.writeText(link);
-      melden("gut", "Der Link ist in der Zwischenablage.");
-    } catch {
-      // Ohne HTTPS oder ohne Erlaubnis gibt es keine Zwischenablage. Der Link
-      // steht im Feld daneben und lässt sich von Hand markieren.
-      melden("fehler", "Kopieren ging nicht — bitte den Link im Feld markieren.");
-    }
-  }
+  const kopieren = () => inZwischenablage(link, "Der Link");
 
   async function neuErzeugen() {
     const neu = await hole<Kalenderlink>("/kalender/neu/", { method: "POST" });
@@ -131,6 +135,122 @@ export function Integrationen() {
           </div>
         )}
       </div>
+
+      <AssistentKarte />
+    </div>
+  );
+}
+
+/**
+ * Der Schlüssel für den Telegram-Bot. **Er wird genau einmal angezeigt** —
+ * gespeichert ist nur sein Hash, weil er mit deinen Rechten schreibt. Was der
+ * Bot darf, steht in socos/berechtigung.py (`ASSISTENT_DARF`).
+ */
+function AssistentKarte() {
+  const abfrage = useQuery({
+    queryKey: ["assistent"],
+    queryFn: () => hole<Assistent>("/assistent/"),
+  });
+  const speicher = useQueryClient();
+  const [frisch, setFrisch] = useState<string | null>(null);
+  const [frage, setFrage] = useState<"neu" | "entziehen" | null>(null);
+
+  if (!abfrage.data) return <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />;
+  const { ausgegeben } = abfrage.data;
+
+  async function erzeugen() {
+    const antwort = await hole<Assistent>("/assistent/neu/", { method: "POST" });
+    speicher.setQueryData(["assistent"], { ausgegeben: true });
+    setFrisch(antwort.schluessel ?? null);
+    setFrage(null);
+  }
+
+  async function entziehen() {
+    await hole<Assistent>("/assistent/entziehen/", { method: "POST" });
+    speicher.setQueryData(["assistent"], { ausgegeben: false });
+    setFrisch(null);
+    setFrage(null);
+    melden("gut", "Schlüssel entzogen. Der Assistent kommt nicht mehr hinein.");
+  }
+
+  return (
+    <div className="karte">
+      <h2>Assistent (Telegram)</h2>
+
+      {frisch ? (
+        <>
+          <div className="feld-reihe">
+            <input
+              className="feld integration-link"
+              readOnly
+              value={frisch}
+              aria-label="Schlüssel des Assistenten"
+              onFocus={(e) => e.target.select()}
+            />
+            <button
+              type="button"
+              className="knopf"
+              onClick={() => inZwischenablage(frisch, "Der Schlüssel")}
+            >
+              Schlüssel kopieren
+            </button>
+          </div>
+          <ul className="integration-merke integration-abstand">
+            <li>
+              <b>Wird nur jetzt angezeigt.</b> Gespeichert ist nur ein Fingerabdruck — verloren
+              heißt: neuen erzeugen.
+            </li>
+            <li>
+              Er gehört in die <b>.env</b> des Assistenten am Server, als{" "}
+              <code>SOCOS_SCHLUESSEL</code>.
+            </li>
+          </ul>
+        </>
+      ) : (
+        <p className="integration-leise integration-stand">
+          {ausgegeben
+            ? "Ein Schlüssel ist ausgegeben. Was der Assistent ändert, steht im Protokoll als „über Assistent“."
+            : "Noch kein Schlüssel ausgegeben."}
+        </p>
+      )}
+
+      {frage ? (
+        <div className="feld-reihe integration-nachfrage">
+          <span>
+            {frage === "neu"
+              ? "Der jetzige Schlüssel hört sofort auf zu funktionieren. Am Server muss danach der neue eingetragen werden."
+              : "Der Assistent kommt danach nicht mehr in SoCoS. Milder: neuen Schlüssel erzeugen, wenn er nur in falsche Hände geraten ist."}
+          </span>
+          <button
+            type="button"
+            className="knopf"
+            onClick={frage === "neu" ? erzeugen : entziehen}
+          >
+            {frage === "neu" ? "Ja, neuen Schlüssel erzeugen" : "Ja, Schlüssel entziehen"}
+          </button>
+          <button type="button" className="knopf-still" onClick={() => setFrage(null)}>
+            Abbrechen
+          </button>
+        </div>
+      ) : ausgegeben ? (
+        <div className="feld-reihe">
+          <span className="integration-leise">
+            Darf nicht an Sicherung, Nutzer, Finanzen und Protokoll.
+          </span>
+          <button type="button" className="knopf-still" onClick={() => setFrage("neu")}>
+            Neuen Schlüssel erzeugen
+          </button>
+          <button type="button" className="knopf-still" onClick={() => setFrage("entziehen")}>
+            Schlüssel entziehen
+          </button>
+        </div>
+      ) : (
+        <div className="feld-reihe">
+          <button type="button" className="knopf" onClick={erzeugen}>
+            Schlüssel erzeugen
+          </button>
+        </div>
+      )}
     </div>
   );
 }

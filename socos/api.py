@@ -23,7 +23,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from socos import aenderungen, berechtigung, kalender, serializer as ser, sicherung
+from socos import aenderungen, assistent, berechtigung, kalender, serializer as ser, sicherung
 from socos.models import (
     Lageschritt,
     Lagethema,
@@ -1200,6 +1200,37 @@ def kalenderlink_neu(request):
     nutzer.kalenderschluessel = kalender.neuer_schluessel()
     nutzer.save(update_fields=["kalenderschluessel"])
     return Response({"link": kalender.abo_link(request, nutzer)})
+
+
+@api_view(["GET"])
+def assistentschluessel(request):
+    """
+    Ob ein Schlüssel für den Assistenten ausgegeben ist. Der Schlüssel selbst
+    lässt sich nicht wieder anzeigen — gespeichert ist nur sein Hash.
+
+    Diese drei Endpunkte stehen **nicht** auf der Erlaubnisliste des
+    Assistenten: Ein Bot, der sich selbst einen neuen Schlüssel ausstellt,
+    hätte einen Zugang, den man ihm nicht mehr entziehen kann.
+    """
+    if not berechtigung.darf_sehen(request.user):
+        raise PermissionDenied()
+    return Response({"ausgegeben": bool(request.user.assistentschluessel)})
+
+
+@api_view(["POST"])
+def assistentschluessel_neu(request):
+    """Ein neuer Schlüssel, einmal im Klartext. Der alte gilt ab sofort nicht mehr."""
+    if not berechtigung.darf_sehen(request.user):
+        raise PermissionDenied()
+    return Response({"ausgegeben": True, "schluessel": assistent.neuer_schluessel(request.user)})
+
+
+@api_view(["POST"])
+def assistentschluessel_entziehen(request):
+    if not berechtigung.darf_sehen(request.user):
+        raise PermissionDenied()
+    assistent.entziehen(request.user)
+    return Response({"ausgegeben": False})
 
 
 @api_view(["GET"])

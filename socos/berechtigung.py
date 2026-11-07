@@ -110,6 +110,66 @@ def darf_stammdaten_sehen(nutzer, anderer):
     return nutzer.pk == anderer.pk or ist_admin(nutzer)
 
 
+# --- Der Assistent ---------------------------------------------------------
+#
+# Der Telegram-Bot meldet sich mit einem Schlüssel an (socos/assistent.py) und
+# handelt mit den Rechten seines Nutzers — aber nicht überall. **Eine
+# Erlaubnisliste und keine Sperrliste:** Was hier nicht steht, darf er nicht.
+# Ein neuer Endpunkt ist damit für ihn zu, bis jemand ihn ausdrücklich
+# aufnimmt — mit einer Sperrliste stünde jeder neue offen, ohne dass es
+# jemandem auffiele.
+#
+# Er liest Texte, die von außen kommen (Sprachnachrichten, Fotos,
+# weitergeleitete Nachrichten). Ein solcher Text kann versuchen, ihn
+# umzusteuern. Deshalb fehlen hier mit Absicht: die Sicherung (ausgeben hieße
+# den ganzen Bestand samt Passwort-Hashes, einspielen hieße ihn ersetzen), die
+# Nutzerverwaltung, die Schlüssel selbst und die Finanzen.
+
+#: URL-Namen (bei ViewSets der `basename`), die der Assistent aufrufen darf.
+ASSISTENT_DARF = frozenset({
+    "ich", "dashboard", "nutzer",
+    "aufgabe",
+    "kontakt", "organisation", "verlauf",
+    "event", "meeting", "meetingabschnitt",
+    "projekt", "projektphase", "paket", "unteraufgabe", "zeit",
+    "lagethema", "lageschritt", "lageverbindung",
+})
+
+#: Davon nur lesend.
+ASSISTENT_NUR_LESEN = frozenset({"ich", "dashboard", "nutzer"})
+
+#: Wo er entfernen darf. Nur die Verbindungen in Thoughts: Einen Gedanken
+#: umzuhängen heißt, eine Verbindung zu lösen und eine neue zu ziehen. Sie ist
+#: weich gelöscht und lässt sich wiederherstellen. Alles andere entfernt
+#: Bernd selbst in der Oberfläche.
+ASSISTENT_DARF_ENTFERNEN = frozenset({"lageverbindung"})
+
+
+def assistent_darf(url_name, methode):
+    """
+    Ob der Assistent diesen Endpunkt mit dieser Methode aufrufen darf.
+
+    Das ersetzt die Prüfung der Rolle nicht, es kommt dazu: Ein Leser mit
+    Schlüssel darf auch über den Assistenten nur lesen.
+    """
+    if not url_name:
+        return False
+    # Router-Namen sind `<basename>-list`, `-detail`, `-clock-in` …
+    grund = next(
+        (b for b in ASSISTENT_DARF if url_name == b or url_name.startswith(b + "-")),
+        None,
+    )
+    if grund is None:
+        return False
+    if methode in SAFE_METHODS:
+        return True
+    if grund in ASSISTENT_NUR_LESEN:
+        return False
+    if methode == "DELETE":
+        return grund in ASSISTENT_DARF_ENTFERNEN
+    return True
+
+
 # --- Für DRF ----------------------------------------------------------------
 
 

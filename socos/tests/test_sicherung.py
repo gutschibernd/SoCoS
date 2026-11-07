@@ -242,6 +242,9 @@ def test_kalenderschluessel_und_eventzeiten_wandern_mit(tmp_path, medien, bearbe
     Kalender zeigte einfach die alten Einträge weiter.
     """
     bearbeiter.kalenderschluessel = "schluessel-aus-dem-archiv"
+    # Der Schlüssel des Assistenten steht in der .env des Bots draußen —
+    # dasselbe Argument wie beim Abo, nur dass der Bot sonst still 403 bekäme.
+    bearbeiter.assistentschluessel = "a" * 64
     bearbeiter.save()
     Event.objects.create(titel="Messe", von="2026-11-03", beginn="09:00", ende="17:30")
 
@@ -251,6 +254,7 @@ def test_kalenderschluessel_und_eventzeiten_wandern_mit(tmp_path, medien, bearbe
 
     wieder = Nutzer.objects.get(email=bearbeiter.email)
     assert wieder.kalenderschluessel == "schluessel-aus-dem-archiv"
+    assert wieder.assistentschluessel == "a" * 64
     messe = Event.objects.get(titel="Messe")
     assert (str(messe.beginn), str(messe.ende)) == ("09:00:00", "17:30:00")
 

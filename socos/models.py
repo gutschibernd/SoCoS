@@ -108,6 +108,16 @@ class Nutzer(AbstractBaseUser, PermissionsMixin):
         "Kalenderschlüssel", max_length=64, null=True, blank=True, unique=True
     )
 
+    # Der Schlüssel des Assistenten (Telegram-Bot, socos/assistent.py) — nur
+    # sein SHA-256, nie er selbst. Anders als beim Kalender: Der Kalender-
+    # schlüssel öffnet nur das Lesen von Terminen und muss als Link wieder
+    # anzeigbar sein; dieser hier schreibt mit den Rechten des Nutzers. Wer
+    # eine Sicherung oder einen Datenbankabzug in die Hand bekommt, soll damit
+    # nicht auch den Zugang haben. Angezeigt wird er einmal, beim Erzeugen.
+    assistentschluessel = models.CharField(
+        "Assistentschlüssel (Hash)", max_length=64, null=True, blank=True, unique=True
+    )
+
     # Die eigene Übersicht: welche Bausteine in welcher Reihenfolge, je
     # `{"baustein": "aufgaben", "breit": false}`. Leer heißt: noch nie
     # angepasst — dann gilt der Vorschlag aus der eigenen Nutzung (siehe
@@ -116,11 +126,11 @@ class Nutzer(AbstractBaseUser, PermissionsMixin):
     # Baustein bräuchte für jedes Verschieben ein Dutzend Schreibvorgänge.
     uebersicht = models.JSONField("Übersicht", default=list, blank=True)
 
-    # Der Schlüssel steht nicht im Änderungsprotokoll: Das liest jeder Admin,
+    # Die Schlüssel stehen nicht im Änderungsprotokoll: Das liest jeder Admin,
     # und ein Schlüssel im Klartext dort wäre ein zweiter Weg an das Abo.
     # Die Übersicht auch nicht — sie ist eine Vorliebe, kein Fachbestand, und
     # jedes Verschieben eines Bausteins stünde sonst als Zeile darin.
-    protokoll_ohne = ("kalenderschluessel", "uebersicht")
+    protokoll_ohne = ("kalenderschluessel", "assistentschluessel", "uebersicht")
 
     objects = NutzerVerwaltung()
 
@@ -304,9 +314,15 @@ class Protokolleintrag(models.Model):
     @classmethod
     def schreiben(cls, instanz, aktion, aenderungen=None):
         nutzer = aktueller_nutzer.holen()
+        text = str(nutzer) if nutzer else ""
+        # Im Text und nicht als eigenes Feld: Gelesen wird das Protokoll als
+        # Zeile („Bernd · über Assistent"), gefiltert wird danach nicht. Ein
+        # Feld hieße eine Migration und eine Spalte mehr in jeder Ansicht.
+        if nutzer and (kanal := aktueller_nutzer.kanal()):
+            text = f"{text} · über {kanal}"
         return cls.objects.create(
             nutzer=nutzer,
-            nutzer_text=str(nutzer) if nutzer else "",
+            nutzer_text=text[:160],
             modell=instanz._meta.label,
             objekt_id=str(instanz.pk),
             objekt_text=str(instanz)[:250],

@@ -7,6 +7,39 @@ betrifft.
 
 ---
 
+## 2026-11-07 — Schlüssel für den Assistenten (Telegram-Bot)
+
+**Bernd:** ein Agent in einem eigenen Container auf derselben Maschine, über
+Telegram erreichbar. Sprachnachricht nach einem Kundengespräch → Eintrag in
+SoCoS; Aufgaben, Zeit buchen und starten, Thoughts mit Rückfrage, wo sie
+hingehören; Visitenkarte fotografieren → Kontakt. Private Todos führt der Bot
+selbst, **nicht** SoCoS. Der Bot lebt im eigenen Repository
+`gutschibernd/socos-assistent`; SoCoS liefert nur den Zugang.
+
+- **Ein Schlüssel je Nutzer, als SHA-256 am `Nutzer`** (`assistentschluessel`,
+  Migration 0057). Kein DRF-`authtoken`: das hält den Schlüssel im Klartext
+  in einer eigenen Tabelle, die erst in die Sicherung müsste. Angezeigt wird
+  er einmal, unter Software · Integrationen; erneuern macht den alten tot.
+  Steht nicht im Protokoll, wandert mit der Sicherung (sonst bekäme der Bot
+  nach einem Wiederherstellen still 403).
+- **Eine Erlaubnisliste, keine Sperrliste** (`berechtigung.ASSISTENT_DARF`),
+  geprüft bei der Anmeldung (`socos/assistent.py`) — damit für jeden
+  DRF-Endpunkt, auch künftige. Nicht drauf: Sicherung, Nutzer schreiben,
+  Schlüssel, Kalenderlink, Finanzen, Runway, Protokoll. Entfernen nur bei
+  Verbindungen in Thoughts (zum Umhängen). **Warum so eng:** Der Bot liest
+  Text von außen (Sprachnachrichten, Fotos), und ein solcher Text kann
+  versuchen, ihn umzusteuern. Die Rolle des Nutzers gilt zusätzlich.
+- **Im Protokoll steht „Bernd · über Assistent"** — im `nutzer_text`, kein
+  eigenes Feld. Die Anmeldung setzt Handelnden und Kanal mitten in der Anfrage
+  nach (die Middleware kennt den Schlüssel noch nicht) und die Middleware
+  räumt beides am Ende ab.
+- **Die Anmeldeklasse steht hinter der Sitzung.** Die erste Klasse entscheidet
+  über 401 oder 403, und das Frontend erkennt „nicht angemeldet" an der 403.
+- Kein Eintrag in `aenderungen.py`: Für die anderen ändert sich nichts außer
+  einer Karte unter Integrationen.
+
+---
+
 ## 2026-11-06 — Förderplanung: eine Zeile je Antrag
 
 **Bernd:** Die Folie „Förderübersicht" (Folie 1 alle Möglichkeiten, Folie 2

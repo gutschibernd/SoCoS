@@ -145,6 +145,9 @@ AXES_IPWARE_PROXY_COUNT = 0
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
+        # Der Telegram-Bot mit seinem Schlüssel. Muss hinter der Sitzung
+        # stehen — warum, steht in der Klasse.
+        "socos.assistent.AssistentAnmeldung",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
