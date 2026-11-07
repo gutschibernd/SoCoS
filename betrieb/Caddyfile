@@ -47,3 +47,18 @@ socos.test.sopharmis.com {
 		output stdout
 	}
 }
+
+# Der Assistent (Telegram-Bot, Repository socos-assistent): nur seine kleine
+# Seite für Bernds private Todos. Telegram selbst braucht keinen Eingang — der
+# Bot fragt per Long Polling. `assistent` ist der Alias seines Containers im
+# proxy-netz (siehe betrieb/assistent.yml dort); SoCoS weiß sonst nichts von ihm.
+#
+# Wie oben: keine Client-Adresse selbst setzen. 1 MB genügt — die Seite nimmt
+# nur kurze Formulare an.
+assistent.test.sopharmis.com {
+	encode zstd gzip
+	request_body {
+		max_size 1MB
+	}
+	reverse_proxy assistent:8080
+}
