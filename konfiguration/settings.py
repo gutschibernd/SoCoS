@@ -23,6 +23,11 @@ DEBUG = env("DJANGO_DEBUG")
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = env("DJANGO_CSRF_TRUSTED_ORIGINS")
 
+# Das Kästchen mit dem Diamanten auf der Förderungsseite (socos/bisher.py).
+# Aus der Umgebung, weil die Beträge nicht ins Repository gehören; leer heißt
+# „auf diesem Server nichts hinterlegt".
+BISHER = env("SOCOS_BISHER", default="")
+
 
 # --- Anwendungen ------------------------------------------------------------
 

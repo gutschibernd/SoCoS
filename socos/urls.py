@@ -56,6 +56,7 @@ urlpatterns = [
     path("assistent/entziehen/", api.assistentschluessel_entziehen, name="assistent-entziehen"),
     path("zeitnachweis/", api.zeitnachweis, name="zeitnachweis"),
     path("foerderauslastung/", api.foerderauslastung, name="foerderauslastung"),
+    path("bisher/", api.bisher_bekommen, name="bisher"),
     path("planung/<int:phase>/", api.planung, name="planung"),
     path("runway/", api.runway, name="runway"),
     path("runway/ist/", api.runway_ist, name="runway-ist"),

@@ -23,7 +23,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from socos import aenderungen, assistent, berechtigung, kalender, serializer as ser, sicherung
+from socos import aenderungen, assistent, berechtigung, bisher, kalender, serializer as ser, sicherung
 from socos.models import (
     Lageschritt,
     Lagethema,
@@ -1559,6 +1559,24 @@ def foerderauslastung(request):
     if unbekannt:
         raise ValidationError({"stand": f"Diesen Stand gibt es nicht: {', '.join(unbekannt)}."})
     return Response(foerderung.auslastung(staende))
+
+
+@api_view(["POST"])
+@permission_classes([berechtigung.SocosBerechtigung])
+def bisher_bekommen(request):
+    """
+    `POST {pin}`: was Sopharmis bisher bekommen hat (`socos/bisher.py`).
+
+    POST, nicht `GET ?pin=`: Ein PIN in der Adresse stünde im Zugriffsprotokoll
+    von Caddy und im Verlauf des Browsers. Ein falscher PIN ist eine 400 und
+    keine 403 — sonst hielte das Frontend die Sitzung für verwehrt.
+    """
+    daten = bisher.hinterlegt()
+    if daten is None:
+        raise ValidationError({"pin": "Auf diesem Server ist nichts hinterlegt."})
+    if not bisher.pin_stimmt(request.data.get("pin"), daten):
+        raise ValidationError({"pin": "Der PIN stimmt nicht."})
+    return Response(bisher.aufstellung(daten))
 
 
 @api_view(["GET"])

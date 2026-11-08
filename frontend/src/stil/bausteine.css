@@ -3378,6 +3378,13 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .fd-eckdatum:nth-child(n + 3) { border-top: 1px solid var(--rand); }
   .fd-antraege, .fd-programme { grid-template-columns: minmax(0, 1fr); }
   .fd-geberraster { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  /* Zwei Spalten passen auch am Handy nebeneinander — als Karte stünde unter
+     jedem Namen noch „Betrag", und die Liste würde doppelt so lang. */
+  .fd-bisher-tabelle tr { grid-template-columns: minmax(0, 1fr) auto; }
+  .fd-bisher-tabelle td:first-child { grid-column: auto; }
+  .fd-bisher-tabelle td.fd-bisher-betrag { align-items: flex-end; }
+  .fd-bisher-tabelle td::before { display: none; }
+  .dialog.fd-bisher-dialog .fd-bisher-summe { padding-left: 0; padding-right: 0; }
   .fd-geberkachel, .fd-geberraster > .fd-antrag-dazu { min-height: 112px; }
   .fd-zeile {
     grid-template-columns: 22px minmax(0, 1fr) auto;
@@ -3433,6 +3440,30 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
  * --f ≥ 13,11.
  */
 .fd-uebersichtskopf { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+
+/* Das Kästchen mit dem Diamanten (Foerderungen.tsx, `Bisher`): klein und
+   leise, damit es niemandem im Weg steht — die Fläche zum Tippen hält
+   trotzdem 44 px. Der Diamant nimmt das Blau der Personentöne (--t1). */
+.fd-bisher { display: flex; justify-content: flex-end; margin-top: 24px; }
+.fd-bisher-knopf {
+  display: grid; place-items: center; width: var(--griff); height: var(--griff);
+  padding: 0; background: none; border: 0; cursor: pointer; color: var(--t1);
+}
+.fd-bisher-knopf .zeichen {
+  box-sizing: content-box; width: 14px; height: 14px; padding: 5px;
+  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante-klein);
+}
+.fd-bisher-knopf:hover .zeichen { border-color: var(--t1); }
+.fd-bisher-dialog { max-width: 480px; }
+.fd-bisher-pin { display: grid; gap: 6px; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: var(--text-leise); }
+.fd-bisher-pin input { min-height: var(--griff); letter-spacing: 0.2em; }
+.fd-bisher-tabelle { margin-bottom: 4px; }
+.fd-bisher-wofuer { display: block; margin-top: 2px; font-size: 13px; color: var(--text-leise); }
+.fd-bisher-tabelle .fd-bisher-betrag { text-align: right; white-space: nowrap; }
+.dialog .fd-bisher-summe {
+  display: flex; justify-content: space-between; gap: 12px; margin: 0 0 16px;
+  padding: 10px 12px 0; border-top: 1px solid var(--rand-stark); color: var(--text); font-size: 14px;
+}
 
 /* `minmax(0, 1fr)`, nicht `1fr`: Sonst wächst die Spalte auf die Breite der
    Achse, und statt der Achse in ihrer Karte rollt die ganze Seite. */

@@ -66,7 +66,8 @@ export type ZeichenName =
   | "tief"
   | "waage"
   | "bruecke"
-  | "muenze";
+  | "muenze"
+  | "diamant";
 
 /**
  * Alles liegt zwischen 4 und 20, damit der halbe Strich (1) an keiner Kante
@@ -206,6 +207,9 @@ const PFADE: Record<ZeichenName, string> = {
   bruecke: "M4 17h16M4 17v-6.5M20 17v-6.5M4 10.5c3.5 0 5-3.5 8-3.5s4.5 3.5 8 3.5M8.5 17v-4.5M12 17V11M15.5 17v-4.5",
   // und Geld, das jemand hineinlegt.
   muenze: "M12 4.5c3.6 0 6.5 1.1 6.5 2.5S15.6 9.5 12 9.5 5.5 8.4 5.5 7 8.4 4.5 12 4.5M5.5 7v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5V7M5.5 12v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-5",
+  // Ein geschliffener Stein — das Kästchen unten auf der Förderungsseite:
+  // was bisher hereinkam. Kein Euro-Zeichen: das stünde für jeden Betrag.
+  diamant: "M8 4.5h8l4 5-8 10.5-8-10.5zM4 9.5h16M10 4.5 8.5 9.5 12 20M14 4.5l1.5 5L12 20",
 };
 
 export function Zeichen({ name, klasse }: { name: ZeichenName; klasse?: string }) {
