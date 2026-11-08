@@ -18,11 +18,13 @@ Vorlesen. Drei Dinge werden deshalb hier ausgedünnt:
   Auslöser (wer gerade das Dashboard öffnete), aber keinen Handelnden.
   Änderungen am Nutzer selbst fehlen ebenso: Dort landet jedes „Neuigkeiten
   gelesen", und das ist keine Nachricht fürs Team.
+- **Die Eingänge hinter dem Diamanten fehlen immer** (`socos/bisher.py`): Sie
+  stehen nirgends sonst, auch nicht als „hat … geändert".
 """
 
 from django.utils import timezone
 
-from socos.models import Kontakt, Nutzer, Protokolleintrag, Zeitbuchung
+from socos.models import Eingang, Kontakt, Nutzer, Protokolleintrag, Zeitbuchung
 
 # Wie viele Protokollzeilen höchstens durchgesehen werden, um die paar Sätze
 # zu finden. Nach dem Ausdünnen bleibt von einem eingefügten Meetingprotokoll
@@ -189,7 +191,7 @@ def letzte(anzahl=5):
     eintraege = list(
         Protokolleintrag.objects.select_related("nutzer")
         .filter(nutzer__isnull=False)
-        .exclude(modell=Nutzer._meta.label)
+        .exclude(modell__in=[Nutzer._meta.label, Eingang._meta.label])
         .order_by("-zeitpunkt", "-id")[:DURCHSICHT]
     )
 

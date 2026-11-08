@@ -54,6 +54,9 @@ MODELLE_IM_ARCHIV = [
     "socos.Foerderposten",
     "socos.Foerderabschnitt",
     "socos.Foerderkapazitaet",
+    # Das Kästchen mit dem Diamanten (socos/bisher.py) — nicht im Repository,
+    # also nur hier gesichert.
+    "socos.Eingang",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
@@ -101,6 +104,8 @@ LOESCHREIHENFOLGE = [
     "socos.Foerdergeber",
     # Zeigt auf den Nutzer, sonst auf nichts.
     "socos.Foerderkapazitaet",
+    # Zeigt auf nichts, und auf ihn zeigt nichts.
+    "socos.Eingang",
     "socos.Organisation",
     "socos.Kontostand",
     "socos.Fixkosten",

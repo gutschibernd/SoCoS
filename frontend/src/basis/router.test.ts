@@ -47,6 +47,8 @@ describe("ausPfad", () => {
     // Die Planung ist in die Projektseite gezogen; alte Lesezeichen führen dorthin.
     expect(ausPfad("/module/planung/28")).toEqual({ seite: "projekt", unter: "28" });
     expect(ausPfad("/module/planung")).toEqual({ seite: "projekt", unter: null });
+    // Direkt aufgerufen, nicht nur über den Diamanten erreicht.
+    expect(ausPfad("/module/foerderungen/bisher")).toEqual({ seite: "module", unter: "foerderungen/bisher" });
     // Die dritte Stufe gilt nur, wo sie vorgesehen ist.
     expect(ausPfad("/kontakte/12/34")).toEqual({ seite: "kontakte", unter: null });
   });

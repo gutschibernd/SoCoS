@@ -26,7 +26,7 @@
  * beim Tippen, kurze beim Verlassen des Feldes.
  */
 
-import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ZeigerEreignis } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ZeigerEreignis } from "react";
 
 import { hole } from "../basis/api";
 import {
@@ -75,7 +75,7 @@ import {
   type Griff,
 } from "../basis/foerderungen";
 import { melden } from "../basis/meldungen";
-import { AUSLASTUNGSWEG, PLANUNGSWEG, alsEuro, betragAusEingabe, betragZumBearbeiten } from "../basis/module";
+import { AUSLASTUNGSWEG, BISHERWEG, PLANUNGSWEG, alsEuro, betragAusEingabe, betragZumBearbeiten } from "../basis/module";
 import type { Wechseln } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Anlegekarte, Beschriftet } from "../bausteine/Anlegekarte";
@@ -176,125 +176,32 @@ export function Foerderungen({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }
           </Dazu>
         )}
       </div>
-      <Bisher />
+      <Bisher wechseln={wechseln} />
     </>
   );
 }
 
 /* --- Das Kästchen mit dem Diamanten ---------------------------------------- */
 
-type Aufstellung = { posten: { von: string; wofuer: string; betrag: string }[]; summe: string };
-
 /**
- * Ganz unten rechts: was bisher hereinkam, hinter einem PIN. Die Beträge holt
- * erst der richtige PIN vom Server (`socos/bisher.py`) — im Bundle stehen sie
- * nicht, und sonst nirgends in SoCoS.
+ * Ganz unten rechts: der Weg zu dem, was bisher hereinkam (`Bisher.tsx`).
+ * Eine eigene Unterseite, kein Fenster — sie hat ihre Adresse und ihr Zurück
+ * wie Planung und Auslastung.
  */
-function Bisher() {
-  const [offen, setOffen] = useState(false);
+function Bisher({ wechseln }: { wechseln: Wechseln }) {
   return (
     <div className="fd-bisher">
-      <button type="button" className="fd-bisher-knopf" aria-label="Bisher bekommen" onClick={() => setOffen(true)}>
+      <a
+        className="fd-bisher-knopf"
+        href={`/module/${BISHERWEG}`}
+        aria-label="Bisher bekommen"
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", BISHERWEG);
+        }}
+      >
         <Zeichen name="diamant" />
-      </button>
-      {offen && <BisherDialog schliessen={() => setOffen(false)} />}
-    </div>
-  );
-}
-
-function BisherDialog({ schliessen }: { schliessen: () => void }) {
-  const [pin, setPin] = useState("");
-  const [laeuft, setLaeuft] = useState(false);
-  const [daten, setDaten] = useState<Aufstellung | null>(null);
-  const feld = useRef<HTMLInputElement>(null);
-  // Über einen Verweis, wie im Löschdialog: sonst hinge Esc an der ersten
-  // Pfeilfunktion, die beim Öffnen hereinkam.
-  const zu = useRef(schliessen);
-  zu.current = schliessen;
-  useEffect(() => {
-    feld.current?.focus();
-    const taste = (e: KeyboardEvent) => e.key === "Escape" && zu.current();
-    window.addEventListener("keydown", taste);
-    return () => window.removeEventListener("keydown", taste);
-  }, []);
-
-  async function pruefen(e: FormEvent) {
-    e.preventDefault();
-    setLaeuft(true);
-    try {
-      setDaten(await hole<Aufstellung>("/bisher/", { method: "POST", body: JSON.stringify({ pin }) }));
-    } catch {
-      // „Der PIN stimmt nicht." meldet `hole` selbst oben rechts, wie jeden
-      // gescheiterten Schreibaufruf — hier nur das Feld frei machen.
-      setPin("");
-      feld.current?.focus();
-    } finally {
-      setLaeuft(false);
-    }
-  }
-
-  return (
-    <div className="dialog-grund" role="dialog" aria-modal="true" aria-labelledby="bisher-titel" onClick={schliessen}>
-      <div className="dialog fd-bisher-dialog" onClick={(e) => e.stopPropagation()}>
-        <h2 id="bisher-titel">Bisher bekommen</h2>
-        {!daten ? (
-          <form onSubmit={pruefen}>
-            <label className="fd-bisher-pin">
-              PIN
-              <input
-                ref={feld}
-                className="feld"
-                type="password"
-                inputMode="numeric"
-                autoComplete="off"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-              />
-            </label>
-            <div className="dialog-knoepfe">
-              <button type="button" className="knopf-still" onClick={schliessen}>
-                Abbrechen
-              </button>
-              <button type="submit" className="knopf" disabled={laeuft || !pin.trim()}>
-                Öffnen
-              </button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <p>Diese Zahlen stehen nur hier — in keiner Auswertung, keiner Planung, keinem Export und nirgends sonst in SoCoS.</p>
-            <table className="tabelle fd-bisher-tabelle">
-              <thead>
-                <tr>
-                  <th>Von</th>
-                  <th className="fd-bisher-betrag">Betrag</th>
-                </tr>
-              </thead>
-              <tbody>
-                {daten.posten.map((p, i) => (
-                  <tr key={i}>
-                    <td>
-                      <b>{p.von}</b>
-                      {p.wofuer && <span className="fd-bisher-wofuer">{p.wofuer}</span>}
-                    </td>
-                    <td data-spalte="Betrag" className="zahl fd-bisher-betrag">
-                      {alsEuro(p.betrag)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="fd-bisher-summe">
-              Zusammen <b className="zahl">{alsEuro(daten.summe)}</b>
-            </p>
-            <div className="dialog-knoepfe">
-              <button type="button" className="knopf-still" onClick={schliessen}>
-                Schließen
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+      </a>
     </div>
   );
 }

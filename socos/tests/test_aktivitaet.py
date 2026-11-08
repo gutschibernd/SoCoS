@@ -162,13 +162,14 @@ def test_jedes_gesicherte_modell_hat_einen_namen_im_satz():
     passiert: Sie und diese Kachel sind in zwei Zweigen gleichzeitig
     entstanden, und keiner der beiden konnte vom anderen wissen.
 
-    Nutzer und Protokoll fehlen mit Absicht (siehe Kopf von aktivitaet.py).
+    Nutzer, Protokoll und die Eingänge hinter dem Diamanten fehlen mit
+    Absicht (siehe Kopf von aktivitaet.py).
     """
     from socos.sicherung import MODELLE_IM_ARCHIV
 
     fehlend = [
         m
         for m in MODELLE_IM_ARCHIV
-        if m.startswith("socos.") and m not in {"socos.Nutzer", "socos.Protokolleintrag"} and m not in aktivitaet.NAMEN
+        if m.startswith("socos.") and m not in {"socos.Nutzer", "socos.Protokolleintrag", "socos.Eingang"} and m not in aktivitaet.NAMEN
     ]
     assert not fehlend, f"Ohne Namen im Satz: {fehlend}"

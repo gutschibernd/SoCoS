@@ -2257,6 +2257,36 @@ class Foerderkapazitaet(Basismodell):
         return f"{self.nutzer.name}: {self.stunden_je_monat} h je Monat"
 
 
+class Eingang(Basismodell):
+    """
+    Was Sopharmis bisher bekommen hat — eine Zeile auf der Seite hinter dem
+    Diamanten (Förderungen, `foerderungen/bisher`), erst nach dem PIN.
+
+    **Steht nirgends sonst** — keine Auswertung, keine Runway-Rechnung, keine
+    Förderplanung, kein PDF (Bernd, 2026-11-08). Aber in der Sicherung und im
+    Export (Bernd, 2026-11-09). Siehe `socos/bisher.py`.
+
+    Eingespielt aus `daten/bisher.json` (`bisher_einspielen`), weil die
+    Beträge nicht ins Repository gehören — eine Datenmigration stünde für
+    immer in der Versionsgeschichte.
+    """
+
+    von = models.CharField("von", max_length=120)
+    wofuer = models.CharField("wofür", max_length=200, blank=True)
+    betrag = models.DecimalField("Betrag", max_digits=12, decimal_places=2)
+    # Die Reihenfolge der Datei. An ihr erkennt das Einspielen dieselbe Zeile
+    # wieder — und das Protokoll zeigt dann alt → neu statt „gelöscht, angelegt".
+    reihenfolge = models.PositiveIntegerField("Reihenfolge")
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Eingang"
+        verbose_name_plural = "Eingänge"
+        ordering = ["reihenfolge", "id"]
+
+    def __str__(self):
+        return f"{self.von}: {self.betrag} €"
+
+
 # --- Module: Designentscheidungen ------------------------------------------------------
 
 

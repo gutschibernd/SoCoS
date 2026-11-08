@@ -32,6 +32,7 @@ from socos.models import (
     Arbeitspaket,
     Aufgabe,
     Designentscheidung,
+    Eingang,
     Event,
     Eventanhang,
     Eventziel,
@@ -1090,7 +1091,11 @@ class ProtokollViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [berechtigung.SocosBerechtigung]
 
     def get_queryset(self):
-        menge = super().get_queryset()
+        # Die Eingänge hinter dem Diamanten stehen nirgends sonst (socos/bisher.py)
+        # — auch nicht hier, wo jeder Angemeldete alt → neu je Feld liest.
+        # Geschrieben wird ihr Protokoll trotzdem: Es steht in der Datenbank,
+        # in der Sicherung und im Django-Admin.
+        menge = super().get_queryset().exclude(modell=Eingang._meta.label)
         if modell := self.request.query_params.get("modell"):
             menge = menge.filter(modell=modell)
         if objekt := self.request.query_params.get("objekt"):
@@ -1571,12 +1576,9 @@ def bisher_bekommen(request):
     von Caddy und im Verlauf des Browsers. Ein falscher PIN ist eine 400 und
     keine 403 — sonst hielte das Frontend die Sitzung für verwehrt.
     """
-    daten = bisher.hinterlegt()
-    if daten is None:
-        raise ValidationError({"pin": "Auf diesem Server ist nichts hinterlegt."})
-    if not bisher.pin_stimmt(request.data.get("pin"), daten):
+    if not bisher.pin_stimmt(request.data.get("pin")):
         raise ValidationError({"pin": "Der PIN stimmt nicht."})
-    return Response(bisher.aufstellung(daten))
+    return Response(bisher.aufstellung())
 
 
 @api_view(["GET"])

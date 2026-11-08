@@ -23,6 +23,7 @@ import {
   MODULWEGE,
   designAusWeg,
   foerderauslastungAusWeg,
+  foerderbisherAusWeg,
   foerderplanungAusWeg,
   foerderungAusWeg,
   themaAusWeg,
@@ -107,7 +108,7 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   // einzelnes Praktikumsthema: `/module/praktikum/12`, `/module/praktikum-ideen/7`,
   // Fördergeber, Programm und Antrag: `/module/foerderungen/2`, `/2/1`, `/2/1/3`,
   // und Auslastung und Planung daneben: `/module/foerderungen/auslastung`,
-  // `/module/foerderungen/planung`, eine
+  // `/module/foerderungen/planung`, `/module/foerderungen/bisher`, eine
   // Designentscheidung: `/module/design/7`.
   module: (unter) =>
     MODULWEGE.includes(unter) ||
@@ -115,6 +116,7 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
     foerderungAusWeg(unter) !== null ||
     foerderauslastungAusWeg(unter) !== null ||
     foerderplanungAusWeg(unter) !== null ||
+    foerderbisherAusWeg(unter) !== null ||
     designAusWeg(unter) !== null,
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
   profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),

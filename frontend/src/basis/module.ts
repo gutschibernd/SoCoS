@@ -150,6 +150,15 @@ export function foerderplanungAusWeg(unter: string | null): { modul: Modul; teil
   return gefunden && gefunden.teil.schluessel === "foerderung" ? { modul: gefunden.modul, teil: gefunden.teil } : null;
 }
 
+/** Der Weg zu dem, was bisher hereinkam — hinter dem Diamanten auf der Förderungsseite. */
+export const BISHERWEG = "foerderungen/bisher";
+
+/** Die Seite hinter dem Diamanten unter `foerderungen/bisher` — oder nichts. */
+export function foerderbisherAusWeg(unter: string | null): { modul: Modul; teil: Foerderteil } | null {
+  const gefunden = unter === BISHERWEG ? teilZuWeg("foerderungen") : null;
+  return gefunden && gefunden.teil.schluessel === "foerderung" ? { modul: gefunden.modul, teil: gefunden.teil } : null;
+}
+
 /**
  * Eine Designentscheidung hinter `design/7` — oder nichts. Die Nummer im Weg
  * ist die `id`, nicht die Kennung DE-007: Die id ändert sich nie, und der

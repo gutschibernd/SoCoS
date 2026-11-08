@@ -3380,11 +3380,11 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .fd-geberraster { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   /* Zwei Spalten passen auch am Handy nebeneinander — als Karte stünde unter
      jedem Namen noch „Betrag", und die Liste würde doppelt so lang. */
-  .fd-bisher-tabelle tr { grid-template-columns: minmax(0, 1fr) auto; }
-  .fd-bisher-tabelle td:first-child { grid-column: auto; }
-  .fd-bisher-tabelle td.fd-bisher-betrag { align-items: flex-end; }
-  .fd-bisher-tabelle td::before { display: none; }
-  .dialog.fd-bisher-dialog .fd-bisher-summe { padding-left: 0; padding-right: 0; }
+  .bisher-tabelle tr { grid-template-columns: minmax(0, 1fr) auto; }
+  .bisher-tabelle td:first-child { grid-column: auto; }
+  .bisher-tabelle td.bisher-betrag { align-items: flex-end; }
+  .bisher-tabelle td::before { display: none; }
+  .bisher .bisher-summe { padding-left: 0; padding-right: 0; }
   .fd-geberkachel, .fd-geberraster > .fd-antrag-dazu { min-height: 112px; }
   .fd-zeile {
     grid-template-columns: 22px minmax(0, 1fr) auto;
@@ -3454,15 +3454,20 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante-klein);
 }
 .fd-bisher-knopf:hover .zeichen { border-color: var(--t1); }
-.fd-bisher-dialog { max-width: 480px; }
-.fd-bisher-pin { display: grid; gap: 6px; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: var(--text-leise); }
-.fd-bisher-pin input { min-height: var(--griff); letter-spacing: 0.2em; }
-.fd-bisher-tabelle { margin-bottom: 4px; }
-.fd-bisher-wofuer { display: block; margin-top: 2px; font-size: 13px; color: var(--text-leise); }
-.fd-bisher-tabelle .fd-bisher-betrag { text-align: right; white-space: nowrap; }
-.dialog .fd-bisher-summe {
-  display: flex; justify-content: space-between; gap: 12px; margin: 0 0 16px;
-  padding: 10px 12px 0; border-top: 1px solid var(--rand-stark); color: var(--text); font-size: 14px;
+
+/* Die Seite dahinter (ansichten/Bisher.tsx): schmal, damit Name und Betrag
+   am breiten Schirm nicht einen halben Meter auseinanderstehen. */
+.bisher { max-width: 560px; }
+.bisher-pin { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; max-width: 360px; }
+.bisher-pin label { display: grid; gap: 6px; flex: 1 1 160px; font-size: 13px; font-weight: 600; color: var(--text-leise); }
+.bisher-pin input { min-height: var(--griff); letter-spacing: 0.2em; }
+.bisher-pin .knopf { min-height: var(--griff); }
+.bisher-satz { margin: 0 0 14px; font-size: 14px; line-height: 1.55; color: var(--text-leise); }
+.bisher-wofuer { display: block; margin-top: 2px; font-size: 13px; color: var(--text-leise); }
+.bisher-tabelle .bisher-betrag { text-align: right; white-space: nowrap; }
+.bisher-summe {
+  display: flex; justify-content: space-between; gap: 12px; margin: 0;
+  padding: 10px 12px 0; border-top: 1px solid var(--rand-stark); font-size: 14px;
 }
 
 /* `minmax(0, 1fr)`, nicht `1fr`: Sonst wächst die Spalte auf die Breite der

@@ -23,6 +23,7 @@ import {
   teilZuWeg,
   themaAusWeg,
   foerderauslastungAusWeg,
+  foerderbisherAusWeg,
   foerderplanungAusWeg,
   foerderungAusWeg,
   type Designteil,
@@ -38,6 +39,7 @@ import { Zeichen } from "../bausteine/Zeichen";
 import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
 import { Foerderauslastung } from "./Foerderauslastung";
+import { Bisherseite } from "./Bisher";
 import { Foerderplanung } from "./Foerderplanung";
 import { Antragsseite, Foerderungen, Geberseite, Programmseite } from "./Foerderungen";
 import { Runway } from "./Runway";
@@ -60,6 +62,7 @@ export function Module({
   if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} zurueck={zurueck} />;
   if (foerderauslastungAusWeg(unter)) return <Foerderauslastung ich={ich} wechseln={wechseln} />;
   if (foerderplanungAusWeg(unter)) return <Foerderplanung ich={ich} wechseln={wechseln} />;
+  if (foerderbisherAusWeg(unter)) return <Bisherseite />;
   const entscheidung = designAusWeg(unter);
   if (entscheidung)
     return <Entscheidungsseite key={entscheidung.id} ich={ich} id={entscheidung.id} wechseln={wechseln} zurueck={zurueck} />;

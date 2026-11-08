@@ -3,6 +3,7 @@ import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
 import {
   designAusWeg,
   foerderauslastungAusWeg,
+  foerderbisherAusWeg,
   foerderplanungAusWeg,
   foerderungAusWeg,
   teilZuWeg,
@@ -87,13 +88,15 @@ export function App() {
   const bearbeiten = ort.seite === "projekt" && ort.unter === "bearbeiten";
   const auslastung = ort.seite === "module" ? foerderauslastungAusWeg(ort.unter) : null;
   const planung = ort.seite === "module" ? foerderplanungAusWeg(ort.unter) : null;
+  const bisher = ort.seite === "module" ? foerderbisherAusWeg(ort.unter) : null;
   const thema =
     ort.seite === "module"
       ? (themaAusWeg(ort.unter) ??
         foerderungAusWeg(ort.unter) ??
         designAusWeg(ort.unter) ??
         (auslastung && { ...auslastung, teil: { ...auslastung.teil, titel: "Auslastung" } }) ??
-        (planung && { ...planung, teil: { ...planung.teil, titel: "Planung" } }))
+        (planung && { ...planung, teil: { ...planung.teil, titel: "Planung" } }) ??
+        (bisher && { ...bisher, teil: { ...bisher.teil, titel: "Bisher bekommen" } }))
       : null;
   // Die oberste Stufe eines Moduls trägt seinen Namen und wozu es da ist —
   // nicht „Module", seit es im Menü wie jede andere Seite steht.

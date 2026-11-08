@@ -30,7 +30,7 @@ import {
   telefonatQuelle,
   telefonatText,
 } from "./foerderungen";
-import { alsEuro, foerderauslastungAusWeg, foerderplanungAusWeg, foerderungAusWeg, themaAusWeg } from "./module";
+import { alsEuro, foerderauslastungAusWeg, foerderbisherAusWeg, foerderplanungAusWeg, foerderungAusWeg, themaAusWeg } from "./module";
 
 const antrag = (teil: Partial<Foerderantrag> = {}) =>
   ({ laufzeit: 0, rahmen: null, paketende: 0, ende: null, ...teil }) as Foerderantrag;
@@ -207,6 +207,10 @@ describe("der Weg zu einem Antrag", () => {
     expect(foerderungAusWeg("foerderungen/planung")).toBeNull();
     expect(foerderplanungAusWeg("foerderungen/planung")).not.toBeNull();
     expect(foerderplanungAusWeg("foerderungen/auslastung")).toBeNull();
+    // Und die Seite hinter dem Diamanten.
+    expect(foerderungAusWeg("foerderungen/bisher")).toBeNull();
+    expect(foerderbisherAusWeg("foerderungen/bisher")).not.toBeNull();
+    expect(foerderbisherAusWeg("foerderungen/planung")).toBeNull();
     expect(themaAusWeg("foerderungen/12")).toBeNull();
     expect(foerderungAusWeg("foerderungen")).toBeNull();
   });

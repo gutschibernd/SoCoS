@@ -631,6 +631,23 @@ def test_foerderplanung_wandert_mit(tmp_path, medien):
     assert (antrag.prioritaet, antrag.vermerk) == (2, "kein Vollzeitengagement")
 
 
+
+def test_die_eingaenge_hinter_dem_diamanten_wandern_mit(tmp_path, medien):
+    """Nicht im Repository (socos/bisher.py) — also ist die Sicherung der einzige zweite Ort."""
+    from socos.models import Eingang
+
+    Eingang.objects.create(von="Geber A", wofuer="Gehälter", betrag=Decimal("0.10"), reihenfolge=0)
+    Eingang.objects.create(von="Geber B", betrag=Decimal("0.20"), reihenfolge=1)
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    Eingang.alle_objekte.all().hart_loeschen()
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    assert [(e.von, e.wofuer, e.betrag, e.reihenfolge) for e in Eingang.objects.all()] == [
+        ("Geber A", "Gehälter", Decimal("0.10"), 0),
+        ("Geber B", "", Decimal("0.20"), 1),
+    ]
+
 # --- Aufräumen am Server ----------------------------------------------------
 
 
