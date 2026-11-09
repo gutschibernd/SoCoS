@@ -1,6 +1,6 @@
 /**
- * Eine Kalendereinladung (.ics, RFC 5545) lesen, um „Neues Event" damit
- * vorauszufüllen.
+ * Eine Kalendereinladung (.ics, RFC 5545) lesen, um „Neues Event" oder
+ * „Neues Meeting" damit vorauszufüllen.
  *
  * **Gelesen wird im Browser, nicht am Server.** Die Datei wird nicht
  * gespeichert — sie füllt nur das Formular, und was davon übernommen wird,

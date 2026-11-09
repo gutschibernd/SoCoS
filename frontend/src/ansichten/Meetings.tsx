@@ -64,6 +64,7 @@ import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Anhangkarte } from "../bausteine/Anhangkarte";
 import { Anlegekarte, Beschriftet, Neuknopf } from "../bausteine/Anlegekarte";
+import { Einladungsablage } from "../bausteine/Einladungsablage";
 import { Feldtext } from "../bausteine/Feldtext";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
@@ -193,14 +194,19 @@ function Uebersicht({
   oeffnen: (id: number) => void;
 }) {
   const [suche, setSuche] = useState("");
-  const leer = () => ({ titel: "", datum: heuteAlsDatum(), uhrzeit: "", ort: "" });
+  const leer = () => ({ titel: "", datum: heuteAlsDatum(), uhrzeit: "", ort: "", vorbereitung: "" });
   const [neues, setNeues] = useState(leer);
   const [anlegenOffen, setAnlegenOffen] = useState(false);
   const [fehler, setFehler] = useState("");
+  // Die Vorbereitung steht nur da, wenn eine Einladung Text mitgebracht hat —
+  // sonst wird sie auf der Meetingseite geschrieben. Ein eigener Zustand,
+  // damit das Feld nicht verschwindet, sobald man es leert.
+  const [mitText, setMitText] = useState(false);
 
   function abbrechen() {
     setAnlegenOffen(false);
     setNeues(leer());
+    setMitText(false);
     setFehler("");
   }
 
@@ -218,9 +224,11 @@ function Uebersicht({
         datum: neues.datum,
         uhrzeit: neues.uhrzeit,
         ort: neues.ort.trim(),
+        vorbereitung: neues.vorbereitung.trim(),
       }),
     });
     setNeues(leer());
+    setMitText(false);
     setAnlegenOffen(false);
     neuLaden();
     // Gleich hinein: Wer ein Meeting anlegt, will als Nächstes aufschreiben,
@@ -239,6 +247,21 @@ function Uebersicht({
         abbrechen={offenOhneKnopf ? undefined : abbrechen}
         fehler={fehler}
       >
+        <Einladungsablage
+          uebernehmen={(ics) => {
+            // Ein Meeting hat nur einen Tag und eine Uhrzeit; das Ende der
+            // Einladung fällt weg (der Kalender rechnet pauschal eine
+            // Stunde). Texte nur, wenn die Einladung welche hat.
+            setNeues({
+              titel: ics.titel || neues.titel,
+              datum: ics.von,
+              uhrzeit: ics.beginn,
+              ort: ics.ort || neues.ort,
+              vorbereitung: ics.notiz || neues.vorbereitung,
+            });
+            if (ics.notiz) setMitText(true);
+          }}
+        />
         <Beschriftet text="Worum geht es?" art="breit">
           <input
             className="feld"
@@ -266,6 +289,16 @@ function Uebersicht({
         <Beschriftet text="Ort oder Link">
           <input className="feld" value={neues.ort} onChange={(e) => setNeues({ ...neues, ort: e.target.value })} />
         </Beschriftet>
+        {mitText && (
+          <Beschriftet text="Vorbereitung" art="ganz">
+            <textarea
+              className="feld"
+              rows={4}
+              value={neues.vorbereitung}
+              onChange={(e) => setNeues({ ...neues, vorbereitung: e.target.value })}
+            />
+          </Beschriftet>
+        )}
       </Anlegekarte>
     );
 

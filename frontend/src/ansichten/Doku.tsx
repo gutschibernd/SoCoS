@@ -739,6 +739,7 @@ function MeetingsDoku() {
         <Schritte
           schritte={[
             "Meeting anlegen, sobald der Termin steht — Titel, Tag, Uhrzeit. Personen und Häuser kannst du später nachtragen.",
+            "Kam der Termin als Einladung, die .ics auf die gestrichelte Fläche unter „Neues Meeting“ ziehen oder dort wählen: Titel, Tag, Uhrzeit und Ort stehen dann im Formular, der Text der Einladung (Agenda, Teams-Link) in „Vorbereitung“. Die Datei selbst wird nicht gespeichert.",
             "In „Vorbereitung“ eintragen, was wir aus dem Termin holen wollen. Das bleibt danach stehen: Daran misst sich, ob wir es bekommen haben.",
             "Während des Meetings in „Mitschrift“ tippen. Stichworte reichen — das Feld speichert sich von selbst, es gibt keinen Knopf dafür.",
             "Die Mail oder Unterlagen zum Termin unter „Anhänge“ anhängen — eine E-Mail am besten als .eml.",
