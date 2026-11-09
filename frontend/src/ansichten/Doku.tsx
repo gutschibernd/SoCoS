@@ -694,6 +694,10 @@ function EventsDoku() {
               begriff: "Suche",
               text: "Sie geht über die Hitlist mit: Wer den Namen einer Förderstelle eingibt, findet das Event, auf dem er sie treffen wollte.",
             },
+            {
+              begriff: "Aus einer Einladung",
+              text: "Unter „Neues Event“ eine Kalendereinladung (.ics) auf die gestrichelte Fläche ziehen oder sie dort wählen: Titel, Ort, Tage, Uhrzeiten und der Text der Einladung stehen dann im Formular. Angelegt wird erst mit „Event anlegen“ — vorher lässt sich alles ändern. Die Datei selbst wird nicht gespeichert.",
+            },
           ]}
         />
       </Abschnitt>

@@ -852,6 +852,32 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--akzent); }
 .anlegefelder > .feldblock-uhrzeit { flex: 0 0 118px; }
 .anlegefelder > .schalter { flex: 0 0 auto; }
 .anlegeknoepfe { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.anlegefelder > .feldblock-ganz { flex: 1 0 100%; }
+.anlegefelder > .feldblock-ganz textarea { resize: vertical; }
+
+/* Die Einladung (.ics) zum Hineinziehen über „Neues Event". Gestrichelt,
+   weil sie eine Ablage ist und kein Feld; zugleich das Etikett des
+   unsichtbaren Dateifelds, damit am Handy das Antippen bleibt. Die Töne sind
+   die schon gerechneten: --text-leise auf --flaeche-leise und --akzent-hell. */
+.einladungsablage-block { flex: 1 0 100%; display: flex; flex-direction: column; gap: 6px; }
+.einladungsablage {
+  position: relative;
+  display: flex; align-items: center; gap: 10px;
+  min-height: 44px; padding: 8px 12px;
+  border: 1px dashed var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche-leise); color: var(--text-leise);
+  font-size: 13.5px; cursor: pointer;
+}
+.einladungsablage strong { color: var(--text); font-weight: 600; overflow-wrap: anywhere; }
+.einladungsablage:hover, .einladungsablage-darueber {
+  border-color: var(--akzent); background: var(--akzent-hell);
+}
+.einladungsablage-darueber { border-style: solid; }
+.einladungsablage:focus-within { outline: 2px solid var(--marke); outline-offset: 2px; }
+.einladungsablage input[type="file"] {
+  position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+}
+.einladungsablage-block .rueckmeldung { margin: 0; }
 
 /* Eingebettet — in einer Karte, ohne eigenen Rahmen. Felder und Knöpfe
    stehen in **einer** Reihe, solange dort Platz ist; Hinweis und Fehler

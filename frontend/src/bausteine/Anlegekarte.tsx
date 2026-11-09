@@ -128,7 +128,7 @@ export function Beschriftet({
   children,
 }: {
   text: string;
-  art?: "breit" | "tag" | "uhrzeit";
+  art?: "breit" | "tag" | "uhrzeit" | "ganz";
   children: ReactNode;
 }) {
   return (

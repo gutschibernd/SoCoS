@@ -57,6 +57,7 @@ import {
 import { artText } from "../basis/kontakte";
 import { melden } from "../basis/meldungen";
 import type { Seite } from "../basis/router";
+import { eventAusIcs, istIcsdatei, type IcsEvent } from "../basis/ics";
 import { heuteAlsDatum } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Anhangkarte } from "../bausteine/Anhangkarte";
@@ -234,6 +235,9 @@ function Uebersicht({
         ort: neues.ort.trim(),
         von: neues.von,
         bis: neues.bis || null,
+        beginn: neues.beginn || null,
+        ende: (neues.beginn && neues.ende) || null,
+        notiz: neues.notiz.trim(),
       }),
     });
     setNeues(leeresEvent());
@@ -314,9 +318,17 @@ function Uebersicht({
 }
 
 /** `bis` leer heißt eintägig — derselbe Haken wie auf der Eventseite. */
-type NeuesEventDaten = { titel: string; ort: string; von: string; bis: string };
+type NeuesEventDaten = IcsEvent;
 
-const leeresEvent = (): NeuesEventDaten => ({ titel: "", ort: "", von: heuteAlsDatum(), bis: "" });
+const leeresEvent = (): NeuesEventDaten => ({
+  titel: "",
+  ort: "",
+  von: heuteAlsDatum(),
+  bis: "",
+  beginn: "",
+  ende: "",
+  notiz: "",
+});
 
 function NeuesEvent({
   neues,
@@ -332,9 +344,31 @@ function NeuesEvent({
   /** Fehlt bei einer leeren Liste — dort ist Anlegen das Einzige, was es gibt. */
   abbrechen?: () => void;
 }) {
+  // Die Notiz steht nur da, wenn eine Einladung eine mitgebracht hat: Von Hand
+  // angelegt wird sie auf der Eventseite geschrieben, nicht hier. Ein eigener
+  // Zustand statt `neues.notiz !== ""` — sonst verschwände das Feld, sobald
+  // man es leert, mitten im Tippen.
+  const [mitNotiz, setMitNotiz] = useState(false);
+
   return (
     <Anlegekarte titel="Neues Event" knopf="Event anlegen" anlegen={anlegen} abbrechen={abbrechen} fehler={fehler}>
-      <Beschriftet text="Titel" art="breit">
+      <Einladungsablage
+        uebernehmen={(ics) => {
+          // Die Zeit kommt ganz aus der Einladung — ein Beginn von dort und
+          // ein letzter Tag von vorher passten nicht zusammen. Texte nur,
+          // wenn die Einladung welche hat; sonst bleibt, was getippt war.
+          setNeues({
+            ...ics,
+            titel: ics.titel || neues.titel,
+            ort: ics.ort || neues.ort,
+            notiz: ics.notiz || neues.notiz,
+          });
+          if (ics.notiz) setMitNotiz(true);
+        }}
+      />
+      {/* Der Titel hat eine eigene Reihe: Einladungen bringen lange Namen
+          mit, und Ort, Tage und Uhrzeiten passen so am Rechner in eine. */}
+      <Beschriftet text="Titel" art="ganz">
         <input
           className="feld"
           placeholder="Tagung, Kongress, Messe …"
@@ -365,6 +399,27 @@ function NeuesEvent({
           />
         </Beschriftet>
       )}
+      {/* Wie auf der Eventseite: beide freiwillig, leer heißt ganztägig, und
+          ohne Beginn kein Ende — das nimmt der Server nicht an. */}
+      <Beschriftet text="Beginn" art="uhrzeit">
+        <input
+          type="time"
+          className="feld"
+          value={neues.beginn}
+          onChange={(e) =>
+            setNeues({ ...neues, beginn: e.target.value, ende: e.target.value ? neues.ende : "" })
+          }
+        />
+      </Beschriftet>
+      <Beschriftet text="Ende" art="uhrzeit">
+        <input
+          type="time"
+          className="feld"
+          disabled={!neues.beginn}
+          value={neues.ende}
+          onChange={(e) => setNeues({ ...neues, ende: e.target.value })}
+        />
+      </Beschriftet>
       <label className="schalter">
         <input
           type="checkbox"
@@ -380,7 +435,81 @@ function NeuesEvent({
         />
         Mehrtägig
       </label>
+      {mitNotiz && (
+        <Beschriftet text="Notiz" art="ganz">
+          <textarea
+            className="feld"
+            rows={4}
+            value={neues.notiz}
+            onChange={(e) => setNeues({ ...neues, notiz: e.target.value })}
+          />
+        </Beschriftet>
+      )}
     </Anlegekarte>
+  );
+}
+
+/**
+ * Eine Kalendereinladung hineinziehen, und das Formular steht ausgefüllt da.
+ *
+ * Eine Fläche, die zugleich der Knopf zum Wählen ist: Am Handy gibt es kein
+ * Ziehen, dort bleibt das Antippen. Die Datei wird nur gelesen, nicht
+ * hochgeladen (siehe basis/ics.ts) — was übernommen wurde, steht in den
+ * Feldern und wird dort geprüft, bevor „Event anlegen" etwas anlegt.
+ */
+function Einladungsablage({ uebernehmen }: { uebernehmen: (ics: IcsEvent) => void }) {
+  const [darueber, setDarueber] = useState(false);
+  const [quelle, setQuelle] = useState("");
+  const [fehler, setFehler] = useState("");
+
+  async function lesen(liste: FileList | null) {
+    const datei = liste?.[0];
+    if (!datei) return;
+    if (!istIcsdatei(datei)) return setFehler(`„${datei.name}“ ist keine Kalendereinladung (.ics).`);
+    const ics = eventAusIcs(await datei.text());
+    if (!ics) return setFehler(`In „${datei.name}“ steht kein Termin.`);
+    setFehler("");
+    setQuelle(datei.name);
+    uebernehmen(ics);
+  }
+
+  return (
+    <div className="einladungsablage-block">
+      <label
+        className={darueber ? "einladungsablage einladungsablage-darueber" : "einladungsablage"}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDarueber(true);
+        }}
+        onDragLeave={() => setDarueber(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDarueber(false);
+          lesen(e.dataTransfer.files);
+        }}
+      >
+        <Zeichen name="event" />
+        <span>
+          {quelle ? (
+            <>
+              Aus <strong>{quelle}</strong> übernommen — andere Einladung ziehen oder wählen
+            </>
+          ) : (
+            "Einladung (.ics) hierher ziehen oder wählen"
+          )}
+        </span>
+        <input
+          type="file"
+          accept=".ics,text/calendar"
+          onChange={(e) => {
+            lesen(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </label>
+      <Fehlerzeile text={fehler} />
+    </div>
   );
 }
 
