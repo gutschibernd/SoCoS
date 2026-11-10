@@ -110,11 +110,17 @@ class TestSzenarien:
 
     @pytest.mark.parametrize(
         "szenario, umsatz, foerderung, investment",
-        [("optimistisch", 42000, 8000, 20000), ("basis", 21000, 8000, 20000), ("konservativ", 10500, 3000, 0)],
+        [("optimistisch", 42000, 8000, 20000), ("basis", 21000, 8000, 20000), ("konservativ", 0, 3000, 0)],
     )
     def test_gewichtung(self, plan, szenario, umsatz, foerderung, investment):
         A = _monate(plan, szenario)
         assert (A[4]["ums"], A[1]["foerd"], A[3]["inv"]) == (D(umsatz), D(foerderung), D(investment))
+
+    @pytest.mark.parametrize("prob, erwartet", [(100, 1000), (None, 1000), (99, 0), (49, 0)])
+    def test_konservativ_nur_fixe_umsaetze_und_die_voll(self, prob, erwartet):
+        """Ohne Angabe heißt 100 %. Alles Unentschiedene kommt konservativ nicht."""
+        plan = _plan(umsaetze=[{"amount": 1000, "interval": "einmalig", "start": "2026-11-01", "prob": prob}])
+        assert _monate(plan, "konservativ")[1]["ums"] == D(erwartet)
 
     def test_unbekanntes_szenario(self, db):
         with pytest.raises(ValueError):

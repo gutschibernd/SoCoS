@@ -1182,7 +1182,7 @@ function ModuleDoku() {
           paare={[
             {
               begriff: "Szenarien",
-              text: "Optimistisch rechnet jeden Umsatz voll. Basis gewichtet jeden Umsatz mit seiner Wahrscheinlichkeit. Konservativ nimmt die halbe Wahrscheinlichkeit und zählt nur Förderungen und Investments, die zugesagt oder erhalten sind.",
+              text: "Optimistisch rechnet jeden Umsatz voll. Basis gewichtet jeden Umsatz mit seiner Wahrscheinlichkeit. Konservativ zählt nur, was fix ist: Umsätze mit 100 % Wahrscheinlichkeit, Förderungen und Investments, die zugesagt oder erhalten sind. Alles Offene geht mit 0 € in die Rechnung.",
             },
             {
               begriff: "Ist-Kontostand",

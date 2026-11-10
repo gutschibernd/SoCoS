@@ -21,6 +21,9 @@ Anders als im Planer, mit Absicht:
 - **Wiederkehrendes zählt ab dem eigenen Beginn.** Der Planer begann eine
   Quartalszahlung, die vor dem Planstart anfing, beim Planstart neu zu zählen
   — August, November, Februar wurde dort zu Oktober, Jänner, April.
+- **Konservativ zählt nur fixe Umsätze** (100 % Wahrscheinlichkeit), die
+  dann voll. Der Planer nahm die halbe Wahrscheinlichkeit, damit stand auch
+  ein unentschiedener Umsatz noch anteilig im Plan (Bernd, 2026-11-10).
 """
 
 import re
@@ -302,7 +305,14 @@ def berechnen(plan, szenario, mit_gesellschafterdarlehen=True, ist=None):
 
     for u in plan["umsaetze"]:
         p = min(HUNDERT, max(NULL, oder(u.get("prob"), 100))) / HUNDERT
-        faktor = EINS if szenario == "optimistisch" else p / 2 if szenario == "konservativ" else p
+        # Konservativ kommt nur, was fix ist — wie bei Förderungen „zugesagt".
+        # Früher zählte hier die halbe Wahrscheinlichkeit; dann stand ein
+        # unentschiedener 49-%-Umsatz noch mit einem Viertel im Plan (Bernd,
+        # 2026-11-10: „dass manche Dinge einfach auch nicht kommen").
+        if szenario == "konservativ":
+            faktor = EINS if p == EINS else NULL
+        else:
+            faktor = EINS if szenario == "optimistisch" else p
         v = zahl(u.get("amount")) * faktor
         if not v:
             continue

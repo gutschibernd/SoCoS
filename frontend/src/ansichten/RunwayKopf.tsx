@@ -15,7 +15,7 @@ import type { Speicherstand } from "../basis/runwaydokument";
 import { Achse, fmtE, num } from "../basis/runway";
 
 const SZENARIEN: { wert: Szenario; text: string; titel: string }[] = [
-  { wert: "konservativ", text: "Konservativ", titel: "Nur zugesagte oder erhaltene Förderungen und Investments, Umsätze zu 50 % der Wahrscheinlichkeit" },
+  { wert: "konservativ", text: "Konservativ", titel: "Nur was fix ist: zugesagte oder erhaltene Förderungen und Investments, Umsätze nur mit 100 % Wahrscheinlichkeit" },
   { wert: "basis", text: "Basis", titel: "Alle geplanten Mittel, Umsätze gewichtet mit Wahrscheinlichkeit" },
   { wert: "optimistisch", text: "Optimistisch", titel: "Alle geplanten Mittel, Umsätze zu 100 %" },
 ];

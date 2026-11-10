@@ -260,7 +260,7 @@ export function Editor({
     );
 
   if (t === "umsaetze") erklaerung =
-    "Netto mit Rechnungsdatum. Das Zahlungsziel verschiebt den Geldeingang (30 Tage ≈ 1 Monat), die Umsatzsteuer gilt ab dem Rechnungsmonat. Basis gewichtet mit der Wahrscheinlichkeit, Konservativ mit der Hälfte davon, Optimistisch mit 100 %.";
+    "Netto mit Rechnungsdatum. Das Zahlungsziel verschiebt den Geldeingang (30 Tage ≈ 1 Monat), die Umsatzsteuer gilt ab dem Rechnungsmonat. Basis gewichtet mit der Wahrscheinlichkeit, Optimistisch rechnet 100 %, Konservativ zählt nur Umsätze mit 100 % Wahrscheinlichkeit — alles darunter mit 0 €.";
   if (t === "umsaetze")
     inhalt = (
       <>

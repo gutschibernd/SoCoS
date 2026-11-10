@@ -623,7 +623,10 @@ geprüft (Node, derselbe Plan, drei Szenarien, alle Töpfe, 24 und 36 Monate,
 ein Plan mit jeder Funktion): **keine Abweichung**. Mit Absicht anders:
 Ist aus `Kontostand` ab seinem Tag (am Monatsletzten wie die Ist-Zelle des
 Planers), Wiederkehrendes zählt ab dem eigenen Beginn (der Planer begann beim
-Planstart neu zu zählen). Die Abweichungen des ersten Anlaufs (Gehalt
+Planstart neu zu zählen). Seit 2026-11-10 außerdem: **Konservativ zählt nur
+Umsätze mit 100 % Wahrscheinlichkeit, die voll**, alles darunter mit 0 €
+(der Planer nahm die halbe Wahrscheinlichkeit — Bernd: ein unentschiedener
+49-%-Umsatz soll konservativ gar nicht kommen). Die Abweichungen des ersten Anlaufs (Gehalt
 tageweise, „Ausgaben" statt Burn, Abrufe ab heute) sind zurückgenommen —
 1:1 heißt hier auch: dieselben Zahlen.
 
