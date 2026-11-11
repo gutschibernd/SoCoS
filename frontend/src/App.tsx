@@ -2,6 +2,7 @@ import { useIch } from "./basis/daten";
 import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
 import {
   designAusWeg,
+  einstiegAusWeg,
   foerderauslastungAusWeg,
   foerderbisherAusWeg,
   foerderplanungAusWeg,
@@ -62,8 +63,9 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   // anderen Seite aus.
   "aufgaben/ideen": { titel: "Aufgaben", unter: "Ideen — was möglich wäre, noch nicht entschieden" },
   "aufgaben/archiv": { titel: "Aufgaben", unter: "Archiv — was abgehakt ist" },
-  "module/praktikum": { titel: "Praktikantenstellen", unter: "Haupt-Aufgabenstellungen" },
-  "module/praktikum-ideen": { titel: "Praktikantenstellen", unter: "Sonstige Ideen" },
+  "module/praktikum": { titel: "Praktikanten", unter: "Haupt-Aufgabenstellungen" },
+  "module/praktikum-ideen": { titel: "Praktikanten", unter: "Sonstige Ideen" },
+  "module/praktikum-todos": { titel: "Praktikanten", unter: "To-Dos — kleine Pakete für zwischendurch" },
   "module/thoughts": { titel: "Thoughts", unter: "Was frei ist, was wartet" },
   "module/foerderungen": { titel: "Förderungen", unter: "Fördergeber, Programme, Anträge" },
   "module/runway": { titel: "Runway-Planung", unter: "Wie lange das Geld reicht" },
@@ -100,7 +102,7 @@ export function App() {
       : null;
   // Die oberste Stufe eines Moduls trägt seinen Namen und wozu es da ist —
   // nicht „Module", seit es im Menü wie jede andere Seite steht.
-  const modul = ort.seite === "module" ? teilZuWeg(ort.unter)?.modul : undefined;
+  const modul = ort.seite === "module" ? (teilZuWeg(ort.unter) ?? einstiegAusWeg(ort.unter))?.modul : undefined;
   const kopfzeile =
     UNTERTITEL[`${ort.seite}/${ort.unter}`] ??
     // Ein einzelnes Thema: Sein Titel steht groß auf der Seite selbst.

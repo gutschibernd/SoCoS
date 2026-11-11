@@ -46,6 +46,7 @@ from socos.models import (
     Nutzer,
     Organisation,
     Pensum,
+    Nebenaufgabe,
     Praktikumsthema,
     Foerderantrag,
     Foerdergeber,
@@ -702,6 +703,17 @@ class PraktikumsthemaViewSet(SocosViewSet):
         antwort = HttpResponse(daten, content_type="application/zip")
         antwort["Content-Disposition"] = f'attachment; filename="{ausschreibung.sammelname()}"'
         return antwort
+
+
+class NebenaufgabeViewSet(SocosViewSet):
+    """
+    Die To-Dos der Praktikanten. Die gewöhnliche Regel wie bei den Themen:
+    sehen alle, anlegen und ändern Admin und Bearbeiter, entfernen nur der
+    Admin. Der gewöhnliche Weg aus der Liste ist „erledigt", nicht entfernen.
+    """
+
+    serializer_class = ser.NebenaufgabeSerializer
+    queryset = Nebenaufgabe.objects.all()
 
 
 # --- Module: Designentscheidungen ---------------------------------------------------

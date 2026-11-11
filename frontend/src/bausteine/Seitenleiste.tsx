@@ -5,6 +5,7 @@ import { useLaufend, useNeuLaden, useProjekte, type Ich } from "../basis/daten";
 import {
   MODULE,
   designAusWeg,
+  einstiegAusWeg,
   foerderauslastungAusWeg,
   foerderbisherAusWeg,
   foerderplanungAusWeg,
@@ -76,7 +77,7 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[]; klappt?: true }[] =
     ],
   },
   { titel: "Geld", eintraege: [modul("foerderungen"), modul("runway")] },
-  { titel: "Ablage", klappt: true, eintraege: [modul("design"), modul("praktikum")] },
+  { titel: "Ablage", klappt: true, eintraege: [modul("design"), modul("praktikanten")] },
   {
     titel: "Software",
     klappt: true,
@@ -94,6 +95,7 @@ const ALLE: Eintrag[] = GRUPPEN.flatMap((g) => g.eintraege);
 function modulAm(unter: string | null) {
   return (
     teilZuWeg(unter) ??
+    einstiegAusWeg(unter) ??
     themaAusWeg(unter) ??
     designAusWeg(unter) ??
     foerderungAusWeg(unter) ??

@@ -7,6 +7,44 @@ betrifft.
 
 ---
 
+## 2026-11-09 — Praktikanten: Einstieg mit drei Kacheln, To-Dos (Migration 0059)
+
+**Bernd:** „Praktikantenstellen" heißt jetzt „Praktikanten", und unter Ablage
+stehen drei große Kacheln — Haupt-Aufgabenstellungen, Sonstige Ideen und neu
+**To-Dos**: kleine Arbeitspakete, die wir jetzt aufschreiben, damit sich
+Praktikanten später eines heraussuchen, wenn sie nichts zu tun haben. Gesagt
+waren „drei Kacheln", genannt nur Aufgabenstellungen und To-Dos; die dritte
+sind die Ideen, die es schon gab.
+
+**`Nebenaufgabe` ist ein eigenes Modell, keine dritte `art` am
+Praktikumsthema.** Bernd: „die Hauptaufgabenstellungen sollen getrennt
+bleiben". Ein Thema hat Ausschreibung, Auftrag und PDF, ein To-Do nichts
+davon, dafür einen **Umfang** in vier Stufen (Vormittag, Tag, Woche, größer)
+— eine grobe Stufe statt Stunden, weil man beim Aufschreiben genau so viel
+weiß. Der Umfang hat **keine Vorgabe**: Eine vorgewählte Stufe bliebe beim
+schnellen Aufschreiben stehen. **Erledigt ist ein Datum** (`erledigt_am`),
+wie `archiviert_am`. Im Archiv und in der Löschreihenfolge eingetragen.
+
+**Der Einstieg hat einen eigenen Weg: `/module/praktikanten`.** Bisher war der
+Weg des Moduls der seines ersten Teils (`praktikum`). Ein Modul mit mehreren
+Teilen bekommt jetzt einen eigenen Weg mit einer Kachel je Teil
+(`einstiegAusWeg`); die Wege der Teile sind geblieben (`praktikum`,
+`praktikum-ideen`, neu `praktikum-todos`), damit Lesezeichen auf ein Thema
+weiter gehen. „Zurück" ohne Geschichte führt von einem Teil zum Einstieg,
+nicht zur Startseite.
+
+**Die Liste steht nach Umfang gruppiert**, das Kleinste zuerst: Wer eines
+heraussucht, fragt zuerst, wie viel Zeit er hat. Die Farbskala
+(`--umfang-1…4`, Grün bis Rot) steht nur an Kante und Balken, nie als Text —
+gerechnet auf 3:1, Test in `test_kontrast.py`. Die Zahl gefüllter Balken trägt
+die Stufe auch ohne Farbe.
+
+**Bewusst weggelassen:** an wen ein To-Do vergeben ist. Praktikanten sind
+keine Nutzer, und bei einer Handvoll To-Dos sagt man das. Kommt der Wunsch,
+ist es ein Textfeld.
+
+---
+
 ## 2026-11-07 — Schlüssel für den Assistenten (Telegram-Bot)
 
 **Bernd:** ein Agent in einem eigenen Container auf derselben Maschine, über

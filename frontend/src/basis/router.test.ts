@@ -153,6 +153,15 @@ describe("wohinZurueck", () => {
     expect(wohinZurueck(thoughts, null)).toEqual({ seite: "start", unter: null });
   });
 
+  it("führt von einem Teil mit Einstieg zu den Kacheln, nicht zur Startseite", () => {
+    expect(wohinZurueck({ seite: "module", unter: "praktikum-todos" }, null)).toEqual({
+      seite: "module",
+      unter: "praktikanten",
+    });
+    expect(wohinZurueck({ seite: "module", unter: "praktikanten" }, null)).toEqual({ seite: "start", unter: null });
+    expect(ausPfad("/module/praktikanten")).toEqual({ seite: "module", unter: "praktikanten" });
+  });
+
   it("führt ohne Geschichte zur Startseite und von dort nirgends hin", () => {
     expect(wohinZurueck({ seite: "projekt", unter: null }, null)).toEqual({ seite: "start", unter: null });
     expect(wohinZurueck({ seite: "start", unter: null }, null)).toBeNull();

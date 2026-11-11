@@ -112,6 +112,16 @@
   --f8: #e7e9ee; --t8: #4a5263;   /* Schiefer */
   --auf-ton: #ffffff;
 
+  /* Umfang der To-Dos für Praktikanten: vom Vormittag bis „größer", von
+     Grün nach Rot. Nur als Balken, nie als Text — 3:1 genügt, gerechnet
+     gegen Fläche, Grund und leise Fläche: 4,49 · 4,30 · 4,01 / 4,59 · 4,39 ·
+     4,09 / 4,24 · 4,05 · 3,78 / 6,62 · 6,33 · 5,90. Die Zahl der gefüllten
+     Balken trägt dieselbe Stufe, damit sie auch ohne Farbe zu lesen ist. */
+  --umfang-1: #4a8526;
+  --umfang-2: #8a7400;
+  --umfang-3: #b8661c;
+  --umfang-4: #a8332a;
+
   /* Runway-Planung (Modul). Eine eigene Farbwelt — die des Runway-Planers,
      aus dem das Modul stammt (Bernd, 2026-10-14: „Farbwelt des HTML,
      poliert"). Je Art ein Ton, damit Förderung, Team, Kosten und Darlehen in
@@ -238,6 +248,13 @@
     --f8: #202329; --t8: #a8b0c2;
     --auf-ton: #14171a;
 
+    /* Umfang dunkel, auf Fläche · Grund · leise Fläche: 8,09 · 8,96 · 7,34 /
+       8,32 · 9,21 · 7,55 / 6,64 · 7,35 · 6,02 / 5,65 · 6,25 · 5,12. */
+    --umfang-1: #8cc760;
+    --umfang-2: #d4b84a;
+    --umfang-3: #e8914a;
+    --umfang-4: #f07264;
+
     /* Runway-Planung: --rw-faint auf #839590 statt #6F817C (4,02 → 5,24). */
     --rw-surface: #16211f;
     --rw-surface-2: #1b2826;
@@ -325,6 +342,13 @@
   --f7: #271e2b; --t7: #bd96cb;
   --f8: #202329; --t8: #a8b0c2;
   --auf-ton: #14171a;
+
+  /* Umfang dunkel, auf Fläche · Grund · leise Fläche: 8,09 · 8,96 · 7,34 /
+     8,32 · 9,21 · 7,55 / 6,64 · 7,35 · 6,02 / 5,65 · 6,25 · 5,12. */
+  --umfang-1: #8cc760;
+  --umfang-2: #d4b84a;
+  --umfang-3: #e8914a;
+  --umfang-4: #f07264;
 
   /* Runway-Planung: --rw-faint auf #839590 statt #6F817C (4,02 → 5,24). */
   --rw-surface: #16211f;

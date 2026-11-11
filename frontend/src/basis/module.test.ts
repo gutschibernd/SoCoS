@@ -4,7 +4,10 @@ import {
   MODULWEGE,
   alsEuro,
   designAusWeg,
+  einstiegAusWeg,
   entscheidungsZahl,
+  nachUmfang,
+  todoZahl,
   betragAusEingabe,
   betragZumBearbeiten,
   punkteAusText,
@@ -15,14 +18,33 @@ import {
 } from "./module";
 
 describe("die Wege der Module", () => {
-  it("kennt die Praktikantenstellen, Thoughts, die Förderungen, Runway und Design", () => {
-    expect(MODULWEGE).toEqual(["praktikum", "praktikum-ideen", "thoughts", "foerderungen", "runway", "design"]);
+  it("kennt die Praktikanten, Thoughts, die Förderungen, Runway und Design", () => {
+    expect(MODULWEGE).toEqual([
+      "praktikanten", "praktikum", "praktikum-ideen", "praktikum-todos", "thoughts", "foerderungen", "runway", "design",
+    ]);
     expect(teilZuWeg("thoughts")?.teil.schluessel).toBe("thoughts");
-    expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikantenstellen");
+    expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikanten");
+    expect(teilZuWeg("praktikum-todos")?.teil.schluessel).toBe("todos");
     expect(teilZuWeg("praktikum")?.teil.titel).toBe("Haupt-Aufgabenstellungen");
     // Die SPG Academy ist entfernt; ein altes Lesezeichen landet auf der Übersicht.
     expect(teilZuWeg("spg")).toBeNull();
     expect(teilZuWeg("pitch")).toBeNull();
+  });
+
+  it("hat einen Einstieg nur für ein Modul mit mehreren Teilen", () => {
+    expect(einstiegAusWeg("praktikanten")?.modul.teile.map((t) => t.titel)).toEqual([
+      "Haupt-Aufgabenstellungen", "Sonstige Ideen", "To-Dos",
+    ]);
+    // Der Einstieg ist kein Teil — und ein Teil ist kein Einstieg.
+    expect(teilZuWeg("praktikanten")).toBeNull();
+    expect(einstiegAusWeg("praktikum")).toBeNull();
+    // Thoughts hat einen Teil, dessen Weg der des Moduls ist: kein Einstieg.
+    expect(einstiegAusWeg("thoughts")).toBeNull();
+    expect(einstiegAusWeg(null)).toBeNull();
+  });
+
+  it("ein To-Do ist kein Thema", () => {
+    expect(themaAusWeg("praktikum-todos/3")).toBeNull();
   });
 
   it("findet das Thema hinter dem Weg", () => {
@@ -57,6 +79,26 @@ describe("die Wege der Module", () => {
   it("kennt die Liste zu jeder Art", () => {
     expect(listeFuer("aufgabe").weg).toBe("praktikum");
     expect(listeFuer("idee").weg).toBe("praktikum-ideen");
+  });
+});
+
+describe("die To-Dos der Praktikanten", () => {
+  it("gruppiert nach Umfang, das Kleinste zuerst, darin nach Titel", () => {
+    const gruppen = nachUmfang([
+      { titel: "Spender", umfang: "woche" as const },
+      { titel: "LinkedIn", umfang: "vormittag" as const },
+      { titel: "Instagram", umfang: "vormittag" as const },
+    ]);
+    expect(gruppen.map((g) => [g.umfang.wert, g.umfang.stufe, g.todos.map((t) => t.titel)])).toEqual([
+      ["vormittag", 1, ["Instagram", "LinkedIn"]],
+      // „tag" fehlt: Eine leere Gruppe steht nicht da.
+      ["woche", 3, ["Spender"]],
+    ]);
+  });
+
+  it("zählt To-Dos", () => {
+    expect(todoZahl(1)).toBe("1 To-Do");
+    expect(todoZahl(0)).toBe("0 To-Dos");
   });
 });
 

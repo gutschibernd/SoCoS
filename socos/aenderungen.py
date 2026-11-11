@@ -22,6 +22,30 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-11-09",
+        "titel": "Praktikanten: drei Kacheln und To-Dos",
+        "punkte": [
+            {
+                "titel": "Aus den Praktikantenstellen werden die Praktikanten",
+                "text": (
+                    "Unter Ablage heißt der Eintrag jetzt „Praktikanten“ und öffnet drei Kacheln: "
+                    "Haupt-Aufgabenstellungen, Sonstige Ideen und neu To-Dos. Die Aufgabenstellungen "
+                    "und Ideen sind dieselben wie bisher."
+                ),
+                "wo": "module/praktikanten",
+            },
+            {
+                "titel": "To-Dos für zwischendurch",
+                "text": (
+                    "Kleine Arbeitspakete, die uns einfallen — eine LinkedIn-Seite anlegen, ein Thema "
+                    "wieder aufnehmen. Jedes bekommt einen Umfang vom Vormittag bis „größer“, und die "
+                    "Liste steht danach geordnet, damit Praktikanten finden, was in ihre freie Zeit passt."
+                ),
+                "wo": "module/praktikum-todos",
+            },
+        ],
+    },
+    {
         "version": "2026-11-06",
         "titel": "Förderplanung",
         "punkte": [

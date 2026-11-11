@@ -158,7 +158,7 @@ const PFADE: Record<ZeichenName, string> = {
   idee: "M12 4a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11M9.5 17.5h5M10.7 20h2.6",
   // Vier Bausteine, einer davon gedreht: Werkzeuge, die man dazusteckt.
   module: "M4 4h6.5v6.5H4zM4 13.5h6.5V20H4zM13.5 13.5H20V20h-6.5zM16.75 4L20 7.25l-3.25 3.25-3.25-3.25z",
-  // Eine Aktentasche — für die Praktikantenstellen. Der Strich quer durch ist
+  // Eine Aktentasche — für die Praktikanten. Der Strich quer durch ist
   // der Verschluss; ohne ihn liest sich das Zeichen bei 18 px als Kalender.
   mappe: "M4 8h16v11H4zM9 8V5h6v3M4 13h16",
   // Eine Mitte und drei Themen darum, jedes mit seinem Strich dorthin — die

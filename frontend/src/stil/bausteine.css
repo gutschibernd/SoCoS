@@ -2153,7 +2153,99 @@ a.mini { text-decoration: none; }
 /* Der Umschalter ins Archiv — `aria-pressed` wie bei `.spannenwahl`. */
 .vorhaben-aktionen .knopf-still[aria-pressed="true"] { background: var(--marke-hell); border-color: var(--marke); color: var(--marke); }
 
-/* --- Praktikantenstellen -------------------------------------------------- */
+/* --- Praktikanten: der Einstieg ----------------------------------------- */
+/*
+ * Eine große Kachel je Teil, die ganze Kachel ist der Link. Größer als die
+ * Kacheln der Modulübersicht, weil hier nichts anderes steht: Die Seite ist
+ * nur die Wahl.
+ */
+.einstieg-kacheln { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.einstieg-kachel {
+  display: flex; flex-direction: column; gap: 6px; min-height: 196px; padding: 20px;
+  background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante-karte);
+  color: var(--text); text-decoration: none;
+}
+.einstieg-kachel:hover { border-color: var(--rand-stark); }
+.einstieg-kachel:hover b, .einstieg-kachel:hover .modul-zeiger { color: var(--akzent); }
+.einstieg-kachel:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+.einstieg-kachel .modul-siegel { width: 48px; height: 48px; margin-bottom: 10px; }
+.einstieg-kachel .modul-siegel .zeichen { width: 24px; height: 24px; }
+.einstieg-kachel b { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.einstieg-kachel em { font-style: normal; font-size: 14px; line-height: 1.5; color: var(--text-leise); }
+.einstieg-fuss {
+  display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 12px;
+  border-top: 1px solid var(--rand);
+}
+.einstieg-fuss .modul-stand { margin-left: 0; }
+.einstieg-fuss .modul-zeiger { margin-left: auto; }
+
+/* --- Praktikanten: To-Dos ------------------------------------------------- */
+/*
+ * Eine Karte je Umfang, das Kleinste zuerst. Die Stufe steht dreimal da, und
+ * das ist Absicht: als Farbe an der linken Kante (sieht man im Vorbeiscrollen),
+ * als Balken (liest man ohne Farbe), als Wort (liest jeder).
+ */
+.todo-gruppe { padding: 0; border-left: 3px solid var(--umfang-1); }
+.todo-gruppe[data-stufe="2"] { border-left-color: var(--umfang-2); }
+.todo-gruppe[data-stufe="3"] { border-left-color: var(--umfang-3); }
+.todo-gruppe[data-stufe="4"] { border-left-color: var(--umfang-4); }
+.todo-gruppe-kopf {
+  display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 16px;
+  border-bottom: 1px solid var(--rand);
+  font-size: 14px; font-weight: 600;
+}
+.todo-gruppe-kopf .zahl { margin-left: auto; font-size: 12.5px; font-weight: 400; color: var(--text-leise); }
+.todo-liste { list-style: none; margin: 0; padding: 0 16px; }
+.todo-liste li {
+  display: flex; align-items: center; gap: 12px; min-height: var(--griff);
+  border-bottom: 1px solid var(--rand);
+}
+.todo-liste li:last-child { border-bottom: 0; }
+.todo-text {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 0; border: 0; background: none; text-align: left;
+  font: inherit; color: var(--text);
+}
+button.todo-text { cursor: pointer; }
+button.todo-text:hover b { color: var(--akzent); }
+button.todo-text:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; border-radius: var(--kante-klein); }
+.todo-text b { font-weight: 600; font-size: 14.5px; }
+/* Zwei Zeilen und nicht mehr — der ganze Text steht im Fenster. */
+.todo-text span {
+  font-size: 13px; line-height: 1.5; color: var(--text-leise); white-space: pre-line;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.todo-text em { font-style: normal; font-size: 12.5px; color: var(--text-sehr-leise); }
+.todo-haken { flex: 0 0 auto; }
+
+/* Die Stufe als vier steigende Balken; gefüllt bis zur Stufe in ihrer Farbe. */
+.umfang-mass { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; flex: 0 0 auto; }
+.umfang-mass i { width: 4px; border-radius: 1px; background: var(--rand); }
+.umfang-mass i:nth-child(1) { height: 5px; }
+.umfang-mass i:nth-child(2) { height: 8px; }
+.umfang-mass i:nth-child(3) { height: 11px; }
+.umfang-mass i:nth-child(4) { height: 14px; }
+.umfang-mass[data-stufe="1"] i:nth-child(-n+1) { background: var(--umfang-1); }
+.umfang-mass[data-stufe="2"] i:nth-child(-n+2) { background: var(--umfang-2); }
+.umfang-mass[data-stufe="3"] i:nth-child(-n+3) { background: var(--umfang-3); }
+.umfang-mass[data-stufe="4"] i:nth-child(-n+4) { background: var(--umfang-4); }
+
+/* Die Wahl des Umfangs im Fenster: vier Felder nebeneinander, am Handy zwei
+   je Zeile. Gewählt ist, was die Kante und den leisen Grund trägt. */
+.umfangswahl { display: grid; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 4px; }
+.umfangswahl button {
+  display: flex; align-items: center; gap: 8px; min-height: var(--griff); padding: 0 12px;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text-leise);
+  font: inherit; font-size: 14px; cursor: pointer; text-align: left;
+}
+.umfangswahl button:hover { color: var(--akzent); }
+.umfangswahl button[aria-checked="true"] {
+  border-color: var(--akzent); background: var(--akzent-hell); color: var(--text); font-weight: 600;
+}
+.umfangswahl button:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+
+/* --- Praktikanten: Haupt-Aufgaben und Ideen ------------------------------- */
 /*
  * Die Haupt-Aufgaben als Kacheln, zwei je Zeile, am Handy eine. Der Link im
  * Titel legt sich mit `::after` über die ganze Kachel; die Knöpfe im Fuß
@@ -2872,6 +2964,14 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .raster-4, .raster-3, .raster-2, .modul-kacheln, .thema-kacheln, .doku-wege { grid-template-columns: 1fr; }
   .themenideen .art-text { display: none; }
   .themenideen .art-knopf { min-width: var(--griff); justify-content: center; }
+  /* Am Handy nur der Haken — sonst bleibt vom Titel daneben ein Wort je Zeile. */
+  .todo-haken .art-text { display: none; }
+  .todo-haken { min-width: var(--griff); justify-content: center; }
+  .einstieg-kacheln { grid-template-columns: 1fr; gap: 12px; }
+  .einstieg-kachel { min-height: 0; padding: 16px; }
+  .umfangswahl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Die Gruppe trägt ihren Abstand in Kopf und Liste — `.karte` darüber gäbe ihn doppelt. */
+  .todo-gruppe { padding: 0; }
 
   /* Mehrere Teile passen am Handy nicht immer in eine Zeile — und
      `overflow: hidden` am Umschalter schnitte den letzten still ab. Gleiche
@@ -2883,7 +2983,12 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .workshopwahl button {
     min-height: var(--griff); padding: 6px 10px;
     white-space: normal; text-align: left; line-height: 1.25;
+    /* „Haupt-Aufgabenstellungen" ist breiter als ein Drittel von 375 px und
+       wurde abgeschnitten. Getrennt wird nach deutscher Silbe (lang="de"),
+       zur Not irgendwo — beides besser als ein halbes Wort. */
+    hyphens: auto; overflow-wrap: anywhere;
   }
+  .workshopwahl .zahl { overflow-wrap: normal; white-space: nowrap; }
   .vorhaben-kopf { flex: 1 1 100%; }
   .vorhaben-aktionen { margin-left: 0; }
   /* Unten **derselbe Abstand wie im 900er Block** und nicht 40. Hier stand

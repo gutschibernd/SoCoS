@@ -17,7 +17,7 @@ from datetime import date
 import pytest
 from django.core.management import call_command
 
-from socos.models import Praktikumsthema, Protokolleintrag
+from socos.models import Nebenaufgabe, Praktikumsthema, Protokolleintrag
 from socos.services import ausschreibung
 
 ANTWORT = """# Usability-Tests am Arzneimittelspender
@@ -343,3 +343,95 @@ def test_themen_wandern_durch_die_sicherung(tmp_path, settings, bearbeiter):
     assert wieder_da.ausschreibung == ANTWORT
     assert wieder_da.art == Praktikumsthema.IDEE
     assert wieder_da.archiviert_am == date(2026, 10, 12)
+
+
+# --- To-Dos für Praktikanten -------------------------------------------------
+
+
+class TestNebenaufgaben:
+    """Die To-Dos: eigenes Modell, ein Umfang aus vier Stufen, erledigt ist ein Datum."""
+
+    @pytest.mark.django_db
+    def test_anlegen_mit_umfang_und_protokoll(self, client, bearbeiter):
+        client.force_login(bearbeiter)
+
+        antwort = client.post(
+            "/api/nebenaufgaben/",
+            {"titel": "LinkedIn-Seite anlegen", "umfang": "vormittag"},
+            content_type="application/json",
+        )
+
+        assert antwort.status_code == 201
+        assert Nebenaufgabe.objects.get().umfang == Nebenaufgabe.Umfang.VORMITTAG
+        assert Protokolleintrag.objects.filter(modell="socos.Nebenaufgabe").exists()
+
+    @pytest.mark.django_db
+    def test_ohne_umfang_oder_mit_fremdem_wird_abgewiesen(self, client, bearbeiter):
+        client.force_login(bearbeiter)
+
+        ohne = client.post("/api/nebenaufgaben/", {"titel": "X"}, content_type="application/json")
+        fremd = client.post("/api/nebenaufgaben/", {"titel": "X", "umfang": "jahr"}, content_type="application/json")
+
+        assert ohne.status_code == 400 and "umfang" in ohne.json()
+        assert fremd.status_code == 400 and "umfang" in fremd.json()
+        assert not Nebenaufgabe.objects.exists()
+
+    @pytest.mark.django_db
+    def test_bleibt_getrennt_von_den_themen(self, client, leser):
+        Nebenaufgabe.objects.create(titel="Instagram", umfang="vormittag")
+        client.force_login(leser)
+
+        assert client.get("/api/praktikumsthemen/").json() == []
+        assert [t["titel"] for t in client.get("/api/nebenaufgaben/").json()] == ["Instagram"]
+
+    @pytest.mark.django_db
+    def test_erledigen_und_wieder_aufmachen(self, client, bearbeiter):
+        todo = Nebenaufgabe.objects.create(titel="Spender", umfang="woche")
+        client.force_login(bearbeiter)
+        weg = f"/api/nebenaufgaben/{todo.pk}/"
+
+        client.patch(weg, {"erledigt_am": "2026-11-09"}, content_type="application/json")
+        todo.refresh_from_db()
+        assert todo.erledigt_am == date(2026, 11, 9)
+
+        client.patch(weg, {"erledigt_am": None}, content_type="application/json")
+        todo.refresh_from_db()
+        assert todo.erledigt_am is None
+
+    @pytest.mark.django_db
+    def test_leser_legt_nichts_an_und_entfernen_darf_nur_der_admin(self, client, leser, bearbeiter, admin_nutzer):
+        todo = Nebenaufgabe.objects.create(titel="Spender", umfang="gross")
+
+        client.force_login(leser)
+        assert client.post(
+            "/api/nebenaufgaben/", {"titel": "X", "umfang": "tag"}, content_type="application/json"
+        ).status_code == 403
+
+        client.force_login(bearbeiter)
+        assert client.delete(f"/api/nebenaufgaben/{todo.pk}/").status_code == 403
+
+        client.force_login(admin_nutzer)
+        assert client.delete(f"/api/nebenaufgaben/{todo.pk}/").status_code == 204
+        assert Nebenaufgabe.alle_objekte.filter(pk=todo.pk, geloescht_am__isnull=False).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_todos_wandern_durch_die_sicherung(tmp_path, settings):
+    settings.MEDIA_ROOT = tmp_path / "medien"
+    settings.MEDIA_ROOT.mkdir()
+    Nebenaufgabe.objects.create(
+        titel="Social Media aufbauen",
+        beschreibung="Accounts anlegen",
+        umfang=Nebenaufgabe.Umfang.TAG,
+        erledigt_am=date(2026, 11, 9),
+    )
+
+    archiv = tmp_path / "archiv.tar.gz"
+    call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
+    Nebenaufgabe.alle_objekte.all().hart_loeschen()
+    call_command("sicherung_einspielen", str(archiv), ja_bestand_ersetzen=True, verbosity=0)
+
+    wieder_da = Nebenaufgabe.objects.get(titel="Social Media aufbauen")
+    assert (wieder_da.beschreibung, wieder_da.umfang, wieder_da.erledigt_am) == (
+        "Accounts anlegen", "tag", date(2026, 11, 9),
+    )

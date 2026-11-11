@@ -505,6 +505,26 @@ export const usePraktikumsthemen = () =>
     queryFn: () => hole<Praktikumsthema[]>("/praktikumsthemen/"),
   });
 
+/** Wie groß ein To-Do ist — vom Vormittag bis „größer". Siehe `UMFAENGE` in basis/module.ts. */
+export type Umfang = "vormittag" | "tag" | "woche" | "gross";
+
+/** Ein To-Do für Praktikanten — getrennt von den Haupt-Aufgabenstellungen. */
+export type Nebenaufgabe = {
+  id: number;
+  titel: string;
+  beschreibung: string;
+  umfang: Umfang;
+  /** `"JJJJ-MM-TT"` oder null — erledigte stehen nicht in der Liste. */
+  erledigt_am: string | null;
+  geaendert_am: string;
+};
+
+export const useNebenaufgaben = () =>
+  useQuery({
+    queryKey: ["nebenaufgaben"],
+    queryFn: () => hole<Nebenaufgabe[]>("/nebenaufgaben/"),
+  });
+
 /* --- Designentscheidungen ------------------------------------------------- */
 
 export type Entscheidungsstand = "entwurf" | "entschieden" | "ersetzt";
@@ -1011,7 +1031,7 @@ export function useNeuLaden() {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
       "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
-      "praktikumsthemen", "designentscheidungen", "lagekarte", "foerderungen", "planung", "runway",
+      "praktikumsthemen", "nebenaufgaben", "designentscheidungen", "lagekarte", "foerderungen", "planung", "runway",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }

@@ -6,15 +6,18 @@
  * der Übersicht noch keine Kachel, und niemand sähe warum.
  */
 
-import type { Themenart } from "./daten";
+import type { Themenart, Umfang } from "./daten";
 import type { ZeichenName } from "../bausteine/Zeichen";
 
 /**
  * Eine Liste von Themen, die man selbst anlegt — die Haupt-Aufgabenstellungen
- * der Praktikantenstellen oder ihre sonstigen Ideen. Der Weg des ersten Teils
- * ist der Weg des Moduls. Beide Listen sind dasselbe Modell; `art` trennt sie.
+ * der Praktikanten oder ihre sonstigen Ideen. Beide Listen sind dasselbe
+ * Modell; `art` trennt sie.
  */
-export type Themenliste = { weg: string; titel: string; schluessel: "praktikum"; art: Themenart };
+export type Themenliste = { weg: string; titel: string; wozu: string; schluessel: "praktikum"; art: Themenart };
+
+/** Die To-Dos der Praktikanten: kleine Pakete zum Heraussuchen, ein eigenes Modell. */
+export type Todoteil = { weg: string; titel: string; wozu: string; schluessel: "todos" };
 
 /** Ein Teil, der eine eigene Seite ohne Unterteile ist — Thoughts. */
 export type Kartenteil = { weg: string; titel: string; schluessel: "thoughts" };
@@ -28,10 +31,14 @@ export type Runwayteil = { weg: string; titel: string; schluessel: "runway" };
 /** Die Designentscheidungen: eine Liste, je Entscheidung eine eigene Seite darunter. */
 export type Designteil = { weg: string; titel: string; schluessel: "design" };
 
-export type Teil = Themenliste | Kartenteil | Foerderteil | Runwayteil | Designteil;
+export type Teil = Themenliste | Todoteil | Kartenteil | Foerderteil | Runwayteil | Designteil;
 
 export type Modul = {
-  /** Der Weg hinter `/module/`, und der Anfang der Wege seiner Teile. */
+  /**
+   * Der Weg hinter `/module/`. Hat das Modul einen Teil, ist es dessen Weg.
+   * Hat es mehrere, ist es ein eigener: Dort steht der Einstieg mit einer
+   * großen Kachel je Teil (`/module/praktikanten`).
+   */
   weg: string;
   titel: string;
   wozu: string;
@@ -42,13 +49,36 @@ export type Modul = {
 
 export const MODULE: Modul[] = [
   {
-    weg: "praktikum",
-    titel: "Praktikantenstellen",
-    wozu: "Themen für Praktika aufbereiten und ausschreiben",
+    // Bis 2026-11-09 „Praktikantenstellen", mit den Haupt-Aufgaben unter
+    // `/module/praktikum` als erstem Teil. Seit die To-Dos dazukamen, ist es
+    // mehr als die Stellen, und der Einstieg hat einen eigenen Weg. Die Wege
+    // der Teile sind geblieben, damit Lesezeichen auf ein Thema weiter gehen.
+    weg: "praktikanten",
+    titel: "Praktikanten",
+    wozu: "Aufgabenstellungen ausschreiben, To-Dos für zwischendurch sammeln",
     zeichen: "mappe",
     teile: [
-      { weg: "praktikum", titel: "Haupt-Aufgabenstellungen", schluessel: "praktikum", art: "aufgabe" },
-      { weg: "praktikum-ideen", titel: "Sonstige Ideen", schluessel: "praktikum", art: "idee" },
+      // `wozu` ist die eine Zeile auf der Kachel des Einstiegs.
+      {
+        weg: "praktikum",
+        titel: "Haupt-Aufgabenstellungen",
+        wozu: "Was wir als Praktikum vergeben — mit Ausschreibung und Aushang",
+        schluessel: "praktikum",
+        art: "aufgabe",
+      },
+      {
+        weg: "praktikum-ideen",
+        titel: "Sonstige Ideen",
+        wozu: "Was einmal eine Aufgabenstellung werden könnte",
+        schluessel: "praktikum",
+        art: "idee",
+      },
+      {
+        weg: "praktikum-todos",
+        titel: "To-Dos",
+        wozu: "Kleine Pakete für zwischendurch — vom Vormittag bis zur Woche",
+        schluessel: "todos",
+      },
     ],
   },
   {
@@ -90,7 +120,16 @@ export const MODULE: Modul[] = [
 ];
 
 /** Alle Wege, die hinter `/module/` stehen dürfen — der Router fragt hier. */
-export const MODULWEGE = MODULE.flatMap((m) => m.teile.map((t) => t.weg));
+export const MODULWEGE = MODULE.flatMap((m) => [
+  ...(m.teile.length > 1 ? [m.weg] : []),
+  ...m.teile.map((t) => t.weg),
+]);
+
+/** Das Modul, dessen Einstieg hinter diesem Weg steht — nur bei mehreren Teilen. */
+export function einstiegAusWeg(unter: string | null): { modul: Modul } | null {
+  const modul = MODULE.find((m) => m.teile.length > 1 && m.weg === unter);
+  return modul ? { modul } : null;
+}
 
 /**
  * Das Thema hinter `praktikum/12` oder `praktikum-ideen/12` — oder nichts.
@@ -229,7 +268,40 @@ export function betragZumBearbeiten(betrag: string | null): string {
   return betrag.replace(/\.00$/, "").replace(".", ",");
 }
 
-/* --- Praktikantenstellen ---------------------------------------------------- */
+/* --- Praktikanten ----------------------------------------------------------- */
+
+/**
+ * Die Stufen des Umfangs, in der Reihenfolge der Skala. Die Namen stehen
+ * auch am Modell (`Nebenaufgabe.Umfang`); hier kommt die Stufe für die
+ * Balken dazu.
+ */
+export const UMFAENGE: { wert: Umfang; titel: string; stufe: 1 | 2 | 3 | 4 }[] = [
+  { wert: "vormittag", titel: "Ein Vormittag", stufe: 1 },
+  { wert: "tag", titel: "Ein Tag", stufe: 2 },
+  { wert: "woche", titel: "Eine Woche", stufe: 3 },
+  { wert: "gross", titel: "Größer", stufe: 4 },
+];
+
+export const umfangVon = (wert: Umfang) => UMFAENGE.find((u) => u.wert === wert) ?? UMFAENGE[0];
+
+/**
+ * Die To-Dos nach Umfang gruppiert, das Kleinste zuerst, darin nach Titel.
+ * Nur Gruppen, in denen etwas steht. Wer ein To-Do heraussucht, fragt
+ * zuerst, wie viel Zeit er hat — erst dann, was es ist.
+ */
+export function nachUmfang<T extends { umfang: Umfang; titel: string }>(
+  todos: T[],
+): { umfang: (typeof UMFAENGE)[number]; todos: T[] }[] {
+  return UMFAENGE.map((umfang) => ({
+    umfang,
+    todos: todos.filter((t) => t.umfang === umfang.wert).sort((a, b) => a.titel.localeCompare(b.titel, "de")),
+  })).filter((g) => g.todos.length > 0);
+}
+
+/** „1 To-Do", „3 To-Dos". */
+export function todoZahl(zahl: number): string {
+  return `${zahl} ${zahl === 1 ? "To-Do" : "To-Dos"}`;
+}
 
 /**
  * Die Punkte eines Themas, wie sie auf der Karte stehen: eine Zeile je Punkt,

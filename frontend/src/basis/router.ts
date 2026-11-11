@@ -26,6 +26,7 @@ import {
   foerderbisherAusWeg,
   foerderplanungAusWeg,
   foerderungAusWeg,
+  teilZuWeg,
   themaAusWeg,
 } from "./module";
 
@@ -210,6 +211,10 @@ export function wohinZurueck(ort: Ort, eintrag: Weggeschichte): "geschichte" | O
   // oberste Stufe (`/module/thoughts`) hat deshalb nichts mehr darüber — die
   // Übersicht aller Module war ein Weg, den niemand mehr geht.
   const oben = ort.seite === "module" && ort.unter !== null && darueber(ort.unter) === null;
+  // Ein Teil eines Moduls mit Einstieg (die To-Dos der Praktikanten) hat
+  // doch etwas darüber: die Kacheln, von denen aus man ihn gewählt hat.
+  const einstieg = oben ? teilZuWeg(ort.unter)?.modul : undefined;
+  if (einstieg && einstieg.teile.length > 1) return { seite: "module", unter: einstieg.weg };
   if (ort.unter && !oben) return { seite: ort.seite, unter: darueber(ort.unter) };
   return ort.seite !== "start" ? { seite: "start", unter: null } : null;
 }

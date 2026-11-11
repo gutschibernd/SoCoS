@@ -237,7 +237,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "module" as const, unter: "foerderungen", zeichen: "foerderung" as const, titel: "Förderungen", text: "Fördergeber, Programme, Anträge." },
             { seite: "module" as const, unter: "runway", zeichen: "kurve" as const, titel: "Runway-Planung", text: "Was herein- und hinausgeht, wie lange das Geld reicht." },
             { seite: "module" as const, unter: "design", zeichen: "schild" as const, titel: "Designentscheidungen", text: "Unter Ablage: begründen, belegen, als PDF in die Akte." },
-            { seite: "module" as const, unter: "praktikum", zeichen: "mappe" as const, titel: "Praktikantenstellen", text: "Unter Ablage: Themen aufbereiten und ausschreiben." },
+            { seite: "module" as const, unter: "praktikanten", zeichen: "mappe" as const, titel: "Praktikanten", text: "Unter Ablage: Aufgabenstellungen ausschreiben, To-Dos für zwischendurch sammeln." },
           ].map((w) => (
             <button
               key={`${w.seite}/${"unter" in w ? w.unter : ""}`}
@@ -857,7 +857,7 @@ function ModuleDoku() {
       <Abschnitt
         zeichen="module"
         titel="Werkzeuge neben Projekt und Zeit"
-        vorspann="Thoughts, Förderungen, Runway-Planung, Designentscheidungen und Praktikantenstellen stehen in der Leiste dort, wozu sie dienen — unter Arbeit, Geld oder Ablage. Die Projektplanung ist seit Oktober 2026 Teil der Projektseite."
+        vorspann="Thoughts, Förderungen, Runway-Planung, Designentscheidungen und Praktikanten stehen in der Leiste dort, wozu sie dienen — unter Arbeit, Geld oder Ablage. Die Projektplanung ist seit Oktober 2026 Teil der Projektseite."
       >
         <Begriffe
           paare={[
@@ -871,8 +871,8 @@ function ModuleDoku() {
 
       <Abschnitt
         zeichen="mappe"
-        titel="Praktikantenstellen: vom Thema zum Aushang"
-        vorspann="Unter Haupt-Aufgabenstellungen sammeln wir, was wir als Praktikum vergeben wollen, unter Sonstige Ideen, was es werden könnte. Aus jedem Thema wird über ein LLM eine Ausschreibung und daraus ein Aushang auf einer Seite A4."
+        titel="Praktikanten: vom Thema zum Aushang"
+        vorspann="Unter Ablage · Praktikanten stehen drei Kacheln. Unter Haupt-Aufgabenstellungen sammeln wir, was wir als Praktikum vergeben wollen, unter Sonstige Ideen, was es werden könnte. Aus jedem Thema wird über ein LLM eine Ausschreibung und daraus ein Aushang auf einer Seite A4. Die dritte Kachel, To-Dos, steht weiter unten."
       >
         <Schritte
           schritte={[
@@ -916,6 +916,36 @@ function ModuleDoku() {
             {
               begriff: "Wer was darf",
               text: "Sehen und das PDF laden dürfen alle. Themen anlegen, ändern und die Ausschreibung speichern dürfen Admin und Bearbeiter; ein Thema entfernen nur der Admin.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="haken"
+        titel="Praktikanten: To-Dos für zwischendurch"
+        vorspann="Kleine Arbeitspakete, die uns jetzt einfallen — eine Instagram-Seite anlegen, ein liegengebliebenes Thema wieder aufnehmen. Haben Praktikanten gerade nichts zu tun, suchen sie sich hier eines heraus. Die To-Dos sind von den Haupt-Aufgabenstellungen getrennt: keine Ausschreibung, kein Aushang."
+      >
+        <Schritte
+          schritte={[
+            "„+ To-Do“ öffnet das Fenster: ein Titel, der Umfang und bei Bedarf ein paar Sätze, was dazugehört.",
+            "Die Liste steht nach Umfang gruppiert, das Kleinste zuerst — wer einen Vormittag frei hat, findet oben, was in einen Vormittag passt.",
+            "Ein Klick auf ein To-Do öffnet es zum Bearbeiten. Der Haken rechts hakt es ab.",
+          ]}
+        />
+        <Begriffe
+          paare={[
+            {
+              begriff: "Der Umfang",
+              text: "Vier Stufen: ein Vormittag, ein Tag, eine Woche, größer. Die Balken davor zeigen die Stufe — je mehr gefüllt, desto größer, und von Grün nach Rot. Eine grobe Schätzung genügt; der Umfang hat absichtlich keine Vorgabe.",
+            },
+            {
+              begriff: "Erledigt",
+              text: "Ein abgehaktes To-Do verschwindet aus der Liste, bleibt aber unter „Erledigt“ oben stehen, mit dem Tag. „Wieder offen“ holt es zurück. Das ist auch der mildere Weg statt Entfernen.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen dürfen alle. Anlegen, ändern und abhaken dürfen Admin und Bearbeiter; entfernen nur der Admin.",
             },
           ]}
         />

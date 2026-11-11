@@ -41,6 +41,7 @@ MODELLE_IM_ARCHIV = [
     "socos.Rueckmeldung",
     "socos.Aufgabe",
     "socos.Praktikumsthema",
+    "socos.Nebenaufgabe",
     "socos.Designentscheidung",
     "socos.Lagethema",
     "socos.Lageschritt",
@@ -117,6 +118,7 @@ LOESCHREIHENFOLGE = [
     "socos.Aufgabe",
     "socos.Praktikumsthema",
     # Zeigt auf nichts, und auf sie zeigt nichts.
+    "socos.Nebenaufgabe",
     "socos.Designentscheidung",
     # Verbindungen vor Schritten vor Themen: jedes hängt am nächsten.
     "socos.Lageverbindung",

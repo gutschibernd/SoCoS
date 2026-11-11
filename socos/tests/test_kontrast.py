@@ -145,3 +145,15 @@ def test_die_urspruenglichen_entwurfstoene_wuerden_durchfallen():
     """
     assert kontrast("#7C8A8C", "#FFFFFF") < AA_KLEIN
     assert kontrast("#8B979A", "#FFFFFF") < AA_KLEIN
+
+
+@pytest.mark.parametrize("palette", [HELL, DUNKEL], ids=["hell", "dunkel"])
+@pytest.mark.parametrize("stufe", ["--umfang-1", "--umfang-2", "--umfang-3", "--umfang-4"])
+@pytest.mark.parametrize("hintergrund", ["--flaeche", "--grund", "--flaeche-leise"])
+def test_die_umfangsskala_der_todos(palette, stufe, hintergrund):
+    """
+    Die Balken neben einem To-Do sind ein Zeichen, kein Text — 3:1 genügt.
+    Der Text daneben („Eine Woche") steht in --text-leise, nicht in der Farbe.
+    """
+    wert = kontrast(palette[stufe], palette[hintergrund])
+    assert wert >= 3, f"{stufe} auf {hintergrund}: {wert:.2f}:1"

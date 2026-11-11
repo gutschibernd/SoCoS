@@ -40,6 +40,7 @@ from socos.models import (
     Nutzer,
     Organisation,
     Pensum,
+    Nebenaufgabe,
     Praktikumsthema,
     Projekt,
     Projektphase,
@@ -840,6 +841,15 @@ class PraktikumsthemaSerializer(serializers.ModelSerializer):
                 "Kürze sie — oder bitte das LLM darum."
             )
         return text
+
+
+class NebenaufgabeSerializer(serializers.ModelSerializer):
+    """Ein To-Do für Praktikanten — Titel, ein paar Sätze, wie groß es ist."""
+
+    class Meta:
+        model = Nebenaufgabe
+        fields = ["id", "titel", "beschreibung", "umfang", "erledigt_am", "geaendert_am"]
+        read_only_fields = ["geaendert_am"]
 
 
 # --- Module: Designentscheidungen ---------------------------------------------------

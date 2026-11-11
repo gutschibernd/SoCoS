@@ -1719,6 +1719,48 @@ class Praktikumsthema(Basismodell):
         return self.titel
 
 
+class Nebenaufgabe(Basismodell):
+    """
+    Ein kleines Arbeitspaket, das wir jetzt aufschreiben, damit Praktikanten
+    sich später eines heraussuchen können, wenn ihre Hauptaufgabe ruht oder
+    fertig ist — „LinkedIn-Seite anlegen", „Spender wieder aufnehmen".
+
+    **Ein eigenes Modell und keine dritte `art` am Praktikumsthema** (Bernd,
+    2026-11-09: „die Hauptaufgabenstellungen sollen getrennt bleiben"). Ein
+    Thema hat eine Ausschreibung, einen Auftrag an das LLM und ein PDF; ein
+    To-Do hat nichts davon, dafür einen Umfang. Eine dritte Art hätte jedes
+    dieser Felder um ein „gilt hier nicht" ergänzt.
+
+    **Der Umfang ist eine grobe Stufe, keine Stundenzahl.** Wer ein To-Do
+    aufschreibt, weiß, ob es ein Vormittag oder eine Woche ist — nicht, ob es
+    sechs oder neun Stunden sind. Und wer eines heraussucht, sucht nach der
+    Zeit, die er hat.
+
+    **Erledigt ist ein Datum**, wie `archiviert_am` am Thema: Ein erledigtes
+    To-Do verschwindet aus der Liste, bleibt aber nachzulesen.
+    """
+
+    class Umfang(models.TextChoices):
+        # Die Reihenfolge ist die Skala — die Liste sortiert danach.
+        VORMITTAG = "vormittag", "Ein Vormittag"
+        TAG = "tag", "Ein Tag"
+        WOCHE = "woche", "Eine Woche"
+        GROSS = "gross", "Größer"
+
+    titel = models.CharField("Titel", max_length=160)
+    beschreibung = models.TextField("Beschreibung", blank=True)
+    umfang = models.CharField("Umfang", max_length=10, choices=Umfang.choices)
+    erledigt_am = models.DateField("erledigt am", null=True, blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Nebenaufgabe"
+        verbose_name_plural = "Nebenaufgaben"
+        ordering = ["titel", "id"]
+
+    def __str__(self):
+        return self.titel
+
+
 # --- Module: Thoughts (die Lagekarte) -------------------------------------------------------
 #
 # Die Karte, auf der steht, was in welchem Themenfeld gerade ansteht und

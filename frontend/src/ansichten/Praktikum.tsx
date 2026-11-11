@@ -1,6 +1,6 @@
 /**
- * Module · Praktikantenstellen: die Haupt-Aufgabenstellungen und die
- * sonstigen Ideen.
+ * Module · Praktikanten: die Haupt-Aufgabenstellungen und die sonstigen
+ * Ideen. Die To-Dos, der dritte Teil, stehen in `Todos.tsx`.
  *
  * Die Haupt-Aufgaben stehen als Kacheln, zwei je Zeile, mit den Griffen, die
  * man am häufigsten braucht — Auftrag kopieren, PDF, bearbeiten. Alles

@@ -1,8 +1,9 @@
 /**
  * Module: zusätzliche Werkzeuge, die mit Projekt und Zeit nichts zu tun haben.
  *
- * `/module` ist die Übersicht aller Module, `/module/praktikum` die
- * Praktikantenstellen (in `Praktikum.tsx`), `/module/thoughts`,
+ * `/module` ist die Übersicht aller Module, `/module/praktikanten` der
+ * Einstieg der Praktikanten mit einer Kachel je Teil — die Haupt-Aufgaben
+ * und Ideen in `Praktikum.tsx`, die To-Dos in `Todos.tsx` —, `/module/thoughts`,
  * `/module/foerderungen` und `/module/design` je eine
  * eigene Seite.
  */
@@ -11,6 +12,7 @@ import {
   useDesignentscheidungen,
   useFoerderungen,
   useLagekarte,
+  useNebenaufgaben,
   usePraktikumsthemen,
   useRunway,
   type Ich,
@@ -18,8 +20,10 @@ import {
 import {
   MODULE,
   designAusWeg,
+  einstiegAusWeg,
   entscheidungsZahl,
   themenZahl,
+  todoZahl,
   teilZuWeg,
   themaAusWeg,
   foerderauslastungAusWeg,
@@ -33,11 +37,13 @@ import {
   type Modul,
   type Teil,
   type Themenliste,
+  type Todoteil,
 } from "../basis/module";
 import type { Wechseln } from "../basis/router";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
+import { Todos } from "./Todos";
 import { Foerderauslastung } from "./Foerderauslastung";
 import { Bisherseite } from "./Bisher";
 import { Foerderplanung } from "./Foerderplanung";
@@ -72,6 +78,8 @@ export function Module({
   if (foerderung?.programm)
     return <Programmseite key={foerderung.programm} ich={ich} id={foerderung.programm} wechseln={wechseln} />;
   if (foerderung) return <Geberseite key={foerderung.geber} ich={ich} id={foerderung.geber} wechseln={wechseln} />;
+  const einstieg = einstiegAusWeg(unter);
+  if (einstieg) return <Einstieg modul={einstieg.modul} wechseln={wechseln} />;
   const treffer = teilZuWeg(unter);
   if (!treffer) return <Uebersicht wechseln={wechseln} />;
   const { modul, teil } = treffer;
@@ -79,6 +87,8 @@ export function Module({
   if (teil.schluessel === "foerderung") return <Foerderungen ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "runway") return <Runway ich={ich} />;
   if (teil.schluessel === "design") return <Designliste ich={ich} wechseln={wechseln} />;
+  if (teil.schluessel === "todos")
+    return <Todos ich={ich} umschalter={<Teilwahl modul={modul} teil={teil} wechseln={wechseln} />} />;
   return (
     <Praktikum
       key={teil.weg}
@@ -123,6 +133,8 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
             {m.teile.map((teil, i) =>
               teil.schluessel === "praktikum" ? (
                 <Themenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
+              ) : teil.schluessel === "todos" ? (
+                <Todozeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "thoughts" ? (
                 <Kartenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "runway" ? (
@@ -148,6 +160,75 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
         </button>
       </div>
     </div>
+  );
+}
+
+/* --- Der Einstieg eines Moduls mit mehreren Teilen ------------------------ */
+
+/**
+ * Eine große Kachel je Teil — die ganze Kachel ist der Link. Bernd,
+ * 2026-11-09: „drei große Kacheln, die man auswählen kann". Wie die
+ * Übersicht wartet der Einstieg auf nichts; nur die Zahl kommt nach.
+ */
+function Einstieg({ modul, wechseln }: { modul: Modul; wechseln: Wechseln }) {
+  return (
+    <div className="einstieg-kacheln">
+      {modul.teile.map((teil) =>
+        teil.schluessel === "praktikum" || teil.schluessel === "todos" ? (
+          <a
+            key={teil.weg}
+            className="einstieg-kachel"
+            href={`/module/${teil.weg}`}
+            onClick={(e) => {
+              e.preventDefault();
+              wechseln("module", teil.weg);
+            }}
+          >
+            <i className="modul-siegel">
+              <Zeichen name={teil.schluessel === "todos" ? "haken" : teil.art === "idee" ? "idee" : "mappe"} />
+            </i>
+            <b>{teil.titel}</b>
+            <em>{teil.wozu}</em>
+            <span className="einstieg-fuss">
+              {teil.schluessel === "todos" ? <TodoStand /> : <ThemenStand teil={teil} />}
+              <Zeichen name="zeiger" klasse="modul-zeiger" />
+            </span>
+          </a>
+        ) : null,
+      )}
+    </div>
+  );
+}
+
+function ThemenStand({ teil }: { teil: Themenliste }) {
+  const themen = usePraktikumsthemen();
+  const zahl = themen.data?.filter((t) => t.art === teil.art && !t.archiviert_am).length;
+  return <span className="modul-stand">{zahl === undefined ? "" : themenZahl(zahl, teil.art)}</span>;
+}
+
+function TodoStand() {
+  const todos = useNebenaufgaben();
+  const zahl = todos.data?.filter((t) => !t.erledigt_am).length;
+  return <span className="modul-stand">{zahl === undefined ? "" : `${todoZahl(zahl)} offen`}</span>;
+}
+
+/** Eine Zeile der Kachel für die To-Dos: wie viele noch offen sind. */
+function Todozeile({ teil, stelle, wechseln }: { teil: Todoteil; stelle: number; wechseln: Wechseln }) {
+  return (
+    <li>
+      <a
+        href={`/module/${teil.weg}`}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", teil.weg);
+        }}
+      >
+        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
+        {teil.titel}
+        <TodoStand />
+        <Zeichen name="zeiger" klasse="modul-zeiger" />
+      </a>
+    </li>
   );
 }
 
