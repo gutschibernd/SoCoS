@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 
 import { hole } from "../basis/api";
 import type { Anhang, Ich } from "../basis/daten";
-import { groesse, istMaildatei, mailHatAnhaenge, mailkopf, mailTeilen } from "../basis/meetings";
+import { groesse, istMaildatei, mailHatAnhaenge, mailkopf, mailTeilen, mitVerlauf } from "../basis/meetings";
 import { melden } from "../basis/meldungen";
 import { Zeichen } from "./Zeichen";
 
@@ -229,6 +229,7 @@ function Maildialog({
   schliessen: () => void;
 }) {
   const { kopf, inhalt } = mailTeilen(anhang.text);
+  const { antwort, verlauf } = mitVerlauf(inhalt);
   const betreff = kopf.find((k) => k.name === "Betreff")?.wert || anhang.name;
 
   useEffect(() => {
@@ -265,7 +266,8 @@ function Maildialog({
                 </div>
               ))}
           </dl>
-          <div className="mailinhalt">{inhalt || "Die Mail hat keinen Text."}</div>
+          <div className="mailinhalt">{antwort || "Die Mail hat keinen Text."}</div>
+          {verlauf && <div className="mailinhalt mailverlauf">{verlauf}</div>}
         </div>
       </div>
     </div>

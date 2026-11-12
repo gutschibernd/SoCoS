@@ -23,7 +23,8 @@ from socos.models import (
     Organisation,
     Protokolleintrag,
 )
-from socos.services.mailtext import html_zu_text
+from socos.services.mailtext import TRENNER, html_zu_text
+from socos.services.mailtext import _aufgeraeumt as mailtext_aufgeraeumt
 
 
 @pytest.fixture
@@ -413,6 +414,42 @@ class TestAnhaenge:
         assert "p{}" not in text
         assert "Lieber\xa0Bernd," in text
         assert "- UID" in text
+
+    def test_outlook_html_bricht_nur_dort_um_wo_der_absender_es_tat(self):
+        # Outlook bricht den Quelltext mitten im Satz um und setzt jede Zeile
+        # in ein eigenes <p>; eine Leerzeile ist ein <p> mit &nbsp;.
+        quelle = (
+            '<p class="MsoNormal"><span>Sehr geehrter\n</span><span>Herr Gutschi,<o:p></o:p></span></p>\n'
+            '<p class="MsoNormal"><o:p>&nbsp;</o:p></p>\n'
+            '<p class="MsoNormal">Artikelnummer 7s57278</p>\n'
+            '<p class="MsoNormal">Elastomere in EPDM</p>\n'
+        )
+
+        text = mailtext_aufgeraeumt(html_zu_text(quelle))
+
+        assert text == "Sehr geehrter Herr Gutschi,\n\nArtikelnummer 7s57278\nElastomere in EPDM"
+
+    def test_zellen_einer_tabellenzeile_stehen_nebeneinander(self):
+        quelle = (
+            "<table><tr><td><p>Am Lichtbogen 7</p></td><td><p>P +49 201</p></td></tr>"
+            "<tr><td><p>45141 Essen</p></td><td><p>M +49 152</p></td></tr></table>"
+        )
+
+        text = mailtext_aufgeraeumt(html_zu_text(quelle))
+
+        assert text == "Am Lichtbogen 7 · P +49 201\n45141 Essen · M +49 152"
+
+    def test_der_zitierte_verlauf_steht_unter_einer_linie(self):
+        quelle = (
+            "<p>Danke für das Telefonat.</p><div><p><b>Von:</b> Info &lt;info@x&gt;<br>"
+            "<b>Gesendet:</b> Montag<br><b>Betreff:</b> Rückruf</p></div><p>Bitte um Rückruf</p>"
+        )
+
+        text = mailtext_aufgeraeumt(html_zu_text(quelle))
+
+        antwort, verlauf = text.split(TRENNER)
+        assert antwort.strip() == "Danke für das Telefonat."
+        assert verlauf.strip().startswith("Von: Info <info@x>\nGesendet: Montag")
 
     @pytest.mark.django_db
     def test_eine_html_mail_verliert_ihre_auszeichnung(self, client, bearbeiter, meeting, medien):

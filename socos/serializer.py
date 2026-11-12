@@ -1340,10 +1340,15 @@ class LieferantSerializer(serializers.ModelSerializer):
 
     im_korb = serializers.SerializerMethodField()
     zuletzt_bestellt = serializers.SerializerMethodField()
+    korbsumme = serializers.SerializerMethodField()
+    korb_ohne_preis = serializers.SerializerMethodField()
 
     class Meta:
         model = Lieferant
-        fields = ["id", "name", "art", "link", "notiz", "staffel", "im_korb", "zuletzt_bestellt"]
+        fields = [
+            "id", "name", "art", "link", "notiz", "staffel",
+            "im_korb", "zuletzt_bestellt", "korbsumme", "korb_ohne_preis",
+        ]
 
     def validate_staffel(self, roh):
         try:
@@ -1357,6 +1362,23 @@ class LieferantSerializer(serializers.ModelSerializer):
     def get_zuletzt_bestellt(self, lieferant):
         wert = getattr(lieferant, "zuletzt_bestellt", None)
         return wert.isoformat() if wert else None
+
+    def _korbrechnung(self, lieferant):
+        # Je Lieferant eine Abfrage, und nur, wenn etwas im Korb liegt. Die
+        # Staffel zählt über den ganzen Korb; in SQL nachgebaut stünde die
+        # Regel ein zweites Mal neben `bestelldienst.rechnung`.
+        if not hasattr(lieferant, "_korbrechnung"):
+            leer = getattr(lieferant, "im_korb", None) == 0
+            lieferant._korbrechnung = None if leer else bestelldienst.rechnung(lieferant)
+        return lieferant._korbrechnung
+
+    def get_korbsumme(self, lieferant):
+        r = self._korbrechnung(lieferant)
+        return str(r["summe"]) if r else "0.00"
+
+    def get_korb_ohne_preis(self, lieferant):
+        r = self._korbrechnung(lieferant)
+        return r["ohne_preis"] if r else 0
 
 
 class LieferantDetailSerializer(LieferantSerializer):

@@ -9,6 +9,7 @@ import {
   mailHatAnhaenge,
   mailkopf,
   mailTeilen,
+  mitVerlauf,
   passtMeeting,
   teileNachZeit,
   wann,
@@ -381,5 +382,18 @@ describe("passtMeeting", () => {
 
   it("lässt bei leerer Suche alles durch", () => {
     expect(passtMeeting(meeting(), "  ")).toBe(true);
+  });
+});
+
+describe("mitVerlauf", () => {
+  it("trennt die Mail vom zitierten Verlauf an der Linie", () => {
+    const teile = mitVerlauf("Danke für das Telefonat.\n\n────────────\n\nVon: info@x\nGesendet: Montag");
+
+    expect(teile.antwort).toBe("Danke für das Telefonat.");
+    expect(teile.verlauf).toBe("Von: info@x\nGesendet: Montag");
+  });
+
+  it("lässt eine Mail ohne Verlauf ganz", () => {
+    expect(mitVerlauf("Nur Text")).toEqual({ antwort: "Nur Text", verlauf: "" });
   });
 });

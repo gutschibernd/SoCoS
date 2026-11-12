@@ -5,6 +5,7 @@ import {
   istLink,
   kurzerLink,
   naechsteStufeText,
+  offenGesamt,
   rechnungsText,
   sortiment,
   zusammenfassung,
@@ -161,5 +162,20 @@ describe("die Rechnung unter dem Korb", () => {
 
   it("lässt die Zeile weg, wenn es weder Preis noch Staffel gibt", () => {
     expect(rechnungsText(rechnung({}))).toBe("");
+  });
+});
+
+describe("offenGesamt", () => {
+  it("zählt alle Körbe in Cent zusammen", () => {
+    const r = offenGesamt([
+      { korbsumme: "461.70", korb_ohne_preis: 0 },
+      { korbsumme: "0.10", korb_ohne_preis: 1 },
+      { korbsumme: "0.20", korb_ohne_preis: 0 },
+    ]);
+    expect(r).toEqual({ summe: "462.00", ohnePreis: 1 });
+  });
+
+  it("ist null ohne Körbe", () => {
+    expect(offenGesamt([])).toEqual({ summe: "0.00", ohnePreis: 0 });
   });
 });

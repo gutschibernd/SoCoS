@@ -168,3 +168,18 @@ export function zusammenfassung(
     ...(erwartet ? ["", `Erwartet laut SoCoS: ${erwartet}. Bitte im Warenkorb vergleichen.`] : []),
   ].join("\n");
 }
+
+/**
+ * Was in allen Körben zusammen liegt — die Zahl oben in der Liste. Gerechnet
+ * in Cent, damit aus „0.10" und „0.20" nicht 0.30000000000000004 wird.
+ */
+export function offenGesamt(lieferanten: Pick<Lieferant, "korbsumme" | "korb_ohne_preis">[]): {
+  summe: string;
+  ohnePreis: number;
+} {
+  const cent = lieferanten.reduce((n, l) => n + Math.round(Number(l.korbsumme) * 100), 0);
+  return {
+    summe: (cent / 100).toFixed(2),
+    ohnePreis: lieferanten.reduce((n, l) => n + l.korb_ohne_preis, 0),
+  };
+}

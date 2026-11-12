@@ -26,6 +26,7 @@ import {
   istLink,
   kurzerLink,
   naechsteStufeText,
+  offenGesamt,
   rechnungsText,
   sortiment,
   tagText,
@@ -67,6 +68,7 @@ export function Lieferantenliste({ ich, wechseln }: { ich: Ich; wechseln: Wechse
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
   if (!lieferanten.data) return <Zustand abfrage={lieferanten} erneut={() => lieferanten.refetch()} />;
   const liste = lieferanten.data;
+  const offen = offenGesamt(liste);
   const darf = ich.darf.bearbeiten;
   const oeffnen = (id: number) => wechseln("module", `${WEG}/${id}`);
 
@@ -88,6 +90,23 @@ export function Lieferantenliste({ ich, wechseln }: { ich: Ich; wechseln: Wechse
               ` · bei ${liste.filter((l) => l.im_korb > 0).length} liegt etwas im Korb`}
           </span>
         </div>
+        {offen.summe !== "0.00" && (
+          <div className="offen-gesamt">
+            <span>
+              Offen in allen Körben{" "}
+              <Hinweis
+                worum="Offen in allen Körben"
+                text="Listenpreis abzüglich Mengenrabatt, so wie jeder Korb es rechnet — ohne Versand. Netto oder brutto, je nachdem, wie die Preise eingetragen sind."
+              />
+            </span>
+            <b className="zahl">ca. {alsEuro(offen.summe)}</b>
+            {offen.ohnePreis > 0 && (
+              <small>
+                {offen.ohnePreis} {offen.ohnePreis === 1 ? "Zeile" : "Zeilen"} ohne Preis
+              </small>
+            )}
+          </div>
+        )}
         {liste.length > 0 && <div className="vorhaben-aktionen">{anlegen}</div>}
       </div>
 
@@ -126,7 +145,14 @@ export function Lieferantenliste({ ich, wechseln }: { ich: Ich; wechseln: Wechse
                   </td>
                   <td data-spalte="Bestellweg">{bestellwegVon(l.art).titel}</td>
                   <td data-spalte="Im Korb">
-                    {l.im_korb > 0 ? <span className="status status-laeuft">{zeilenZahl(l.im_korb)}</span> : "leer"}
+                    {l.im_korb > 0 ? (
+                      <>
+                        <span className="status status-laeuft">{zeilenZahl(l.im_korb)}</span>
+                        {Number(l.korbsumme) > 0 && <span className="zahl korb-betrag">ca. {alsEuro(l.korbsumme)}</span>}
+                      </>
+                    ) : (
+                      "leer"
+                    )}
                   </td>
                   <td data-spalte="Zuletzt bestellt" className="zahl">
                     {l.zuletzt_bestellt ? tagText(l.zuletzt_bestellt) : "—"}

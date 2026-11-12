@@ -542,6 +542,10 @@ export type Lieferant = {
   im_korb: number;
   /** `"JJJJ-MM-TT"` der letzten Bestellung, oder null. */
   zuletzt_bestellt: string | null;
+  /** Was der Korb nach Listenpreis und Staffel ungefähr kostet, als Zeichenkette. */
+  korbsumme: string;
+  /** Zeilen im Korb ohne Preis — sie fehlen in `korbsumme`. */
+  korb_ohne_preis: number;
 };
 
 export type Staffelstufe = { ab: number; prozent: string };

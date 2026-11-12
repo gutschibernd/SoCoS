@@ -159,6 +159,23 @@ export function mailTeilen(text: string): {
   return { kopf, inhalt };
 }
 
+/**
+ * Die Mail selbst und der zitierte Verlauf darunter — getrennt an der Linie,
+ * die der Server vor „Von: … / Gesendet: …" setzt (`TRENNER` in
+ * socos/services/mailtext.py). Der Verlauf steht dann leiser da: Gelesen
+ * wird, was neu ist.
+ */
+export const MAILTRENNER = "────────────";
+
+export function mitVerlauf(inhalt: string): { antwort: string; verlauf: string } {
+  const stelle = inhalt.indexOf(MAILTRENNER);
+  if (stelle < 0) return { antwort: inhalt, verlauf: "" };
+  return {
+    antwort: inhalt.slice(0, stelle).trim(),
+    verlauf: inhalt.slice(stelle + MAILTRENNER.length).trim(),
+  };
+}
+
 /** „14.10.2026" oder „14.10.2026, 14:30" — die Uhrzeit nur, wenn es eine gibt. */
 export function wann(meeting: Pick<Meeting, "datum" | "uhrzeit">): string {
   const tag = new Date(`${meeting.datum}T00:00:00`).toLocaleDateString("de-AT", {

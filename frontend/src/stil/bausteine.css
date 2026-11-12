@@ -2046,6 +2046,8 @@ a.mini { text-decoration: none; }
 .mailkopf dt { color: var(--text-leise); }
 .mailkopf dd { margin: 0; overflow-wrap: anywhere; }
 .mailinhalt { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.6; }
+/* Der zitierte Verlauf unter einer Linie und leiser: Gelesen wird, was neu ist. */
+.mailverlauf { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rand); color: var(--text-leise); font-size: 13px; }
 
 .abschnitt { padding: 14px 0; border-bottom: 1px solid var(--rand); }
 .abschnitt:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -4898,6 +4900,17 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
 }
 
 /* --- Bestellungen ---------------------------------------------------------- */
+/* Die Summe aller offenen Körbe steht groß in der Leiste: Sie ist die Frage,
+   mit der man die Seite öffnet. */
+.offen-gesamt { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; margin-left: auto; text-align: right; }
+.offen-gesamt > span { font-size: 13px; color: var(--text-leise); display: inline-flex; align-items: center; gap: 4px; }
+.offen-gesamt > b { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.offen-gesamt > small { font-size: 12.5px; color: var(--text-leise); }
+.korb-betrag { margin-left: 8px; font-size: 13.5px; }
+@media (max-width: 700px) {
+  .offen-gesamt { align-items: flex-start; text-align: left; margin-left: 0; flex-basis: 100%; }
+  .korb-betrag { display: block; margin: 4px 0 0; }
+}
 /*
  * Die Liste der Lieferanten ist eine `.tabelle` (am Handy Karten), die Seite
  * eines Lieferanten zwei Spalten: links, womit man arbeitet (Korb und

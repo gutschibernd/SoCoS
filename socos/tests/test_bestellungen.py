@@ -427,6 +427,24 @@ class TestStaffel:
         assert r["ohne_preis"] == 1
         assert r["summe"] == "25.48"
 
+    def test_die_liste_traegt_die_summe_jedes_korbs(self, client, bearbeiter, filament):
+        bambu, basic, matte, _ = filament
+        leer = Lieferant.objects.create(name="Pumpen", art="haendler")
+        ohne = Bestellartikel.objects.create(lieferant=bambu, name="PLA Pure", in_staffel=True)
+        client.force_login(bearbeiter)
+        _hinein(client, basic, 8)
+        _hinein(client, matte, 6)
+        _hinein(client, ohne, 1)
+
+        liste = {l["name"]: l for l in client.get("/api/lieferanten/").json()}
+
+        # Dieselbe Rechnung wie auf der Seite des Lieferanten, Staffel inklusive:
+        # 15 Spulen, −47 %, 8 × 9,00 + 6 × 10,06.
+        assert liste[bambu.name]["korbsumme"] == "132.36"
+        assert liste[bambu.name]["korb_ohne_preis"] == 1
+        assert liste[leer.name]["korbsumme"] == "0.00"
+        assert liste[leer.name]["korb_ohne_preis"] == 0
+
     @pytest.mark.parametrize(
         "staffel",
         [[{"ab": 1, "prozent": "10"}], [{"ab": 4, "prozent": "100"}], [{"ab": 4}], [{"ab": 4, "prozent": "5"}, {"ab": 4, "prozent": "9"}]],

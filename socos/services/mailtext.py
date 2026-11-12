@@ -164,18 +164,65 @@ def html_zu_text(quelle):
     """
     text = re.sub(r"(?is)<(head|style|script)\b.*?</\1\s*>", "", quelle)
     text = re.sub(r"(?is)<!--.*?-->", "", text)
+    # Ein Zeilenumbruch im Quelltext ist in HTML ein Leerzeichen. Outlook
+    # bricht seinen Quelltext mitten im Satz um; wer das als Zeile nimmt,
+    # bekommt „Sehr geehrter" und „Herr Gutschi," auf zwei Zeilen und nach
+    # jedem Absatz eine Leerzeile zu viel. Nur echte Leerraumzeichen — ein
+    # geschütztes Leerzeichen bleibt, was es ist.
+    text = re.sub(r"[ \t\r\n\f]+", " ", text)
     text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?i)<hr\b[^>]*>", f"\n{TRENNER}\n", text)
     text = re.sub(r"(?i)<li\b[^>]*>", "\n- ", text)
+    # Zellen einer Zeile stehen nebeneinander — so sieht die Signatur mit
+    # Adresse links und Telefon rechts aus wie im Mailprogramm. Ein Absatz,
+    # der eine Zelle bloß umschließt, bricht die Zeile dabei nicht.
+    text = re.sub(r"(?i)(<t[dh]\b[^>]*>)\s*<p\b[^>]*>", r"\1", text)
+    text = re.sub(r"(?i)</p>\s*(</t[dh]>)", r"\1", text)
+    text = re.sub(r"(?i)</t[dh]\s*>", "\t", text)
     text = re.sub(r"(?i)</(p|div|li|tr|h[1-6]|table|blockquote)\s*>", "\n", text)
     text = re.sub(r"(?s)<[^>]+>", "", text)
-    return html.unescape(text)
+    text = html.unescape(text)
+    return "\n".join(
+        " · ".join(z for z in (t.strip() for t in zeile.split("\t")) if z) if "\t" in zeile else zeile
+        for zeile in text.split("\n")
+    )
 
 
 def _aufgeraeumt(text):
     text = text.replace("\xa0", " ").replace("\r\n", "\n").replace("\r", "\n")
     zeilen = [re.sub(r"[ \t]+", " ", z).strip() for z in text.split("\n")]
+    zeilen = _zitate_abgesetzt(zeilen)
     text = "\n".join(zeilen)
     text = re.sub(r"\n{3,}", "\n\n", text)
     # Outlook setzt in jedes <li> noch ein <p> — ohne diese Zeile stünde
     # zwischen zwei Punkten einer Aufzählung jedesmal eine Leerzeile.
-    return re.sub(r"\n\n+(?=- )", "\n", text).strip()
+    text = re.sub(r"\n\n+(?=- )", "\n", text)
+    # Zwei Trenner hintereinander, wenn die Mail selbst schon eine Linie zog.
+    text = re.sub(rf"{TRENNER}(\n+{TRENNER})+", TRENNER, text)
+    return text.strip()
+
+
+# Steht zwischen der Mail und dem, worauf sie antwortet. Ohne ihn läuft der
+# zitierte Verlauf in die Antwort hinein, und man liest die Rückrufbitte von
+# vor drei Wochen als Teil des Angebots.
+TRENNER = "────────────"
+
+_ZITATKOPF = re.compile(r"^(Von|From): .+")
+_ZITATKOPF_FOLGT = re.compile(r"^(Gesendet|Sent|Datum|Date|An|To): ")
+_SCHRIEB = re.compile(r"^(Am .+ schrieb .+|On .+ wrote):$")
+
+
+def _zitate_abgesetzt(zeilen):
+    """
+    Vor dem Kopf einer zitierten Mail („Von: … / Gesendet: …" bei Outlook,
+    „Am … schrieb …:" bei Apple Mail und Gmail) eine Linie.
+    """
+    aus = []
+    for i, zeile in enumerate(zeilen):
+        zitat = _SCHRIEB.match(zeile) or (
+            _ZITATKOPF.match(zeile) and i + 1 < len(zeilen) and _ZITATKOPF_FOLGT.match(zeilen[i + 1])
+        )
+        if zitat and any(aus):
+            aus += ["", TRENNER, ""]
+        aus.append(zeile)
+    return aus
