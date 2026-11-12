@@ -26,6 +26,7 @@ import {
   foerderbisherAusWeg,
   foerderplanungAusWeg,
   foerderungAusWeg,
+  lieferantAusWeg,
   teilZuWeg,
   themaAusWeg,
 } from "./module";
@@ -110,7 +111,7 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   // Fördergeber, Programm und Antrag: `/module/foerderungen/2`, `/2/1`, `/2/1/3`,
   // und Auslastung und Planung daneben: `/module/foerderungen/auslastung`,
   // `/module/foerderungen/planung`, `/module/foerderungen/bisher`, eine
-  // Designentscheidung: `/module/design/7`.
+  // Designentscheidung: `/module/design/7`, ein Lieferant: `/module/bestellungen/3`.
   module: (unter) =>
     MODULWEGE.includes(unter) ||
     themaAusWeg(unter) !== null ||
@@ -118,7 +119,8 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
     foerderauslastungAusWeg(unter) !== null ||
     foerderplanungAusWeg(unter) !== null ||
     foerderbisherAusWeg(unter) !== null ||
-    designAusWeg(unter) !== null,
+    designAusWeg(unter) !== null ||
+    lieferantAusWeg(unter) !== null,
   einstellungen: (unter) => (RUBRIKEN as readonly string[]).includes(unter),
   profil: (unter) => (PROFILTEILE as readonly string[]).includes(unter),
   doku: (unter) => (DOKUTEILE as readonly string[]).includes(unter),

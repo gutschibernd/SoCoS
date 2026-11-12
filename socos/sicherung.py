@@ -58,6 +58,13 @@ MODELLE_IM_ARCHIV = [
     # Das Kästchen mit dem Diamanten (socos/bisher.py) — nicht im Repository,
     # also nur hier gesichert.
     "socos.Eingang",
+    # Bestellungen. Die Anhänge (meist Mails mit dem Hersteller) liegen unter
+    # MEDIA_ROOT und wandern mit dem Medienordner.
+    "socos.Lieferant",
+    "socos.Bestellartikel",
+    "socos.Bestellung",
+    "socos.Bestellposition",
+    "socos.Lieferantenanhang",
     # Die Rollen. Ohne sie darf nach dem Einspielen niemand mehr etwas.
     "auth.Group",
 ]
@@ -124,6 +131,13 @@ LOESCHREIHENFOLGE = [
     "socos.Lageverbindung",
     "socos.Lageschritt",
     "socos.Lagethema",
+    # Position vor Bestellung und Artikel, beide vor dem Lieferanten; alles,
+    # was einen Nutzer nennt, vor dem Nutzer.
+    "socos.Bestellposition",
+    "socos.Bestellung",
+    "socos.Bestellartikel",
+    "socos.Lieferantenanhang",
+    "socos.Lieferant",
     "socos.Protokolleintrag",
     "socos.Nutzer",
     "auth.Group",

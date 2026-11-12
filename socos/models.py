@@ -2397,3 +2397,211 @@ class Designentscheidung(Basismodell):
             hoechste = Designentscheidung.alle_objekte.aggregate(n=models.Max("nummer"))["n"]
             self.nummer = (hoechste or 0) + 1
         super().save(*args, **kwargs)
+
+
+# --- Module: Bestellungen -----------------------------------------------------------
+#
+# Sammelbestellungen je Lieferant: Was gebraucht wird, landet über die Wochen
+# im Korb, und bestellt wird einmal für alle. Bernd, 2026-11-12: „es soll
+# wirklich kein komplexes Programm sein" — deshalb ohne Preise, ohne Lager
+# und ohne Freigabe. Wer bearbeiten darf, legt hinein.
+
+
+class Bestellweg(models.TextChoices):
+    """
+    Wie bei einem Lieferanten bestellt wird — und damit, was der Knopf
+    „Zusammenfassung" daraus macht: eine Liste für den Warenkorb, eine für
+    eine Plattform, auf der man einen Teil erst anfragen muss, oder den Text
+    einer Angebotsanfrage.
+
+    **Kein Vorgabewert.** Die Art entscheidet über den Text, der hinausgeht;
+    eine vorgewählte bliebe beim schnellen Anlegen einfach stehen.
+    """
+
+    SHOP = "shop", "Onlineshop"
+    PLATTFORM = "plattform", "Plattform mit Anfragen"
+    HAENDLER = "haendler", "Direkthändler mit Angebot"
+
+
+class Lieferant(Basismodell):
+    """
+    Wo bestellt wird: Bambu Lab, Amazon, eine Plattform wie Alibaba, der
+    Pumpenhersteller, bei dem man ein Angebot anfragt.
+
+    **Keine Organisation aus den Kontakten.** Dort hat jede eine Stufe und
+    eine Priorität — Amazon stünde dann auf „Erstkontakt". Wer einen
+    Ansprechpartner hat, schreibt ihn in die Notiz; den Mailverlauf tragen
+    die Anhänge (`Lieferantenanhang`).
+    """
+
+    name = models.CharField("Name", max_length=120)
+    art = models.CharField("Bestellweg", max_length=10, choices=Bestellweg.choices)
+    link = models.URLField("Link", max_length=500, blank=True)
+    notiz = models.TextField("Notiz", blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Lieferant"
+        verbose_name_plural = "Lieferanten"
+        ordering = ["name", "id"]
+
+    def __str__(self):
+        return self.name
+
+    def delete(self, *args, **kwargs):
+        """
+        Nimmt Sortiment, Korb und Anhänge weich mit — wie das Meeting seine
+        Abschnitte. Hat er schon Bestellungen im Archiv, hält `PROTECT`
+        dagegen, und alles bleibt, wie es war: Ein Lieferant mit Geschichte
+        verschwindet nicht.
+        """
+        from django.db import transaction
+
+        with transaction.atomic():
+            for artikel in self.artikel.filter(geloescht_am__isnull=True):
+                artikel.delete()
+            for anhang in self.anhaenge.filter(geloescht_am__isnull=True):
+                anhang.delete()
+            super().delete(*args, **kwargs)
+
+
+class Bestellartikel(Basismodell):
+    """
+    Ein Artikel im Sortiment eines Lieferanten. Er entsteht, wenn jemand einen
+    Link in den Korb legt, und **bleibt** — das Filament von Bambu Lab wird
+    jeden Monat wieder bestellt, und dann ist es ein Klick.
+
+    `beschreibung` trägt, was der Link nicht sagt: Farbe, Größe, Variante.
+    Ein eigenes Feld je Merkmal hätte bei der Pumpe andere Merkmale als beim
+    Filament.
+    """
+
+    lieferant = models.ForeignKey(
+        Lieferant, verbose_name="Lieferant", on_delete=models.PROTECT, related_name="artikel"
+    )
+    name = models.CharField("Name", max_length=200)
+    # 2000 und nicht 200: Ein Link von Amazon mit allem, was beim Kopieren
+    # mitkommt, ist schnell 600 Zeichen lang.
+    link = models.URLField("Link", max_length=2000, blank=True)
+    beschreibung = models.CharField("Beschreibung", max_length=300, blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Bestellartikel"
+        verbose_name_plural = "Bestellartikel"
+        ordering = ["name", "id"]
+
+    def __str__(self):
+        return self.name
+
+    def delete(self, *args, **kwargs):
+        """Was davon noch im Korb liegt, fällt mit heraus. Das Archiv bleibt."""
+        for position in self.positionen.filter(geloescht_am__isnull=True, bestellung__isnull=True):
+            position.delete()
+        super().delete(*args, **kwargs)
+
+
+class Bestellung(Basismodell):
+    """
+    Eine abgeschickte Sammelbestellung — das Archiv. Sie entsteht mit
+    „Als bestellt markieren" und nimmt alles mit, was in diesem Moment im
+    Korb des Lieferanten lag.
+
+    **Der Korb ist kein Modell**: Er ist die Menge der Positionen ohne
+    Bestellung. Ein eigener Korb hätte einen Zustand gebraucht („offen",
+    „bestellt") und eine Regel, dass es je Lieferant genau einen offenen gibt.
+    """
+
+    lieferant = models.ForeignKey(
+        Lieferant, verbose_name="Lieferant", on_delete=models.PROTECT, related_name="bestellungen"
+    )
+    bestellt_am = models.DateField("bestellt am")
+    von = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="bestellt von",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    notiz = models.CharField("Notiz", max_length=300, blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Bestellung"
+        verbose_name_plural = "Bestellungen"
+        ordering = ["-bestellt_am", "-id"]
+
+    def __str__(self):
+        return f"{self.lieferant} · {self.bestellt_am:%d.%m.%Y}"
+
+
+class Bestellposition(Basismodell):
+    """
+    Eine Zeile im Korb — oder, sobald `bestellung` gesetzt ist, im Archiv.
+
+    `von` hält fest, wer es hineingelegt hat, damit man beim Bestellen
+    nachfragen kann. Legt dieselbe Person denselben Artikel noch einmal
+    hinein, wächst die Menge der vorhandenen Zeile (`services/bestellung`).
+
+    **Am Artikel mit `CASCADE`, nicht `PROTECT`:** Ein Artikel, der aus dem
+    Sortiment genommen wird, soll im Archiv weiter dastehen. Weich gelöscht
+    bleibt er in der Datenbank, und die Position zeigt weiter auf ihn; mit
+    `PROTECT` ließe er sich nach der ersten Bestellung nie mehr entfernen.
+    """
+
+    artikel = models.ForeignKey(
+        Bestellartikel, verbose_name="Artikel", on_delete=models.CASCADE, related_name="positionen"
+    )
+    menge = models.PositiveIntegerField("Menge", default=1, validators=[MinValueValidator(1)])
+    von = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="hineingelegt von",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    bestellung = models.ForeignKey(
+        Bestellung,
+        verbose_name="Bestellung",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="positionen",
+    )
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Bestellposition"
+        verbose_name_plural = "Bestellpositionen"
+        ordering = ["erstellt_am", "id"]
+
+    def __str__(self):
+        return f"{self.menge} × {self.artikel}"
+
+
+class Lieferantenanhang(Basismodell):
+    """
+    Eine Datei am Lieferanten — meist eine Mail (.eml) aus dem Verlauf mit
+    dem Hersteller: Anfrage, Angebot, Rückfrage, Auftragsbestätigung. So
+    steht der Stand der Dinge dort, wo bestellt wird.
+
+    Gebaut wie `Eventanhang` und hochgeladen über denselben Weg
+    (`AnhangViewSet`): Die Datei liegt unter `MEDIA_ROOT` und wandert damit
+    in die Sicherung, ausgeliefert wird sie nur hinter der Anmeldung und
+    immer als Download, und bei einer E-Mail steht ihr Text in `text`.
+    """
+
+    lieferant = models.ForeignKey(
+        Lieferant, verbose_name="Lieferant", on_delete=models.CASCADE, related_name="anhaenge"
+    )
+    datei = models.FileField("Datei", upload_to="lieferanten/%Y/%m/", max_length=300)
+    name = models.CharField("Name", max_length=255)
+    groesse = models.PositiveBigIntegerField("Größe in Byte", default=0)
+    art = models.CharField("Art", max_length=10, choices=Anhangart.choices, default=Anhangart.DATEI)
+    text = models.TextField("Ausgelesener Text", blank=True)
+
+    class Meta(Basismodell.Meta):
+        verbose_name = "Lieferantenanhang"
+        verbose_name_plural = "Lieferantenanhänge"
+        ordering = ["lieferant", "erstellt_am", "id"]
+
+    def __str__(self):
+        return self.name

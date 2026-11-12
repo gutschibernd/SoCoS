@@ -3,6 +3,7 @@ import { fuehrtZurAnmeldung, zurAnmeldung } from "./basis/anmeldung";
 import {
   designAusWeg,
   einstiegAusWeg,
+  lieferantAusWeg,
   foerderauslastungAusWeg,
   foerderbisherAusWeg,
   foerderplanungAusWeg,
@@ -69,6 +70,7 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   "module/thoughts": { titel: "Thoughts", unter: "Was frei ist, was wartet" },
   "module/foerderungen": { titel: "Förderungen", unter: "Fördergeber, Programme, Anträge" },
   "module/runway": { titel: "Runway-Planung", unter: "Wie lange das Geld reicht" },
+  "module/bestellungen": { titel: "Bestellungen", unter: "Lieferanten und was in ihrem Korb liegt" },
 };
 
 export function App() {
@@ -96,6 +98,7 @@ export function App() {
       ? (themaAusWeg(ort.unter) ??
         foerderungAusWeg(ort.unter) ??
         designAusWeg(ort.unter) ??
+        lieferantAusWeg(ort.unter) ??
         (auslastung && { ...auslastung, teil: { ...auslastung.teil, titel: "Auslastung" } }) ??
         (planung && { ...planung, teil: { ...planung.teil, titel: "Planung" } }) ??
         (bisher && { ...bisher, teil: { ...bisher.teil, titel: "Bisher bekommen" } }))

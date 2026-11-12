@@ -4896,3 +4896,94 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
 @media (pointer: coarse) {
   .de-standwahl button, .de .pl-knopf, .de .pl-knopf-leise, .de-pruefliste li button, .de-ki-kopf .de-textknopf { min-height: var(--griff); }
 }
+
+/* --- Bestellungen ---------------------------------------------------------- */
+/*
+ * Die Liste der Lieferanten ist eine `.tabelle` (am Handy Karten), die Seite
+ * eines Lieferanten zwei Spalten: links, womit man arbeitet (Korb und
+ * Sortiment), rechts, was man nachliest (Mails und Archiv). Unter 1100 px eine
+ * Spalte — der Korb zuerst.
+ */
+.lieferant-name {
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  min-height: var(--griff); color: var(--marke); text-decoration: none;
+}
+.lieferant-name:hover b { text-decoration: underline; }
+.lieferant-link { color: var(--marke); }
+.lieferant-notiz { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.bestell-raster { display: grid; gap: 16px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
+
+.korb-knoepfe { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.korb-zahl { margin-left: 6px; font-size: 12.5px; font-weight: 400; color: var(--text-leise); }
+.korb-neu { margin-bottom: 4px; }
+.korb-neu-felder { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.korb-neu-felder .profilfeld { margin-bottom: 0; }
+.korb-schon { margin: 0; font-size: 14px; color: var(--text-leise); }
+.korb-schon b { color: var(--text); }
+.korb-sucht { font-style: normal; font-weight: 400; color: var(--text-sehr-leise); }
+.feld-reihe > .korb-menge, .korb-menge { flex: 0 0 84px; width: 84px; text-align: right; }
+.korb-leer { margin: 12px 0 0; font-size: 14px; color: var(--text-leise); line-height: 1.5; }
+.korb-text { font-family: var(--schrift-mono); font-size: 13px; line-height: 1.5; resize: vertical; }
+.fenster-satz { margin: 0 0 14px; font-size: 14px; color: var(--text-leise); line-height: 1.5; }
+
+.korb-liste, .sortiment-liste, .archiv-liste { list-style: none; margin: 8px 0 0; padding: 0; }
+.korbzeile, .sortiment-liste li {
+  display: flex; align-items: center; gap: 10px; min-height: var(--griff); padding: 6px 0;
+  border-bottom: 1px solid var(--rand);
+}
+.korbzeile:last-child, .sortiment-liste li:last-child, .archiv-liste li:last-child { border-bottom: 0; }
+.korb-menge-text { flex: 0 0 auto; min-width: 40px; font-weight: 600; }
+/* Name und Zeile darunter. Der Name ist der Link zum Artikel im Shop — ein
+   Klick dort ist, was man vor dem Bestellen am häufigsten tut: nachsehen. */
+.artikeltext { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.artikeltext > a, .artikeltext > b { font-weight: 600; overflow-wrap: break-word; }
+.artikeltext > a { color: var(--marke); text-decoration: none; }
+.artikeltext > a:hover { text-decoration: underline; }
+.artikeltext .unterzeile { margin-top: 0; overflow-wrap: anywhere; }
+/* Wer es hineingelegt hat — das Kürzel rund wie überall, wo eine Person steht. */
+.korb-von {
+  flex: 0 0 auto; display: inline-grid; place-items: center; width: 28px; height: 28px;
+  border-radius: 50%; background: var(--flaeche-leise); border: 1px solid var(--rand);
+  font-size: 11.5px; font-weight: 600; color: var(--text-leise);
+}
+.korb-weg, .sortiment-liste .mini { flex: 0 0 auto; }
+.sortiment-liste .status { flex: 0 0 auto; }
+.sortiment-plus { flex: 0 0 auto; padding: 8px 12px; gap: 2px; }
+
+.archiv-liste li { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; border-bottom: 1px solid var(--rand); }
+.archiv-liste .unterzeile { margin-top: 0; }
+.archiv-zeilen { font-size: 13.5px; color: var(--text); line-height: 1.5; }
+.archiv-mehr { margin-top: 10px; }
+
+/* Drei Wege als Wahl mit einem Satz darunter — wie die Umfangswahl der To-Dos,
+   aber der Satz sagt, welcher Lieferant gemeint ist. */
+.bestellwegwahl { display: grid; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 4px; }
+.bestellwegwahl button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  min-height: var(--griff); padding: 10px 12px;
+  border: 1px solid var(--rand-stark); border-radius: var(--kante);
+  background: var(--flaeche); color: var(--text);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.bestellwegwahl button b { font-size: 14px; font-weight: 600; }
+.bestellwegwahl button span { font-size: 12.5px; color: var(--text-leise); line-height: 1.4; }
+.bestellwegwahl button:hover b { color: var(--akzent); }
+.bestellwegwahl button[aria-checked="true"] { border-color: var(--akzent); background: var(--akzent-hell); }
+.bestellwegwahl button:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+
+@media (max-width: 1100px) {
+  .bestell-raster { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .bestellwegwahl { grid-template-columns: minmax(0, 1fr); }
+  /* Im Sortiment bekommt der Name am Handy die ganze Zeile, Stand und Knöpfe
+     rücken darunter nach rechts — sonst bräche „Membranpumpe" mitten im Wort. */
+  .sortiment-liste li { flex-wrap: wrap; row-gap: 6px; padding: 10px 0; }
+  .sortiment-liste .artikeltext { flex: 1 1 100%; }
+  .sortiment-liste .artikeltext + * { margin-left: auto; }
+  .korb-knoepfe > * { flex: 1 1 auto; }
+}
+@media (pointer: coarse) {
+  .korb-weg, .sortiment-liste .mini { min-height: var(--griff); min-width: var(--griff); }
+}

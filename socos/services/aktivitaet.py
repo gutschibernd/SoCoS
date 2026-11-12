@@ -71,6 +71,11 @@ NAMEN = {
     "socos.Foerderabschnitt": ("m", "Textabschnitt eines Antrags", "Textabschnitte eines Antrags"),
     "socos.Foerderkapazitaet": ("f", "Förderkapazität", "Förderkapazitäten"),
     "socos.Runwayplan": ("m", "Runway-Plan", "Runway-Pläne"),
+    "socos.Lieferant": ("m", "Lieferanten", "Lieferanten"),
+    "socos.Bestellartikel": ("m", "Artikel im Sortiment", "Artikel im Sortiment"),
+    "socos.Bestellposition": ("f", "Position im Korb", "Positionen im Korb"),
+    "socos.Bestellung": ("f", "Bestellung", "Bestellungen"),
+    "socos.Lieferantenanhang": ("m", "Anhang am Lieferanten", "Anhänge an Lieferanten"),
 }
 UNBEKANNT = ("m", "Eintrag", "Einträge")
 

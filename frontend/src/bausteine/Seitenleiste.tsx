@@ -10,6 +10,7 @@ import {
   foerderbisherAusWeg,
   foerderplanungAusWeg,
   foerderungAusWeg,
+  lieferantAusWeg,
   teilZuWeg,
   themaAusWeg,
 } from "../basis/module";
@@ -74,6 +75,9 @@ const GRUPPEN: { titel: string | null; eintraege: Eintrag[]; klappt?: true }[] =
       { seite: "kontakte", titel: "Kontakte", zeichen: "kontakte" },
       { seite: "meetings", titel: "Meetings", zeichen: "meeting" },
       { seite: "events", titel: "Events", zeichen: "event" },
+      // Unter „Extern", weil es um Lieferanten und den Mailverlauf mit ihnen
+      // geht — wie bei Kontakten ist die andere Seite außer Haus.
+      modul("bestellungen"),
     ],
   },
   { titel: "Geld", eintraege: [modul("foerderungen"), modul("runway")] },
@@ -98,6 +102,7 @@ function modulAm(unter: string | null) {
     einstiegAusWeg(unter) ??
     themaAusWeg(unter) ??
     designAusWeg(unter) ??
+    lieferantAusWeg(unter) ??
     foerderungAusWeg(unter) ??
     foerderauslastungAusWeg(unter) ??
     foerderplanungAusWeg(unter) ??

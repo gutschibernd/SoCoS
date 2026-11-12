@@ -12,6 +12,7 @@ import {
   useDesignentscheidungen,
   useFoerderungen,
   useLagekarte,
+  useLieferanten,
   useNebenaufgaben,
   usePraktikumsthemen,
   useRunway,
@@ -30,6 +31,8 @@ import {
   foerderbisherAusWeg,
   foerderplanungAusWeg,
   foerderungAusWeg,
+  lieferantAusWeg,
+  type Bestellteil,
   type Designteil,
   type Foerderteil,
   type Runwayteil,
@@ -50,6 +53,7 @@ import { Foerderplanung } from "./Foerderplanung";
 import { Antragsseite, Foerderungen, Geberseite, Programmseite } from "./Foerderungen";
 import { Runway } from "./Runway";
 import { Designliste, Entscheidungsseite } from "./Design";
+import { Lieferantenliste, Lieferantenseite } from "./Bestellungen";
 import { Achse } from "../basis/runway";
 
 export function Module({
@@ -72,6 +76,8 @@ export function Module({
   const entscheidung = designAusWeg(unter);
   if (entscheidung)
     return <Entscheidungsseite key={entscheidung.id} ich={ich} id={entscheidung.id} wechseln={wechseln} zurueck={zurueck} />;
+  const lieferant = lieferantAusWeg(unter);
+  if (lieferant) return <Lieferantenseite key={lieferant.id} ich={ich} id={lieferant.id} zurueck={zurueck} />;
   const foerderung = foerderungAusWeg(unter);
   if (foerderung?.antrag)
     return <Antragsseite key={foerderung.antrag} ich={ich} id={foerderung.antrag} wechseln={wechseln} zurueck={zurueck} />;
@@ -87,6 +93,7 @@ export function Module({
   if (teil.schluessel === "foerderung") return <Foerderungen ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "runway") return <Runway ich={ich} />;
   if (teil.schluessel === "design") return <Designliste ich={ich} wechseln={wechseln} />;
+  if (teil.schluessel === "bestellungen") return <Lieferantenliste ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "todos")
     return <Todos ich={ich} umschalter={<Teilwahl modul={modul} teil={teil} wechseln={wechseln} />} />;
   return (
@@ -141,6 +148,8 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
                 <Runwayzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "design" ? (
                 <Designzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
+              ) : teil.schluessel === "bestellungen" ? (
+                <Bestellzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : (
                 <Foerderzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ),
@@ -272,6 +281,30 @@ function Kartenzeile({ teil, stelle, wechseln }: { teil: Kartenteil; stelle: num
         karte.data.schritte.filter((x) => x.status === "offen").length
       } offen`
     : "";
+  return (
+    <li>
+      <a
+        href={`/module/${teil.weg}`}
+        onClick={(e) => {
+          e.preventDefault();
+          wechseln("module", teil.weg);
+        }}
+      >
+        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
+        {teil.titel}
+        <span className="modul-stand">{stand}</span>
+        <Zeichen name="zeiger" klasse="modul-zeiger" />
+      </a>
+    </li>
+  );
+}
+
+/** Eine Zeile der Kachel für die Bestellungen: bei wie vielen Lieferanten etwas im Korb liegt. */
+function Bestellzeile({ teil, stelle, wechseln }: { teil: Bestellteil; stelle: number; wechseln: Wechseln }) {
+  const lieferanten = useLieferanten();
+  const voll = lieferanten.data?.filter((l) => l.im_korb > 0).length;
+  const stand =
+    voll === undefined ? "" : voll === 0 ? "alle Körbe leer" : `${voll} ${voll === 1 ? "Korb" : "Körbe"} mit Inhalt`;
   return (
     <li>
       <a

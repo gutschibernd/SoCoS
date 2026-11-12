@@ -44,6 +44,9 @@ describe("ausPfad", () => {
     expect(ausPfad("/module/praktikum/quatsch")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/spg/12")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/design/7")).toEqual({ seite: "module", unter: "design/7" });
+    expect(ausPfad("/module/bestellungen")).toEqual({ seite: "module", unter: "bestellungen" });
+    expect(ausPfad("/module/bestellungen/3")).toEqual({ seite: "module", unter: "bestellungen/3" });
+    expect(ausPfad("/module/bestellungen/3/1")).toEqual({ seite: "module", unter: null });
     // Die Planung ist in die Projektseite gezogen; alte Lesezeichen führen dorthin.
     expect(ausPfad("/module/planung/28")).toEqual({ seite: "projekt", unter: "28" });
     expect(ausPfad("/module/planung")).toEqual({ seite: "projekt", unter: null });
@@ -148,6 +151,13 @@ describe("wohinZurueck", () => {
   });
 
   // Ein Modul steht im Menü wie jede Seite — über ihm liegt keine Modulübersicht mehr.
+  it("führt von einem Lieferanten ohne Geschichte zur Liste der Lieferanten", () => {
+    expect(wohinZurueck({ seite: "module", unter: "bestellungen/3" }, null)).toEqual({
+      seite: "module",
+      unter: "bestellungen",
+    });
+  });
+
   it("behandelt die oberste Stufe eines Moduls wie eine Seite", () => {
     const thoughts = { seite: "module", unter: "thoughts" } as const;
     expect(wohinZurueck(thoughts, null)).toEqual({ seite: "start", unter: null });

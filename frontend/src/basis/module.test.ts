@@ -4,6 +4,7 @@ import {
   MODULWEGE,
   alsEuro,
   designAusWeg,
+  lieferantAusWeg,
   einstiegAusWeg,
   entscheidungsZahl,
   nachUmfang,
@@ -18,10 +19,12 @@ import {
 } from "./module";
 
 describe("die Wege der Module", () => {
-  it("kennt die Praktikanten, Thoughts, die Förderungen, Runway und Design", () => {
+  it("kennt die Praktikanten, Thoughts, die Förderungen, Runway, Bestellungen und Design", () => {
     expect(MODULWEGE).toEqual([
-      "praktikanten", "praktikum", "praktikum-ideen", "praktikum-todos", "thoughts", "foerderungen", "runway", "design",
+      "praktikanten", "praktikum", "praktikum-ideen", "praktikum-todos", "thoughts", "foerderungen", "runway",
+      "bestellungen", "design",
     ]);
+    expect(teilZuWeg("bestellungen")?.teil.schluessel).toBe("bestellungen");
     expect(teilZuWeg("thoughts")?.teil.schluessel).toBe("thoughts");
     expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikanten");
     expect(teilZuWeg("praktikum-todos")?.teil.schluessel).toBe("todos");
@@ -61,6 +64,9 @@ describe("die Wege der Module", () => {
     expect(designAusWeg("design")).toBeNull();
     expect(designAusWeg("design/7/1")).toBeNull();
     expect(designAusWeg("planung/7")).toBeNull();
+    expect(lieferantAusWeg("bestellungen/3")?.id).toBe(3);
+    expect(lieferantAusWeg("bestellungen")).toBeNull();
+    expect(lieferantAusWeg("design/3")).toBeNull();
     expect(themaAusWeg("design/7")).toBeNull();
   });
 

@@ -31,7 +31,10 @@ export type Runwayteil = { weg: string; titel: string; schluessel: "runway" };
 /** Die Designentscheidungen: eine Liste, je Entscheidung eine eigene Seite darunter. */
 export type Designteil = { weg: string; titel: string; schluessel: "design" };
 
-export type Teil = Themenliste | Todoteil | Kartenteil | Foerderteil | Runwayteil | Designteil;
+/** Die Bestellungen: eine Liste der Lieferanten, je Lieferant eine Seite darunter. */
+export type Bestellteil = { weg: string; titel: string; schluessel: "bestellungen" };
+
+export type Teil = Themenliste | Todoteil | Kartenteil | Foerderteil | Runwayteil | Designteil | Bestellteil;
 
 export type Modul = {
   /**
@@ -107,6 +110,15 @@ export const MODULE: Modul[] = [
     wozu: "Was herein- und hinausgeht und wie lange das Geld reicht",
     zeichen: "kurve",
     teile: [{ weg: "runway", titel: "Plan, Posten, Verlauf", schluessel: "runway" }],
+  },
+  {
+    // Sammelbestellungen je Lieferant (Bernd, 2026-11-12). Die Zusammenfassung
+    // des Korbs geht an Claude, der damit in Chrome den Warenkorb füllt.
+    weg: "bestellungen",
+    titel: "Bestellungen",
+    wozu: "Sammelbestellungen je Lieferant, Sortiment, Mails mit Herstellern",
+    zeichen: "wagen",
+    teile: [{ weg: "bestellungen", titel: "Lieferanten, Korb, Archiv", schluessel: "bestellungen" }],
   },
   {
     // Für die technische Dokumentation nach ISO 13485: Was hier entschieden
@@ -207,6 +219,14 @@ export function designAusWeg(unter: string | null): { modul: Modul; teil: Design
   const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
   const gefunden = treffer && teilZuWeg(treffer[1]);
   if (!treffer || !gefunden || gefunden.teil.schluessel !== "design") return null;
+  return { modul: gefunden.modul, teil: gefunden.teil, id: Number(treffer[2]) };
+}
+
+/** Ein Lieferant hinter `bestellungen/3` — oder nichts. Ob es ihn gibt, sagt erst der Server. */
+export function lieferantAusWeg(unter: string | null): { modul: Modul; teil: Bestellteil; id: number } | null {
+  const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
+  const gefunden = treffer && teilZuWeg(treffer[1]);
+  if (!treffer || !gefunden || gefunden.teil.schluessel !== "bestellungen") return null;
   return { modul: gefunden.modul, teil: gefunden.teil, id: Number(treffer[2]) };
 }
 

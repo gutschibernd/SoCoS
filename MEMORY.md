@@ -7,6 +7,72 @@ betrifft.
 
 ---
 
+## 2026-11-12 — Modul Bestellungen (Migration 0060)
+
+**Bernd:** Wir werden viel Material und Hardware bestellen. Je Lieferant
+(Bambu Lab, Amazon, Alibaba, ein Pumpenhersteller) einen Korb, in den man
+über die Zeit Links mit Menge legt; „Bestellen" liefert eine Zusammenfassung,
+die er Claude im Chat gibt, und Claude füllt damit in Chrome den Warenkorb.
+Ausdrücklich: „es soll wirklich kein komplexes Programm sein", kein
+„wofür" je Zeile, alle dürfen hineinlegen, nach dem Bestellen ein Archiv,
+Mails mit dem Hersteller als .eml am Lieferanten, und beim Einfügen eines
+Links soll der Produktname vorgeschlagen werden.
+
+- **Fünf Modelle, kein Korb-Modell.** `Lieferant` (mit `art`: Onlineshop,
+  Plattform mit Anfragen, Direkthändler — **ohne Vorgabe**), `Bestellartikel`
+  (das Sortiment), `Bestellposition`, `Bestellung` (das Archiv),
+  `Lieferantenanhang`. **Der Korb ist die Menge der Positionen ohne
+  Bestellung.** Ein eigenes Korb-Modell hätte einen Zustand und die Regel
+  „genau ein offener je Lieferant" gebraucht. „Als bestellt markieren"
+  (`POST /lieferanten/<id>/bestellt/`) legt die Bestellung an und hängt alle
+  offenen Positionen daran — Zeile für Zeile über `save()`, damit jede im
+  Protokoll steht. Leerer Korb → 400.
+- **Dieselbe Person, derselbe Artikel → die Menge wächst**
+  (`services/bestellung.hineinlegen`); eine andere Person bekommt ihre eigene
+  Zeile, damit man beim Bestellen weiß, wer was wollte. Die Zusammenfassung
+  zählt nach Artikel zusammen (`basis/bestellungen.ts`).
+- **Das Archiv steht fest.** Eine bestellte Position lässt sich weder ändern
+  noch entfernen (400). Einen versehentlich markierten Korb zurückzuholen
+  gibt es nicht; davor steht ein Fenster mit Datum und Notiz.
+- **`Bestellposition.artikel` ist `CASCADE`, nicht `PROTECT`.** Sonst ließe
+  sich ein Artikel nach der ersten Bestellung nie mehr aus dem Sortiment
+  nehmen. Weich gelöscht bleibt er in der Datenbank, das Archiv zeigt ihn
+  weiter; `Bestellartikel.delete()` nimmt nur offene Positionen aus dem Korb.
+  `Lieferant.delete()` nimmt Sortiment, Korb und Anhänge mit — außer er hat
+  Bestellungen im Archiv, dann 409 und nichts ist angefasst (atomar).
+- **Keine Preise.** Ohne Betrag gibt es keinen Beleg und keine Grenze nach
+  CLAUDE.md zu ziehen. Kommt der Wunsch nach „was hat das gekostet" (etwa
+  für Sachkosten in einer Förderabrechnung), ist ein Preis an der
+  *Position* ein eingefrorener Wert — dann hier und in CLAUDE.md neu ziehen.
+- **Der Name aus dem Link kommt vom Server** (`services/produktlink.py`,
+  `POST /api/artikelvorschlag/`): `og:title` der Seite, sonst das sprechende
+  Stück des Pfades, erst dann `<title>` — eine Sperrseite von Amazon heißt
+  „Robot Check" und wäre schlechter als der Link. **Der Server ruft dabei
+  eine eingetippte Adresse auf**: nur http/https auf 80/443, jede Adresse
+  (auch nach Weiterleitung) muss `is_global` sein, 4 s, 400 KB, zurück nur
+  ein Titel. DNS-Rebinding ist hingenommen (mehr als der Titel käme nicht
+  heraus). POST statt GET, damit kein Link in einer Mail den Abruf auslöst.
+  Nicht auf der Erlaubnisliste des Assistenten. Der Web-Container erreicht
+  das Internet über `proxy-netz`; `intern` ist `internal: true`.
+- **Die Zusammenfassung ist ein Auftrag**: oben steht, was zu tun ist, und
+  „Nicht zur Kasse gehen". Beim Direkthändler ist sie die Mail „Anfrage um
+  ein Angebot", unterschrieben mit dem eigenen Namen. Geht die Zwischenablage
+  nicht (ohne HTTPS), steht der Text in einem Fenster zum Markieren.
+- **Unter Extern** in der Leiste, nicht unter Geld: Es geht um Lieferanten
+  und den Mailverlauf mit ihnen; Beträge gibt es keine.
+- `Anhangkarte` hat jetzt einen `titel` („Mails und Angebote"); der Weg ist
+  derselbe `AnhangViewSet` wie an Meeting und Event.
+- Alle fünf Modelle stehen in `MODELLE_IM_ARCHIV` und der Löschreihenfolge;
+  der Rundlauf samt Datei ist in `test_bestellungen.py` geprüft. Eintrag im
+  Änderungsfenster mit Version 2026-11-12.
+
+**Bewusst weggelassen:** Preise, Lagerbestand, Freigabe, „wofür" je Zeile,
+Status einer Anfrage („wartet auf Angebot" — den Stand tragen die Mails),
+„Nochmal bestellen" aus dem Archiv (das Sortiment macht es zu einem Klick je
+Artikel), Bestellungen über den Assistenten.
+
+---
+
 ## 2026-11-09 — Praktikanten: Einstieg mit drei Kacheln, To-Dos (Migration 0059)
 
 **Bernd:** „Praktikantenstellen" heißt jetzt „Praktikanten", und unter Ablage

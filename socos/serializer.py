@@ -12,6 +12,11 @@ from rest_framework import serializers
 from socos import berechtigung
 from socos.models import (
     Arbeitspaket,
+    Bestellartikel,
+    Bestellposition,
+    Bestellung,
+    Lieferant,
+    Lieferantenanhang,
     Designentscheidung,
     Entscheidungsstand,
     Lageschritt,
@@ -51,6 +56,7 @@ from socos.models import (
     Zeitbuchung,
 )
 from socos.services import ausschreibung, auswertung, foerderung, lagekarte, zeit as zeitdienst
+from socos.services import bestellung as bestelldienst
 
 
 class NutzerSerializer(serializers.ModelSerializer):
@@ -1241,3 +1247,148 @@ class FoerderprogrammSerializer(serializers.ModelSerializer):
     def get_antraege(self, programm):
         antraege = [a for a in programm.antraege.all() if a.geloescht_am is None]
         return FoerderantragSerializer(sorted(antraege, key=lambda a: (a.nummer, a.id)), many=True).data
+
+
+# --- Module: Bestellungen -----------------------------------------------------------
+
+
+class BestellartikelSerializer(serializers.ModelSerializer):
+    """
+    Ein Artikel im Sortiment. `bestellt_mal` zählt, in wie vielen Bestellungen
+    er schon war — danach steht das Sortiment, das Häufige oben. Gerechnet,
+    nicht gespeichert: Die Zahl käme sonst beim Entfernen einer Bestellung
+    aus dem Tritt.
+    """
+
+    bestellt_mal = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Bestellartikel
+        fields = ["id", "lieferant", "name", "link", "beschreibung", "bestellt_mal"]
+
+    def get_bestellt_mal(self, artikel):
+        return getattr(artikel, "bestellt_mal", 0)
+
+
+class BestellpositionSerializer(serializers.ModelSerializer):
+    """
+    Eine Zeile im Korb oder im Archiv. Name, Link und Beschreibung kommen vom
+    Artikel mit — die Zusammenfassung braucht sie, und eine zweite Abfrage je
+    Zeile wäre umsonst.
+
+    `von` setzt der Server (wer gerade angemeldet ist), nicht die Oberfläche.
+    """
+
+    name = serializers.CharField(source="artikel.name", read_only=True)
+    link = serializers.CharField(source="artikel.link", read_only=True)
+    beschreibung = serializers.CharField(source="artikel.beschreibung", read_only=True)
+    von_initialen = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Bestellposition
+        fields = [
+            "id", "artikel", "menge", "von", "von_initialen", "bestellung",
+            "name", "link", "beschreibung", "erstellt_am",
+        ]
+        read_only_fields = ["von", "bestellung", "erstellt_am"]
+
+    def get_von_initialen(self, position):
+        return position.von.initialen if position.von else ""
+
+    def validate_artikel(self, artikel):
+        # Einmal im Korb, bleibt eine Zeile bei ihrem Artikel. Wer etwas
+        # anderes meint, legt es neu hinein.
+        if self.instance and artikel != self.instance.artikel:
+            raise serializers.ValidationError("Der Artikel einer Zeile lässt sich nicht tauschen.")
+        return artikel
+
+
+class BestellungSerializer(serializers.ModelSerializer):
+    """Eine Bestellung im Archiv, mit ihren Zeilen. Nur lesend."""
+
+    positionen = serializers.SerializerMethodField()
+    von_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Bestellung
+        fields = ["id", "lieferant", "bestellt_am", "von", "von_name", "notiz", "positionen"]
+        read_only_fields = fields
+
+    def get_positionen(self, bestellung):
+        menge = bestellung.positionen.filter(geloescht_am__isnull=True).select_related("artikel", "von")
+        return BestellpositionSerializer(menge, many=True).data
+
+    def get_von_name(self, bestellung):
+        return bestellung.von.name if bestellung.von else ""
+
+
+class LieferantenanhangSerializer(serializers.ModelSerializer):
+    """Nur lesend, bis auf den Lieferanten — siehe `MeetinganhangSerializer`."""
+
+    class Meta:
+        model = Lieferantenanhang
+        fields = ["id", "lieferant", "name", "groesse", "art", "text", "erstellt_am"]
+        read_only_fields = ["name", "groesse", "art", "text", "erstellt_am"]
+
+
+class LieferantSerializer(serializers.ModelSerializer):
+    """
+    Ein Lieferant in der Liste: wie viele Zeilen im Korb liegen und wann
+    zuletzt bestellt wurde. Beides rechnet die Abfrage im ViewSet mit
+    (`annotate`), einmal für die ganze Liste.
+    """
+
+    im_korb = serializers.SerializerMethodField()
+    zuletzt_bestellt = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Lieferant
+        fields = ["id", "name", "art", "link", "notiz", "im_korb", "zuletzt_bestellt"]
+
+    def get_im_korb(self, lieferant):
+        return getattr(lieferant, "im_korb", 0)
+
+    def get_zuletzt_bestellt(self, lieferant):
+        wert = getattr(lieferant, "zuletzt_bestellt", None)
+        return wert.isoformat() if wert else None
+
+
+class LieferantDetailSerializer(LieferantSerializer):
+    """
+    Die Seite eines Lieferanten in einer Antwort: Sortiment, Korb, Archiv,
+    Anhänge. Geschrieben wird je Teil über dessen eigenen Weg.
+    """
+
+    artikel = serializers.SerializerMethodField()
+    korb = serializers.SerializerMethodField()
+    bestellungen = serializers.SerializerMethodField()
+    anhaenge = serializers.SerializerMethodField()
+
+    class Meta(LieferantSerializer.Meta):
+        fields = LieferantSerializer.Meta.fields + ["artikel", "korb", "bestellungen", "anhaenge"]
+
+    def get_artikel(self, lieferant):
+        from django.db.models import Count, Q
+
+        menge = lieferant.artikel.filter(geloescht_am__isnull=True).annotate(
+            bestellt_mal=Count(
+                "positionen__bestellung",
+                filter=Q(
+                    positionen__geloescht_am__isnull=True,
+                    positionen__bestellung__geloescht_am__isnull=True,
+                ),
+                distinct=True,
+            )
+        )
+        return BestellartikelSerializer(menge, many=True).data
+
+    def get_korb(self, lieferant):
+        return BestellpositionSerializer(bestelldienst.korb(lieferant), many=True).data
+
+    def get_bestellungen(self, lieferant):
+        menge = lieferant.bestellungen.filter(geloescht_am__isnull=True).select_related("von")
+        return BestellungSerializer(menge, many=True).data
+
+    def get_anhaenge(self, lieferant):
+        menge = lieferant.anhaenge.filter(geloescht_am__isnull=True)
+        return LieferantenanhangSerializer(menge, many=True).data

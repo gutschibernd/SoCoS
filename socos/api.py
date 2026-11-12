@@ -13,7 +13,7 @@ from pathlib import Path
 from django.contrib.auth import logout
 from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.models import Max, Q
+from django.db.models import Count, Max, Q
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.http import content_disposition_header
@@ -31,6 +31,10 @@ from socos.models import (
     Anhangart,
     Arbeitspaket,
     Aufgabe,
+    Bestellartikel,
+    Bestellposition,
+    Lieferant,
+    Lieferantenanhang,
     Designentscheidung,
     Eingang,
     Event,
@@ -70,6 +74,7 @@ from socos.models import (
 from socos.services import aktivitaet, auswertung, finanzen, foerderung, planung as planungsdienst
 from socos.services import runway as runwaydienst
 from socos.services import uebersicht
+from socos.services import bestellung as bestelldienst
 from socos.services import zeit as zeitdienst
 
 logger = logging.getLogger(__name__)
@@ -645,6 +650,135 @@ class EventanhangViewSet(AnhangViewSet):
     besitzer = Event
     besitzerfeld = "event"
     besitzer_fehlt = "Dieses Event gibt es nicht."
+
+
+class LieferantenanhangViewSet(AnhangViewSet):
+    """Mails und Angebote am Lieferanten — derselbe Weg wie am Meeting."""
+
+    serializer_class = ser.LieferantenanhangSerializer
+    queryset = Lieferantenanhang.objects.select_related("lieferant")
+    besitzer = Lieferant
+    besitzerfeld = "lieferant"
+    besitzer_fehlt = "Diesen Lieferanten gibt es nicht."
+
+
+# --- Module: Bestellungen ---------------------------------------------------
+
+
+class LieferantViewSet(SocosViewSet):
+    """
+    Die Lieferanten. In der Liste mit dem Stand des Korbs, einzeln mit allem,
+    was auf ihrer Seite steht. Die gewöhnliche Regel: anlegen und ändern
+    Admin und Bearbeiter, entfernen nur der Admin.
+    """
+
+    serializer_class = ser.LieferantSerializer
+
+    def get_queryset(self):
+        return Lieferant.objects.annotate(
+            im_korb=Count(
+                "artikel__positionen",
+                filter=Q(
+                    artikel__geloescht_am__isnull=True,
+                    artikel__positionen__geloescht_am__isnull=True,
+                    artikel__positionen__bestellung__isnull=True,
+                ),
+                distinct=True,
+            ),
+            zuletzt_bestellt=Max("bestellungen__bestellt_am", filter=Q(bestellungen__geloescht_am__isnull=True)),
+        )
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return ser.LieferantDetailSerializer
+        return ser.LieferantSerializer
+
+    @action(detail=True, methods=["post"])
+    def bestellt(self, request, pk=None):
+        """
+        „Als bestellt markieren": Der Korb wandert als Bestellung ins Archiv.
+        Ohne Datum gilt heute — wer erst am nächsten Morgen dazu kommt, trägt
+        den Tag ein, an dem wirklich bestellt wurde.
+        """
+        lieferant = self.get_object()
+        roh = request.data.get("bestellt_am")
+        try:
+            tag = date.fromisoformat(roh) if roh else timezone.localdate()
+        except (TypeError, ValueError):
+            raise ValidationError({"bestellt_am": f"„{roh}“ ist kein Datum im Format JJJJ-MM-TT."})
+        bestellung = bestelldienst.als_bestellt(
+            lieferant, request.user, tag, str(request.data.get("notiz") or "")
+        )
+        return Response(ser.BestellungSerializer(bestellung).data, status=201)
+
+
+class BestellartikelViewSet(SocosViewSet):
+    """
+    Das Sortiment. Entfernen (nur der Admin) nimmt den Artikel aus dem
+    Sortiment und aus dem Korb; im Archiv steht er weiter.
+    """
+
+    serializer_class = ser.BestellartikelSerializer
+
+    def get_queryset(self):
+        menge = Bestellartikel.objects.select_related("lieferant")
+        if wert := self.request.query_params.get("lieferant"):
+            menge = menge.filter(lieferant_id=wert)
+        return menge
+
+
+class BestellpositionViewSet(SocosViewSet):
+    """
+    Die Zeilen im Korb. Hineinlegen geht über `services/bestellung`, damit
+    dieselbe Person mit demselben Artikel keine zweite Zeile bekommt.
+
+    **Was bestellt ist, ändert sich nicht mehr.** Das Archiv sagt, was
+    bestellt wurde; eine nachträglich geänderte Menge machte es zur Behauptung.
+    """
+
+    serializer_class = ser.BestellpositionSerializer
+    queryset = Bestellposition.objects.select_related("artikel", "von")
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    def create(self, request, *args, **kwargs):
+        pruefung = self.get_serializer(data=request.data)
+        pruefung.is_valid(raise_exception=True)
+        position = bestelldienst.hineinlegen(
+            pruefung.validated_data["artikel"], pruefung.validated_data.get("menge", 1), request.user
+        )
+        return Response(self.get_serializer(position).data, status=201)
+
+    def _nicht_im_archiv(self, position):
+        if position.bestellung_id:
+            raise ValidationError({"bestellung": "Schon bestellt — im Archiv ändert sich nichts mehr."})
+
+    def perform_update(self, serializer):
+        self._nicht_im_archiv(serializer.instance)
+        serializer.save()
+
+    def perform_destroy(self, position):
+        self._nicht_im_archiv(position)
+        position.delete()
+
+
+@api_view(["POST"])
+def artikelvorschlag(request):
+    """
+    Ein Name für einen eingefügten Link — siehe socos/services/produktlink.py.
+
+    POST und nicht GET, obwohl nichts gespeichert wird: Der Server ruft dabei
+    eine fremde Seite auf, und das soll nicht schon ein Link in einer Mail
+    auslösen können, sondern nur ein Formular mit CSRF-Schutz.
+    """
+    from socos.services import produktlink
+
+    if not berechtigung.darf_bearbeiten(request.user):
+        raise PermissionDenied()
+    try:
+        name = produktlink.vorschlag(str(request.data.get("link") or ""))
+    except produktlink.KeinLink as fehler:
+        raise ValidationError({"link": str(fehler)})
+    return Response({"name": name})
 
 
 # --- Module: Praktikantenstellen ---------------------------------------------

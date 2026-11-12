@@ -236,6 +236,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "events" as const, zeichen: "event" as const, titel: "Events", text: "Hitlist vorher, Verlauf nachher." },
             { seite: "module" as const, unter: "foerderungen", zeichen: "foerderung" as const, titel: "Förderungen", text: "Fördergeber, Programme, Anträge." },
             { seite: "module" as const, unter: "runway", zeichen: "kurve" as const, titel: "Runway-Planung", text: "Was herein- und hinausgeht, wie lange das Geld reicht." },
+            { seite: "module" as const, unter: "bestellungen", zeichen: "wagen" as const, titel: "Bestellungen", text: "Unter Extern: Sammelbestellungen je Lieferant, Mails mit Herstellern." },
             { seite: "module" as const, unter: "design", zeichen: "schild" as const, titel: "Designentscheidungen", text: "Unter Ablage: begründen, belegen, als PDF in die Akte." },
             { seite: "module" as const, unter: "praktikanten", zeichen: "mappe" as const, titel: "Praktikanten", text: "Unter Ablage: Aufgabenstellungen ausschreiben, To-Dos für zwischendurch sammeln." },
           ].map((w) => (
@@ -857,7 +858,7 @@ function ModuleDoku() {
       <Abschnitt
         zeichen="module"
         titel="Werkzeuge neben Projekt und Zeit"
-        vorspann="Thoughts, Förderungen, Runway-Planung, Designentscheidungen und Praktikanten stehen in der Leiste dort, wozu sie dienen — unter Arbeit, Geld oder Ablage. Die Projektplanung ist seit Oktober 2026 Teil der Projektseite."
+        vorspann="Thoughts, Bestellungen, Förderungen, Runway-Planung, Designentscheidungen und Praktikanten stehen in der Leiste dort, wozu sie dienen — unter Arbeit, Extern, Geld oder Ablage. Die Projektplanung ist seit Oktober 2026 Teil der Projektseite."
       >
         <Begriffe
           paare={[
@@ -946,6 +947,42 @@ function ModuleDoku() {
             {
               begriff: "Wer was darf",
               text: "Sehen dürfen alle. Anlegen, ändern und abhaken dürfen Admin und Bearbeiter; entfernen nur der Admin.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
+        zeichen="wagen"
+        titel="Bestellungen: sammeln, dann einmal bestellen"
+        vorspann="Je Lieferant ein Korb, in den über die Wochen alle hineinlegen, was gebraucht wird — Filament bei Bambu Lab, Kleinteile bei Amazon, Stecker über Alibaba, eine Pumpe beim Hersteller. Bestellt wird dann einmal für alle."
+      >
+        <Schritte
+          schritte={[
+            "Unter Extern · Bestellungen „+ Lieferant“: Name, Bestellweg und bei Bedarf eine Notiz — Ansprechpartner, Versand, Mindestmenge.",
+            "Auf der Seite des Lieferanten einen Produktlink ins Feld oben im Korb einfügen. SoCoS schlägt den Namen vor; dazu Farbe oder Variante und die Menge, dann „In den Korb“. Ohne Link — bei der Pumpe vom Händler — tippst du einfach den Namen.",
+            "Was einmal im Korb lag, bleibt im Sortiment. Beim nächsten Mal legt das + daneben ein Stück mehr hinein.",
+            "Ist der Korb voll genug: „Zusammenfassung kopieren“ und den Text Claude im Chat geben. Claude legt damit in Chrome alles in den Warenkorb; zur Kasse gehst du selbst. Beim Direkthändler heißt der Knopf „Anfrage kopieren“ und liefert die Mail mit der Bitte um ein Angebot.",
+            "Nach dem Bestellen „Als bestellt markieren“, mit Datum und Bestellnummer. Der Korb wandert ins Archiv und ist leer für die nächste Sammelbestellung.",
+          ]}
+        />
+        <Begriffe
+          paare={[
+            {
+              begriff: "Der Bestellweg",
+              text: "Onlineshop (alles in den Warenkorb), Plattform mit Anfragen (manches kaufen, manches erst anfragen — Alibaba) oder Direkthändler mit Angebot. Er entscheidet, was der Knopf unter dem Korb kopiert.",
+            },
+            {
+              begriff: "Mails und Angebote",
+              text: "Mails mit dem Hersteller als .eml auf die Karte ziehen — Anfrage, Angebot, Auftragsbestätigung. Ein Klick öffnet sie zum Lesen; so steht der Stand der Dinge beim Lieferanten.",
+            },
+            {
+              begriff: "Das Kürzel im Korb",
+              text: "Wer etwas hineingelegt hat. Legen zwei Leute denselben Artikel hinein, stehen zwei Zeilen da; die Zusammenfassung zählt sie zusammen.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen dürfen alle. Hineinlegen, Lieferanten anlegen und als bestellt markieren dürfen Admin und Bearbeiter; herausnehmen und entfernen nur der Admin. Was im Archiv steht, ändert sich nicht mehr.",
             },
           ]}
         />

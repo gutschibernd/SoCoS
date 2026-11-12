@@ -22,6 +22,31 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-11-12",
+        "titel": "Bestellungen",
+        "punkte": [
+            {
+                "titel": "Sammelbestellungen je Lieferant",
+                "text": (
+                    "Unter Extern · Bestellungen hat jeder Lieferant einen Korb, in den alle über die Wochen "
+                    "hineinlegen: Link einfügen, SoCoS schlägt den Namen vor, Menge dazu. Was einmal drin war, "
+                    "bleibt im Sortiment und ist beim nächsten Mal ein Klick. Mails mit dem Hersteller hängen "
+                    "als .eml am Lieferanten."
+                ),
+                "wo": "module/bestellungen",
+            },
+            {
+                "titel": "Zusammenfassung für Claude, dann ins Archiv",
+                "text": (
+                    "„Zusammenfassung kopieren“ liefert den Text, mit dem Claude in Chrome den Warenkorb füllt — "
+                    "beim Händler die Anfrage um ein Angebot. Nach dem Bestellen „Als bestellt markieren“: Der "
+                    "Korb wandert ins Archiv und ist leer für die nächste Runde."
+                ),
+                "wo": "doku/module",
+            },
+        ],
+    },
+    {
         "version": "2026-11-09",
         "titel": "Praktikanten: drei Kacheln und To-Dos",
         "punkte": [

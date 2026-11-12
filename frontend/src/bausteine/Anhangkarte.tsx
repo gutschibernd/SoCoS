@@ -7,8 +7,8 @@ import { melden } from "../basis/meldungen";
 import { Zeichen } from "./Zeichen";
 
 /**
- * Dateien an einem Meeting oder Event — die Mail, die zum Termin geführt hat,
- * das Programm als PDF, ein Foto vom Stand.
+ * Dateien an einem Meeting, Event oder Lieferanten — die Mail, die zum Termin
+ * geführt hat, das Programm als PDF, das Angebot des Herstellers.
  *
  * **Eine Karte für beide Orte**, wie am Server ein Weg (`AnhangViewSet`).
  * Zwei Kopien liefen beim ersten Nachbessern auseinander — und die Frage nach
@@ -28,6 +28,7 @@ import { Zeichen } from "./Zeichen";
  * offenen Pfad unter `/medien/`.
  */
 export function Anhangkarte({
+  titel = "Anhänge",
   anhaenge,
   pfad,
   besitzer,
@@ -37,6 +38,8 @@ export function Anhangkarte({
   neuLaden,
   zumLoeschen,
 }: {
+  /** Die Überschrift der Karte — am Lieferanten „Mails und Angebote". */
+  titel?: string;
   anhaenge: Anhang[];
   /** Der Weg in der API, etwa `/meetinganhaenge/`. */
   pfad: string;
@@ -116,7 +119,7 @@ export function Anhangkarte({
   return (
     <div className={darueber ? "karte anhangkarte anhangkarte-darueber" : "karte anhangkarte"} {...ziehen}>
       <div className="kartenkopf">
-        <h2>Anhänge</h2>
+        <h2>{titel}</h2>
         {ich.darf.bearbeiten && (
           <label className={laeuft ? "knopf-still anhang-waehlen laeuft" : "knopf-still anhang-waehlen"}>
             <Zeichen name="plus" />

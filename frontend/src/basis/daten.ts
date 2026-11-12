@@ -525,6 +525,72 @@ export const useNebenaufgaben = () =>
     queryFn: () => hole<Nebenaufgabe[]>("/nebenaufgaben/"),
   });
 
+/* --- Bestellungen --------------------------------------------------------- */
+
+/** Wie bei einem Lieferanten bestellt wird — siehe `Bestellweg` in socos/models.py. */
+export type Bestellweg = "shop" | "plattform" | "haendler";
+
+export type Lieferant = {
+  id: number;
+  name: string;
+  art: Bestellweg;
+  link: string;
+  notiz: string;
+  /** Wie viele Zeilen gerade im Korb liegen. */
+  im_korb: number;
+  /** `"JJJJ-MM-TT"` der letzten Bestellung, oder null. */
+  zuletzt_bestellt: string | null;
+};
+
+export type Bestellartikel = {
+  id: number;
+  lieferant: number;
+  name: string;
+  link: string;
+  beschreibung: string;
+  /** In wie vielen Bestellungen er schon war — danach steht das Sortiment. */
+  bestellt_mal: number;
+};
+
+/** Eine Zeile im Korb oder, mit `bestellung`, im Archiv. Name, Link und Beschreibung kommen vom Artikel. */
+export type Bestellposition = {
+  id: number;
+  artikel: number;
+  menge: number;
+  von: number | null;
+  von_initialen: string;
+  bestellung: number | null;
+  name: string;
+  link: string;
+  beschreibung: string;
+  erstellt_am: string;
+};
+
+export type Bestellung = {
+  id: number;
+  lieferant: number;
+  bestellt_am: string;
+  von: number | null;
+  von_name: string;
+  notiz: string;
+  positionen: Bestellposition[];
+};
+
+export type Lieferantenanhang = Anhang & { lieferant: number };
+
+export type Lieferantenseite = Lieferant & {
+  artikel: Bestellartikel[];
+  korb: Bestellposition[];
+  bestellungen: Bestellung[];
+  anhaenge: Lieferantenanhang[];
+};
+
+export const useLieferanten = () =>
+  useQuery({ queryKey: ["lieferanten"], queryFn: () => hole<Lieferant[]>("/lieferanten/") });
+
+export const useLieferant = (id: number) =>
+  useQuery({ queryKey: ["lieferanten", id], queryFn: () => hole<Lieferantenseite>(`/lieferanten/${id}/`) });
+
 /* --- Designentscheidungen ------------------------------------------------- */
 
 export type Entscheidungsstand = "entwurf" | "entschieden" | "ersetzt";
@@ -1031,7 +1097,7 @@ export function useNeuLaden() {
     for (const schluessel of [
       "dashboard", "projekte", "zeiten", "laufend", "kontakte", "organisationen",
       "events", "meetings", "team", "ich", "protokoll", "rueckmeldungen", "aufgaben",
-      "praktikumsthemen", "nebenaufgaben", "designentscheidungen", "lagekarte", "foerderungen", "planung", "runway",
+      "praktikumsthemen", "nebenaufgaben", "lieferanten", "designentscheidungen", "lagekarte", "foerderungen", "planung", "runway",
     ]) {
       speicher.invalidateQueries({ queryKey: [schluessel] });
     }
