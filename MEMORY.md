@@ -7,6 +7,31 @@ betrifft.
 
 ---
 
+## 2026-11-12 — Bestellungen: Listenpreis und Mengenrabatt (Migration 0061)
+
+**Bernd:** Bei Bambu Lab gibt es Bundle-Deals — ab 14 Spulen kostet die
+Spule 9 €; das soll gestaffelt mitgerechnet werden. Nachgesehen im Shop:
+vier Stufen als **Prozent auf den Listenpreis** (4 Stk. −25 %, 6 −35 %,
+10 −43 %, 14 −47 %; 16,99 € → 9,00 €), gezählt über alle Filamente zusammen
+(„Kombinieren und maximal sparen").
+
+- **Die Staffel steht am Lieferanten** (`staffel`, JSON `[{ab, prozent}]`,
+  geprüft und sortiert in `services/bestellung.staffel_bereinigt`), **der
+  Listenpreis am Artikel** (`preis`), dazu `in_staffel` je Artikel — die
+  Düse zählt nicht mit. Prozent statt Stufenpreis, weil Basic, Matte und
+  Pure verschiedene Listenpreise haben und dieselbe Staffel teilen.
+- **Gerechnet, nicht gespeichert** (`services/bestellung.rechnung`): Stück in
+  der Staffel über den ganzen Korb, erreichter Rabatt, Preis je Stück auf
+  Cent gerundet (ROUND_HALF_UP, wie der Shop), Summe gegen Listensumme,
+  nächste Stufe, Zeilen ohne Preis (zählen zur Staffel, fehlen in der Summe).
+- **Ein Richtwert, kein Beleg.** Das Archiv zeigt deshalb weiter keine
+  Beträge — ein späterer Preis änderte sonst rückwirkend eine alte
+  Bestellung. Damit bleibt die Grenze aus CLAUDE.md unberührt.
+- Die Zusammenfassung endet mit „Erwartet laut SoCoS: …", damit im
+  Warenkorb auffällt, wenn der Shop den Rabatt nicht anwendet.
+
+---
+
 ## 2026-11-12 — Modul Bestellungen (Migration 0060)
 
 **Bernd:** Wir werden viel Material und Hardware bestellen. Je Lieferant
@@ -40,7 +65,8 @@ Links soll der Produktname vorgeschlagen werden.
   weiter; `Bestellartikel.delete()` nimmt nur offene Positionen aus dem Korb.
   `Lieferant.delete()` nimmt Sortiment, Korb und Anhänge mit — außer er hat
   Bestellungen im Archiv, dann 409 und nichts ist angefasst (atomar).
-- **Keine Preise.** Ohne Betrag gibt es keinen Beleg und keine Grenze nach
+- **Keine Preise** (am selben Tag überholt, siehe oben: Listenpreis als
+  Richtwert). Ohne Betrag gibt es keinen Beleg und keine Grenze nach
   CLAUDE.md zu ziehen. Kommt der Wunsch nach „was hat das gekostet" (etwa
   für Sachkosten in einer Förderabrechnung), ist ein Preis an der
   *Position* ein eingefrorener Wert — dann hier und in CLAUDE.md neu ziehen.

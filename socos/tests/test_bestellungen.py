@@ -367,3 +367,86 @@ class TestNameAusDemLink:
     def test_ein_leser_bekommt_keinen_vorschlag(self, client, leser):
         client.force_login(leser)
         assert client.post("/api/artikelvorschlag/", {"link": "https://example.com/"}).status_code == 403
+
+
+# --- Preis und Staffel -----------------------------------------------------------
+
+BAMBU_STAFFEL = [{"ab": 4, "prozent": "25"}, {"ab": 6, "prozent": "35"}, {"ab": 10, "prozent": "43"}, {"ab": 14, "prozent": "47"}]
+
+
+class TestStaffel:
+    @pytest.fixture
+    def filament(self, bambu):
+        bambu.staffel = BAMBU_STAFFEL
+        bambu.save()
+        basic = Bestellartikel.objects.create(lieferant=bambu, name="PLA Basic", preis="16.99", in_staffel=True)
+        matte = Bestellartikel.objects.create(lieferant=bambu, name="PLA Matte", preis="18.99", in_staffel=True)
+        duese = Bestellartikel.objects.create(lieferant=bambu, name="Düse", preis="5.00")
+        return bambu, basic, matte, duese
+
+    def test_unter_der_ersten_stufe_gilt_der_listenpreis(self, client, bearbeiter, filament):
+        bambu, basic, _, _ = filament
+        client.force_login(bearbeiter)
+        _hinein(client, basic, 3)
+
+        r = client.get(f"/api/lieferanten/{bambu.pk}/").json()["rechnung"]
+
+        assert r["prozent"] is None
+        assert r["summe"] == "50.97"
+        assert r["naechste"] == {"ab": 4, "prozent": "25", "fehlen": 1}
+
+    def test_die_staffel_zaehlt_ueber_alle_filamente_und_rundet_wie_der_shop(self, client, bearbeiter, filament):
+        bambu, basic, matte, duese = filament
+        client.force_login(bearbeiter)
+        _hinein(client, basic, 8)
+        _hinein(client, matte, 6)
+        _hinein(client, duese, 2)
+
+        seite = client.get(f"/api/lieferanten/{bambu.pk}/").json()
+        r = seite["rechnung"]
+        preis = {p["name"]: r["einzelpreise"][str(p["id"])] for p in seite["korb"]}
+
+        assert r["staffel_menge"] == 14
+        assert r["prozent"] == "47"
+        # 16,99 − 47 % = 9,0047 → 9,00; 18,99 − 47 % = 10,0647 → 10,06. Die Düse zählt nicht.
+        assert preis == {"PLA Basic": "9.00", "PLA Matte": "10.06", "Düse": "5.00"}
+        assert r["summe"] == "142.36"
+        assert r["listensumme"] == "259.86"
+        assert r["naechste"] is None
+
+    def test_ohne_preis_zaehlt_mit_fehlt_aber_in_der_summe(self, client, bearbeiter, filament):
+        bambu, basic, _, _ = filament
+        ohne = Bestellartikel.objects.create(lieferant=bambu, name="PLA Pure", in_staffel=True)
+        client.force_login(bearbeiter)
+        _hinein(client, basic, 2)
+        _hinein(client, ohne, 2)
+
+        r = client.get(f"/api/lieferanten/{bambu.pk}/").json()["rechnung"]
+
+        assert r["prozent"] == "25"
+        assert r["ohne_preis"] == 1
+        assert r["summe"] == "25.48"
+
+    @pytest.mark.parametrize(
+        "staffel",
+        [[{"ab": 1, "prozent": "10"}], [{"ab": 4, "prozent": "100"}], [{"ab": 4}], [{"ab": 4, "prozent": "5"}, {"ab": 4, "prozent": "9"}]],
+    )
+    def test_eine_kaputte_staffel_wird_abgewiesen(self, client, bearbeiter, bambu, staffel):
+        client.force_login(bearbeiter)
+
+        antwort = client.patch(f"/api/lieferanten/{bambu.pk}/", {"staffel": staffel}, content_type="application/json")
+
+        assert antwort.status_code == 400
+        assert "staffel" in antwort.json()
+
+    def test_die_staffel_wird_sortiert_gespeichert(self, client, bearbeiter, bambu):
+        client.force_login(bearbeiter)
+
+        client.patch(
+            f"/api/lieferanten/{bambu.pk}/",
+            {"staffel": [{"ab": 14, "prozent": "47"}, {"ab": 4, "prozent": "25,0"}]},
+            content_type="application/json",
+        )
+
+        bambu.refresh_from_db()
+        assert bambu.staffel == [{"ab": 4, "prozent": "25"}, {"ab": 14, "prozent": "47"}]

@@ -536,10 +536,28 @@ export type Lieferant = {
   art: Bestellweg;
   link: string;
   notiz: string;
+  /** Mengenrabatt: ab so vielen Stück so viel Prozent auf den Listenpreis. Sortiert, leer heißt keine. */
+  staffel: Staffelstufe[];
   /** Wie viele Zeilen gerade im Korb liegen. */
   im_korb: number;
   /** `"JJJJ-MM-TT"` der letzten Bestellung, oder null. */
   zuletzt_bestellt: string | null;
+};
+
+export type Staffelstufe = { ab: number; prozent: string };
+
+/** Was der Korb nach Listenpreis und Staffel ungefähr kostet — gerechnet am Server, ein Richtwert. */
+export type Korbrechnung = {
+  /** Stück im Korb, die zur Staffel zählen. */
+  staffel_menge: number;
+  /** Der erreichte Rabatt in Prozent, oder null. */
+  prozent: string | null;
+  naechste: { ab: number; prozent: string; fehlen: number } | null;
+  /** Preis je Stück nach Staffel, je Position (Schlüssel: id). Ohne Listenpreis fehlt die Position. */
+  einzelpreise: Record<string, string>;
+  summe: string;
+  listensumme: string;
+  ohne_preis: number;
 };
 
 export type Bestellartikel = {
@@ -548,6 +566,9 @@ export type Bestellartikel = {
   name: string;
   link: string;
   beschreibung: string;
+  /** Listenpreis je Stück, `"16.99"` — oder null. */
+  preis: string | null;
+  in_staffel: boolean;
   /** In wie vielen Bestellungen er schon war — danach steht das Sortiment. */
   bestellt_mal: number;
 };
@@ -581,6 +602,7 @@ export type Lieferantenanhang = Anhang & { lieferant: number };
 export type Lieferantenseite = Lieferant & {
   artikel: Bestellartikel[];
   korb: Bestellposition[];
+  rechnung: Korbrechnung;
   bestellungen: Bestellung[];
   anhaenge: Lieferantenanhang[];
 };

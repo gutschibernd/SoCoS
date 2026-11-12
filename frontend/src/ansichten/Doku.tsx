@@ -977,6 +977,10 @@ function ModuleDoku() {
               text: "Mails mit dem Hersteller als .eml auf die Karte ziehen — Anfrage, Angebot, Auftragsbestätigung. Ein Klick öffnet sie zum Lesen; so steht der Stand der Dinge beim Lieferanten.",
             },
             {
+              begriff: "Preis und Mengenrabatt",
+              text: "Am Artikel steht der Listenpreis, am Lieferanten bei Bedarf eine Staffel — bei Bambu Lab etwa ab 14 Spulen 47 % weniger, gezählt über alle Filamente zusammen. Unter dem Korb steht dann, welche Stufe erreicht ist, was es ungefähr kostet und wie viel bis zur nächsten fehlt. Ein Richtwert: Was gilt, zeigt die Kasse des Shops.",
+            },
+            {
               begriff: "Das Kürzel im Korb",
               text: "Wer etwas hineingelegt hat. Legen zwei Leute denselben Artikel hinein, stehen zwei Zeilen da; die Zusammenfassung zählt sie zusammen.",
             },

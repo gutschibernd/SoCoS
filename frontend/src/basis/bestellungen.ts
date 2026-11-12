@@ -8,7 +8,8 @@
  * ist sie der Text der Angebotsanfrage, den man selbst abschickt.
  */
 
-import type { Bestellartikel, Bestellposition, Bestellweg, Lieferant } from "./daten";
+import type { Bestellartikel, Bestellposition, Bestellweg, Korbrechnung, Lieferant } from "./daten";
+import { alsEuro } from "./module";
 
 export const BESTELLWEGE: { wert: Bestellweg; titel: string; wozu: string }[] = [
   { wert: "shop", titel: "Onlineshop", wozu: "Bambu Lab, Amazon — Artikel landen im Warenkorb" },
@@ -101,11 +102,34 @@ export const zusammenfassungsKnopf = (art: Bestellweg) =>
  * „Nicht zur Kasse" steht ausdrücklich da: Bestellen und bezahlen bleibt bei
  * dem, der den Text weitergibt.
  */
+/**
+ * Die Zeile unter dem Korb: wie viele Stück zur Staffel zählen, welcher
+ * Rabatt erreicht ist und was das ungefähr macht. Leer, wenn es weder Preis
+ * noch Staffel gibt.
+ */
+export function rechnungsText(r: Korbrechnung): string {
+  const teile: string[] = [];
+  if (r.prozent) teile.push(`${r.staffel_menge} Stück in der Staffel, −${r.prozent.replace(".", ",")} %`);
+  if (Number(r.listensumme) > 0) {
+    const statt = r.summe !== r.listensumme ? ` statt ${alsEuro(r.listensumme)}` : "";
+    teile.push(`ca. ${alsEuro(r.summe)}${statt}`);
+  }
+  if (r.ohne_preis > 0) teile.push(`${r.ohne_preis} ${r.ohne_preis === 1 ? "Zeile" : "Zeilen"} ohne Preis`);
+  return teile.join(" · ");
+}
+
+/** „Noch 2 Stück bis −35 %" — oder leer, wenn die oberste Stufe erreicht ist. */
+export function naechsteStufeText(r: Korbrechnung): string {
+  if (!r.naechste) return "";
+  return `Noch ${r.naechste.fehlen} Stück bis −${r.naechste.prozent.replace(".", ",")} %`;
+}
+
 export function zusammenfassung(
   lieferant: Pick<Lieferant, "name" | "art" | "link">,
   korb: Bestellposition[],
   absender: string,
   heute: string,
+  rechnung?: Korbrechnung,
 ): string {
   const zeilen = liste(zusammengezaehlt(korb));
   const stand = `aus SoCoS, Stand ${tagText(heute)}`;
@@ -131,6 +155,9 @@ export function zusammenfassung(
       ? "Bitte in Chrome alle Artikel in den Warenkorb legen, jeweils in der angegebenen Menge und Variante. Nicht zur Kasse gehen — die Bestellung schicke ich selbst ab."
       : "Bitte in Chrome jeden Artikel öffnen. Was sich direkt bestellen lässt, in den Warenkorb legen, in der angegebenen Menge und Variante. Wo der Anbieter erst ein Angebot macht, einen Anfragetext mit Menge vorbereiten, aber nicht absenden. Nicht zur Kasse gehen.";
 
+  // Was SoCoS erwartet, damit im Warenkorb auffällt, wenn der Mengenrabatt
+  // nicht greift — der Shop rechnet ihn selbst, und nicht immer gleich.
+  const erwartet = rechnung && rechnungsText(rechnung);
   return [
     `Sammelbestellung ${lieferant.art === "shop" ? "bei" : "über"} ${lieferant.name} — ${stand}`,
     "",
@@ -138,5 +165,6 @@ export function zusammenfassung(
     ...ort,
     "",
     zeilen,
+    ...(erwartet ? ["", `Erwartet laut SoCoS: ${erwartet}. Bitte im Warenkorb vergleichen.`] : []),
   ].join("\n");
 }

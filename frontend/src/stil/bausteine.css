@@ -4923,6 +4923,17 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
 .korb-schon b { color: var(--text); }
 .korb-sucht { font-style: normal; font-weight: 400; color: var(--text-sehr-leise); }
 .feld-reihe > .korb-menge, .korb-menge { flex: 0 0 84px; width: 84px; text-align: right; }
+.feld-reihe > .korb-preis { flex: 0 0 104px; width: 104px; }
+.korb-staffel-wahl { display: inline-flex; align-items: center; gap: 8px; min-height: var(--griff); font-size: 14px; color: var(--text); cursor: pointer; }
+.korb-staffel-wahl input { width: 18px; height: 18px; }
+/* Die Rechnung unter dem Korb: links was erreicht ist, darunter was als
+   Nächstes käme — leise, es ist ein Richtwert und keine Rechnung. */
+.korb-rechnung { margin: 12px 0 0; display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; color: var(--text); }
+.korb-naechste { color: var(--marke); font-weight: 600; }
+.staffel-zeile { display: grid; grid-template-columns: auto 72px auto 80px auto auto; justify-content: start; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; color: var(--text-leise); }
+.staffel-zeile .feld { text-align: right; }
+.staffel-zeile .mini { justify-self: start; }
+.staffel-neu { margin-top: 2px; }
 .korb-leer { margin: 12px 0 0; font-size: 14px; color: var(--text-leise); line-height: 1.5; }
 .korb-text { font-family: var(--schrift-mono); font-size: 13px; line-height: 1.5; resize: vertical; }
 .fenster-satz { margin: 0 0 14px; font-size: 14px; color: var(--text-leise); line-height: 1.5; }

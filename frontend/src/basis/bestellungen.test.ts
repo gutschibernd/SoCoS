@@ -4,11 +4,13 @@ import {
   gleicherLink,
   istLink,
   kurzerLink,
+  naechsteStufeText,
+  rechnungsText,
   sortiment,
   zusammenfassung,
   zusammengezaehlt,
 } from "./bestellungen";
-import type { Bestellartikel, Bestellposition } from "./daten";
+import type { Bestellartikel, Bestellposition, Korbrechnung } from "./daten";
 
 const position = (teil: Partial<Bestellposition>): Bestellposition => ({
   id: 1,
@@ -30,6 +32,8 @@ const artikel = (teil: Partial<Bestellartikel>): Bestellartikel => ({
   name: "PLA Basic",
   link: "",
   beschreibung: "",
+  preis: null,
+  in_staffel: false,
   bestellt_mal: 0,
   ...teil,
 });
@@ -117,5 +121,45 @@ describe("das Sortiment", () => {
       artikel({ id: 4, name: "PETG", bestellt_mal: 4 }),
     ]);
     expect(liste.map((a) => a.name)).toEqual(["PETG", "PLA", "Düse", "Zange"]);
+  });
+});
+
+describe("die Rechnung unter dem Korb", () => {
+  const rechnung = (teil: Partial<Korbrechnung>): Korbrechnung => ({
+    staffel_menge: 0,
+    prozent: null,
+    naechste: null,
+    einzelpreise: {},
+    summe: "0.00",
+    listensumme: "0.00",
+    ohne_preis: 0,
+    ...teil,
+  });
+
+  it("nennt Staffel, Rabatt und die Summe gegen den Listenpreis", () => {
+    const r = rechnung({ staffel_menge: 46, prozent: "47", summe: "414.00", listensumme: "781.54" });
+    expect(rechnungsText(r)).toBe("46 Stück in der Staffel, −47 % · ca. 414 € statt 781,54 €");
+    expect(naechsteStufeText(r)).toBe("");
+  });
+
+  it("sagt, wie viel bis zur nächsten Stufe fehlt, und was keinen Preis hat", () => {
+    const r = rechnung({ staffel_menge: 3, summe: "50.97", listensumme: "50.97", ohne_preis: 1, naechste: { ab: 4, prozent: "25", fehlen: 1 } });
+    expect(rechnungsText(r)).toBe("ca. 50,97 € · 1 Zeile ohne Preis");
+    expect(naechsteStufeText(r)).toBe("Noch 1 Stück bis −25 %");
+  });
+
+  it("schreibt in die Zusammenfassung, was SoCoS erwartet", () => {
+    const text = zusammenfassung(
+      { name: "Bambu Lab", art: "shop", link: "" },
+      [position({ menge: 14 })],
+      "Bernd Gutschi",
+      "2026-11-12",
+      rechnung({ staffel_menge: 14, prozent: "47", summe: "126.00", listensumme: "237.86" }),
+    );
+    expect(text.endsWith("Erwartet laut SoCoS: 14 Stück in der Staffel, −47 % · ca. 126 € statt 237,86 €. Bitte im Warenkorb vergleichen.")).toBe(true);
+  });
+
+  it("lässt die Zeile weg, wenn es weder Preis noch Staffel gibt", () => {
+    expect(rechnungsText(rechnung({}))).toBe("");
   });
 });

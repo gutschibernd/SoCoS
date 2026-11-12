@@ -25,6 +25,8 @@ import {
   gleicherLink,
   istLink,
   kurzerLink,
+  naechsteStufeText,
+  rechnungsText,
   sortiment,
   tagText,
   zeilenZahl,
@@ -42,7 +44,9 @@ import {
   type Ich,
   type Lieferant,
   type Lieferantenseite,
+  type Staffelstufe,
 } from "../basis/daten";
+import { alsEuro, betragAusEingabe, betragZumBearbeiten } from "../basis/module";
 import { melden } from "../basis/meldungen";
 import type { Wechseln } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
@@ -269,7 +273,7 @@ function Korbkarte({ lieferant, ich, entfernen }: { lieferant: Lieferantenseite;
   }, [zumKopieren]);
 
   async function kopieren() {
-    const text = zusammenfassung(lieferant, korb, ich.name, datumIn(0));
+    const text = zusammenfassung(lieferant, korb, ich.name, datumIn(0), lieferant.rechnung);
     try {
       await navigator.clipboard.writeText(text);
       melden(
@@ -307,9 +311,23 @@ function Korbkarte({ lieferant, ich, entfernen }: { lieferant: Lieferantenseite;
         <>
           <ul className="korb-liste">
             {korb.map((p) => (
-              <Korbzeile key={p.id} position={p} ich={ich} entfernen={entfernen} />
+              <Korbzeile
+                key={p.id}
+                position={p}
+                preis={lieferant.rechnung.einzelpreise[String(p.id)]}
+                ich={ich}
+                entfernen={entfernen}
+              />
             ))}
           </ul>
+          {(rechnungsText(lieferant.rechnung) || naechsteStufeText(lieferant.rechnung)) && (
+            <p className="korb-rechnung">
+              <span className="zahl">{rechnungsText(lieferant.rechnung)}</span>
+              {naechsteStufeText(lieferant.rechnung) && (
+                <span className="korb-naechste">{naechsteStufeText(lieferant.rechnung)}</span>
+              )}
+            </p>
+          )}
           {/* Unter der Liste und nicht im Kopf: Erst sieht man nach, was im
               Korb liegt, dann gibt man es weiter. */}
           <div className="korb-knoepfe">
@@ -359,6 +377,11 @@ function Hineinlegen({ lieferant }: { lieferant: Lieferantenseite }) {
   const [name, setName] = useState("");
   const [beschreibung, setBeschreibung] = useState("");
   const [menge, setMenge] = useState("1");
+  const [preis, setPreis] = useState("");
+  // Hat der Lieferant eine Staffel, zählt ein neuer Artikel meist dazu —
+  // bei Bambu Lab jede Filamentspule. Die Düse nimmt man von Hand heraus.
+  const hatStaffel = lieferant.staffel.length > 0;
+  const [inStaffel, setInStaffel] = useState(hatStaffel);
   const [sucht, setSucht] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
   // Der Name, der zuletzt vorgeschlagen wurde. Hat ihn jemand überschrieben,
@@ -395,6 +418,8 @@ function Hineinlegen({ lieferant }: { lieferant: Lieferantenseite }) {
     setName("");
     setBeschreibung("");
     setMenge("1");
+    setPreis("");
+    setInStaffel(hatStaffel);
     vorgeschlagen.current = "";
     gefragt.current = "";
   }
@@ -402,7 +427,8 @@ function Hineinlegen({ lieferant }: { lieferant: Lieferantenseite }) {
   const anzahl = Number(menge);
   const mengeGut = Number.isInteger(anzahl) && anzahl >= 1;
   const titel = vorhanden ? vorhanden.name : link ? name.trim() : eingabe.trim();
-  const bereit = offen && titel !== "" && mengeGut && !laeuft;
+  const betrag = betragAusEingabe(preis);
+  const bereit = offen && titel !== "" && mengeGut && betrag !== undefined && !laeuft;
 
   async function hinein(e: FormEvent) {
     e.preventDefault();
@@ -413,7 +439,14 @@ function Hineinlegen({ lieferant }: { lieferant: Lieferantenseite }) {
         vorhanden ??
         (await hole<Bestellartikel>("/bestellartikel/", {
           method: "POST",
-          body: JSON.stringify({ lieferant: lieferant.id, name: titel, link, beschreibung: beschreibung.trim() }),
+          body: JSON.stringify({
+            lieferant: lieferant.id,
+            name: titel,
+            link,
+            beschreibung: beschreibung.trim(),
+            preis: betrag,
+            in_staffel: inStaffel,
+          }),
         }));
       await hole("/bestellpositionen/", {
         method: "POST",
@@ -476,6 +509,16 @@ function Hineinlegen({ lieferant }: { lieferant: Lieferantenseite }) {
                 onChange={(e) => setBeschreibung(e.target.value)}
               />
             )}
+            {!vorhanden && (
+              <input
+                className="feld korb-preis"
+                value={preis}
+                inputMode="decimal"
+                placeholder="Preis €"
+                aria-label="Listenpreis je Stück in Euro"
+                onChange={(e) => setPreis(e.target.value)}
+              />
+            )}
             <input
               className="feld korb-menge"
               type="number"
@@ -494,13 +537,31 @@ function Hineinlegen({ lieferant }: { lieferant: Lieferantenseite }) {
               Abbrechen
             </button>
           </div>
+          {!vorhanden && hatStaffel && (
+            <label className="korb-staffel-wahl">
+              <input type="checkbox" checked={inStaffel} onChange={(e) => setInStaffel(e.target.checked)} />
+              Zählt zur Staffel
+            </label>
+          )}
+          {betrag === undefined && <Fehlerzeile text="Der Preis ist keine Zahl — etwa 16,99." />}
         </div>
       )}
     </form>
   );
 }
 
-function Korbzeile({ position, ich, entfernen }: { position: Bestellposition; ich: Ich; entfernen: Entfernen }) {
+function Korbzeile({
+  position,
+  preis,
+  ich,
+  entfernen,
+}: {
+  position: Bestellposition;
+  /** Preis je Stück nach Staffel — fehlt, wenn der Artikel keinen Listenpreis hat. */
+  preis?: string;
+  ich: Ich;
+  entfernen: Entfernen;
+}) {
   const neuLaden = useNeuLaden();
   const [menge, setMenge] = useState(String(position.menge));
   useEffect(() => setMenge(String(position.menge)), [position.menge]);
@@ -535,7 +596,12 @@ function Korbzeile({ position, ich, entfernen }: { position: Bestellposition; ic
       ) : (
         <span className="korb-menge-text zahl">{position.menge} ×</span>
       )}
-      <Artikeltext name={position.name} link={position.link} beschreibung={position.beschreibung} />
+      <Artikeltext
+        name={position.name}
+        link={position.link}
+        beschreibung={position.beschreibung}
+        mehr={preis ? `je ${alsEuro(preis)}` : ""}
+      />
       {position.von_initialen && (
         <span className="korb-von" title="hineingelegt von">
           {position.von_initialen}
@@ -610,7 +676,12 @@ function Sortimentkarte({ lieferant, ich }: { lieferant: Lieferantenseite; ich: 
       <ul className="sortiment-liste">
         {sortiment(lieferant.artikel).map((a) => {
           const drin = imKorb(a.id);
-          const mal = a.bestellt_mal > 0 ? `${a.bestellt_mal}× bestellt` : "";
+          const mal = [
+            a.preis ? `Liste ${alsEuro(a.preis)}` : "",
+            a.bestellt_mal > 0 ? `${a.bestellt_mal}× bestellt` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ");
           return (
             <li key={a.id}>
               <Artikeltext name={a.name} link={a.link} beschreibung={a.beschreibung} mehr={mal} />
@@ -645,7 +716,12 @@ function Sortimentkarte({ lieferant, ich }: { lieferant: Lieferantenseite; ich: 
       </ul>
 
       {bearbeitet && (
-        <Artikelfenster artikel={bearbeitet} darfLoeschen={ich.darf.loeschen} schliessen={() => setBearbeitet(null)} />
+        <Artikelfenster
+          artikel={bearbeitet}
+          hatStaffel={lieferant.staffel.length > 0}
+          darfLoeschen={ich.darf.loeschen}
+          schliessen={() => setBearbeitet(null)}
+        />
       )}
     </section>
   );
@@ -761,15 +837,26 @@ function Lieferantfenster({
   const [art, setArt] = useState<Bestellweg | null>(lieferant?.art ?? null);
   const [link, setLink] = useState(lieferant?.link ?? "");
   const [notiz, setNotiz] = useState(lieferant?.notiz ?? "");
+  const [stufen, setStufen] = useState<{ ab: string; prozent: string }[]>(
+    (lieferant?.staffel ?? []).map((s) => ({ ab: String(s.ab), prozent: s.prozent.replace(".", ",") })),
+  );
   const [laeuft, setLaeuft] = useState(false);
   const [fragtLoeschen, setFragtLoeschen] = useState(false);
 
   const linkGut = link.trim() === "" || istLink(link);
-  const bereit = name.trim() !== "" && art !== null && linkGut;
+  // Eine ganz leere Zeile ist keine Stufe — sie fällt beim Speichern weg.
+  const gefuellt = stufen.filter((s) => s.ab.trim() !== "" || s.prozent.trim() !== "");
+  const staffel: Staffelstufe[] = gefuellt.map((s) => ({ ab: Number(s.ab), prozent: s.prozent.replace(",", ".").trim() }));
+  const staffelGut = staffel.every(
+    (s) => Number.isInteger(s.ab) && s.ab >= 2 && Number(s.prozent) > 0 && Number(s.prozent) < 100,
+  );
+  const bereit = name.trim() !== "" && art !== null && linkGut && staffelGut;
+  const setzeStufe = (i: number, teil: Partial<{ ab: string; prozent: string }>) =>
+    setStufen((alt) => alt.map((s, j) => (j === i ? { ...s, ...teil } : s)));
 
   async function speichern() {
     setLaeuft(true);
-    const daten = { name: name.trim(), art, link: link.trim(), notiz: notiz.trim() };
+    const daten = { name: name.trim(), art, link: link.trim(), notiz: notiz.trim(), staffel };
     try {
       const gespeichert = await hole<Lieferant>(lieferant ? `/lieferanten/${lieferant.id}/` : "/lieferanten/", {
         method: lieferant ? "PATCH" : "POST",
@@ -853,6 +940,49 @@ function Lieferantfenster({
             onChange={(e) => setNotiz(e.target.value)}
           />
         </label>
+        <div className="profilfeld">
+          <span className="beschriftung-klein">
+            Mengenrabatt{" "}
+            <Hinweis
+              worum="Mengenrabatt"
+              text="Ab so vielen Stück im Korb so viel Prozent weniger auf den Listenpreis — gezählt über alle Artikel, die zur Staffel zählen. Bei Bambu Lab etwa alle Filamentspulen zusammen."
+            />
+          </span>
+          {stufen.map((s, i) => (
+            <div key={i} className="staffel-zeile">
+              <span>ab</span>
+              <input
+                className="feld"
+                value={s.ab}
+                inputMode="numeric"
+                aria-label={`Stufe ${i + 1}: ab wie vielen Stück`}
+                onChange={(e) => setzeStufe(i, { ab: e.target.value })}
+              />
+              <span>Stück</span>
+              <input
+                className="feld"
+                value={s.prozent}
+                inputMode="decimal"
+                aria-label={`Stufe ${i + 1}: Rabatt in Prozent`}
+                onChange={(e) => setzeStufe(i, { prozent: e.target.value })}
+              />
+              <span>%</span>
+              <button
+                type="button"
+                className="mini"
+                aria-label={`Stufe ${i + 1} entfernen`}
+                onClick={() => setStufen((alt) => alt.filter((_, j) => j !== i))}
+              >
+                <Zeichen name="kreuz" />
+              </button>
+            </div>
+          ))}
+          <button type="button" className="knopf-still staffel-neu" onClick={() => setStufen((alt) => [...alt, { ab: "", prozent: "" }])}>
+            <Zeichen name="plus" />
+            Stufe
+          </button>
+          <Fehlerzeile text={staffelGut ? "" : "Eine Stufe beginnt ab 2 Stück, der Rabatt liegt zwischen 0 und 100 %."} />
+        </div>
         {lieferant && darfLoeschen && (
           <div className="persona-fuss">
             <button type="button" className="knopf-still" onClick={() => setFragtLoeschen(true)}>
@@ -879,10 +1009,12 @@ function Lieferantfenster({
 
 function Artikelfenster({
   artikel,
+  hatStaffel,
   darfLoeschen,
   schliessen,
 }: {
   artikel: Bestellartikel;
+  hatStaffel: boolean;
   darfLoeschen: boolean;
   schliessen: () => void;
 }) {
@@ -890,18 +1022,27 @@ function Artikelfenster({
   const [name, setName] = useState(artikel.name);
   const [link, setLink] = useState(artikel.link);
   const [beschreibung, setBeschreibung] = useState(artikel.beschreibung);
+  const [preis, setPreis] = useState(betragZumBearbeiten(artikel.preis));
+  const [inStaffel, setInStaffel] = useState(artikel.in_staffel);
   const [laeuft, setLaeuft] = useState(false);
   const [fragtLoeschen, setFragtLoeschen] = useState(false);
 
   const linkGut = link.trim() === "" || istLink(link);
-  const bereit = name.trim() !== "" && linkGut;
+  const betrag = betragAusEingabe(preis);
+  const bereit = name.trim() !== "" && linkGut && betrag !== undefined;
 
   async function speichern() {
     setLaeuft(true);
     try {
       await hole(`/bestellartikel/${artikel.id}/`, {
         method: "PATCH",
-        body: JSON.stringify({ name: name.trim(), link: link.trim(), beschreibung: beschreibung.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          link: link.trim(),
+          beschreibung: beschreibung.trim(),
+          preis: betrag,
+          in_staffel: inStaffel,
+        }),
       });
       neuLaden();
       schliessen();
@@ -951,6 +1092,23 @@ function Artikelfenster({
             onChange={(e) => setBeschreibung(e.target.value)}
           />
         </label>
+        <label className="profilfeld">
+          <span className="beschriftung-klein">
+            Listenpreis je Stück{" "}
+            <Hinweis
+              worum="Listenpreis"
+              text="Der Preis ohne Mengenrabatt, wie er im Shop steht. Ein Richtwert für die Summe unter dem Korb; das Archiv zeigt keine Beträge."
+            />
+          </span>
+          <input className="feld" value={preis} inputMode="decimal" placeholder="16,99" onChange={(e) => setPreis(e.target.value)} />
+          <Fehlerzeile text={betrag === undefined ? "Der Preis ist keine Zahl — etwa 16,99." : ""} />
+        </label>
+        {(hatStaffel || artikel.in_staffel) && (
+          <label className="korb-staffel-wahl">
+            <input type="checkbox" checked={inStaffel} onChange={(e) => setInStaffel(e.target.checked)} />
+            Zählt zur Staffel des Lieferanten
+          </label>
+        )}
         {darfLoeschen && (
           <div className="persona-fuss">
             <button type="button" className="knopf-still" onClick={() => setFragtLoeschen(true)}>

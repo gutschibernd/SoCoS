@@ -1264,7 +1264,7 @@ class BestellartikelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Bestellartikel
-        fields = ["id", "lieferant", "name", "link", "beschreibung", "bestellt_mal"]
+        fields = ["id", "lieferant", "name", "link", "beschreibung", "preis", "in_staffel", "bestellt_mal"]
 
     def get_bestellt_mal(self, artikel):
         return getattr(artikel, "bestellt_mal", 0)
@@ -1343,7 +1343,13 @@ class LieferantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lieferant
-        fields = ["id", "name", "art", "link", "notiz", "im_korb", "zuletzt_bestellt"]
+        fields = ["id", "name", "art", "link", "notiz", "staffel", "im_korb", "zuletzt_bestellt"]
+
+    def validate_staffel(self, roh):
+        try:
+            return bestelldienst.staffel_bereinigt(roh)
+        except ValueError as fehler:
+            raise serializers.ValidationError(str(fehler))
 
     def get_im_korb(self, lieferant):
         return getattr(lieferant, "im_korb", 0)
@@ -1361,11 +1367,12 @@ class LieferantDetailSerializer(LieferantSerializer):
 
     artikel = serializers.SerializerMethodField()
     korb = serializers.SerializerMethodField()
+    rechnung = serializers.SerializerMethodField()
     bestellungen = serializers.SerializerMethodField()
     anhaenge = serializers.SerializerMethodField()
 
     class Meta(LieferantSerializer.Meta):
-        fields = LieferantSerializer.Meta.fields + ["artikel", "korb", "bestellungen", "anhaenge"]
+        fields = LieferantSerializer.Meta.fields + ["artikel", "korb", "rechnung", "bestellungen", "anhaenge"]
 
     def get_artikel(self, lieferant):
         from django.db.models import Count, Q
@@ -1384,6 +1391,19 @@ class LieferantDetailSerializer(LieferantSerializer):
 
     def get_korb(self, lieferant):
         return BestellpositionSerializer(bestelldienst.korb(lieferant), many=True).data
+
+    def get_rechnung(self, lieferant):
+        """Listenpreis und Staffel des Korbs — Beträge als Zeichenkette, wie überall."""
+        r = bestelldienst.rechnung(lieferant)
+        return {
+            "staffel_menge": r["staffel_menge"],
+            "prozent": str(r["prozent"].normalize()) if r["prozent"] else None,
+            "naechste": r["naechste"],
+            "einzelpreise": {str(k): str(v) for k, v in r["einzelpreise"].items()},
+            "summe": str(r["summe"]),
+            "listensumme": str(r["listensumme"]),
+            "ohne_preis": r["ohne_preis"],
+        }
 
     def get_bestellungen(self, lieferant):
         menge = lieferant.bestellungen.filter(geloescht_am__isnull=True).select_related("von")

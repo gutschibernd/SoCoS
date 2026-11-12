@@ -2438,6 +2438,14 @@ class Lieferant(Basismodell):
     art = models.CharField("Bestellweg", max_length=10, choices=Bestellweg.choices)
     link = models.URLField("Link", max_length=500, blank=True)
     notiz = models.TextField("Notiz", blank=True)
+    # Mengenrabatt in Stufen, wie bei Bambu Lab: `[{"ab": 4, "prozent": "25"}, …]`
+    # — ab so vielen Stück im Korb so viel Prozent weniger auf den Listenpreis
+    # jedes Artikels, der zur Staffel zählt (`Bestellartikel.in_staffel`).
+    # Prozent und nicht Preis je Stufe: Bei Bambu gilt dieselbe Staffel für
+    # PLA Basic, Matte und Pure, die verschiedene Listenpreise haben; ein
+    # fester Stufenpreis müsste je Artikel stehen. Gerechnet wird in
+    # `services/bestellung.rechnung`; leer heißt: keine Staffel.
+    staffel = models.JSONField("Staffel", default=list, blank=True)
 
     class Meta(Basismodell.Meta):
         verbose_name = "Lieferant"
@@ -2483,6 +2491,11 @@ class Bestellartikel(Basismodell):
     # mitkommt, ist schnell 600 Zeichen lang.
     link = models.URLField("Link", max_length=2000, blank=True)
     beschreibung = models.CharField("Beschreibung", max_length=300, blank=True)
+    # Der Listenpreis je Stück — ein Richtwert zum Rechnen des Korbs, **kein
+    # Beleg**. Das Archiv zeigt deshalb keine Beträge: Änderte sich der Preis,
+    # änderte sich sonst rückwirkend, was eine alte Bestellung gekostet hätte.
+    preis = models.DecimalField("Listenpreis", max_digits=10, decimal_places=2, null=True, blank=True)
+    in_staffel = models.BooleanField("Zählt zur Staffel", default=False)
 
     class Meta(Basismodell.Meta):
         verbose_name = "Bestellartikel"
