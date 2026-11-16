@@ -34,6 +34,7 @@ import {
   type Platz,
 } from "../basis/uebersicht";
 import { alsPfad } from "../basis/router";
+import { Firmendaten } from "../bausteine/Firmendaten";
 import { Zeichen } from "../bausteine/Zeichen";
 import { BAUSTEINE, ZIELE, type Wechseln } from "./UebersichtBausteine";
 
@@ -42,12 +43,24 @@ export function Uebersicht({ ich, wechseln }: { ich: Ich; wechseln: Wechseln }) 
   const [anpassen, setAnpassen] = useState(false);
   const [gezogen, setGezogen] = useState<number | null>(null);
   const [ziel, setZiel] = useState<number | null>(null);
+  const [firmendaten, setFirmendaten] = useState(false);
 
   const plaetze = bekannte(ich.uebersicht.bausteine);
   const aendern = (neu: Platz[]) => speichern.mutate(neu);
 
   return (
     <div className="spalte">
+      {/* Oben und nicht unten bei „Anpassen": UID und Steuernummer braucht
+          man mitten in einem Formular woanders, und dann soll der Griff ohne
+          Scrollen da sein. Eine Zeile über allem ist der Preis dafür. */}
+      <div className="ue-oben">
+        <button type="button" className="knopf-still" onClick={() => setFirmendaten(true)}>
+          <Zeichen name="kopie" />
+          Firmendaten kopieren
+        </button>
+      </div>
+      {firmendaten && <Firmendaten schliessen={() => setFirmendaten(false)} />}
+
       <Entwuerfe wechseln={wechseln} />
 
       <div className="ue-raster" data-anpassen={anpassen ? "ja" : undefined}>

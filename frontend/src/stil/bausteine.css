@@ -690,6 +690,47 @@
 .dialog-offen { font-size: 12.5px; color: var(--text-sehr-leise); }
 
 /*
+ * Firmendaten zum Kopieren (bausteine/Firmendaten.tsx). Die ganze Zeile ist
+ * der Knopf und nicht ein kleines Zeichen am Rand: Man zielt auf den Wert,
+ * den man braucht, und am Handy trifft der Finger sonst das Zeichen daneben.
+ */
+.firmendaten { max-width: 560px; }
+.fi-gruppe { margin-top: 14px; }
+.fi-gruppenkopf { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; margin-bottom: 4px; }
+.fi-gruppenkopf h3 {
+  margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--text-sehr-leise);
+}
+.fi-ganz[data-stand="gut"] { color: var(--gut); }
+.fi-ganz[data-stand="fehler"] { color: var(--warnung); }
+.fi-zeile {
+  width: 100%; min-height: var(--griff); padding: 8px 12px; margin: 0;
+  display: grid; grid-template-columns: 9.5em minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  background: var(--flaeche); color: var(--text); text-align: left; font: inherit; cursor: pointer;
+  border: 1px solid var(--rand); border-radius: var(--kante);
+}
+.fi-zeile + .fi-zeile { margin-top: 4px; }
+.fi-zeile:hover { border-color: var(--marke-rand); background: var(--flaeche-leise); }
+.fi-was { font-size: 13px; color: var(--text-leise); }
+/* Markierbar trotz Knopf: Gibt der Browser die Zwischenablage nicht frei,
+   bleibt nur das Markieren von Hand. */
+.fi-wert { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; user-select: text; }
+.fi-tun { display: inline-flex; align-items: center; gap: 6px; color: var(--marke); }
+.fi-meldung { font-size: 12.5px; font-weight: 600; }
+.fi-zeile[data-stand="gut"] { border-color: var(--gut); }
+.fi-zeile[data-stand="gut"] .fi-tun { color: var(--gut); }
+.fi-zeile[data-stand="fehler"] { border-color: var(--warnung); }
+.fi-zeile[data-stand="fehler"] .fi-tun { color: var(--warnung); }
+/* Am Handy steht die Bezeichnung über dem Wert — neben ihm bliebe für
+   „Sopharmis Medical Solutions FlexCo" kaum die halbe Breite. */
+@media (max-width: 560px) {
+  .fi-zeile { grid-template-columns: minmax(0, 1fr) auto; row-gap: 0; }
+  .fi-was { grid-column: 1; font-size: 12.5px; }
+  .fi-wert { grid-column: 1; }
+  .fi-tun { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/*
  * Ein Verlaufseintrag (bausteine/Verlaufsdialog.tsx). Schmaler als der
  * Protokolldialog: Es ist ein Gespräch, kein Dokument, und eine Zeile über
  * 640 px liest sich in einer Notiz schlecht.
@@ -1090,6 +1131,7 @@ a.leiste-knopf { text-decoration: none; }
  * ein kurzer Baustein neben einem langen nicht auf dessen Höhe gezogen wird
  * und unten ein leeres Feld trägt.
  */
+.ue-oben { display: flex; justify-content: flex-end; }
 .ue-werkzeug { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .ue-stand { font-size: 12.5px; color: var(--text-sehr-leise); }
 .ue-raster { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
