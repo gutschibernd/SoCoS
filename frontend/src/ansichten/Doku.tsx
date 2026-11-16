@@ -1247,7 +1247,8 @@ function ModuleDoku() {
             "Fixkosten und Ausgaben stehen in eigenen Registern. Fixkosten laufen monatlich, quartalsweise oder jährlich; eine Ausgabe planst du auf ein Quartal: oben das Jahr anklicken, dann das Quartal. Am Griff links in der Zeile lässt sich jede Position nach oben oder unten ziehen — oder mit den Pfeiltasten.",
             "„Auswahl“ in einem der beiden Register öffnet neben der Linie eine Liste aller Positionen. Was du dort abwählst, bleibt im Plan, rechnet aber nicht mit — Linie, Kennzahlen und Überbrückung zeigen sofort, was es ausmacht.",
             "Fehlt Geld, schlägt „Überbrückung“ unter den Registern Abrufe vor; „Als Gesellschafterdarlehen übernehmen“ trägt sie als Darlehen ein.",
-            "In der Monatsübersicht den echten Bankstand in die Ist-Zeile tippen. Er steht dann auch als Kontostand im Baustein „Geld“ der Übersicht.",
+            "„Kontostand“ ganz oben trägt den Bankstand von heute ein. Ab diesem Tag rechnet der Plan weiter; Fixkosten und Ausgaben, die davor lagen, stecken im Stand und verschwinden aus den Registern. „Vergangene zeigen“ holt sie zurück.",
+            "In der Monatsübersicht den echten Bankstand eines Monats in die Ist-Zeile tippen. Er steht dann auch als Kontostand im Baustein „Geld“ der Übersicht.",
             "„Export“ lädt den Plan als Datei, „Import“ (oder die Datei auf die Seite ziehen) ersetzt ihn — dasselbe Format wie der Runway-Planer.",
           ]}
         />

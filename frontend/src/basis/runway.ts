@@ -251,6 +251,29 @@ export function planjahre(S: Runwayplan): number[] {
 }
 
 /**
+ * Der Tag, ab dem gerechnet wird: der letzte Ist-Kontostand im Plan. Was
+ * davor fällig war, steckt in ihm — der Server rechnet es nicht mehr
+ * (`services/runway.berechnen`). Ohne Fortschreiben gibt es keinen.
+ */
+export function stichtag(S: Runwayplan, r: Runwayrechnung): string | null {
+  if (S.settings.rebase === false) return null;
+  return r.A.reduce<string | null>((d, m) => (m.ist_datum && (!d || m.ist_datum > d) ? m.ist_datum : d), null);
+}
+
+/**
+ * Liegt eine Kostenposition ganz vor dem Stichtag? Eine Ausgabe, wenn ihr Tag
+ * nicht danach liegt (am selben Tag ist sie im Stand schon drin); Fixkosten,
+ * wenn sie in einem früheren Monat enden — im Monat des Stichtags kann die
+ * letzte Zahlung noch nach ihm fällig sein.
+ */
+export function vergangen(k: Planeintrag, tag: string | null, planstart: string): boolean {
+  if (!tag) return false;
+  if (istAusgabe(k)) return String(k.start || planstart).slice(0, 10) <= tag;
+  const ende = String(k.end ?? "");
+  return /^\d{4}-\d{2}/.test(ende) && ende.slice(0, 7) < tag.slice(0, 7);
+}
+
+/**
  * Ein Eintrag wandert in der Liste an die Stelle eines anderen — vor ihn,
  * wenn er von unten kommt, hinter ihn, wenn von oben. Gezogen wird in einer
  * gefilterten Ansicht (ein Jahr, ein Quartal); die Liste darunter ist die

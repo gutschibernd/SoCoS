@@ -1038,7 +1038,10 @@ def runway(request):
 def runway_ist(request):
     """
     Die Ist-Zelle der Monatsübersicht: `{monat: "2026-10", betrag: "8600.00"}`
-    — oder `betrag: null` zum Leeren.
+    — oder `betrag: null` zum Leeren. Der Knopf „Kontostand“ oben schickt
+    statt des Monats einen Tag (`datum: "2026-11-16"`): Dann gilt genau dieser
+    Tag, und gerechnet wird ab ihm (Bernd, 2026-11-16: „vom heutigen Stand
+    weiterrechnen“). Ein Tag in der Zukunft ist kein Bankstand.
 
     **Sie schreibt einen `Kontostand`**, denselben, den das Dashboard zeigt —
     kein zweiter Ort für den Bankstand. Gibt es im Monat schon einen, wird er
@@ -1051,12 +1054,6 @@ def runway_ist(request):
 
     if not berechtigung.darf_finanzen_eintragen(request.user):
         raise PermissionDenied("Kontostände trägt nur ein Admin ein.")
-    monat = str(request.data.get("monat") or "")
-    try:
-        erster = date.fromisoformat(f"{monat}-01")
-    except ValueError:
-        raise ValidationError({"monat": f"„{monat}“ ist kein Monat im Format JJJJ-MM."})
-    letzter = erster.replace(day=monthrange(erster.year, erster.month)[1])
     roh = request.data.get("betrag")
     betrag = None
     if roh not in (None, ""):
@@ -1064,6 +1061,34 @@ def runway_ist(request):
             betrag = Decimal(str(roh)).quantize(Decimal("0.01"))
         except InvalidOperation:
             raise ValidationError({"betrag": f"„{roh}“ ist kein Betrag."})
+
+    tag = request.data.get("datum")
+    if tag:
+        try:
+            tag = date.fromisoformat(str(tag))
+        except ValueError:
+            raise ValidationError({"datum": f"„{tag}“ ist kein Datum im Format JJJJ-MM-TT."})
+        if tag > timezone.localdate():
+            raise ValidationError({"datum": "Ein Kontostand kann nicht in der Zukunft liegen."})
+        if betrag is None:
+            raise ValidationError({"betrag": "Ohne Betrag gibt es keinen Kontostand."})
+        with transaction.atomic():
+            # Auch ein weich entfernter am selben Tag: Der Tag ist eindeutig.
+            alt = Kontostand.alle_objekte.filter(datum=tag).first()
+            if alt:
+                alt.betrag = betrag
+                alt.geloescht_am = None
+                alt.save()
+            else:
+                Kontostand.objects.create(datum=tag, betrag=betrag)
+        return _runway_antwort(request, Runwayplan.objects.first())
+
+    monat = str(request.data.get("monat") or "")
+    try:
+        erster = date.fromisoformat(f"{monat}-01")
+    except ValueError:
+        raise ValidationError({"monat": f"„{monat}“ ist kein Monat im Format JJJJ-MM."})
+    letzter = erster.replace(day=monthrange(erster.year, erster.month)[1])
 
     vorhanden = Kontostand.objects.filter(datum__gte=erster, datum__lte=letzter).order_by("-datum", "-id").first()
     with transaction.atomic():

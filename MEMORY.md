@@ -7,6 +7,32 @@ betrifft.
 
 ---
 
+## 2026-11-16 — Runway: Kontostand von heute, Vergangenes archiviert
+
+**Bernd:** Oben einen Knopf, um den aktuellen Kontostand einzutragen und mit
+der Realität abzugleichen; was davor lag, soll archiviert werden, gerechnet
+wird ab heute; ein Haken blendet Vergangenes wieder ein.
+
+- **Kein neuer Mechanismus für die Rechnung.** Ein `Kontostand` ersetzt den
+  Plan schon bis zu seinem Tag (Abschnitt 2026-10-14). Neu ist nur, dass
+  `POST /api/runway/ist/` statt `monat` ein `datum` nimmt und dann **genau
+  diesen Tag** schreibt (die Ist-Zelle schreibt weiter den Monatsletzten).
+  Ein Tag in der Zukunft ist 400.
+- **„Archiviert" ist gerechnet, nicht gespeichert.** Stichtag ist der letzte
+  `ist_datum` der Rechnung (ohne Fortschreiben keiner). Vor ihm liegt eine
+  Ausgabe, deren Tag nicht danach liegt, und Fixkosten, die in einem
+  *früheren Monat* enden — im Monat des Stichtags kann ihre letzte Zahlung
+  noch nach ihm fällig sein (`basis/runway.vergangen`). Kein Flag am Eintrag:
+  Ändert sich der Kontostand, wandert die Grenze von selbst mit.
+- Ausgeblendet wird in den Registern Fixkosten und Ausgaben und in der
+  Auswahl — nicht in der Linie und nicht in den Übersichten, dort ist das
+  Vergangene das Ist. Andere Register (Umsätze, Tranchen) bleiben wie sie sind.
+- Jahr, Quartal, Auswahl und der Haken stehen jetzt **außerhalb** des
+  `fieldset`, das für Leser alles stilllegt — vorher konnte ein Leser nicht
+  einmal das Jahr wechseln.
+
+---
+
 ## 2026-11-16 — Runway: Fixkosten und Ausgaben getrennt, Auswahl neben der Linie
 
 **Bernd:** Ausgaben besser übersehen — Fixkosten und Ausgaben trennen,

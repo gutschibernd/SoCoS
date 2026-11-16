@@ -18,20 +18,20 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { useRunway, type Ich, type Runwayplan, type Szenario } from "../basis/daten";
-import { anbieten, slug, stempel, uid, zusammenfassung } from "../basis/runway";
+import { useRunway, type Ich, type Planeintrag, type Runwayplan, type Szenario } from "../basis/daten";
+import { anbieten, slug, stempel, stichtag, uid, vergangen, zusammenfassung } from "../basis/runway";
 import { useRunwayDokument } from "../basis/runwaydokument";
 import { Zustand } from "../basis/Zustand";
 import { Auswahl } from "./RunwayAuswahl";
 import { Editor } from "./RunwayEditor";
-import { Kopf, Lage } from "./RunwayKopf";
+import { Kopf, KontostandEintragen, Lage } from "./RunwayKopf";
 import { Jahre, Monate, Ueberbrueckung } from "./RunwayTabellen";
 import { Verlauf } from "./RunwayVerlauf";
 
 /* Szenario, Register, Jahr der Ausgaben und ob die Auswahl offen ist, merkt
    sich der Browser — das ist eine Ansicht, kein Plan. */
 const MERKEN = "socos-runway";
-type Ansicht = { szenario: Szenario; tab: string; jahr?: number; auswahl?: boolean };
+type Ansicht = { szenario: Szenario; tab: string; jahr?: number; auswahl?: boolean; vergangene?: boolean };
 function gemerkt(): Ansicht {
   try {
     return { szenario: "basis", tab: "foerderungen", ...JSON.parse(localStorage.getItem(MERKEN) || "{}") };
@@ -50,6 +50,7 @@ export function Runway(_: { ich: Ich }) {
   const toastUhr = useRef<number | undefined>(undefined);
   const [importFrage, setImportFrage] = useState<Import | null>(null);
   const [ziehen, setZiehen] = useState(false);
+  const [standOffen, setStandOffen] = useState(false);
   const datei = useRef<HTMLInputElement>(null);
   const oben = useRef<HTMLDivElement>(null);
 
@@ -129,6 +130,10 @@ export function Runway(_: { ich: Ich }) {
   if (!abfrage.data || !dok.S) return <Zustand abfrage={abfrage} erneut={() => abfrage.refetch()} />;
   const S = dok.S;
   const r = abfrage.data.rechnung;
+  // Was vor dem letzten Ist-Kontostand lag, steckt in ihm und rechnet nicht
+  // mehr mit — es ist archiviert, nicht gelöscht, und auf Wunsch zu sehen.
+  const tag = stichtag(S, r);
+  const ausblenden = (k: Planeintrag) => !ansicht.vergangene && vergangen(k, tag, S.settings.start);
 
   const exportieren = () =>
     anbieten(
@@ -152,7 +157,19 @@ export function Runway(_: { ich: Ich }) {
         darf={dok.darf}
         exportieren={exportieren}
         importieren={importieren}
+        kontostand={() => setStandOffen(true)}
       />
+      {standOffen && (
+        <KontostandEintragen
+          r={r}
+          schliessen={() => setStandOffen(false)}
+          speichern={async (datum, betrag) => {
+            await dok.kontostand(datum, betrag);
+            setStandOffen(false);
+            melde(`Kontostand eingetragen — gerechnet wird ab ${new Date(`${datum}T00:00:00`).toLocaleDateString("de-AT")}`);
+          }}
+        />
+      )}
       {importFrage && (
         <div className="rw-import-confirm">
           <p>
@@ -198,7 +215,9 @@ export function Runway(_: { ich: Ich }) {
           }}
           vergessen={() => dok.aendern({ ...S, baseline: null })}
         />
-        {ansicht.auswahl && <Auswahl S={S} darf={dok.darf} aendern={dok.aendern} schliessen={() => merken({ auswahl: false })} />}
+        {ansicht.auswahl && (
+          <Auswahl S={S} darf={dok.darf} aendern={dok.aendern} ausblenden={ausblenden} schliessen={() => merken({ auswahl: false })} />
+        )}
       </div>
       <Editor
         key={dok.version}
@@ -209,6 +228,9 @@ export function Runway(_: { ich: Ich }) {
         setTab={(tab) => merken({ tab })}
         jahr={ansicht.jahr}
         setJahr={(jahr) => merken({ jahr })}
+        stichtag={tag}
+        vergangeneZeigen={!!ansicht.vergangene}
+        setVergangeneZeigen={(vergangene) => merken({ vergangene })}
         auswahlOeffnen={() => {
           merken({ auswahl: true });
           // Die Auswahl steht neben der Linie, eine Bildschirmhöhe über dem Register.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Runwayplan, Runwayrechnung } from "./daten";
-import { Achse, kategorieVon, kfmt, lanes, niceStep, parseDe, planjahre, quartalVon, quartalsbeginn, slug, verschieben, x0, zelle, zusammenfassen } from "./runway";
+import { Achse, kategorieVon, kfmt, stichtag, vergangen, lanes, niceStep, parseDe, planjahre, quartalVon, quartalsbeginn, slug, verschieben, x0, zelle, zusammenfassen } from "./runway";
 
 const plan = (teile: Partial<Runwayplan> = {}): Runwayplan => ({
   v: 2,
@@ -120,5 +120,24 @@ describe("Fixkosten und Ausgaben", () => {
   it("eine abgewählte Ausgabe fehlt in der Zeitachse", () => {
     const S = plan({ kosten: [{ id: "a", interval: "einmalig", start: "2026-11-01", amount: 100, aus: true }] });
     expect(lanes(S, rechnung()).some((z) => z.g === "Ausgaben")).toBe(false);
+  });
+});
+
+describe("Stichtag und Vergangenes", () => {
+  it("der letzte Ist-Tag, außer ohne Fortschreiben", () => {
+    const r = rechnung({ A: [{ ist_datum: "2026-10-31" }, { ist_datum: "2026-11-16" }, { ist_datum: null }] as never });
+    expect(stichtag(plan(), r)).toBe("2026-11-16");
+    expect(stichtag(plan({ settings: { ...plan().settings, rebase: false } }), r)).toBeNull();
+  });
+
+  it("Ausgabe bis einschließlich Stichtag, Fixkosten erst mit einem früheren Endmonat", () => {
+    const tag = "2026-11-16";
+    expect(vergangen({ id: "a", interval: "einmalig", start: "2026-11-16" }, tag, "2026-10-01")).toBe(true);
+    expect(vergangen({ id: "a", interval: "einmalig", start: "2026-11-17" }, tag, "2026-10-01")).toBe(false);
+    expect(vergangen({ id: "a", interval: "einmalig", start: "" }, tag, "2026-10-01")).toBe(true);
+    expect(vergangen({ id: "f", interval: "monatlich", end: "2026-10-31" }, tag, "2026-10-01")).toBe(true);
+    expect(vergangen({ id: "f", interval: "monatlich", end: "2026-11-10" }, tag, "2026-10-01")).toBe(false);
+    expect(vergangen({ id: "f", interval: "monatlich", end: "" }, tag, "2026-10-01")).toBe(false);
+    expect(vergangen({ id: "a", interval: "einmalig", start: "2026-01-01" }, null, "2026-10-01")).toBe(false);
   });
 });

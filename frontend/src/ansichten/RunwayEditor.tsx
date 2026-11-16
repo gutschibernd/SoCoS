@@ -13,7 +13,7 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import type { Planeintrag, Runwayplan, Runwayrechnung } from "../basis/daten";
-import { Achse, KATEGORIEN, MON, MONL, fmtE, istAusgabe, kategorieVon, kfmt, neueTranche, neuerEintrag, num, planjahre, quartalVon, quartalsbeginn, verschieben, x0 } from "../basis/runway";
+import { Achse, KATEGORIEN, MON, MONL, fmtE, istAusgabe, kategorieVon, kfmt, neueTranche, neuerEintrag, num, planjahre, quartalVon, quartalsbeginn, vergangen, verschieben, x0 } from "../basis/runway";
 import { Hinweis } from "../bausteine/Hinweis";
 import { Zeichen } from "../bausteine/Zeichen";
 import { useZeilenZiehen } from "../bausteine/zeilenziehen";
@@ -76,6 +76,9 @@ export function Editor({
   jahr,
   setJahr,
   auswahlOeffnen,
+  stichtag,
+  vergangeneZeigen,
+  setVergangeneZeigen,
 }: {
   S: Runwayplan;
   r: Runwayrechnung;
@@ -84,6 +87,9 @@ export function Editor({
   setTab: (t: string) => void;
   jahr: number | undefined;
   setJahr: (j: number) => void;
+  stichtag: string | null;
+  vergangeneZeigen: boolean;
+  setVergangeneZeigen: (an: boolean) => void;
   auswahlOeffnen: () => void;
   aendern: (neu: Runwayplan) => void;
   entfernen: (neu: Runwayplan, text: string) => void;
@@ -101,8 +107,13 @@ export function Editor({
   const t = (tab === "kosten" ? "fixkosten" : REGISTER.some((x) => x.k === tab) ? tab : "foerderungen") as Register;
 
   /* --- Fixkosten und Ausgaben: was zu sehen ist, und das Ziehen daran --- */
-  const fixkosten = S.kosten.filter((k) => !istAusgabe(k));
-  const alleAusgaben = S.kosten.filter(istAusgabe);
+  // Was vor dem Ist-Kontostand lag, ist archiviert: Es steckt im Stand und
+  // rechnet nicht mehr mit. Ein Haken holt es zurück in die Liste.
+  const weg = (k: Planeintrag) => vergangen(k, stichtag, st.start);
+  const da = (k: Planeintrag) => vergangeneZeigen || !weg(k);
+  const fixkosten = S.kosten.filter((k) => !istAusgabe(k) && da(k));
+  const alleAusgaben = S.kosten.filter((k) => istAusgabe(k) && da(k));
+  const archiviert = S.kosten.filter((k) => weg(k) && (t === "ausgaben" ? istAusgabe(k) : !istAusgabe(k))).length;
   // Eine Ausgabe ohne Datum bucht der Server im ersten Planmonat — dort steht sie auch hier.
   const qVon = (k: Planeintrag) => quartalVon(k.start) ?? quartalVon(st.start)!;
   const jahre = planjahre(S);
@@ -234,6 +245,10 @@ export function Editor({
   // Register; jetzt hinter dem ⓘ rechts neben den Reitern (Bernd: „zu viel
   // Text"). Wer es einmal gelesen hat, muss es nicht jedesmal überfahren.
   let erklaerung: ReactNode = null;
+  // Was über der Tabelle steht und nichts am Plan ändert (Jahr, Quartal,
+  // Auswahl, Vergangenes). Es steht außerhalb des `fieldset`, das für Leser
+  // alle Felder stilllegt — umschalten dürfen sie trotzdem.
+  let oben: ReactNode = null;
 
   if (t === "foerderungen") erklaerung =
     "Jede Förderung mit ihren Tranchen und dem erwarteten Zahlungsdatum. Rückzahlungen (z. B. der Darlehensanteil einer FFG-Förderung) als Tranche der Art „Rückzahlung“. Konservativ zählen nur zugesagte und erhaltene Auszahlungen.";
@@ -390,6 +405,7 @@ export function Editor({
       data-zeile=""
       data-aus={x.aus ? "" : undefined}
       data-kat={kategorieVon(x.cat)}
+      data-vergangen={weg(x) ? "" : undefined}
       data-gezogen={ziehen.gezogen === x.id ? "" : undefined}
       style={ziehen.lage(x.id)}
     >
@@ -402,6 +418,7 @@ export function Editor({
       <>
         {inp("kosten", x, "name", "text", { placeholder: beispiel })}
         {!!x.aus && <span className="rw-hint">rechnet nicht mit</span>}
+        {weg(x) && <span className="rw-hint">im Kontostand vom {new Date(`${stichtag}T00:00:00`).toLocaleDateString("de-AT")}</span>}
       </>,
       "wide",
     );
@@ -420,6 +437,13 @@ export function Editor({
       </span>,
     );
   };
+  const vergangeneHaken = (archiviert > 0 || vergangeneZeigen) && !!stichtag && (
+    <label className="rw-check rw-vergangene" title={`Was vor dem Kontostand vom ${new Date(`${stichtag}T00:00:00`).toLocaleDateString("de-AT")} lag`}>
+      <input type="checkbox" checked={vergangeneZeigen} onChange={(e) => setVergangeneZeigen(e.target.checked)} />
+      Vergangene zeigen
+      {archiviert > 0 && <span className="cnt">{archiviert}</span>}
+    </label>
+  );
   const auswahlKnopf = (
     <button type="button" className="rw-btn" onClick={auswahlOeffnen} aria-label="Auswahl neben der Linie öffnen">
       <Zeichen name="haken" />
@@ -430,14 +454,19 @@ export function Editor({
   if (t === "fixkosten") {
     erklaerung = <>Laufende Kosten netto. Quartals- und Jahreszahlungen fallen ab dem Startmonat im jeweiligen Rhythmus an. {kostenErklaerung}</>;
     const jeMonat = fixkosten.reduce((s2, k) => s2 + (k.aus ? 0 : num(k.amount) / (JE_MONAT[String(k.interval)] ?? 1)), 0);
+    oben = (
+      <div className="rw-reg-kopf">
+        <span className="rw-reg-summe">
+          <span className="zahl">{fmtE(jeMonat)}</span> je Monat
+        </span>
+        <span className="rw-reg-rechts">
+          {vergangeneHaken}
+          {auswahlKnopf}
+        </span>
+      </div>
+    );
     inhalt = (
       <>
-        <div className="rw-reg-kopf">
-          <span className="rw-reg-summe">
-            <span className="zahl">{fmtE(jeMonat)}</span> je Monat
-          </span>
-          {auswahlKnopf}
-        </div>
         {tabelle(
           `30px minmax(100px,1.4fr) minmax(140px,1.2fr) minmax(76px,.8fr) minmax(112px,.85fr) minmax(132px,.9fr) minmax(132px,.9fr)${ustOn ? " minmax(64px,.5fr)" : ""} minmax(36px,.35fr) 30px`,
           ["", "Position", "Kategorie", { t: "Betrag netto", r: true }, "Intervall", "Ab", "Bis", ...(ustOn ? ["USt"] : []), "F&E"],
@@ -468,7 +497,7 @@ export function Editor({
   if (t === "ausgaben") {
     erklaerung = <>Einmalige Ausgaben netto, geplant aufs Quartal. Sie zählen am ersten Tag des Quartals. {kostenErklaerung}</>;
     const quartale = jahre.flatMap((y) => [1, 2, 3, 4].map((q) => [`${y}-${q}`, `Q${q} ${y}`]));
-    inhalt = (
+    oben = (
       <>
         <div className="rw-reg-kopf">
           <div className="rw-wahl" role="group" aria-label="Jahr">
@@ -482,7 +511,10 @@ export function Editor({
               );
             })}
           </div>
-          {auswahlKnopf}
+          <span className="rw-reg-rechts">
+            {vergangeneHaken}
+            {auswahlKnopf}
+          </span>
         </div>
         <div className="rw-wahl leise" role="group" aria-label={`Quartal ${j}`}>
           <button type="button" aria-pressed={!quartal} onClick={() => setQuartal(0)}>
@@ -498,6 +530,10 @@ export function Editor({
             );
           })}
         </div>
+      </>
+    );
+    inhalt = (
+      <>
         {tabelle(
           `30px minmax(120px,1.6fr) minmax(160px,1.2fr) minmax(90px,.8fr) minmax(120px,.8fr)${ustOn ? " minmax(64px,.5fr)" : ""} minmax(36px,.35fr) 30px`,
           ["", "Position", "Kategorie", { t: "Betrag netto", r: true }, "Quartal", ...(ustOn ? ["USt"] : []), "F&E"],
@@ -529,7 +565,11 @@ export function Editor({
               </>,
             );
           }),
-          quartal ? `Keine Ausgabe im Q${quartal} ${j}.` : `Keine Ausgabe ${j} geplant.`,
+          (() => {
+            const wo = quartal ? `im Q${quartal} ${j}` : String(j);
+            const vorbei = S.kosten.some((k) => istAusgabe(k) && weg(k) && qVon(k).jahr === j && (!quartal || qVon(k).q === quartal));
+            return vorbei && !vergangeneZeigen ? `Nichts mehr offen ${wo} — der Rest liegt vor dem Kontostand.` : `Keine Ausgabe ${wo} geplant.`;
+          })(),
         )}
         {addBtn("kosten", quartal ? `Ausgabe im Q${quartal} ${j}` : `Ausgabe ${j}`)}
       </>
@@ -656,6 +696,7 @@ export function Editor({
         </nav>
         {erklaerung && <Hinweis worum={`Was „${REGISTER.find((x) => x.k === t)!.t}“ rechnet`} text={erklaerung} />}
       </div>
+      {oben && <div className="rw-reg-oben">{oben}</div>}
       {/* Ein Leser sieht alles, ändert nichts — ein `fieldset` legt alle Felder auf einmal still. */}
       <fieldset className="rw-editor" ref={ed as never} disabled={!darf}>
         {inhalt}

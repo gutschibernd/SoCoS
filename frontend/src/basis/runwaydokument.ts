@@ -140,6 +140,17 @@ export function useRunwayDokument(szenario: Szenario, daten: Runway | undefined)
     void qc.invalidateQueries({ queryKey: ["dashboard"] });
   }
 
+  /** Der Knopf „Kontostand“ oben: ein Bankstand an genau diesem Tag. */
+  async function kontostand(datum: string, betrag: number) {
+    const a = await hole<Runway>(`/runway/ist/?szenario=${szRef.current}`, {
+      method: "POST",
+      body: JSON.stringify({ datum, betrag: betrag.toFixed(2) }),
+    });
+    qc.setQueryData(["runway", szRef.current], { ...a, plan: SRef.current ?? a.plan });
+    void qc.invalidateQueries({ queryKey: ["runway"], predicate: (q) => q.queryKey[1] !== szRef.current });
+    void qc.invalidateQueries({ queryKey: ["dashboard"] });
+  }
+
   // Wer die Seite verlässt, während noch etwas offen ist, verliert es nicht.
   useEffect(
     () => () => {
@@ -152,5 +163,5 @@ export function useRunwayDokument(szenario: Szenario, daten: Runway | undefined)
     [],
   );
 
-  return { S, version, speicher, darf, aendern, ersetzen, ist, aktuell: () => SRef.current };
+  return { S, version, speicher, darf, aendern, ersetzen, ist, kontostand, aktuell: () => SRef.current };
 }

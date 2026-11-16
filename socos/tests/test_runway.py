@@ -16,12 +16,13 @@ was dabei herauskam.
 """
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.utils import timezone
 
 from socos.models import Kontostand, Protokolleintrag, Runwayplan
 from socos.services import runway as dienst
@@ -315,6 +316,30 @@ class TestSchnittstelle:
         client.post("/api/runway/ist/", {"monat": "2026-10", "betrag": "9000"}, content_type="application/json")
         k = Kontostand.objects.get()
         assert (k.datum, k.betrag) == (date(2026, 10, 1), D(9000))
+
+    def test_kontostand_an_einem_tag_rechnet_ab_dort(self, client, admin_nutzer):
+        """Der Knopf oben: genau dieser Tag; was davor fällig war, steckt im Stand, was danach kommt, nicht."""
+        plan = _plan(
+            kosten=[
+                {"name": "Vorher", "amount": 500, "interval": "einmalig", "start": "2026-11-05"},
+                {"name": "Nachher", "amount": 300, "interval": "einmalig", "start": "2026-11-20"},
+            ]
+        )
+        Runwayplan.objects.create(daten=plan)
+        client.force_login(admin_nutzer)
+        antwort = client.post("/api/runway/ist/", {"datum": "2026-11-10", "betrag": "8000"}, content_type="application/json")
+        assert antwort.status_code == 200
+        assert Kontostand.objects.get().datum == date(2026, 11, 10)
+        november = antwort.json()["rechnung"]["A"][1]
+        assert (november["ist_datum"], november["cash"]) == ("2026-11-10", "7700.00")
+
+    def test_kontostand_nicht_in_der_zukunft(self, client, admin_nutzer):
+        Runwayplan.objects.create(daten=_plan())
+        client.force_login(admin_nutzer)
+        morgen = (timezone.localdate() + timedelta(days=1)).isoformat()
+        antwort = client.post("/api/runway/ist/", {"datum": morgen, "betrag": "8000"}, content_type="application/json")
+        assert antwort.status_code == 400
+        assert not Kontostand.objects.exists()
 
 
 # --- Einspielen ------------------------------------------------------------------------

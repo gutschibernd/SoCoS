@@ -4767,6 +4767,13 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
    Quartal als Schalter, Griff zum Verschieben, Kategorie als Farbe. */
 .rw-reg-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .rw-reg-summe { color: var(--rw-muted); font-size: 13px; }
+.rw-reg-oben { padding: 18px 18px 0; display: flex; flex-direction: column; gap: 12px; }
+.rw-reg-oben + .rw-editor { padding-top: 14px; }
+.rw-reg-rechts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-left: auto; }
+.rw-vergangene { padding-top: 0; font-size: 13px; color: var(--rw-muted); }
+.rw-vergangene .cnt { font-family: var(--schrift-zahl); font-size: 11.5px; color: var(--rw-faint); font-variant-numeric: tabular-nums; }
+/* Vergangenes ist nur zum Nachsehen da: leiser als das, was noch kommt. */
+.rw-row[data-vergangen] .rw-inp { color: var(--rw-muted); background: var(--rw-surface-2); }
 .rw-reg-summe .zahl { color: var(--rw-ink); font-weight: 700; font-size: 16px; font-family: var(--schrift-zahl); font-variant-numeric: tabular-nums; }
 .rw-wahl { display: flex; flex-wrap: wrap; gap: 6px; }
 .rw-wahl button {
@@ -4886,6 +4893,12 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
 .rw-toast button { background: transparent; border: 1px solid currentColor; color: inherit; border-radius: 7px; padding: 4px 10px; cursor: pointer; font: inherit; }
 .rw-import-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; background: var(--rw-surface); border: 1px solid var(--rw-accent); border-radius: 12px; padding: 12px 16px; }
 .rw-import-confirm p { margin: 0; flex: 1; min-width: 240px; }
+/* Der Kontostand von heute: dieselbe Leiste wie die Nachfrage beim Import. */
+.rw-stand { align-items: flex-end; }
+.rw-stand .rw-cell { flex: 0 1 180px; }
+.rw-stand .rw-cell-l { display: block; }
+.rw-stand > .rw-hint { flex: 1 1 200px; align-self: center; }
+.rw-fehler { color: var(--rw-bad); font-weight: 600; }
 .rw-drop-veil {
   position: fixed; inset: 0; z-index: 99; background: var(--rw-accent-soft); border: 3px dashed var(--rw-accent);
   display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: var(--rw-accent); pointer-events: none;
@@ -4923,6 +4936,8 @@ textarea.rw-inp { min-height: 110px; resize: vertical; line-height: 1.5; }
   .rw-row .rw-griff { position: absolute; top: 4px; right: calc(4px + var(--griff)); width: var(--griff); height: var(--griff); }
   .rw-row:has(> .rw-griff) > .rw-cell.wide:nth-child(2) { padding-right: calc(2 * var(--griff) + 8px); }
   .rw-wahl button { min-height: var(--griff); }
+  .rw-vergangene { min-height: var(--griff); }
+  .rw-stand .rw-cell { flex: 1 1 140px; }
   .rw-auswahl-zeile { min-height: var(--griff); }
   .rw-auswahl-alle button { min-height: var(--griff); padding-inline: 10px; }
   .rw-cell-l { display: block; }

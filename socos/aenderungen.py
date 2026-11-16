@@ -23,7 +23,7 @@ Die Liste steht **neueste zuerst**.
 VERSIONEN = [
     {
         "version": "2026-11-16",
-        "titel": "Runway-Planung: Fixkosten und Ausgaben getrennt",
+        "titel": "Runway-Planung: Ausgaben und Kontostand",
         "punkte": [
             {
                 "titel": "Ausgaben planst du aufs Quartal",
@@ -40,6 +40,15 @@ VERSIONEN = [
                     "„Auswahl“ öffnet neben der Linie alle Fixkosten und Ausgaben. Was du dort abwählst, "
                     "bleibt im Plan, rechnet aber nicht mit — die Linie zeigt sofort, was es ausmacht. "
                     "Die Überbrückung steht jetzt unter den Registern."
+                ),
+                "wo": "module/runway",
+            },
+            {
+                "titel": "Kontostand von heute",
+                "text": (
+                    "„Kontostand“ ganz oben trägt den Bankstand von heute ein; ab diesem Tag rechnet der Plan "
+                    "weiter. Was davor lag, verschwindet aus Fixkosten und Ausgaben — „Vergangene zeigen“ "
+                    "holt es zurück."
                 ),
                 "wo": "module/runway",
             },

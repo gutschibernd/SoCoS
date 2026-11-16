@@ -8,11 +8,13 @@
  * nur, was sich mit dem Plan ändert (der Monat, die Zahl der Abrufe).
  */
 
+import { useState } from "react";
+
 import type { Runwayplan, Runwayrechnung, Szenario } from "../basis/daten";
 import { Hinweis } from "../bausteine/Hinweis";
 import { Zeichen, type ZeichenName } from "../bausteine/Zeichen";
 import type { Speicherstand } from "../basis/runwaydokument";
-import { Achse, fmtE, num } from "../basis/runway";
+import { Achse, fmtE, num, parseDe } from "../basis/runway";
 
 const SZENARIEN: { wert: Szenario; text: string; titel: string }[] = [
   { wert: "konservativ", text: "Konservativ", titel: "Nur was fix ist: zugesagte oder erhaltene Förderungen und Investments, Umsätze nur mit 100 % Wahrscheinlichkeit" },
@@ -35,6 +37,7 @@ export function Kopf({
   darf,
   exportieren,
   importieren,
+  kontostand,
 }: {
   S: Runwayplan;
   szenario: Szenario;
@@ -43,6 +46,7 @@ export function Kopf({
   darf: boolean;
   exportieren: () => void;
   importieren: () => void;
+  kontostand: () => void;
 }) {
   const a = new Achse(S.settings.start);
   const n = S.settings.months;
@@ -56,6 +60,12 @@ export function Kopf({
         </span>
       </div>
       <div className="rw-top-right">
+        {darf && (
+          <button type="button" className="rw-btn primary" onClick={kontostand} title="Den Bankstand von heute eintragen — gerechnet wird ab diesem Tag">
+            <Zeichen name="muenze" />
+            Kontostand
+          </button>
+        )}
         <div className="rw-seg" role="group" aria-label="Szenario">
           {SZENARIEN.map((s) => (
             <button key={s.wert} type="button" title={s.titel} aria-pressed={szenario === s.wert} onClick={() => setSzenario(s.wert)}>
@@ -218,5 +228,81 @@ export function Lage({ S, r }: { S: Runwayplan; r: Runwayrechnung }) {
         ))}
       </section>
     </>
+  );
+}
+
+/** Heute als `JJJJ-MM-TT` in der Zeit des Browsers, nicht in UTC. */
+function heute() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Der Bankstand von heute, eingetragen über den Knopf oben (Bernd,
+ * 2026-11-16: „die Realität abgleichen"). Er wird ein `Kontostand` an genau
+ * diesem Tag; ab ihm rechnet der Plan weiter, und was davor lag, blendet die
+ * Seite aus.
+ */
+export function KontostandEintragen({
+  r,
+  speichern,
+  schliessen,
+}: {
+  r: Runwayrechnung;
+  speichern: (datum: string, betrag: number) => Promise<void>;
+  schliessen: () => void;
+}) {
+  const [datum, setDatum] = useState(heute);
+  const [text, setText] = useState("");
+  const [fehler, setFehler] = useState("");
+  const [laeuft, setLaeuft] = useState(false);
+  const letzter = [...r.A].reverse().find((m) => m.ist_datum);
+
+  async function eintragen() {
+    const betrag = parseDe(text);
+    if (betrag === null || Number.isNaN(betrag)) return setFehler("Bitte einen Betrag eintragen, z. B. 12.480,50.");
+    if (!datum || datum > heute()) return setFehler("Der Tag darf nicht in der Zukunft liegen.");
+    setLaeuft(true);
+    setFehler("");
+    try {
+      await speichern(datum, betrag);
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : "Eintragen fehlgeschlagen.");
+      setLaeuft(false);
+    }
+  }
+
+  return (
+    <form
+      className="rw-import-confirm rw-stand"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void eintragen();
+      }}
+    >
+      <label className="rw-cell">
+        <span className="rw-cell-l">Kontostand am</span>
+        <input className="rw-inp" type="date" value={datum} max={heute()} onChange={(e) => setDatum(e.target.value)} />
+      </label>
+      <label className="rw-cell">
+        <span className="rw-cell-l">Betrag (€)</span>
+        <input className="rw-inp n" inputMode="decimal" autoFocus value={text} placeholder="z. B. 12.480,50" onChange={(e) => setText(e.target.value)} />
+      </label>
+      <button type="submit" className="rw-btn primary" disabled={laeuft}>
+        Eintragen
+      </button>
+      <button type="button" className="rw-btn" onClick={schliessen}>
+        Abbrechen
+      </button>
+      <span className="rw-hint">
+        {fehler ? (
+          <span className="rw-fehler">{fehler}</span>
+        ) : letzter ? (
+          `Zuletzt ${fmtE(letzter.ist ?? 0)} am ${new Date(`${letzter.ist_datum}T00:00:00`).toLocaleDateString("de-AT")}`
+        ) : (
+          "Noch kein Kontostand im Planzeitraum"
+        )}
+      </span>
+    </form>
   );
 }

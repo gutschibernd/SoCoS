@@ -21,17 +21,20 @@ export function Auswahl({
   S,
   darf,
   aendern,
+  ausblenden,
   schliessen,
 }: {
   S: Runwayplan;
   darf: boolean;
   aendern: (neu: Runwayplan) => void;
+  /** Was vor dem Ist-Kontostand lag — es rechnet ohnehin nicht mehr mit. */
+  ausblenden: (k: Planeintrag) => boolean;
   schliessen: () => void;
 }) {
-  const fix = S.kosten.filter((k) => !istAusgabe(k));
+  const fix = S.kosten.filter((k) => !istAusgabe(k) && !ausblenden(k));
   const qVon = (k: Planeintrag) => quartalVon(k.start) ?? quartalVon(S.settings.start)!;
   const ausgaben = S.kosten
-    .filter(istAusgabe)
+    .filter((k) => istAusgabe(k) && !ausblenden(k))
     .map((k) => ({ k, q: qVon(k) }))
     .sort((x, y) => x.q.jahr - y.q.jahr || x.q.q - y.q.q);
   const jahre = [...new Set(ausgaben.map((x) => x.q.jahr))];
