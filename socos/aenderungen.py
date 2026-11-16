@@ -26,10 +26,10 @@ VERSIONEN = [
         "titel": "Runway-Planung: Ausgaben und Kontostand",
         "punkte": [
             {
-                "titel": "Ausgaben planst du aufs Quartal",
+                "titel": "Fixkosten und Ausgaben getrennt",
                 "text": (
-                    "Fixkosten und Ausgaben haben je ein eigenes Register. Eine Ausgabe planst du auf ein "
-                    "Quartal: oben das Jahr anklicken, dann das Quartal. Die Kategorie wählst du aus sechs, "
+                    "Fixkosten und Ausgaben haben je ein eigenes Register. Bei den Ausgaben zeigen Jahr und "
+                    "Quartal oben, was darin fällig ist, mit Summen. Die Kategorie wählst du aus sechs, "
                     "jede mit ihrer Farbe; am Griff links ziehst du eine Position nach oben oder unten."
                 ),
                 "wo": "module/runway",

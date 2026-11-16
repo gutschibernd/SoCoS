@@ -36,18 +36,21 @@ wird ab heute; ein Haken blendet Vergangenes wieder ein.
 ## 2026-11-16 — Runway: Fixkosten und Ausgaben getrennt, Auswahl neben der Linie
 
 **Bernd:** Ausgaben besser übersehen — Fixkosten und Ausgaben trennen,
-Ausgaben aufs Jahr und dann aufs Quartal planen, Positionen verschieben,
+Ausgaben nach Jahr und Quartal überblicken, Positionen verschieben,
 deutlich weniger Kategorien mit farblicher Trennung, die Überbrückung unter
 die Register, und rechts neben der Linie eine Auswahl, was überhaupt mitrechnet.
 
 - **Kein neues Feld für die Trennung.** Eine Ausgabe ist ein Kosteneintrag mit
   `interval: "einmalig"`, alles andere sind Fixkosten — zwei Register über
   *einer* Liste `kosten`. Der Plan bleibt im Format des Planers.
-- **Ausgabe im Quartal = Datum am Quartalsbeginn** (Q2 2027 → `2027-04-01`).
-  Die Rechnung ist unverändert; früher ist für die Liquidität die vorsichtige
-  Seite. Ein älteres Datum mitten im Quartal bleibt, bis jemand das Quartal
-  wählt. Ohne Datum steht die Ausgabe im ersten Planmonat — dort bucht sie
-  auch der Server.
+- **Eine Ausgabe hat ein festes Datum; Jahr und Quartal sind nur Filter.**
+  Am selben Tag zuerst als „Quartal statt Datum" gebaut und deployt — Bernd:
+  „die Ausgaben hätte ich schon gern auf Datum genau, ich will nur die
+  Übersicht für das Quartal". Neue Ausgaben sind mit heute vorbelegt (oder
+  dem ersten Tag des gewählten Quartals). Eine Zeile, deren Datum gerade
+  bearbeitet wird, bleibt im Filter stehen, bis er wechselt — das Datumsfeld
+  meldet beim Tippen Zwischenjahre. Ohne Datum steht die Ausgabe im ersten
+  Planmonat — dort bucht sie auch der Server.
 - **`aus: true` am Kosteneintrag** heißt: steht im Plan, rechnet nicht mit
   (`services/runway.berechnen` überspringt ihn; Linie, Kennzahlen,
   Überbrückung gehen mit). Wieder angehakt fällt das Feld weg. Gesetzt wird

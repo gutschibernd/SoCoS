@@ -100,6 +100,14 @@ export function Editor({
   const ed = useRef<HTMLDivElement>(null);
   const [fragtLoeschen, setFragtLoeschen] = useState(false);
   const [quartal, setQuartal] = useState(0);
+  // Ausgaben, deren Datum gerade bearbeitet wird, bleiben im Filter stehen:
+  // Das Datumsfeld meldet beim Tippen Zwischenjahre (0002, 0020 …), und die
+  // Zeile verschwände sonst unter dem Finger. Ein neuer Filter gibt sie frei.
+  const [festgehalten, setFestgehalten] = useState<Set<string>>(() => new Set());
+  const filtern = (q: number) => {
+    setQuartal(q);
+    setFestgehalten(new Set());
+  };
   const a = new Achse(S.settings.start);
   const st = S.settings;
   const ustOn = !!st.ust;
@@ -120,7 +128,7 @@ export function Editor({
   const diesesJahr = new Date().getFullYear();
   const j = jahr !== undefined && jahre.includes(jahr) ? jahr : jahre.includes(diesesJahr) ? diesesJahr : jahre[0];
   const imJahr = alleAusgaben.filter((k) => qVon(k).jahr === j);
-  const ausgaben = imJahr.filter((k) => !quartal || qVon(k).q === quartal);
+  const ausgaben = alleAusgaben.filter((k) => festgehalten.has(k.id) || (qVon(k).jahr === j && (!quartal || qVon(k).q === quartal)));
   const summe = (l: Planeintrag[]) => l.reduce((s2, k) => s2 + (k.aus ? 0 : num(k.amount)), 0);
   const sichtbar = t === "fixkosten" ? fixkosten : t === "ausgaben" ? ausgaben : [];
   const ziehen = useZeilenZiehen(
@@ -187,8 +195,12 @@ export function Editor({
     if (l === "foerderungen" && p) {
       aendern({ ...S, foerderungen: S.foerderungen.map((f) => (f.id !== p ? f : { ...f, tranchen: [...f.tranchen, neueTranche()] })) });
     } else if (l === "kosten" && t === "ausgaben") {
-      const beginn = quartalsbeginn(j, quartal || (j === diesesJahr ? Math.floor(new Date().getMonth() / 3) + 1 : 1));
-      aendern({ ...S, kosten: [...S.kosten, { ...neuerEintrag(l, beginn), interval: "einmalig", end: "" }] });
+      // Vorbelegt mit heute, wenn heute im gewählten Jahr bzw. Quartal liegt, sonst mit dessen erstem Tag.
+      const d = new Date();
+      const heute = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const hq = quartalVon(heute)!;
+      const datum = hq.jahr === j && (!quartal || hq.q === quartal) ? heute : quartalsbeginn(j, quartal || 1);
+      aendern({ ...S, kosten: [...S.kosten, { ...neuerEintrag(l, datum), interval: "einmalig", end: "" }] });
     } else {
       aendern({ ...S, [l]: [...(S[l] as Planeintrag[]), neuerEintrag(l, st.start)] });
     }
@@ -495,8 +507,7 @@ export function Editor({
   }
 
   if (t === "ausgaben") {
-    erklaerung = <>Einmalige Ausgaben netto, geplant aufs Quartal. Sie zählen am ersten Tag des Quartals. {kostenErklaerung}</>;
-    const quartale = jahre.flatMap((y) => [1, 2, 3, 4].map((q) => [`${y}-${q}`, `Q${q} ${y}`]));
+    erklaerung = <>Einmalige Ausgaben netto mit ihrem Zahlungsdatum. Jahr und Quartal oben filtern nur die Liste. {kostenErklaerung}</>;
     oben = (
       <>
         <div className="rw-reg-kopf">
@@ -504,7 +515,7 @@ export function Editor({
             {jahre.map((y) => {
               const im = alleAusgaben.filter((k) => qVon(k).jahr === y);
               return (
-                <button key={y} type="button" aria-pressed={y === j} onClick={() => { setJahr(y); setQuartal(0); }}>
+                <button key={y} type="button" aria-pressed={y === j} onClick={() => { setJahr(y); filtern(0); }}>
                   {y}
                   <span className="cnt">{im.length ? kfmt(summe(im)) : "–"}</span>
                 </button>
@@ -517,13 +528,13 @@ export function Editor({
           </span>
         </div>
         <div className="rw-wahl leise" role="group" aria-label={`Quartal ${j}`}>
-          <button type="button" aria-pressed={!quartal} onClick={() => setQuartal(0)}>
+          <button type="button" aria-pressed={!quartal} onClick={() => filtern(0)}>
             Ganzes Jahr<span className="cnt">{fmtE(summe(imJahr))}</span>
           </button>
           {[1, 2, 3, 4].map((q) => {
             const im = imJahr.filter((k) => qVon(k).q === q);
             return (
-              <button key={q} type="button" aria-pressed={quartal === q} onClick={() => setQuartal(quartal === q ? 0 : q)}>
+              <button key={q} type="button" aria-pressed={quartal === q} onClick={() => filtern(quartal === q ? 0 : q)}>
                 Q{q}
                 <span className="cnt">{im.length ? kfmt(summe(im)) : "–"}</span>
               </button>
@@ -535,10 +546,9 @@ export function Editor({
     inhalt = (
       <>
         {tabelle(
-          `30px minmax(120px,1.6fr) minmax(160px,1.2fr) minmax(90px,.8fr) minmax(120px,.8fr)${ustOn ? " minmax(64px,.5fr)" : ""} minmax(36px,.35fr) 30px`,
-          ["", "Position", "Kategorie", { t: "Betrag netto", r: true }, "Quartal", ...(ustOn ? ["USt"] : []), "F&E"],
+          `30px minmax(120px,1.6fr) minmax(160px,1.2fr) minmax(90px,.8fr) minmax(132px,.8fr)${ustOn ? " minmax(64px,.5fr)" : ""} minmax(36px,.35fr) 30px`,
+          ["", "Position", "Kategorie", { t: "Betrag netto", r: true }, "Datum", ...(ustOn ? ["USt"] : []), "F&E"],
           ausgaben.map((x) => {
-            const q = qVon(x);
             return kostenZeile(
               x,
               <>
@@ -547,17 +557,16 @@ export function Editor({
                 {kategorie(x)}
                 {cell("Betrag netto (€)", inp("kosten", x, "amount", "number"))}
                 {cell(
-                  "Quartal",
-                  <select
+                  "Datum",
+                  <input
                     className="rw-inp"
-                    value={`${q.jahr}-${q.q}`}
+                    type="date"
+                    defaultValue={String(x.start ?? "")}
                     onChange={(e) => {
-                      const [y, qq] = e.target.value.split("-").map(Number);
-                      aendern(mitFeld(S, "kosten", x.id, "start", quartalsbeginn(y, qq)));
+                      setFestgehalten((alt) => (alt.has(x.id) ? alt : new Set(alt).add(x.id)));
+                      aendern(mitFeld(S, "kosten", x.id, "start", e.target.value));
                     }}
-                  >
-                    {quartale.map(([w, txt]) => <option key={w} value={w}>{txt}</option>)}
-                  </select>,
+                  />,
                 )}
                 {ustOn && cell("USt-Satz", sel("kosten", x, "ust", UST, undefined, "20"))}
                 {cell("F&E", chk("kosten", x, "fe", ""))}

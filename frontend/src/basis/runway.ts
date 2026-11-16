@@ -233,8 +233,8 @@ export function quartalVon(datum: unknown): Quartal | null {
 }
 
 /**
- * Der erste Tag eines Quartals. Eine Ausgabe wird auf Quartal geplant und am
- * Quartalsbeginn gebucht: Für die Liquidität ist früher die vorsichtige Seite.
+ * Der erste Tag eines Quartals — womit eine neue Ausgabe vorbelegt ist, wenn
+ * heute nicht im gewählten Quartal liegt. Gebucht wird sie an ihrem Datum.
  */
 export const quartalsbeginn = (jahr: number, q: number) => `${jahr}-${String((q - 1) * 3 + 1).padStart(2, "0")}-01`;
 
@@ -245,7 +245,8 @@ export function planjahre(S: Runwayplan): number[] {
   for (let j = a.yr(0); j <= a.yr(S.settings.months - 1); j++) jahre.add(j);
   S.kosten.filter(istAusgabe).forEach((k) => {
     const q = quartalVon(k.start);
-    if (q) jahre.add(q.jahr);
+    // Beim Tippen meldet das Datumsfeld Zwischenjahre wie 0002 — kein Reiter dafür.
+    if (q && q.jahr >= 2000) jahre.add(q.jahr);
   });
   return [...jahre].sort((x, y) => x - y);
 }
