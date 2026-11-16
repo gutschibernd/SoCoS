@@ -72,6 +72,20 @@ class TestRhythmus:
         assert A[0]["kostCat"] == {"Miete": D(1100)}
 
 
+    def test_abgewaehlt_rechnet_nicht_mit(self):
+        """`aus` aus der Auswahl neben der Linie: bleibt im Plan, fehlt in der Rechnung."""
+        plan = _plan(
+            kosten=[
+                {"name": "Miete", "amount": 1000, "interval": "monatlich", "start": "2026-10-01", "cat": "Miete"},
+                {"name": "Messe", "amount": 5000, "interval": "einmalig", "start": "2027-01-01", "aus": True},
+            ]
+        )
+        A = _monate(plan)
+        assert A[3]["kosten"] == D(1000)
+        assert A[3]["ev"] == []
+        assert len(plan["kosten"]) == 2
+
+
 class TestPersonal:
     def test_volle_monate_vierzehn_gehaelter_und_lohnnebenkosten(self):
         A = _monate(_plan(team=[{"gross": 1000, "start": "2027-01-15", "end": "2027-07-15"}]))

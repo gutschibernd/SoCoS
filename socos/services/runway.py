@@ -358,6 +358,11 @@ def berechnen(plan, szenario, mit_gesellschafterdarlehen=True, ist=None):
 
     zuschlag = EINS + zahl(s.get("contingency")) / HUNDERT
     for k in plan["kosten"]:
+        # Abgewählt in der Auswahl neben der Linie: Die Position bleibt im
+        # Plan stehen, rechnet aber nicht mit — so sieht man, was sie an
+        # Reichweite kostet, ohne sie zu löschen und wieder einzutippen.
+        if k.get("aus"):
+            continue
         netto = zahl(k.get("amount"))
         v = netto * zuschlag
         if not v:

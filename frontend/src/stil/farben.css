@@ -158,6 +158,16 @@
   --rw-c-kost: #9b6b78;
   --rw-c-darl: #6d45b0;
   --rw-c-tax: #6b7a2a;
+  /* Die Kategorien der Fixkosten und Ausgaben (2026-11-16). Keine neuen
+     Töne, sondern Namen für die der Arten — eine dritte Palette liefe
+     auseinander. Sie stehen nur als Streifen und Punkt, nie als Text; im
+     dunklen Thema gehen sie über --rw-c-* von selbst mit. */
+  --rw-kat-miete: var(--rw-c-team);
+  --rw-kat-beratung: var(--rw-c-inv);
+  --rw-kat-recht: var(--rw-c-darl);
+  --rw-kat-entwicklung: var(--rw-c-foerd);
+  --rw-kat-marketing: var(--rw-c-ums);
+  --rw-kat-sonstiges: var(--rw-faint);
   --rw-ok: #25713e;
   --rw-warn: #8a5d00;
   --rw-bad: #bf3527;

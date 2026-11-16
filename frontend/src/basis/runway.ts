@@ -161,7 +161,7 @@ export function lanes(S: Runwayplan, r: Runwayrechnung): Lane[] {
   S.team.forEach((p) =>
     rows.push({ g: "Team", l: String(p.name || "Mitarbeiter:in"), farbe: "team", rng: begrenzt(p.start, p.end), txt: `${kfmt(num(p.gross))} brutto`, op: 0.55 }),
   );
-  const ausgaben = S.kosten.filter((k) => k.interval === "einmalig");
+  const ausgaben = S.kosten.filter((k) => k.interval === "einmalig" && !k.aus);
   if (ausgaben.length)
     rows.push({ g: "Ausgaben", l: "Einmalige Ausgaben", farbe: "kost", pts: ausgaben.map((k) => ({ i: a.idx(k.start) ?? 0, v: -num(k.amount), st: "erhalten" })) });
   const uva = r.A.filter((m) => num(m.uvaIn) || num(m.uvaOut)).map((m) => ({ i: m.i, v: num(m.uvaIn) - num(m.uvaOut), st: "erhalten" as Status }));
@@ -212,6 +212,85 @@ export function zusammenfassen(pts: Lanenpunkt[], n: number): Lanenpunkt[] {
     } else je.set(p.i, { ...p, cnt: 1 });
   }
   return [...je.values()].sort((x, y) => x.i - y.i);
+}
+
+/* --- Fixkosten und Ausgaben ------------------------------------------------- */
+
+/**
+ * Eine Ausgabe ist einmalig, alles andere in `kosten` sind Fixkosten. Ein Feld
+ * dafür gibt es nicht: Der Rhythmus sagt es schon, und der Plan bleibt im
+ * Format des Planers (Export und Import gehen weiter in beide Richtungen).
+ */
+export const istAusgabe = (k: Planeintrag) => k.interval === "einmalig";
+
+export type Quartal = { jahr: number; q: 1 | 2 | 3 | 4 };
+
+/** Das Quartal eines Datums — „2027-05-14" ist Q2 2027; kein Datum, kein Quartal. */
+export function quartalVon(datum: unknown): Quartal | null {
+  const t = String(datum ?? "");
+  if (!/^\d{4}-\d{2}/.test(t)) return null;
+  return { jahr: Number(t.slice(0, 4)), q: (Math.floor((Number(t.slice(5, 7)) - 1) / 3) + 1) as Quartal["q"] };
+}
+
+/**
+ * Der erste Tag eines Quartals. Eine Ausgabe wird auf Quartal geplant und am
+ * Quartalsbeginn gebucht: Für die Liquidität ist früher die vorsichtige Seite.
+ */
+export const quartalsbeginn = (jahr: number, q: number) => `${jahr}-${String((q - 1) * 3 + 1).padStart(2, "0")}-01`;
+
+/** Die Kalenderjahre, die der Plan berührt — und jedes, in dem schon eine Ausgabe steht. */
+export function planjahre(S: Runwayplan): number[] {
+  const a = new Achse(S.settings.start);
+  const jahre = new Set<number>();
+  for (let j = a.yr(0); j <= a.yr(S.settings.months - 1); j++) jahre.add(j);
+  S.kosten.filter(istAusgabe).forEach((k) => {
+    const q = quartalVon(k.start);
+    if (q) jahre.add(q.jahr);
+  });
+  return [...jahre].sort((x, y) => x - y);
+}
+
+/**
+ * Ein Eintrag wandert in der Liste an die Stelle eines anderen — vor ihn,
+ * wenn er von unten kommt, hinter ihn, wenn von oben. Gezogen wird in einer
+ * gefilterten Ansicht (ein Jahr, ein Quartal); die Liste darunter ist die
+ * ganze, und was nicht zu sehen ist, bleibt, wo es war.
+ */
+export function verschieben<T extends { id: string }>(liste: T[], id: string, zielId: string): T[] {
+  const von = liste.findIndex((x) => x.id === id);
+  const nach = liste.findIndex((x) => x.id === zielId);
+  if (von < 0 || nach < 0 || von === nach) return liste;
+  const neu = liste.filter((x) => x.id !== id);
+  const ziel = neu.findIndex((x) => x.id === zielId);
+  neu.splice(von < nach ? ziel + 1 : ziel, 0, liste[von]);
+  return neu;
+}
+
+/**
+ * Die Kategorien der Fixkosten und Ausgaben, je mit einer Farbe (`--rw-kat-*`).
+ * Bis 2026-11-16 dreizehn als Vorschlag zu einem freien Feld; Bernd hat sie
+ * auf sechs zusammengestrichen — Material & Labor gehören zur Entwicklung,
+ * Versicherung zur Beratung.
+ */
+export const KATEGORIEN = [
+  { name: "Miete & Büro", kennung: "miete" },
+  { name: "Beratung, Steuer & Versicherung", kennung: "beratung" },
+  { name: "Recht & Patente", kennung: "recht" },
+  { name: "Entwicklung & Prototypen", kennung: "entwicklung" },
+  { name: "Marketing & Vertrieb", kennung: "marketing" },
+  { name: "Sonstiges", kennung: "sonstiges" },
+] as const;
+
+/**
+ * Die Farbe einer Kategorie: ihre Kennung, „ohne" für leer, „alt" für alles
+ * andere. Eine frühere oder frei getippte Kategorie bleibt stehen, bis jemand
+ * sie neu zuordnet — still umgeschrieben würde sie aus einem Plan, den der
+ * Planer mitgebracht hat.
+ */
+export function kategorieVon(cat: unknown): string {
+  const t = String(cat ?? "").trim();
+  if (!t) return "ohne";
+  return KATEGORIEN.find((k) => k.name === t)?.kennung ?? "alt";
 }
 
 /* --- Sonstiges -------------------------------------------------------------- */

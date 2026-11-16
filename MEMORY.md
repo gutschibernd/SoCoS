@@ -7,6 +7,43 @@ betrifft.
 
 ---
 
+## 2026-11-16 — Runway: Fixkosten und Ausgaben getrennt, Auswahl neben der Linie
+
+**Bernd:** Ausgaben besser übersehen — Fixkosten und Ausgaben trennen,
+Ausgaben aufs Jahr und dann aufs Quartal planen, Positionen verschieben,
+deutlich weniger Kategorien mit farblicher Trennung, die Überbrückung unter
+die Register, und rechts neben der Linie eine Auswahl, was überhaupt mitrechnet.
+
+- **Kein neues Feld für die Trennung.** Eine Ausgabe ist ein Kosteneintrag mit
+  `interval: "einmalig"`, alles andere sind Fixkosten — zwei Register über
+  *einer* Liste `kosten`. Der Plan bleibt im Format des Planers.
+- **Ausgabe im Quartal = Datum am Quartalsbeginn** (Q2 2027 → `2027-04-01`).
+  Die Rechnung ist unverändert; früher ist für die Liquidität die vorsichtige
+  Seite. Ein älteres Datum mitten im Quartal bleibt, bis jemand das Quartal
+  wählt. Ohne Datum steht die Ausgabe im ersten Planmonat — dort bucht sie
+  auch der Server.
+- **`aus: true` am Kosteneintrag** heißt: steht im Plan, rechnet nicht mit
+  (`services/runway.berechnen` überspringt ihn; Linie, Kennzahlen,
+  Überbrückung gehen mit). Wieder angehakt fällt das Feld weg. Gesetzt wird
+  es nur in der Auswahl neben der Linie (`RunwayAuswahl.tsx`) — für alle,
+  weil der Plan einer ist. Im Register ist die Zeile durchgestrichen.
+- **Reihenfolge ist die der Liste.** Gezogen wird am Griff
+  (`bausteine/zeilenziehen.ts`, Zeigerereignisse statt `draggable`, das am
+  Handy nicht geht; Pfeiltasten am Griff). In einer gefilterten Ansicht wird
+  an die Kennung einer sichtbaren Zeile gelegt; Ausgeblendetes bleibt stehen.
+- **Sechs feste Kategorien** (`KATEGORIEN` in `basis/runway.ts`): Miete &
+  Büro · Beratung, Steuer & Versicherung · Recht & Patente · Entwicklung &
+  Prototypen (dazu Material & Labor) · Marketing & Vertrieb · Sonstiges.
+  Gestrichen: Software & IT, Zulassung, Klinische Studien, Reisen, Abgaben.
+  Die Farben sind Namen (`--rw-kat-*`) für die Töne der Arten, keine neuen.
+  **Alte Kategorien werden nicht umgeschrieben** — sie stehen als „(alt)“ mit
+  gestricheltem Punkt in der Auswahl, bis jemand sie neu zuordnet. Lokal
+  waren es frei getippte aus dem Planer (Material, Overhead, GWG …).
+- **Die Seite wird breiter, wenn die Auswahl offen ist** (`.seite:has(…)`),
+  statt die Linie zu stauchen; unter 1100 px steht sie darunter.
+
+---
+
 ## 2026-11-12 — Bestellungen: Listenpreis und Mengenrabatt (Migration 0061)
 
 **Bernd:** Bei Bambu Lab gibt es Bundle-Deals — ab 14 Spulen kostet die

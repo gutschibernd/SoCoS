@@ -13,18 +13,24 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import type { Planeintrag, Runwayplan, Runwayrechnung } from "../basis/daten";
-import { Achse, MON, MONL, fmtE, neueTranche, neuerEintrag, num, x0 } from "../basis/runway";
+import { Achse, KATEGORIEN, MON, MONL, fmtE, istAusgabe, kategorieVon, kfmt, neueTranche, neuerEintrag, num, planjahre, quartalVon, quartalsbeginn, verschieben, x0 } from "../basis/runway";
 import { Hinweis } from "../bausteine/Hinweis";
+import { Zeichen } from "../bausteine/Zeichen";
+import { useZeilenZiehen } from "../bausteine/zeilenziehen";
 
 type Liste = "foerderungen" | "investments" | "umsaetze" | "team" | "kosten" | "darlehen";
-type Register = Liste | "ansprueche" | "settings";
+// Fixkosten und Ausgaben sind zwei Register über **einer** Liste (`kosten`):
+// Was einmalig ist, ist eine Ausgabe. Getrennt seit 2026-11-16 (Bernd: „dass
+// wir Ausgaben besser übersehen können").
+type Register = Exclude<Liste, "kosten"> | "fixkosten" | "ausgaben" | "ansprueche" | "settings";
 
 export const REGISTER: { k: Register; t: string; farbe: string }[] = [
   { k: "foerderungen", t: "Förderungen", farbe: "foerd" },
   { k: "investments", t: "Investments", farbe: "inv" },
   { k: "umsaetze", t: "Umsätze", farbe: "ums" },
   { k: "team", t: "Team", farbe: "team" },
-  { k: "kosten", t: "Fixkosten & Ausgaben", farbe: "kost" },
+  { k: "fixkosten", t: "Fixkosten", farbe: "kost" },
+  { k: "ausgaben", t: "Ausgaben", farbe: "kost" },
   { k: "darlehen", t: "Darlehen & Kredite", farbe: "darl" },
   { k: "ansprueche", t: "NeuFöG & Forschungsprämie", farbe: "tax" },
   { k: "settings", t: "Einstellungen", farbe: "faint" },
@@ -33,12 +39,13 @@ export const REGISTER: { k: Register; t: string; farbe: string }[] = [
 const STATUS = [["geplant", "geplant"], ["zugesagt", "zugesagt"], ["erhalten", "erhalten"]];
 const TRANCHE_ART = [["auszahlung", "Auszahlung"], ["rueckzahlung", "Rückzahlung"]];
 const INTERVAL_U = [["monatlich", "monatlich"], ["quartal", "quartalsweise"], ["einmalig", "einmalig"]];
-const INTERVAL_K = [["monatlich", "monatlich"], ["quartal", "quartalsweise"], ["jaehrlich", "jährlich"], ["einmalig", "einmalig"]];
+const INTERVAL_F = [["monatlich", "monatlich"], ["quartal", "quartalsweise"], ["jaehrlich", "jährlich"]];
+/** Fixkosten auf einen Monat gerechnet — für die Summe über dem Register. */
+const JE_MONAT: Record<string, number> = { monatlich: 1, quartal: 3, jaehrlich: 12 };
 const INV_ART = [["Eigenkapital", "Eigenkapital"], ["Wandeldarlehen", "Wandeldarlehen"], ["Sonstiges", "Sonstiges"]];
 const UST = [["20", "20 %"], ["13", "13 %"], ["10", "10 %"], ["0", "0 %"]];
 const DARL_TYP = [["gesellschafter", "Gesellschafterdarlehen"], ["bank", "Bankkredit"], ["foerder", "Förderdarlehen"]];
 const TILG = [["endfaellig", "endfällig"], ["raten", "Monatsraten"]];
-const KATEGORIEN = ["Miete & Büro", "Software & IT", "Beratung & Steuer", "Recht & Patente", "Versicherung", "Zulassung & Zertifizierung", "Entwicklung & Prototypen", "Klinische Studien", "Material & Labor", "Marketing & Vertrieb", "Reisen", "Abgaben & Gebühren", "Sonstiges"];
 const NF_CHECK = [
   ["beratung", "Gründungsberatung bei der zuständigen Stelle (z. B. WKO-Gründerservice) durchgeführt"],
   ["formular", "Formular NeuFö 1 (Erklärung der Neugründung) bestätigt"],
@@ -66,12 +73,18 @@ export function Editor({
   exportieren,
   importieren,
   allesLoeschen,
+  jahr,
+  setJahr,
+  auswahlOeffnen,
 }: {
   S: Runwayplan;
   r: Runwayrechnung;
   darf: boolean;
   tab: string;
   setTab: (t: string) => void;
+  jahr: number | undefined;
+  setJahr: (j: number) => void;
+  auswahlOeffnen: () => void;
   aendern: (neu: Runwayplan) => void;
   entfernen: (neu: Runwayplan, text: string) => void;
   exportieren: () => void;
@@ -80,10 +93,29 @@ export function Editor({
 }) {
   const ed = useRef<HTMLDivElement>(null);
   const [fragtLoeschen, setFragtLoeschen] = useState(false);
+  const [quartal, setQuartal] = useState(0);
   const a = new Achse(S.settings.start);
   const st = S.settings;
   const ustOn = !!st.ust;
-  const t = (REGISTER.some((x) => x.k === tab) ? tab : "foerderungen") as Register;
+  // „kosten" ist das Register von vor der Trennung, gemerkt im Browser.
+  const t = (tab === "kosten" ? "fixkosten" : REGISTER.some((x) => x.k === tab) ? tab : "foerderungen") as Register;
+
+  /* --- Fixkosten und Ausgaben: was zu sehen ist, und das Ziehen daran --- */
+  const fixkosten = S.kosten.filter((k) => !istAusgabe(k));
+  const alleAusgaben = S.kosten.filter(istAusgabe);
+  // Eine Ausgabe ohne Datum bucht der Server im ersten Planmonat — dort steht sie auch hier.
+  const qVon = (k: Planeintrag) => quartalVon(k.start) ?? quartalVon(st.start)!;
+  const jahre = planjahre(S);
+  const diesesJahr = new Date().getFullYear();
+  const j = jahr !== undefined && jahre.includes(jahr) ? jahr : jahre.includes(diesesJahr) ? diesesJahr : jahre[0];
+  const imJahr = alleAusgaben.filter((k) => qVon(k).jahr === j);
+  const ausgaben = imJahr.filter((k) => !quartal || qVon(k).q === quartal);
+  const summe = (l: Planeintrag[]) => l.reduce((s2, k) => s2 + (k.aus ? 0 : num(k.amount)), 0);
+  const sichtbar = t === "fixkosten" ? fixkosten : t === "ausgaben" ? ausgaben : [];
+  const ziehen = useZeilenZiehen(
+    sichtbar.map((k) => k.id),
+    (id, ziel) => aendern({ ...S, kosten: verschieben(S.kosten, id, ziel) }),
+  );
 
   /* --- Feldbausteine (inp, sel, chk, sf … des Planers) --- */
   const zahlAus = (e: HTMLInputElement) => (e.value === "" ? "" : parseFloat(e.value));
@@ -143,6 +175,9 @@ export function Editor({
   function dazu(l: Liste, p?: string) {
     if (l === "foerderungen" && p) {
       aendern({ ...S, foerderungen: S.foerderungen.map((f) => (f.id !== p ? f : { ...f, tranchen: [...f.tranchen, neueTranche()] })) });
+    } else if (l === "kosten" && t === "ausgaben") {
+      const beginn = quartalsbeginn(j, quartal || (j === diesesJahr ? Math.floor(new Date().getMonth() / 3) + 1 : 1));
+      aendern({ ...S, kosten: [...S.kosten, { ...neuerEintrag(l, beginn), interval: "einmalig", end: "" }] });
     } else {
       aendern({ ...S, [l]: [...(S[l] as Planeintrag[]), neuerEintrag(l, st.start)] });
     }
@@ -335,39 +370,171 @@ export function Editor({
     );
   }
 
-  if (t === "kosten") erklaerung = (
+  const kostenErklaerung = (
     <>
-      Laufende Fixkosten und einmalige Ausgaben netto. Quartals- und Jahreszahlungen fallen ab dem Startmonat im jeweiligen Rhythmus an.{" "}
       {ustOn && "Die Vorsteuer kommt über die UVA zurück; für Reverse Charge aus dem Ausland (viele Software-Abos) 0 % wählen. "}
       „F&E“ markiert Kosten für die Forschungsprämie.
-      {num(st.contingency) ? ` Auf alle Positionen kommen ${komma(st.contingency)} % Sicherheitszuschlag.` : ""}
+      {num(st.contingency) ? ` Auf alle Positionen kommen ${komma(st.contingency)} % Sicherheitszuschlag.` : ""} Am Griff links lässt
+      sich eine Zeile verschieben, auch mit den Pfeiltasten. „Auswahl“ zeigt neben der Linie, was mitrechnet.
     </>
   );
-  if (t === "kosten")
+  const griff = (x: Planeintrag) => (
+    <button type="button" className="rw-griff" aria-label={`„${String(x.name || "Position")}“ verschieben`} title="Ziehen zum Verschieben" {...ziehen.griff(x.id)}>
+      <Zeichen name="griff" />
+    </button>
+  );
+  const kostenZeile = (x: Planeintrag, felder: ReactNode) => (
+    <div
+      key={x.id}
+      className="rw-row"
+      data-zeile=""
+      data-aus={x.aus ? "" : undefined}
+      data-kat={kategorieVon(x.cat)}
+      data-gezogen={ziehen.gezogen === x.id ? "" : undefined}
+      style={ziehen.lage(x.id)}
+    >
+      {felder}
+    </div>
+  );
+  const name = (x: Planeintrag, beispiel: string) =>
+    cell(
+      "Position",
+      <>
+        {inp("kosten", x, "name", "text", { placeholder: beispiel })}
+        {!!x.aus && <span className="rw-hint">rechnet nicht mit</span>}
+      </>,
+      "wide",
+    );
+  // Eine Auswahl statt eines freien Felds: Nur feste Kategorien haben eine Farbe.
+  const kategorie = (x: Planeintrag) => {
+    const wert = String(x.cat ?? "").trim();
+    return cell(
+      "Kategorie",
+      <span className="rw-kat">
+        <span className="rw-kat-punkt" />
+        <select className="rw-inp" value={wert} onChange={(e) => aendern(mitFeld(S, "kosten", x.id, "cat", e.target.value))}>
+          <option value="">– wählen –</option>
+          {kategorieVon(wert) === "alt" && <option value={wert}>{wert} (alt)</option>}
+          {KATEGORIEN.map((k) => <option key={k.kennung} value={k.name}>{k.name}</option>)}
+        </select>
+      </span>,
+    );
+  };
+  const auswahlKnopf = (
+    <button type="button" className="rw-btn" onClick={auswahlOeffnen} aria-label="Auswahl neben der Linie öffnen">
+      <Zeichen name="haken" />
+      Auswahl
+    </button>
+  );
+
+  if (t === "fixkosten") {
+    erklaerung = <>Laufende Kosten netto. Quartals- und Jahreszahlungen fallen ab dem Startmonat im jeweiligen Rhythmus an. {kostenErklaerung}</>;
+    const jeMonat = fixkosten.reduce((s2, k) => s2 + (k.aus ? 0 : num(k.amount) / (JE_MONAT[String(k.interval)] ?? 1)), 0);
     inhalt = (
       <>
+        <div className="rw-reg-kopf">
+          <span className="rw-reg-summe">
+            <span className="zahl">{fmtE(jeMonat)}</span> je Monat
+          </span>
+          {auswahlKnopf}
+        </div>
         {tabelle(
-          `minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,.9fr) minmax(0,.95fr) minmax(132px,.95fr) minmax(132px,.95fr)${ustOn ? " minmax(0,.6fr)" : ""} minmax(0,.5fr) 30px`,
-          ["Position", "Kategorie", { t: "Betrag netto", r: true }, "Intervall", "Ab / am", "Bis", ...(ustOn ? ["USt"] : []), "F&E"],
-          S.kosten.map((x) => (
-            <div key={x.id} className="rw-row">
-              {cell("Position", inp("kosten", x, "name", "text", { placeholder: "z. B. Büromiete" }), "wide")}
-              {cell("Kategorie", inp("kosten", x, "cat", "text", { list: "rw-kategorien" }))}
-              {cell("Betrag netto (€)", inp("kosten", x, "amount", "number"))}
-              {cell("Intervall", sel("kosten", x, "interval", INTERVAL_K))}
-              {cell("Ab / am", inp("kosten", x, "start", "date"))}
-              {cell("Bis (optional)", inp("kosten", x, "end", "date", { disabled: x.interval === "einmalig" }))}
-              {ustOn && cell("USt-Satz", sel("kosten", x, "ust", UST, undefined, "20"))}
-              {cell("F&E", chk("kosten", x, "fe", ""))}
-              {xbtn("kosten", x.id)}
-            </div>
-          )),
-          "Noch keine Kosten erfasst.",
+          `30px minmax(100px,1.4fr) minmax(140px,1.2fr) minmax(76px,.8fr) minmax(112px,.85fr) minmax(132px,.9fr) minmax(132px,.9fr)${ustOn ? " minmax(64px,.5fr)" : ""} minmax(36px,.35fr) 30px`,
+          ["", "Position", "Kategorie", { t: "Betrag netto", r: true }, "Intervall", "Ab", "Bis", ...(ustOn ? ["USt"] : []), "F&E"],
+          fixkosten.map((x) =>
+            kostenZeile(
+              x,
+              <>
+                {griff(x)}
+                {name(x, "z. B. Büromiete")}
+                {kategorie(x)}
+                {cell("Betrag netto (€)", inp("kosten", x, "amount", "number"))}
+                {cell("Intervall", sel("kosten", x, "interval", INTERVAL_F))}
+                {cell("Ab", inp("kosten", x, "start", "date"))}
+                {cell("Bis (optional)", inp("kosten", x, "end", "date"))}
+                {ustOn && cell("USt-Satz", sel("kosten", x, "ust", UST, undefined, "20"))}
+                {cell("F&E", chk("kosten", x, "fe", ""))}
+                {xbtn("kosten", x.id)}
+              </>,
+            ),
+          ),
+          "Noch keine Fixkosten erfasst.",
         )}
-        <datalist id="rw-kategorien">{KATEGORIEN.map((k) => <option key={k} value={k} />)}</datalist>
-        {addBtn("kosten", "Kostenposition hinzufügen")}
+        {addBtn("kosten", "Fixkosten hinzufügen")}
       </>
     );
+  }
+
+  if (t === "ausgaben") {
+    erklaerung = <>Einmalige Ausgaben netto, geplant aufs Quartal. Sie zählen am ersten Tag des Quartals. {kostenErklaerung}</>;
+    const quartale = jahre.flatMap((y) => [1, 2, 3, 4].map((q) => [`${y}-${q}`, `Q${q} ${y}`]));
+    inhalt = (
+      <>
+        <div className="rw-reg-kopf">
+          <div className="rw-wahl" role="group" aria-label="Jahr">
+            {jahre.map((y) => {
+              const im = alleAusgaben.filter((k) => qVon(k).jahr === y);
+              return (
+                <button key={y} type="button" aria-pressed={y === j} onClick={() => { setJahr(y); setQuartal(0); }}>
+                  {y}
+                  <span className="cnt">{im.length ? kfmt(summe(im)) : "–"}</span>
+                </button>
+              );
+            })}
+          </div>
+          {auswahlKnopf}
+        </div>
+        <div className="rw-wahl leise" role="group" aria-label={`Quartal ${j}`}>
+          <button type="button" aria-pressed={!quartal} onClick={() => setQuartal(0)}>
+            Ganzes Jahr<span className="cnt">{fmtE(summe(imJahr))}</span>
+          </button>
+          {[1, 2, 3, 4].map((q) => {
+            const im = imJahr.filter((k) => qVon(k).q === q);
+            return (
+              <button key={q} type="button" aria-pressed={quartal === q} onClick={() => setQuartal(quartal === q ? 0 : q)}>
+                Q{q}
+                <span className="cnt">{im.length ? kfmt(summe(im)) : "–"}</span>
+              </button>
+            );
+          })}
+        </div>
+        {tabelle(
+          `30px minmax(120px,1.6fr) minmax(160px,1.2fr) minmax(90px,.8fr) minmax(120px,.8fr)${ustOn ? " minmax(64px,.5fr)" : ""} minmax(36px,.35fr) 30px`,
+          ["", "Position", "Kategorie", { t: "Betrag netto", r: true }, "Quartal", ...(ustOn ? ["USt"] : []), "F&E"],
+          ausgaben.map((x) => {
+            const q = qVon(x);
+            return kostenZeile(
+              x,
+              <>
+                {griff(x)}
+                {name(x, "z. B. Messe, Prototyp, Notar")}
+                {kategorie(x)}
+                {cell("Betrag netto (€)", inp("kosten", x, "amount", "number"))}
+                {cell(
+                  "Quartal",
+                  <select
+                    className="rw-inp"
+                    value={`${q.jahr}-${q.q}`}
+                    onChange={(e) => {
+                      const [y, qq] = e.target.value.split("-").map(Number);
+                      aendern(mitFeld(S, "kosten", x.id, "start", quartalsbeginn(y, qq)));
+                    }}
+                  >
+                    {quartale.map(([w, txt]) => <option key={w} value={w}>{txt}</option>)}
+                  </select>,
+                )}
+                {ustOn && cell("USt-Satz", sel("kosten", x, "ust", UST, undefined, "20"))}
+                {cell("F&E", chk("kosten", x, "fe", ""))}
+                {xbtn("kosten", x.id)}
+              </>,
+            );
+          }),
+          quartal ? `Keine Ausgabe im Q${quartal} ${j}.` : `Keine Ausgabe ${j} geplant.`,
+        )}
+        {addBtn("kosten", quartal ? `Ausgabe im Q${quartal} ${j}` : `Ausgabe ${j}`)}
+      </>
+    );
+  }
 
   if (t === "darlehen") erklaerung =
     "Endfällig: Rückzahlung samt Zinsen am Rückzahlungsdatum, ohne Datum bleibt das Darlehen stehen. Monatsraten: gleich hohe Tilgung ab Tilgungsbeginn, Zinsen monatlich auf den offenen Betrag. Die gestrichelte Linie im Chart ist der Verlauf ohne Gesellschafterdarlehen.";
@@ -470,6 +637,8 @@ export function Editor({
       return aktiv ? `${aktiv} aktiv` : "";
     }
     if (k === "settings") return "";
+    if (k === "fixkosten") return fixkosten.length;
+    if (k === "ausgaben") return alleAusgaben.length;
     return (S[k] as Planeintrag[]).length;
   };
 

@@ -22,6 +22,30 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-11-16",
+        "titel": "Runway-Planung: Fixkosten und Ausgaben getrennt",
+        "punkte": [
+            {
+                "titel": "Ausgaben planst du aufs Quartal",
+                "text": (
+                    "Fixkosten und Ausgaben haben je ein eigenes Register. Eine Ausgabe planst du auf ein "
+                    "Quartal: oben das Jahr anklicken, dann das Quartal. Die Kategorie wählst du aus sechs, "
+                    "jede mit ihrer Farbe; am Griff links ziehst du eine Position nach oben oder unten."
+                ),
+                "wo": "module/runway",
+            },
+            {
+                "titel": "Auswählen, was mitrechnet",
+                "text": (
+                    "„Auswahl“ öffnet neben der Linie alle Fixkosten und Ausgaben. Was du dort abwählst, "
+                    "bleibt im Plan, rechnet aber nicht mit — die Linie zeigt sofort, was es ausmacht. "
+                    "Die Überbrückung steht jetzt unter den Registern."
+                ),
+                "wo": "module/runway",
+            },
+        ],
+    },
+    {
         "version": "2026-11-12",
         "titel": "Bestellungen",
         "punkte": [

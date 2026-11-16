@@ -3,8 +3,13 @@
  * Seite in SoCoS (Bernd, 2026-10-14: „1:1 wie im HTML, aber schöner").
  *
  * Von oben nach unten wie dort: Szenario und Daten, Lage in einem Satz,
- * sechs Kennzahlen, Kontostand und Zeitachse auf einer Monatsachse,
- * Überbrückung, die Register zum Eintragen, Jahres- und Monatsübersicht.
+ * sechs Kennzahlen, Kontostand und Zeitachse auf einer Monatsachse (daneben,
+ * wenn geöffnet, die Auswahl der Kosten), die Register zum Eintragen,
+ * Überbrückung, Jahres- und Monatsübersicht.
+ *
+ * Die Überbrückung stand bis 2026-11-16 über den Registern. Sie ist eine
+ * Folge dessen, was darin steht, und schob die Register eine Tafel nach
+ * unten (Bernd: „unter den Block mit den Kostenpositionen").
  *
  * Anders als dort liegt der Plan am Server (`Runwayplan`), gerechnet wird am
  * Server (`socos/services/runway.py`), und der Ist-Kontostand ist derselbe wie
@@ -17,14 +22,17 @@ import { useRunway, type Ich, type Runwayplan, type Szenario } from "../basis/da
 import { anbieten, slug, stempel, uid, zusammenfassung } from "../basis/runway";
 import { useRunwayDokument } from "../basis/runwaydokument";
 import { Zustand } from "../basis/Zustand";
+import { Auswahl } from "./RunwayAuswahl";
 import { Editor } from "./RunwayEditor";
 import { Kopf, Lage } from "./RunwayKopf";
 import { Jahre, Monate, Ueberbrueckung } from "./RunwayTabellen";
 import { Verlauf } from "./RunwayVerlauf";
 
-/* Szenario und Register merkt sich der Browser — das ist eine Ansicht, kein Plan. */
+/* Szenario, Register, Jahr der Ausgaben und ob die Auswahl offen ist, merkt
+   sich der Browser — das ist eine Ansicht, kein Plan. */
 const MERKEN = "socos-runway";
-function gemerkt(): { szenario: Szenario; tab: string } {
+type Ansicht = { szenario: Szenario; tab: string; jahr?: number; auswahl?: boolean };
+function gemerkt(): Ansicht {
   try {
     return { szenario: "basis", tab: "foerderungen", ...JSON.parse(localStorage.getItem(MERKEN) || "{}") };
   } catch {
@@ -43,8 +51,9 @@ export function Runway(_: { ich: Ich }) {
   const [importFrage, setImportFrage] = useState<Import | null>(null);
   const [ziehen, setZiehen] = useState(false);
   const datei = useRef<HTMLInputElement>(null);
+  const oben = useRef<HTMLDivElement>(null);
 
-  function merken(teil: Partial<typeof ansicht>) {
+  function merken(teil: Partial<Ansicht>) {
     const neu = { ...ansicht, ...teil };
     setAnsicht(neu);
     try {
@@ -170,23 +179,49 @@ export function Runway(_: { ich: Ich }) {
       )}
 
       <Lage S={S} r={r} />
-      <Verlauf
+      <div className="rw-oben" ref={oben} data-auswahl={ansicht.auswahl ? "" : undefined}>
+        <Verlauf
+          S={S}
+          r={r}
+          darf={dok.darf}
+          merken={() => {
+            dok.aendern({
+              ...S,
+              baseline: {
+                savedAt: new Date().toISOString(),
+                scenario: { konservativ: "Konservativ", basis: "Basis", optimistisch: "Optimistisch" }[ansicht.szenario],
+                keys: r.A.map((m) => m.key),
+                cash: r.A.map((m) => Math.round(Number(m.cash))),
+              },
+            });
+            melde("Aktueller Stand als Vergleich gemerkt");
+          }}
+          vergessen={() => dok.aendern({ ...S, baseline: null })}
+        />
+        {ansicht.auswahl && <Auswahl S={S} darf={dok.darf} aendern={dok.aendern} schliessen={() => merken({ auswahl: false })} />}
+      </div>
+      <Editor
+        key={dok.version}
         S={S}
         r={r}
         darf={dok.darf}
-        merken={() => {
-          dok.aendern({
-            ...S,
-            baseline: {
-              savedAt: new Date().toISOString(),
-              scenario: { konservativ: "Konservativ", basis: "Basis", optimistisch: "Optimistisch" }[ansicht.szenario],
-              keys: r.A.map((m) => m.key),
-              cash: r.A.map((m) => Math.round(Number(m.cash))),
-            },
-          });
-          melde("Aktueller Stand als Vergleich gemerkt");
+        tab={ansicht.tab}
+        setTab={(tab) => merken({ tab })}
+        jahr={ansicht.jahr}
+        setJahr={(jahr) => merken({ jahr })}
+        auswahlOeffnen={() => {
+          merken({ auswahl: true });
+          // Die Auswahl steht neben der Linie, eine Bildschirmhöhe über dem Register.
+          requestAnimationFrame(() => oben.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
         }}
-        vergessen={() => dok.aendern({ ...S, baseline: null })}
+        aendern={dok.aendern}
+        entfernen={mitRueckgaengig}
+        exportieren={exportieren}
+        importieren={importieren}
+        allesLoeschen={() => {
+          const vorher = S;
+          void dok.ersetzen({ settings: { start: S.settings.start }, notes: "" }).then(() => melde("Alle Daten gelöscht", vorher));
+        }}
       />
       <Ueberbrueckung
         S={S}
@@ -208,22 +243,6 @@ export function Runway(_: { ich: Ich }) {
             "Darlehen übernommen",
           )
         }
-      />
-      <Editor
-        key={dok.version}
-        S={S}
-        r={r}
-        darf={dok.darf}
-        tab={ansicht.tab}
-        setTab={(tab) => merken({ tab })}
-        aendern={dok.aendern}
-        entfernen={mitRueckgaengig}
-        exportieren={exportieren}
-        importieren={importieren}
-        allesLoeschen={() => {
-          const vorher = S;
-          void dok.ersetzen({ settings: { start: S.settings.start }, notes: "" }).then(() => melde("Alle Daten gelöscht", vorher));
-        }}
       />
       <Jahre S={S} r={r} szenario={ansicht.szenario} />
       <Monate S={S} r={r} szenario={ansicht.szenario} darf={dok.darf} ist={dok.ist} />

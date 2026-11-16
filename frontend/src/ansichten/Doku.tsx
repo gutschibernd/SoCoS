@@ -1244,7 +1244,9 @@ function ModuleDoku() {
             "Oben das Szenario wählen. Darunter steht die Lage in einem Satz und sechs Kennzahlen. Was eine Kennzahl meint, steht hinter ihrem ⓘ — ebenso bei jedem Register und bei den Einstellungen.",
             "Unter „Kontostand und Zeitachse“ zeigt die Linie den Stand am Monatsende, darunter steht Zeile für Zeile, was wann fließt. Mit der Maus darüberfahren oder antippen zeigt den Monat im Detail.",
             "In den Registern eintragen. Jedes Feld lässt sich gleich beschreiben, gespeichert wird von selbst — oben rechts steht „Gespeichert“. Ein gelöschter Eintrag lässt sich sieben Sekunden lang rückgängig machen.",
-            "Fehlt Geld, schlägt „Überbrückung“ Abrufe vor; „Als Gesellschafterdarlehen übernehmen“ trägt sie als Darlehen ein.",
+            "Fixkosten und Ausgaben stehen in eigenen Registern. Fixkosten laufen monatlich, quartalsweise oder jährlich; eine Ausgabe planst du auf ein Quartal: oben das Jahr anklicken, dann das Quartal. Am Griff links in der Zeile lässt sich jede Position nach oben oder unten ziehen — oder mit den Pfeiltasten.",
+            "„Auswahl“ in einem der beiden Register öffnet neben der Linie eine Liste aller Positionen. Was du dort abwählst, bleibt im Plan, rechnet aber nicht mit — Linie, Kennzahlen und Überbrückung zeigen sofort, was es ausmacht.",
+            "Fehlt Geld, schlägt „Überbrückung“ unter den Registern Abrufe vor; „Als Gesellschafterdarlehen übernehmen“ trägt sie als Darlehen ein.",
             "In der Monatsübersicht den echten Bankstand in die Ist-Zeile tippen. Er steht dann auch als Kontostand im Baustein „Geld“ der Übersicht.",
             "„Export“ lädt den Plan als Datei, „Import“ (oder die Datei auf die Seite ziehen) ersetzt ihn — dasselbe Format wie der Runway-Planer.",
           ]}
@@ -1262,6 +1264,10 @@ function ModuleDoku() {
             {
               begriff: "Überbrückung",
               text: "Wann wie viel nachgeschossen werden muss, damit der Stand nie unter den Mindestpuffer fällt. Ein Abruf deckt den tiefsten Stand der nächsten Monate ab (1, 3, 6 oder 12) und ist auf 5.000 € gerundet.",
+            },
+            {
+              begriff: "Ausgabe im Quartal",
+              text: "Eine Ausgabe zählt am ersten Tag ihres Quartals — Q2 2027 heißt 1. April 2027. Für die Liquidität ist früher die vorsichtige Seite.",
             },
             {
               begriff: "Vergleichsstand",

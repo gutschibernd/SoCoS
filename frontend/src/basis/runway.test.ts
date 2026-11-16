@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Runwayplan, Runwayrechnung } from "./daten";
-import { Achse, kfmt, lanes, niceStep, parseDe, slug, x0, zelle, zusammenfassen } from "./runway";
+import { Achse, kategorieVon, kfmt, lanes, niceStep, parseDe, planjahre, quartalVon, quartalsbeginn, slug, verschieben, x0, zelle, zusammenfassen } from "./runway";
 
 const plan = (teile: Partial<Runwayplan> = {}): Runwayplan => ({
   v: 2,
@@ -86,5 +86,39 @@ describe("Zeitachse", () => {
 describe("Dateiname", () => {
   it("ohne Umlaute und Sonderzeichen", () => {
     expect(slug("Sopharmis GmbH & Co")).toBe("sopharmis-gmbh-co");
+  });
+});
+
+describe("Fixkosten und Ausgaben", () => {
+  it("Quartal eines Datums und sein erster Tag", () => {
+    expect(quartalVon("2027-05-14")).toEqual({ jahr: 2027, q: 2 });
+    expect(quartalVon("2027-12-31")).toEqual({ jahr: 2027, q: 4 });
+    expect(quartalVon("")).toBeNull();
+    expect(quartalsbeginn(2027, 3)).toBe("2027-07-01");
+  });
+
+  it("Planjahre: der Zeitraum und jedes Jahr mit einer Ausgabe", () => {
+    const S = plan({ kosten: [{ id: "a", interval: "einmalig", start: "2029-02-01" }, { id: "b", interval: "monatlich", start: "2031-01-01" }] });
+    expect(planjahre(S)).toEqual([2026, 2027, 2029]);
+  });
+
+  it("verschieben: von oben hinter das Ziel, von unten davor, Unsichtbares bleibt", () => {
+    const l = ["a", "b", "c", "d"].map((id) => ({ id }));
+    const ids = (x: { id: string }[]) => x.map((y) => y.id).join("");
+    expect(ids(verschieben(l, "a", "c"))).toBe("bcad");
+    expect(ids(verschieben(l, "d", "b"))).toBe("adbc");
+    expect(ids(verschieben(l, "b", "b"))).toBe("abcd");
+    expect(ids(verschieben(l, "x", "b"))).toBe("abcd");
+  });
+
+  it("Kategorie: Kennung, leer, und was nicht mehr in der Liste steht", () => {
+    expect(kategorieVon(" Marketing & Vertrieb ")).toBe("marketing");
+    expect(kategorieVon("")).toBe("ohne");
+    expect(kategorieVon("Software & IT")).toBe("alt");
+  });
+
+  it("eine abgewählte Ausgabe fehlt in der Zeitachse", () => {
+    const S = plan({ kosten: [{ id: "a", interval: "einmalig", start: "2026-11-01", amount: 100, aus: true }] });
+    expect(lanes(S, rechnung()).some((z) => z.g === "Ausgaben")).toBe(false);
   });
 });
