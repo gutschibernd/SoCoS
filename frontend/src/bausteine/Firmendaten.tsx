@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Zeichen } from "./Zeichen";
 
 /**
- * Die Firmendaten zum Kopieren — UID, Steuernummer, Anschrift, Firmenbuch.
+ * Die Firmendaten zum Kopieren — Rechnungsadresse, UID, Steuernummer,
+ * Anschrift, Firmenbuch.
  *
  * Nur, was ohnehin öffentlich ist und auf jedem Briefkopf steht. Darum steht
  * es hier im Code und nicht in `daten/` oder in der Datenbank: Es ändert sich
@@ -21,40 +22,76 @@ export type Firmengruppe = {
   ganz?: { was: string; wert: string };
 };
 
+export type Sprache = "de" | "en";
+
 const FIRMA = "Sopharmis Medical Solutions FlexCo";
 const STRASSE = "Hermann-Findenegg Weg 7";
 const ORT = "9500 Villach";
-const LAND = "Österreich";
+const UID = "ATU83918619";
 const FN = "FN 690473 b";
-const GERICHT = "Landesgericht Klagenfurt";
 
-export const FIRMENDATEN: Firmengruppe[] = [
-  {
-    titel: "Steuer",
-    zeilen: [
-      { was: "UID-Nummer", wert: "ATU83918619" },
-      { was: "Steuernummer", wert: "613397991" },
-    ],
+/**
+ * Was sich je Sprache ändert. Firma, Straße, Nummern bleiben, wie sie sind —
+ * ein Name wird nicht übersetzt. Die Bezeichnungen im Fenster bleiben
+ * deutsch: Übersetzt wird, was hinausgeht, nicht, was man liest.
+ */
+const TEXTE = {
+  de: {
+    land: "Österreich",
+    gericht: "Landesgericht Klagenfurt",
+    uid: "UID",
+    einleitung: "Unsere Rechnungsadresse lautet:",
+    versand: "Versand bitte an:",
   },
-  {
-    titel: "Anschrift",
-    zeilen: [
-      { was: "Firma", wert: FIRMA },
-      { was: "Straße", wert: STRASSE },
-      { was: "PLZ und Ort", wert: ORT },
-      { was: "Land", wert: LAND },
-    ],
-    ganz: { was: "Ganze Anschrift", wert: [FIRMA, STRASSE, `${ORT}, ${LAND}`].join("\n") },
+  en: {
+    land: "Austria",
+    gericht: "Regional Court Klagenfurt",
+    uid: "VAT ID",
+    einleitung: "Our billing address is:",
+    versand: "Please ship to:",
   },
-  {
-    titel: "Firmenbuch",
-    zeilen: [
-      { was: "Firmenbuchnummer", wert: FN },
-      { was: "Firmenbuchgericht", wert: GERICHT },
-    ],
-    ganz: { was: "Ganze Zeile", wert: `${FN}, ${GERICHT}` },
-  },
-];
+} as const;
+
+/**
+ * Die Versandadresse — **die Ausnahme von der Regel, dass Personendaten nicht
+ * ins Repository gehören** (CLAUDE.md, Daten). Bernd, 2026-11-16: Sie steht
+ * hier, weil eine Ablage in der Datenbank samt Migration, Sicherung und
+ * Protokoll für eine einzige Anschrift mehr kostet, als sie schützt.
+ */
+const VERSAND = { name: "Bernd Gutschi", strasse: "Antoniensteig 5a", ort: "9500 Villach" };
+
+export function firmendaten(sprache: Sprache): Firmengruppe[] {
+  const t = TEXTE[sprache];
+  return [
+    {
+      titel: "Steuer",
+      zeilen: [
+        { was: "UID-Nummer", wert: UID },
+        { was: "Steuernummer", wert: "613397991" },
+      ],
+    },
+    {
+      titel: "Anschrift",
+      zeilen: [
+        { was: "Firma", wert: FIRMA },
+        { was: "Straße", wert: STRASSE },
+        { was: "PLZ und Ort", wert: ORT },
+        { was: "Land", wert: t.land },
+      ],
+      ganz: { was: "Ganze Anschrift", wert: [FIRMA, STRASSE, `${ORT}, ${t.land}`].join("\n") },
+    },
+    {
+      titel: "Firmenbuch",
+      zeilen: [
+        { was: "Firmenbuchnummer", wert: FN },
+        { was: "Firmenbuchgericht", wert: t.gericht },
+      ],
+      ganz: { was: "Ganze Zeile", wert: `${FN}, ${t.gericht}` },
+    },
+  ];
+}
+
+export type Wahl = { einleitung: boolean; versand: boolean };
 
 /**
  * Die Rechnungsadresse, wie ein Lieferant sie braucht: Firma, Anschrift und
@@ -63,22 +100,28 @@ export const FIRMENDATEN: Firmengruppe[] = [
  * sie nicht vorsteuerabzugsfähig — sie gleich mitzuschicken erspart die
  * Korrekturrechnung. Firmenbuch und Steuernummer verlangt auf einer
  * Eingangsrechnung niemand.
+ *
+ * Die Versandadresse trägt ihre Zeile „Versand bitte an:" auch ohne
+ * Einleitung: Zwei Anschriften untereinander ohne Wort dazwischen liest ein
+ * Lieferant als eine.
  */
-export const RECHNUNGSADRESSE = [FIRMA, STRASSE, `${ORT}, ${LAND}`, "UID: ATU83918619"].join("\n");
-export const EINLEITUNG = "Unsere Rechnungsadresse lautet:";
-
-/** Mit Einleitung für eine Mail; ohne für ein Formularfeld. */
-export function rechnungsadresse(mitEinleitung: boolean) {
-  return mitEinleitung ? `${EINLEITUNG}\n\n${RECHNUNGSADRESSE}` : RECHNUNGSADRESSE;
+export function rechnungsadresse({ einleitung, versand }: Wahl, sprache: Sprache) {
+  const t = TEXTE[sprache];
+  const rechnung = [FIRMA, STRASSE, `${ORT}, ${t.land}`, `${t.uid}: ${UID}`];
+  if (einleitung) rechnung.unshift(t.einleitung);
+  if (!versand) return rechnung.join("\n");
+  const lieferung = [t.versand, VERSAND.name, VERSAND.strasse, VERSAND.ort, t.land];
+  return `${rechnung.join("\n")}\n\n${lieferung.join("\n")}`;
 }
 
 type Stand = { schluessel: string; gut: boolean } | null;
 
 export function Firmendaten({ schliessen }: { schliessen: () => void }) {
   const [stand, setStand] = useState<Stand>(null);
-  // Aus, wenn das Fenster aufgeht: Meist wandert die Adresse in ein Feld,
-  // und dort stört der Satz davor.
-  const [einleitung, setEinleitung] = useState(false);
+  // Alles aus und deutsch, wenn das Fenster aufgeht: Meist wandert die
+  // Adresse in ein Feld, und dort stört jede Zeile zu viel.
+  const [wahl, setWahl] = useState<Wahl>({ einleitung: false, versand: false });
+  const [sprache, setSprache] = useState<Sprache>("de");
   const zu = useRef(schliessen);
   zu.current = schliessen;
   const zurueck = useRef<number>();
@@ -111,13 +154,29 @@ export function Firmendaten({ schliessen }: { schliessen: () => void }) {
 
   const rueckmeldung = (schluessel: string) =>
     stand?.schluessel === schluessel ? (stand.gut ? "Kopiert" : "Bitte markieren") : null;
+  const standVon = (schluessel: string) =>
+    rueckmeldung(schluessel) ? (stand?.gut ? "gut" : "fehler") : undefined;
+  const haken = (name: keyof Wahl, text: string) => (
+    <label className="fi-haken">
+      <input type="checkbox" checked={wahl[name]} onChange={(e) => setWahl({ ...wahl, [name]: e.target.checked })} />
+      {text}
+    </label>
+  );
+  const adresse = rechnungsadresse(wahl, sprache);
 
   return (
     <div className="dialog-grund" role="dialog" aria-modal="true" aria-labelledby="firmendaten-titel" onClick={schliessen}>
       <div className="dialog dialog-arbeit firmendaten" onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-kopf">
-          <div className="dialog-kopf-text">
-            <h2 id="firmendaten-titel">Firmendaten</h2>
+        <div className="dialog-kopf fi-kopf">
+          <h2 id="firmendaten-titel">Firmendaten</h2>
+          {/* Die Sprache gilt für alles, was kopiert wird — darum steht sie im
+              Kopf über allen Gruppen und nicht an der Rechnungsadresse. */}
+          <div className="fi-sprache" role="radiogroup" aria-label="Sprache der kopierten Texte">
+            {(["de", "en"] as const).map((s) => (
+              <button key={s} type="button" role="radio" aria-checked={sprache === s} onClick={() => setSprache(s)}>
+                {s === "de" ? "Deutsch" : "English"}
+              </button>
+            ))}
           </div>
           <div className="dialog-knoepfe">
             <button type="button" className="knopf-still" onClick={schliessen} autoFocus>
@@ -129,28 +188,28 @@ export function Firmendaten({ schliessen }: { schliessen: () => void }) {
           <section className="fi-gruppe">
             <div className="fi-gruppenkopf">
               <h3>Rechnungsadresse</h3>
-              <label className="fi-einleitung">
-                <input type="checkbox" checked={einleitung} onChange={(e) => setEinleitung(e.target.checked)} />
-                Einleitung
-              </label>
+            </div>
+            <div className="fi-haken-reihe">
+              {haken("einleitung", "Einleitung")}
+              {haken("versand", "Versandadresse")}
             </div>
             <button
               type="button"
               className="fi-zeile fi-block"
-              data-stand={rueckmeldung("rechnung") ? (stand?.gut ? "gut" : "fehler") : undefined}
+              data-stand={standVon("rechnung")}
               aria-label="Rechnungsadresse kopieren"
-              onClick={() => kopieren("rechnung", rechnungsadresse(einleitung))}
+              onClick={() => kopieren("rechnung", adresse)}
             >
               {/* Was hier steht, ist genau das, was kopiert wird — auch der
-                  Satz davor, sobald der Haken sitzt. */}
-              <span className="fi-wert">{rechnungsadresse(einleitung)}</span>
+                  Satz davor und die Versandadresse, sobald ihr Haken sitzt. */}
+              <span className="fi-wert">{adresse}</span>
               <span className="fi-tun" aria-live="polite">
                 {rueckmeldung("rechnung") && <span className="fi-meldung">{rueckmeldung("rechnung")}</span>}
                 <Zeichen name={rueckmeldung("rechnung") && stand?.gut ? "haken" : "kopie"} />
               </span>
             </button>
           </section>
-          {FIRMENDATEN.map((gruppe) => (
+          {firmendaten(sprache).map((gruppe) => (
             <section key={gruppe.titel} className="fi-gruppe">
               <div className="fi-gruppenkopf">
                 <h3>{gruppe.titel}</h3>
@@ -158,7 +217,7 @@ export function Firmendaten({ schliessen }: { schliessen: () => void }) {
                   <button
                     type="button"
                     className="mini fi-ganz"
-                    data-stand={rueckmeldung(gruppe.titel) ? (stand?.gut ? "gut" : "fehler") : undefined}
+                    data-stand={standVon(gruppe.titel)}
                     onClick={() => kopieren(gruppe.titel, gruppe.ganz!.wert)}
                   >
                     <Zeichen name={rueckmeldung(gruppe.titel) && stand?.gut ? "haken" : "kopie"} />
@@ -174,7 +233,7 @@ export function Firmendaten({ schliessen }: { schliessen: () => void }) {
                     key={z.was}
                     type="button"
                     className="fi-zeile"
-                    data-stand={meldung ? (stand?.gut ? "gut" : "fehler") : undefined}
+                    data-stand={standVon(schluessel)}
                     aria-label={`${z.was} kopieren: ${z.wert}`}
                     onClick={() => kopieren(schluessel, z.wert)}
                   >

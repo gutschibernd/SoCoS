@@ -30,22 +30,46 @@ describe("Firmendaten", () => {
     );
   });
 
-  it("kopiert die Rechnungsadresse mit UID, die Einleitung nur mit Haken", async () => {
+  it("kopiert die Rechnungsadresse mit UID, Einleitung und Versand nur mit Haken", async () => {
     const schreiben = zwischenablage(async () => {});
     render(<Firmendaten schliessen={() => {}} />);
+    const kopieren = () => fireEvent.click(screen.getByRole("button", { name: "Rechnungsadresse kopieren" }));
     const block =
       "Sopharmis Medical Solutions FlexCo\nHermann-Findenegg Weg 7\n9500 Villach, Österreich\nUID: ATU83918619";
 
-    const haken = screen.getByRole("checkbox", { name: "Einleitung" });
-    expect(haken).not.toBeChecked();
-    fireEvent.click(screen.getByRole("button", { name: "Rechnungsadresse kopieren" }));
+    expect(screen.getByRole("checkbox", { name: "Einleitung" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Versandadresse" })).not.toBeChecked();
+    kopieren();
     await waitFor(() => expect(schreiben).toHaveBeenLastCalledWith(block));
 
-    fireEvent.click(haken);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Einleitung" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Versandadresse" }));
+    kopieren();
+    await waitFor(() =>
+      expect(schreiben).toHaveBeenLastCalledWith(
+        `Unsere Rechnungsadresse lautet:\n${block}\n\n` +
+          "Versand bitte an:\nBernd Gutschi\nAntoniensteig 5a\n9500 Villach\nÖsterreich",
+      ),
+    );
+  });
+
+  it("schreibt auf Englisch, was hinausgeht — Namen und Nummern bleiben", async () => {
+    const schreiben = zwischenablage(async () => {});
+    render(<Firmendaten schliessen={() => {}} />);
+    expect(screen.getByRole("radio", { name: "Deutsch" })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: "English" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Einleitung" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Versandadresse" }));
     fireEvent.click(screen.getByRole("button", { name: "Rechnungsadresse kopieren" }));
     await waitFor(() =>
-      expect(schreiben).toHaveBeenLastCalledWith(`Unsere Rechnungsadresse lautet:\n\n${block}`),
+      expect(schreiben).toHaveBeenLastCalledWith(
+        "Our billing address is:\nSopharmis Medical Solutions FlexCo\nHermann-Findenegg Weg 7\n" +
+          "9500 Villach, Austria\nVAT ID: ATU83918619\n\n" +
+          "Please ship to:\nBernd Gutschi\nAntoniensteig 5a\n9500 Villach\nAustria",
+      ),
     );
+    fireEvent.click(screen.getByRole("button", { name: /Land kopieren/ }));
+    await waitFor(() => expect(schreiben).toHaveBeenLastCalledWith("Austria"));
   });
 
   it("sagt an der Zeile, wenn der Browser die Zwischenablage verweigert", async () => {

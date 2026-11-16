@@ -310,5 +310,10 @@ stehen. Ein Passwort im Chat liegt außerdem im Verlauf. Kein Umweg über
 **Kunden- und Personendaten kommen aus `daten/`** (in `.gitignore`), nie aus einer
 Fixture, einer Migration oder einem Befehlsargument.
 
+**Eine Ausnahme, bewusst:** Die Versandadresse im Firmendaten-Fenster
+(`bausteine/Firmendaten.tsx`) steht im Code. Bernd, 2026-11-16: Eine Ablage
+mit Migration, Sicherung und Protokoll für eine einzige Anschrift kostet mehr,
+als sie schützt. Keine zweite Ausnahme ohne neue Entscheidung.
+
 **Kein Testkonto, dessen Passwort im Repository steht.** Wird eines gebraucht, wird
 es lokal von Hand angelegt.
