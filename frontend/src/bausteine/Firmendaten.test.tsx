@@ -30,6 +30,24 @@ describe("Firmendaten", () => {
     );
   });
 
+  it("kopiert die Rechnungsadresse mit UID, die Einleitung nur mit Haken", async () => {
+    const schreiben = zwischenablage(async () => {});
+    render(<Firmendaten schliessen={() => {}} />);
+    const block =
+      "Sopharmis Medical Solutions FlexCo\nHermann-Findenegg Weg 7\n9500 Villach, Österreich\nUID: ATU83918619";
+
+    const haken = screen.getByRole("checkbox", { name: "Einleitung" });
+    expect(haken).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Rechnungsadresse kopieren" }));
+    await waitFor(() => expect(schreiben).toHaveBeenLastCalledWith(block));
+
+    fireEvent.click(haken);
+    fireEvent.click(screen.getByRole("button", { name: "Rechnungsadresse kopieren" }));
+    await waitFor(() =>
+      expect(schreiben).toHaveBeenLastCalledWith(`Unsere Rechnungsadresse lautet:\n\n${block}`),
+    );
+  });
+
   it("sagt an der Zeile, wenn der Browser die Zwischenablage verweigert", async () => {
     zwischenablage(async () => {
       throw new Error("verweigert");

@@ -701,6 +701,17 @@
   margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase;
   letter-spacing: 0.04em; color: var(--text-sehr-leise);
 }
+/* Der Haken steht im Kopf der Gruppe, deren Text er ändert — die ganze
+   Beschriftung ist Klickfläche, 44 px hoch. */
+.fi-einleitung {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--griff);
+  font-size: 13px; color: var(--text-leise); cursor: pointer;
+}
+.fi-einleitung input { width: 18px; height: 18px; margin: 0; }
+/* Ein Block aus mehreren Zeilen: Wert und Zeichen, keine Bezeichnung davor. */
+.fi-zeile.fi-block { grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding: 12px; }
+.fi-block .fi-wert { white-space: pre-line; line-height: 1.5; }
+.fi-block .fi-tun { grid-column: 2; grid-row: 1; }
 .fi-ganz[data-stand="gut"] { color: var(--gut); }
 .fi-ganz[data-stand="fehler"] { color: var(--warnung); }
 .fi-zeile {

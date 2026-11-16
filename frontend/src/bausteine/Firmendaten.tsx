@@ -56,10 +56,29 @@ export const FIRMENDATEN: Firmengruppe[] = [
   },
 ];
 
+/**
+ * Die Rechnungsadresse, wie ein Lieferant sie braucht: Firma, Anschrift und
+ * UID. Die UID des Empfängers muss auf jeder Rechnung über 10.000 € brutto
+ * und bei jeder Reverse-Charge-Rechnung aus dem EU-Ausland stehen, sonst ist
+ * sie nicht vorsteuerabzugsfähig — sie gleich mitzuschicken erspart die
+ * Korrekturrechnung. Firmenbuch und Steuernummer verlangt auf einer
+ * Eingangsrechnung niemand.
+ */
+export const RECHNUNGSADRESSE = [FIRMA, STRASSE, `${ORT}, ${LAND}`, "UID: ATU83918619"].join("\n");
+export const EINLEITUNG = "Unsere Rechnungsadresse lautet:";
+
+/** Mit Einleitung für eine Mail; ohne für ein Formularfeld. */
+export function rechnungsadresse(mitEinleitung: boolean) {
+  return mitEinleitung ? `${EINLEITUNG}\n\n${RECHNUNGSADRESSE}` : RECHNUNGSADRESSE;
+}
+
 type Stand = { schluessel: string; gut: boolean } | null;
 
 export function Firmendaten({ schliessen }: { schliessen: () => void }) {
   const [stand, setStand] = useState<Stand>(null);
+  // Aus, wenn das Fenster aufgeht: Meist wandert die Adresse in ein Feld,
+  // und dort stört der Satz davor.
+  const [einleitung, setEinleitung] = useState(false);
   const zu = useRef(schliessen);
   zu.current = schliessen;
   const zurueck = useRef<number>();
@@ -107,6 +126,30 @@ export function Firmendaten({ schliessen }: { schliessen: () => void }) {
           </div>
         </div>
         <div className="dialog-koerper">
+          <section className="fi-gruppe">
+            <div className="fi-gruppenkopf">
+              <h3>Rechnungsadresse</h3>
+              <label className="fi-einleitung">
+                <input type="checkbox" checked={einleitung} onChange={(e) => setEinleitung(e.target.checked)} />
+                Einleitung
+              </label>
+            </div>
+            <button
+              type="button"
+              className="fi-zeile fi-block"
+              data-stand={rueckmeldung("rechnung") ? (stand?.gut ? "gut" : "fehler") : undefined}
+              aria-label="Rechnungsadresse kopieren"
+              onClick={() => kopieren("rechnung", rechnungsadresse(einleitung))}
+            >
+              {/* Was hier steht, ist genau das, was kopiert wird — auch der
+                  Satz davor, sobald der Haken sitzt. */}
+              <span className="fi-wert">{rechnungsadresse(einleitung)}</span>
+              <span className="fi-tun" aria-live="polite">
+                {rueckmeldung("rechnung") && <span className="fi-meldung">{rueckmeldung("rechnung")}</span>}
+                <Zeichen name={rueckmeldung("rechnung") && stand?.gut ? "haken" : "kopie"} />
+              </span>
+            </button>
+          </section>
           {FIRMENDATEN.map((gruppe) => (
             <section key={gruppe.titel} className="fi-gruppe">
               <div className="fi-gruppenkopf">
