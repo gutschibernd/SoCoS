@@ -112,6 +112,11 @@ describe("Beträge", () => {
   it("liest einen Betrag, wie man ihn tippt", () => {
     expect(betragAusEingabe("1.450")).toBe("1450.00");
     expect(betragAusEingabe("1450,50 €")).toBe("1450.50");
+    // Punkt mit ein oder zwei Nachkommastellen ist ein Dezimalpunkt
+    expect(betragAusEingabe("462.19")).toBe("462.19");
+    expect(betragAusEingabe("1.5")).toBe("1.50");
+    expect(betragAusEingabe("1.450.000")).toBe("1450000.00");
+    expect(betragAusEingabe("1.450,50")).toBe("1450.50");
     expect(betragAusEingabe("  ")).toBeNull();
     expect(betragAusEingabe("viel")).toBeUndefined();
     expect(betragAusEingabe("-3")).toBeUndefined();

@@ -267,6 +267,11 @@ export function teilZuWeg(unter: string | null): { modul: Modul; teil: Teil } | 
 export function betragAusEingabe(text: string): string | null | undefined {
   const roh = text.replace(/€/g, "").replace(/\s/g, "");
   if (!roh) return null;
+  // Ein einzelner Punkt vor ein oder zwei Ziffern ist ein Dezimalpunkt, kein
+  // Tausendertrenner: Wer einen Dollarpreis abschreibt, tippt „462.19" und
+  // meint nicht 46 219 € — genau so ist es am 2026-11-17 im Korb gelandet.
+  // „1.450" (drei Ziffern) bleibt Tausend, wie man es hier schreibt.
+  if (/^\d+\.\d{1,2}$/.test(roh)) return Number(roh).toFixed(2);
   const zahl = Number(roh.replace(/\./g, "").replace(",", "."));
   if (!Number.isFinite(zahl) || zahl < 0) return undefined;
   return zahl.toFixed(2);
