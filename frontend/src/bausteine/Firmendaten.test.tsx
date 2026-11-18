@@ -19,6 +19,19 @@ describe("Firmendaten", () => {
     expect(await screen.findByText("Kopiert")).toBeInTheDocument();
   });
 
+  it("kopiert die IBAN ohne Leerzeichen, und ihre Prüfziffer stimmt", async () => {
+    const schreiben = zwischenablage(async () => {});
+    render(<Firmendaten schliessen={() => {}} />);
+    expect(screen.getByText("AT41 2081 5000 4769 4104")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /IBAN kopieren/ }));
+    await waitFor(() => expect(schreiben).toHaveBeenCalledWith("AT412081500047694104"));
+    // ISO 13616: die ersten vier Zeichen ans Ende, Buchstaben als Zahlen,
+    // Rest modulo 97 muss 1 sein. Fängt den Tippfehler, bevor ihn eine Bank fängt.
+    const iban = "AT412081500047694104";
+    const ziffern = (iban.slice(4) + iban.slice(0, 4)).replace(/[A-Z]/g, (c) => String(c.charCodeAt(0) - 55));
+    expect(BigInt(ziffern) % 97n).toBe(1n);
+  });
+
   it("kopiert die Anschrift am Stück, wie sie in einem Brief steht", async () => {
     const schreiben = zwischenablage(async () => {});
     render(<Firmendaten schliessen={() => {}} />);

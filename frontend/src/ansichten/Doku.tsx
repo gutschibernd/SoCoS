@@ -350,6 +350,10 @@ function ZeitDoku() {
               text: "Die Liste zeigt einen Monat, nach Tagen mit der Tagessumme; ‹ und › blättern. Vorgewählt ist deine eigene Zeit, daneben lassen sich das ganze Team oder eine Person wählen.",
             },
             {
+              begriff: "Kalender",
+              text: "Neben der Liste steht derselbe Monat als Kalender: grün ab 8 Stunden, orange darunter, rot ohne Buchung; Wochenende und Zukunft bleiben leer. Ein Klick auf einen Tag mit Buchungen springt in der Liste dorthin, auf einen leeren öffnet oben das Nachtragen für genau diesen Tag. Die Farben gibt es nur bei einer Person, nicht beim ganzen Team.",
+            },
+            {
               begriff: "Arbeitspaket ändern",
               text: "Der Stift an einer Buchung öffnet auch das Arbeitspaket — für jede Buchung, nicht nur für die von Overhead. Ein Fehlgriff beim Start ist damit eine Auswahl und kein Löschen.",
             },

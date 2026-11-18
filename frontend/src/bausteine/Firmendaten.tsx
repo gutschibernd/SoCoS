@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Zeichen } from "./Zeichen";
 
 /**
- * Die Firmendaten zum Kopieren — Rechnungsadresse, UID, Steuernummer,
+ * Die Firmendaten zum Kopieren — Rechnungsadresse, UID, Steuernummer, IBAN,
  * Anschrift, Firmenbuch.
  *
  * Nur, was ohnehin öffentlich ist und auf jedem Briefkopf steht. Darum steht
@@ -17,7 +17,7 @@ import { Zeichen } from "./Zeichen";
  */
 export type Firmengruppe = {
   titel: string;
-  zeilen: { was: string; wert: string }[];
+  zeilen: { was: string; wert: string; kopie?: string }[];
   /** Die Gruppe am Stück, wie sie in einem Brief steht. */
   ganz?: { was: string; wert: string };
 };
@@ -29,6 +29,12 @@ const STRASSE = "Hermann-Findenegg Weg 7";
 const ORT = "9500 Villach";
 const UID = "ATU83918619";
 const FN = "FN 690473 b";
+/**
+ * Angezeigt in Vierergruppen, wie sie auf Papier gelesen wird; kopiert ohne
+ * Leerzeichen, weil manche Bankformulare die Lücken als ungültig abweisen —
+ * keines weist die IBAN ohne sie ab.
+ */
+const IBAN = "AT41 2081 5000 4769 4104";
 
 /**
  * Was sich je Sprache ändert. Firma, Straße, Nummern bleiben, wie sie sind —
@@ -68,6 +74,7 @@ export function firmendaten(sprache: Sprache): Firmengruppe[] {
       zeilen: [
         { was: "UID-Nummer", wert: UID },
         { was: "Steuernummer", wert: "613397991" },
+        { was: "IBAN", wert: IBAN, kopie: IBAN.replace(/\s/g, "") },
       ],
     },
     {
@@ -235,7 +242,7 @@ export function Firmendaten({ schliessen }: { schliessen: () => void }) {
                     className="fi-zeile"
                     data-stand={standVon(schluessel)}
                     aria-label={`${z.was} kopieren: ${z.wert}`}
-                    onClick={() => kopieren(schluessel, z.wert)}
+                    onClick={() => kopieren(schluessel, z.kopie ?? z.wert)}
                   >
                     <span className="fi-was">{z.was}</span>
                     <span className="fi-wert">{z.wert}</span>

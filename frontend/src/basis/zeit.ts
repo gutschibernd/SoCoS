@@ -170,3 +170,80 @@ export function nachTagen<T extends { start: string; sekunden: number; ist_entwu
       buchungen: [...liste].sort((a, z) => z.start.localeCompare(a.start)),
     }));
 }
+
+/**
+ * Ab wie viel Gebuchtem ein Werktag im Kalender der Zeitseite voll ist.
+ * Eine Anzeigeschwelle, keine Regel: Geprüft oder verlangt wird damit nichts.
+ */
+export const VOLLER_TAG_SEKUNDEN = 8 * 3600;
+
+/**
+ * `voll` ab acht Stunden, `teil` darunter, `leer` ohne Buchung. Ohne Stufe
+ * bleiben Samstag und Sonntag, alles nach heute und heute selbst, solange er
+ * leer ist — der Tag ist noch nicht vorbei, und Rot um neun Uhr früh hieße
+ * nichts.
+ */
+export type Tagesstufe = "voll" | "teil" | "leer";
+
+export type Kalendertag = {
+  tag: string;
+  nummer: number;
+  sekunden: number;
+  wochenende: boolean;
+  heute: boolean;
+  zukunft: boolean;
+  stufe?: Tagesstufe;
+};
+
+/**
+ * Die Wochen eines Monats, Montag zuerst; Tage aus dem Monat davor und
+ * danach sind `null`, damit jede Woche sieben Felder hat.
+ *
+ * `mitStufen` ist aus, wenn die Liste mehrere Personen zeigt: Acht Stunden
+ * des ganzen Teams sind kein voller Tag von irgendwem.
+ */
+export function monatskalender(
+  monat: string,
+  summen: Map<string, number>,
+  heute: string,
+  mitStufen = true,
+): (Kalendertag | null)[][] {
+  const [jahr, nr] = monat.split("-").map(Number);
+  const letzter = new Date(jahr, nr, 0).getDate();
+  // getDay(): Sonntag 0 — verschoben, damit Montag vorne steht.
+  const vorne = (new Date(jahr, nr - 1, 1).getDay() + 6) % 7;
+  const felder: (Kalendertag | null)[] = Array(vorne).fill(null);
+  for (let nummer = 1; nummer <= letzter; nummer++) {
+    const tag = `${monat}-${String(nummer).padStart(2, "0")}`;
+    const wochentag = new Date(jahr, nr - 1, nummer).getDay();
+    const sekunden = summen.get(tag) ?? 0;
+    const k: Kalendertag = {
+      tag,
+      nummer,
+      sekunden,
+      wochenende: wochentag === 0 || wochentag === 6,
+      heute: tag === heute,
+      zukunft: tag > heute,
+    };
+    if (mitStufen && !k.wochenende && !k.zukunft) {
+      if (sekunden >= VOLLER_TAG_SEKUNDEN) k.stufe = "voll";
+      else if (sekunden > 0) k.stufe = "teil";
+      else if (!k.heute) k.stufe = "leer";
+    }
+    felder.push(k);
+  }
+  while (felder.length % 7) felder.push(null);
+  const wochen: (Kalendertag | null)[][] = [];
+  for (let i = 0; i < felder.length; i += 7) wochen.push(felder.slice(i, i + 7));
+  return wochen;
+}
+
+/**
+ * „AP02" aus „AP02 Entwicklung der Sensorik für …" — für die halbe Breite der
+ * Zeitliste, wo der ganze Titel drei Zeilen frisst. Ohne Nummer vorne bleibt
+ * der Titel, wie er ist; die Liste schneidet ihn dann nach einer Zeile ab.
+ */
+export function paketkuerzel(titel: string): string {
+  const treffer = /^\s*(AP\s?\d+(?:\.\d+)*)\b/i.exec(titel);
+  return treffer ? treffer[1].replace(/\s/g, "").toUpperCase() : titel;
+}

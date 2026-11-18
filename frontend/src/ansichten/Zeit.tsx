@@ -22,7 +22,9 @@ import {
   alsZeitpunkt,
   heuteAlsDatum,
   monatVerschieben,
+  monatskalender,
   nachTagen,
+  paketkuerzel,
   plusMinuten,
   spanne,
   tagAusZeitpunkt,
@@ -203,6 +205,8 @@ export function Zeit({ ich }: { ich: Ich }) {
   const [monat, setMonat] = useState(aktuellerMonat);
   const [person, setPerson] = useState(String(ich.id));
   const [modus, setModus] = useState<"uhr" | "nachtragen">("uhr");
+  // Der Tag, den ein Klick im Kalender ins Nachtragen legt.
+  const [nachtragTag, setNachtragTag] = useState<string>();
 
   const grenzen = monatsgrenzen(monat);
   const filter: Record<string, string> = { von: grenzen.von, bis: grenzen.bis };
@@ -233,6 +237,22 @@ export function Zeit({ ich }: { ich: Ich }) {
 
   const nachweisPfad = (nurIch: boolean) =>
     `/api/zeitnachweis/?monat=${monat}${nurIch ? `&person=${ich.id}` : ""}`;
+
+  /**
+   * Ein Tag im Kalender: mit Buchungen springt die Liste dorthin, ohne
+   * Buchungen geht oben das Nachtragen für genau diesen Tag auf — der rote
+   * Tag ist meist einer, an dem jemand das Buchen vergessen hat.
+   */
+  function tagGewaehlt(tag: string, sekunden: number) {
+    if (sekunden > 0) {
+      document.getElementById(`zeittag-${tag}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (!ich.darf.bearbeiten || alle || person !== String(ich.id)) return;
+    setNachtragTag(tag);
+    setModus("nachtragen");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   async function weiter(b: Buchung) {
     await clockIn(b.paket);
@@ -272,12 +292,15 @@ export function Zeit({ ich }: { ich: Ich }) {
             <Uhrstart projekte={projekte.data} meine={meine.data ?? []} />
           ) : (
             <Nachtragen
+              key={nachtragTag}
+              tag={nachtragTag}
               projekte={projekte.data}
               team={team.data ?? []}
               ich={ich}
               zuletzt={zuletztGebucht}
               fertig={() => {
                 setModus("uhr");
+                setNachtragTag(undefined);
                 neuLaden();
               }}
             />
@@ -333,58 +356,70 @@ export function Zeit({ ich }: { ich: Ich }) {
           </div>
         </div>
 
-        {tage.length === 0 ? (
-          <Leerstelle
-            was="In diesem Monat keine Buchung"
-            satz="Oben die Uhr starten oder vergessene Zeit nachtragen."
+        <div className="zeit-haelften">
+          <div className="zeit-liste">
+            {tage.length === 0 ? (
+              <Leerstelle
+                was="In diesem Monat keine Buchung"
+                satz="Oben die Uhr starten oder vergessene Zeit nachtragen."
+              />
+            ) : (
+              tage.map((t) => (
+                <section key={t.tag} id={`zeittag-${t.tag}`} className="zeittag">
+                  <h3 className="zeittag-kopf">
+                    <span>{TAG.format(new Date(`${t.tag}T00:00:00`))}</span>
+                    <b className="zahl">{alsDauer(t.sekunden)}</b>
+                  </h3>
+                  <ul className="zeitliste">
+                    {t.buchungen.map((b) => (
+                      <li key={b.id} className="zeitzeile" data-laeuft={b.laeuft ? "ja" : undefined}>
+                        <span className="zeitzeile-was">
+                          {/* Nur die Nummer: In der halben Breite fraß der
+                              ganze Titel drei Zeilen. Er steht im Tooltip. */}
+                          <b title={b.paket_titel}>{paketkuerzel(b.paket_titel)}</b>
+                          <em>
+                            {b.projekt_titel}
+                            {alle && ` · ${b.person_name}`}
+                          </em>
+                          {b.notiz && <span className="zeitzeile-notiz">{b.notiz}</span>}
+                        </span>
+                        <span className="zeitzeile-wann zahl">
+                          {UHRZEIT.format(new Date(b.start))} – {b.ende ? UHRZEIT.format(new Date(b.ende)) : "läuft"}
+                        </span>
+                        <span className="zeitzeile-dauer zahl">{alsDauer(b.sekunden)}</span>
+                        <span className="zeitzeile-knoepfe">
+                          {/* Weitermachen nur auf der eigenen Zeit: Die Uhr läuft
+                              immer für den, der klickt. */}
+                          {ich.darf.bearbeiten && b.person === ich.id && buchbar.has(b.paket) && laeuftAuf !== b.paket && (
+                            <button type="button" className="mini" aria-label={`Auf „${b.paket_titel}“ weitermachen`} title="Weitermachen" onClick={() => weiter(b)}>
+                              <Zeichen name="start" />
+                            </button>
+                          )}
+                          {ich.darf.bearbeiten && (
+                            <button type="button" className="mini" aria-label="Buchung ändern" title="Ändern" onClick={() => setBearbeiten(b)}>
+                              <Zeichen name="stift" />
+                            </button>
+                          )}
+                          {ich.darf.loeschen && (
+                            <button type="button" className="mini" aria-label="Buchung entfernen" title="Entfernen" onClick={() => setLoeschen(b)}>
+                              <Zeichen name="korb" />
+                            </button>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))
+            )}
+          </div>
+          <Monatskalender
+            monat={monat}
+            tage={tage}
+            mitStufen={!alle}
+            waehlen={tagGewaehlt}
           />
-        ) : (
-          tage.map((t) => (
-            <section key={t.tag} className="zeittag">
-              <h3 className="zeittag-kopf">
-                <span>{TAG.format(new Date(`${t.tag}T00:00:00`))}</span>
-                <b className="zahl">{alsDauer(t.sekunden)}</b>
-              </h3>
-              <ul className="zeitliste">
-                {t.buchungen.map((b) => (
-                  <li key={b.id} className="zeitzeile" data-laeuft={b.laeuft ? "ja" : undefined}>
-                    <span className="zeitzeile-was">
-                      <b>{b.paket_titel}</b>
-                      <em>
-                        {b.projekt_titel}
-                        {alle && ` · ${b.person_name}`}
-                      </em>
-                      {b.notiz && <span className="zeitzeile-notiz">{b.notiz}</span>}
-                    </span>
-                    <span className="zeitzeile-wann zahl">
-                      {UHRZEIT.format(new Date(b.start))} – {b.ende ? UHRZEIT.format(new Date(b.ende)) : "läuft"}
-                    </span>
-                    <span className="zeitzeile-dauer zahl">{alsDauer(b.sekunden)}</span>
-                    <span className="zeitzeile-knoepfe">
-                      {/* Weitermachen nur auf der eigenen Zeit: Die Uhr läuft
-                          immer für den, der klickt. */}
-                      {ich.darf.bearbeiten && b.person === ich.id && buchbar.has(b.paket) && laeuftAuf !== b.paket && (
-                        <button type="button" className="mini" aria-label={`Auf „${b.paket_titel}“ weitermachen`} title="Weitermachen" onClick={() => weiter(b)}>
-                          <Zeichen name="start" />
-                        </button>
-                      )}
-                      {ich.darf.bearbeiten && (
-                        <button type="button" className="mini" aria-label="Buchung ändern" title="Ändern" onClick={() => setBearbeiten(b)}>
-                          <Zeichen name="stift" />
-                        </button>
-                      )}
-                      {ich.darf.loeschen && (
-                        <button type="button" className="mini" aria-label="Buchung entfernen" title="Entfernen" onClick={() => setLoeschen(b)}>
-                          <Zeichen name="korb" />
-                        </button>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))
-        )}
+        </div>
       </div>
 
       {bearbeiten && (
@@ -406,6 +441,80 @@ export function Zeit({ ich }: { ich: Ich }) {
           abbrechen={() => setLoeschen(null)}
           loeschen={() => entfernen(loeschen)}
         />
+      )}
+    </div>
+  );
+}
+
+const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+const STUFENNAME = { voll: "ab 8 h", teil: "unter 8 h", leer: "nichts gebucht" } as const;
+
+/**
+ * Der Monat der Liste als Kalender, die Werktage nach Stunden gefärbt.
+ *
+ * Er steht neben der Liste und nicht darüber: Die Frage „wo fehlt etwas"
+ * stellt sich beim Durchsehen der Buchungen, und dort soll die Antwort
+ * stehen, ohne dass man hinscrollt. Die Farbe trägt nie allein — die
+ * Stunden stehen im Feld, die Stufe im `aria-label`.
+ */
+function Monatskalender({
+  monat,
+  tage,
+  mitStufen,
+  waehlen,
+}: {
+  monat: string;
+  tage: { tag: string; sekunden: number }[];
+  mitStufen: boolean;
+  waehlen: (tag: string, sekunden: number) => void;
+}) {
+  const summen = new Map(tage.map((t) => [t.tag, t.sekunden]));
+  const wochen = monatskalender(monat, summen, heuteAlsDatum(), mitStufen);
+
+  return (
+    <div className="zeitkalender">
+      <div className="zeitkalender-raster" role="grid" aria-label="Gebuchte Stunden je Tag">
+        <div className="zeitkalender-woche" role="row">
+          {WOCHENTAGE.map((w) => (
+            <span key={w} className="zeitkalender-wochentag" role="columnheader">
+              {w}
+            </span>
+          ))}
+        </div>
+        {wochen.map((woche, i) => (
+          <div key={i} className="zeitkalender-woche" role="row">
+            {woche.map((k, j) =>
+              k ? (
+                <button
+                  key={k.tag}
+                  type="button"
+                  role="gridcell"
+                  className="zeitkalender-tag"
+                  data-stufe={k.stufe}
+                  data-wochenende={k.wochenende ? "ja" : undefined}
+                  data-heute={k.heute ? "ja" : undefined}
+                  disabled={k.zukunft}
+                  aria-label={`${TAG_LANG.format(new Date(`${k.tag}T00:00:00`))}: ${alsDauer(k.sekunden)} h${k.stufe ? `, ${STUFENNAME[k.stufe]}` : ""}`}
+                  onClick={() => waehlen(k.tag, k.sekunden)}
+                >
+                  <span className="zeitkalender-nummer zahl">{k.nummer}</span>
+                  {k.sekunden > 0 && <span className="zeitkalender-stunden zahl">{alsDauer(k.sekunden)}</span>}
+                </button>
+              ) : (
+                <span key={`leer-${j}`} className="zeitkalender-luecke" role="gridcell" />
+              ),
+            )}
+          </div>
+        ))}
+      </div>
+      {mitStufen && (
+        <ul className="zeitkalender-legende">
+          {(Object.keys(STUFENNAME) as (keyof typeof STUFENNAME)[]).map((s) => (
+            <li key={s} data-stufe={s}>
+              {STUFENNAME[s]}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -626,12 +735,15 @@ function fuerWen(gewaehlt: number[], team: Teammitglied[], ich: Ich) {
  * (siehe `ZeitbuchungSerializer`).
  */
 function Nachtragen({
+  tag,
   projekte,
   team,
   ich,
   zuletzt,
   fertig,
 }: {
+  /** Vorgewählter Tag, wenn das Nachtragen aus dem Kalender kommt. */
+  tag?: string;
   projekte: Projekt[];
   team: Teammitglied[];
   ich: Ich;
@@ -645,7 +757,7 @@ function Nachtragen({
   // dorthin, wo man gestern gebucht hat.
   const [paket, setPaket] = useState(() => zuletzt[0] ?? alle[0]?.id ?? 0);
   const [felder, setFelder] = useState<Spannenfelder>(() => ({
-    tag: heuteAlsDatum(),
+    tag: tag ?? heuteAlsDatum(),
     von: "",
     bis: "",
   }));

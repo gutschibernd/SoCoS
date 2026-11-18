@@ -22,6 +22,21 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-11-18",
+        "titel": "Zeit: Kalender neben der Liste",
+        "punkte": [
+            {
+                "titel": "Wo noch Stunden fehlen",
+                "text": (
+                    "Neben deinen Buchungen steht der Monat als Kalender: grün ab 8 Stunden, orange darunter, "
+                    "rot, wenn an einem Werktag nichts gebucht ist. Ein Klick auf einen roten Tag öffnet das "
+                    "Nachtragen gleich für diesen Tag."
+                ),
+                "wo": "zeit",
+            },
+        ],
+    },
+    {
         "version": "2026-11-16",
         "titel": "Runway-Planung: Ausgaben und Kontostand",
         "punkte": [

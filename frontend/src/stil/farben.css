@@ -122,6 +122,22 @@
   --umfang-3: #b8661c;
   --umfang-4: #a8332a;
 
+  /* Kalender der Zeitseite (2026-11-18): voll ab 8 h, teils, nichts gebucht.
+     Keine neuen Töne, sondern die des Umfangs — Grün, Orange, Rot gibt es
+     schon. Sie stehen als Balken unten im Feld; die Fläche ist der Ton zu 14 %
+     in der Fläche. Dunkel gehen beide über --umfang-* und --flaeche von
+     selbst mit, weil sie hier auf :root und nicht je Thema stehen.
+     Gerechnet, hell (voll · teil · leer): --text auf der Fläche 14,77 · 14,80
+     · 14,01 · --text-leise 5,76 · 5,78 · 5,47 · Balken 3,78 · 3,58 · 5,29.
+     Dunkel: --text 10,54 · 10,94 · 11,41 · --text-leise 5,61 · 5,83 · 6,08 ·
+     Balken 6,12 · 5,21 · 4,62. */
+  --tag-voll: var(--umfang-1);
+  --tag-teil: var(--umfang-3);
+  --tag-leer: var(--umfang-4);
+  --tag-voll-hell: color-mix(in srgb, var(--umfang-1) 14%, var(--flaeche));
+  --tag-teil-hell: color-mix(in srgb, var(--umfang-3) 14%, var(--flaeche));
+  --tag-leer-hell: color-mix(in srgb, var(--umfang-4) 14%, var(--flaeche));
+
   /* Runway-Planung (Modul). Eine eigene Farbwelt — die des Runway-Planers,
      aus dem das Modul stammt (Bernd, 2026-10-14: „Farbwelt des HTML,
      poliert"). Je Art ein Ton, damit Förderung, Team, Kosten und Darlehen in

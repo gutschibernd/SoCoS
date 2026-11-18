@@ -8,7 +8,9 @@ import {
   aufFuenfMinuten,
   heuteAlsDatum,
   monatVerschieben,
+  monatskalender,
   nachTagen,
+  paketkuerzel,
   plusMinuten,
   spanne,
   summeGerundet,
@@ -161,5 +163,60 @@ describe("Monate und Tage der Zeitliste", () => {
     expect(tage[1].sekunden).toBe(5400);
     // Innerhalb des Tages die spätere zuerst — wie die Liste darüber.
     expect(tage[1].buchungen[0].sekunden).toBe(1800);
+  });
+});
+
+describe("Kalender der Zeitseite", () => {
+  const stunden = (h: number) => h * 3600;
+
+  it("beginnt am Montag und füllt jede Woche auf sieben Felder", () => {
+    // Der 1. November 2026 ist ein Sonntag.
+    const wochen = monatskalender("2026-11", new Map(), "2026-12-31");
+    expect(wochen[0].slice(0, 6)).toEqual([null, null, null, null, null, null]);
+    expect(wochen[0][6]?.nummer).toBe(1);
+    expect(wochen.every((w) => w.length === 7)).toBe(true);
+    expect(wochen.flat().filter(Boolean)).toHaveLength(30);
+  });
+
+  it("färbt Werktage nach den Stunden, Wochenende und Zukunft nie", () => {
+    const summen = new Map([
+      ["2026-11-02", stunden(8)],
+      ["2026-11-03", stunden(7.5)],
+      ["2026-11-07", stunden(9)],
+      ["2026-11-20", stunden(9)],
+    ]);
+    const tage = monatskalender("2026-11", summen, "2026-11-18").flat();
+    const stufe = (nummer: number) => tage.find((t) => t?.nummer === nummer)?.stufe;
+    expect(stufe(2)).toBe("voll");
+    expect(stufe(3)).toBe("teil");
+    expect(stufe(4)).toBe("leer");
+    expect(stufe(7)).toBeUndefined(); // Samstag, auch mit Stunden
+    expect(stufe(8)).toBeUndefined(); // Sonntag
+    expect(stufe(20)).toBeUndefined(); // nach heute
+  });
+
+  it("lässt den heutigen Tag ohne Rot, solange er leer ist", () => {
+    const leer = monatskalender("2026-11", new Map(), "2026-11-18").flat();
+    expect(leer.find((t) => t?.heute)?.stufe).toBeUndefined();
+    const halb = monatskalender("2026-11", new Map([["2026-11-18", 3600]]), "2026-11-18").flat();
+    expect(halb.find((t) => t?.heute)?.stufe).toBe("teil");
+  });
+
+  it("färbt nichts, wenn mehrere Personen zusammen stehen", () => {
+    const tage = monatskalender("2026-11", new Map([["2026-11-02", stunden(20)]]), "2026-11-18", false).flat();
+    expect(tage.some((t) => t?.stufe)).toBe(false);
+  });
+});
+
+describe("Paketkürzel", () => {
+  it("nimmt die Nummer vorne und lässt den Rest weg", () => {
+    expect(paketkuerzel("AP02 Entwicklung der Sensorik für das Gerät")).toBe("AP02");
+    expect(paketkuerzel("AP 3.1 – Klinische Bewertung")).toBe("AP3.1");
+    expect(paketkuerzel("ap12: Zulassung")).toBe("AP12");
+  });
+
+  it("lässt einen Titel ohne Nummer stehen", () => {
+    expect(paketkuerzel("Overhead")).toBe("Overhead");
+    expect(paketkuerzel("APPLIKATION")).toBe("APPLIKATION");
   });
 });

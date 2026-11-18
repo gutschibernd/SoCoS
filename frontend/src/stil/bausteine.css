@@ -1693,6 +1693,46 @@ select.status { border: 1px solid transparent; min-height: var(--griff); padding
 .zeitzeile[data-laeuft="ja"] .zeitzeile-dauer { color: var(--marke); }
 .zeitzeile-knoepfe { display: flex; gap: 6px; justify-content: flex-end; min-width: 120px; }
 .zeitzeile-knoepfe .mini { width: 36px; padding: 0; }
+/* Liste und Kalender nebeneinander, je eine Hälfte. Der Kalender bleibt
+   beim Scrollen stehen: Er ist die Übersicht über die Liste daneben. */
+.zeit-haelften { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.zeit-liste { min-width: 0; }
+/* Das Kürzel des Pakets: eine Zeile, auch wenn ein Titel ohne Nummer lang ist. */
+.zeitzeile-was b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zeitkalender { position: sticky; top: 16px; margin-top: 18px; }
+.zeitkalender-raster { display: flex; flex-direction: column; gap: 4px; }
+.zeitkalender-woche { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.zeitkalender-wochentag { font-size: 12.5px; font-weight: 600; color: var(--text-leise); text-align: center; padding-bottom: 2px; }
+.zeitkalender-tag {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+  min-height: 56px; padding: 6px 7px 8px; border: 1px solid var(--rand); border-radius: var(--kante-klein);
+  background: var(--flaeche); color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.zeitkalender-tag:hover:not(:disabled) { border-color: var(--rand-stark); }
+.zeitkalender-tag:disabled { cursor: default; color: var(--text-sehr-leise); }
+.zeitkalender-tag[data-wochenende="ja"] { background: var(--flaeche-leise); color: var(--text-sehr-leise); }
+.zeitkalender-tag[data-heute="ja"] { border-color: var(--marke); box-shadow: inset 0 0 0 1px var(--marke); }
+.zeitkalender-tag[data-stufe] { border-bottom-width: 4px; padding-bottom: 5px; }
+.zeitkalender-tag[data-stufe="voll"] { background: var(--tag-voll-hell); border-bottom-color: var(--tag-voll); }
+.zeitkalender-tag[data-stufe="teil"] { background: var(--tag-teil-hell); border-bottom-color: var(--tag-teil); }
+.zeitkalender-tag[data-stufe="leer"] { background: var(--tag-leer-hell); border-bottom-color: var(--tag-leer); }
+.zeitkalender-nummer { font-size: 13px; font-weight: 600; }
+.zeitkalender-stunden { font-size: 12.5px; color: var(--text-leise); }
+.zeitkalender-legende { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; margin: 10px 0 0; padding: 0; font-size: 13px; color: var(--text-leise); }
+.zeitkalender-legende li { display: inline-flex; align-items: center; gap: 6px; }
+.zeitkalender-legende li::before { content: ""; width: 14px; height: 4px; border-radius: 2px; }
+.zeitkalender-legende li[data-stufe="voll"]::before { background: var(--tag-voll); }
+.zeitkalender-legende li[data-stufe="teil"]::before { background: var(--tag-teil); }
+.zeitkalender-legende li[data-stufe="leer"]::before { background: var(--tag-leer); }
+/* Unter 900 px reicht eine Hälfte nicht für Uhrzeit, Dauer und drei Knöpfe:
+   Der Kalender kommt über die Liste — am Handy ist er die Übersicht, die
+   man zuerst sieht, und nicht das Ende einer langen Liste. */
+@media (max-width: 900px) {
+  .zeit-haelften { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .zeitkalender { position: static; order: -1; }
+  .zeitkalender-tag { min-height: var(--griff); padding: 4px 5px 6px; }
+  .zeitkalender-tag[data-stufe] { padding-bottom: 3px; }
+}
 .nachtrag-abschluss { margin-top: 10px; }
 .nachtrag-satz { margin: 8px 0 0; font-size: 13px; color: var(--text-leise); }
 .nachtrag-wer { margin-top: 10px; }
