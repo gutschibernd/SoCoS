@@ -7,6 +7,43 @@ betrifft.
 
 ---
 
+## 2026-11-19 — Einstellungen und Profil umgebaut, Passwort-Befehl zum Kopieren
+
+**Bernd:** „könnte ein UI rework vertragen, das ist noch nicht so smooth wie
+der rest … die sind noch nicht schön geordnet." Dazu: „ein befehl zum pw
+kopieren button soll es geben", damit er als Admin an der Konsole schnell ein
+Passwort setzen kann.
+
+**Einstellungen: Umschalter oben statt Leiste links.** Dieselbe Bauart wie
+Praktikanten und Module — Umschalter, Leiste mit Name, Zahl und Griffen, Liste.
+Die Leiste links nahm 200 px für drei Wörter, und Konten und Protokoll sind
+Tabellen, die die Breite brauchen. Die Doku behält ihre Leiste (elf Rubriken).
+
+**Konten: stillgelegte hinter einem Umschalter**, wie das Archiv der
+Praktikumsthemen — sie waren die Mehrheit der Zeilen. **Passwort-Befehl** je
+Zeile kopiert `cd /opt/socos && docker compose … nutzer_passwort <adresse>`,
+**Befehl: Konto anlegen** den `nutzer_anlegen`-Befehl mit Platzhaltern. Das
+bleibt der einzige Weg zu Konten und Passwörtern: SoCoS kopiert Text, das
+Passwort fragt weiter die Konsole. **Der Vorspann steht zweimal** — in
+`frontend/src/basis/serverbefehl.ts` und in `betrieb/LIESMICH.md`. Zieht die
+Anwendung um, müssen beide mit; ein Test hält den Wortlaut fest.
+
+**Protokoll: nach Tagen gegliedert, mit Suche** über Wer, Ding, Feld und Wert.
+Die Tabelle mit fünf Spalten trug an jeder Zeile das volle Datum, und die
+Änderung — worum es geht — stand in der schmalsten Spalte. Werte werden zum
+Lesen übersetzt (ISO-Zeit → „19.11.2026, 12:45", true → „ja"); Zeichenketten
+wie Beträge bleiben, wie sie kamen.
+
+**Profil: eine Seite statt vier Teile.** Sieben Felder auf vier Seiten hießen
+drei Klicks, um Telefon und Adresse nachzutragen. Die Wege `/profil/adresse`,
+`/profil/konto` bleiben gültig und springen zur Gruppe. Gespeichert wird weiter
+nur, was sich geändert hat; geänderte Felder tragen die Kupferkante.
+
+Kein Eintrag in `aenderungen.py`: Es fällt nichts weg und kein Ablauf geht
+anders, die Seiten sind nur geordneter.
+
+---
+
 ## 2026-11-19 — Praktikanten: Meine Aufgaben, Stränge am Pensum (Migration 0063)
 
 **Bernd:** 2027 kommen drei Praktikanten (Niki, Karla, Paula). Vorher sollen

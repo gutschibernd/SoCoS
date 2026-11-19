@@ -11,6 +11,11 @@
  * Dateinamen nennt und sagt, was verschwindet — und der mildere Weg (erst
  * sichern) steht daneben.
  *
+ * **Herunterladen ist der Griff in der Leiste, Wiederherstellen eine eigene
+ * Karte darunter** (2026-11-19). Herunterladen ist das, was man hier
+ * meistens tut; Ersetzen das, was man fast nie tut und dann nicht aus
+ * Versehen. Vorher standen beide gleich laut untereinander in einer Karte.
+ *
  * Die Nachfrage bleibt ein Dialog, obwohl die Rubrik selbst eine Seite ist:
  * Sie soll den Blick festhalten und nur zwei Wege offen lassen. Ein Abschnitt
  * weiter unten auf derselben Seite wäre wegscrollbar.
@@ -21,6 +26,7 @@ import { useState } from "react";
 import { csrfWert } from "../basis/api";
 import { ANMELDESEITE } from "../basis/anmeldung";
 import { melden } from "../basis/meldungen";
+import { Hinweis } from "./Hinweis";
 import { Zeichen } from "./Zeichen";
 
 type Stand = "ruhig" | "fragt" | "laeuft";
@@ -65,50 +71,61 @@ export function Sicherung() {
 
   return (
     <>
-      <div className="karte">
-        <h2>Sicherung</h2>
-        <p className="sicherung-hinweis">
-          Der gesamte Bestand in einer Datei: Datenbank und hochgeladene Dateien.
-          Sie enthält auch die Konten — sie gehört nicht in eine E-Mail und nicht in
-          eine Cloud, die nicht uns gehört.
-        </p>
-
-        <div className="sicherung-teil">
-          <h3>Herunterladen</h3>
+      <div className="vorhabenleiste">
+        <div className="vorhaben-kopf">
+          <b>
+            Sicherung{" "}
+            <Hinweis
+              worum="Was in der Sicherung steckt"
+              text="Der ganze Bestand in einer Datei: Datenbank und hochgeladene Dateien, samt aller Konten. Sie gehört nicht in eine E-Mail und nicht in eine Cloud, die nicht uns gehört."
+            />
+          </b>
+          <span>Datenbank und Dateien als ein Archiv</span>
+        </div>
+        <div className="vorhaben-aktionen">
           {/* Ein gewöhnlicher Link, wie beim Zeitnachweis: Der Browser lädt
               das Archiv selbst, ohne dass es erst durch JavaScript wandert. */}
           <a className="knopf" href="/api/sicherung/">
-            <Zeichen name="runter" />
+            <Zeichen name="herunter" />
             Sicherung herunterladen
           </a>
         </div>
+      </div>
 
-        <div className="sicherung-teil">
-          <h3>Wiederherstellen</h3>
-          <input
-            className="feld"
-            type="file"
-            accept=".gz,.tgz,application/gzip,application/x-gzip"
-            onChange={(e) => setDatei(e.target.files?.[0] ?? null)}
+      <div className="karte sicherung-ersetzen">
+        <h2>
+          Wiederherstellen{" "}
+          <Hinweis
+            worum="Was Wiederherstellen tut"
+            text="Ersetzt den gesamten Bestand durch das gewählte Archiv aus „Sicherung herunterladen“ (socos-….tar.gz). Vorher kommt eine Nachfrage."
           />
-          <p className="sicherung-hinweis">
-            Ersetzt den gesamten Bestand durch die gewählte Datei. Erwartet wird ein
-            Archiv aus „Sicherung herunterladen“ (<code>socos-….tar.gz</code>).
-          </p>
-          <div className="feld-reihe">
-            <button
-              type="button"
-              className="knopf"
-              onClick={() =>
-                datei
-                  ? setStand("fragt")
-                  : melden("fehler", "Wähl zuerst das Archiv, das eingespielt werden soll.")
-              }
-              disabled={stand === "laeuft"}
-            >
-              {stand === "laeuft" ? "Wird eingespielt …" : "Bestand ersetzen"}
-            </button>
-          </div>
+        </h2>
+        <div className="feld-reihe">
+          {/* Das Dateifeld liegt in einem Etikett, das wie ein Knopf aussieht:
+              Das System zeichnet sein eigenes, und im dunklen Thema war es
+              ein weißer Fleck. Der Name der Datei steht daneben. */}
+          <label className="knopf-still sicherung-wahl">
+            <Zeichen name="archiv" />
+            {datei ? "Anderes Archiv" : "Archiv wählen"}
+            <input
+              type="file"
+              accept=".gz,.tgz,application/gzip,application/x-gzip"
+              onChange={(e) => setDatei(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <span className={datei ? "sicherung-datei" : "sicherung-datei leer"}>
+            {datei ? datei.name : "noch keine Datei gewählt"}
+          </span>
+          {/* Ohne Datei gesperrt statt mit einer Fehlermeldung danach: Der
+              Knopf sagt selbst, dass erst etwas fehlt. */}
+          <button
+            type="button"
+            className="knopf"
+            onClick={() => setStand("fragt")}
+            disabled={!datei || stand === "laeuft"}
+          >
+            {stand === "laeuft" ? "Wird eingespielt …" : "Bestand ersetzen …"}
+          </button>
         </div>
       </div>
 

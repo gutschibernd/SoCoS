@@ -1,39 +1,42 @@
 /**
- * Die eigenen Stammdaten, in vier Teilen: Person, Kontakt, Adresse, Konto.
+ * Die eigenen Stammdaten: oben wer man ist, darunter ein Formular in drei
+ * Gruppen — Person, Kontakt, Adresse —, darunter das Konto.
  *
- * Vorher standen sieben Felder in einer Spalte untereinander — Name, Rolle,
- * E-Mail, Telefon, Adresse, Ort, Geburtsdatum —, und darunter noch Team und
- * Protokoll. Das war eine Liste, kein Aufbau: Man sah nicht, was zusammen
- * gehört, und musste an allem vorbei, was man gerade nicht suchte.
+ * **Eine Seite, keine vier Teile mehr** (2026-11-19). Vorher stand jede Gruppe
+ * hinter einem eigenen Eintrag einer Leiste rechts — sieben Felder auf vier
+ * Seiten, je zwei oder drei. Wer Telefon und Adresse nachtragen wollte, klickte
+ * dreimal und sah nie, was sonst noch fehlt. Jetzt steht alles auf einen Blick,
+ * die Gruppen nebeneinander, am Handy untereinander.
  *
- * Die Leiste steht **rechts**, anders als in den Einstellungen. Der Grund ist
- * nicht Geschmack: Hier wird geschrieben, nicht nachgeschlagen. Das Formular
- * beginnt links am selben Rand wie jede andere Seite, und die Leiste ist die
- * Übersicht daneben — nicht das Erste, woran der Blick hängen bleibt.
+ * Die Wege `/profil/adresse`, `/profil/konto` … bleiben gültig (basis/router.ts)
+ * und springen zu ihrer Gruppe: Lesezeichen und verschickte Links führen
+ * weiter dorthin, wo sie hinzeigten.
  *
- * **Gespeichert wird immer alles, was sich geändert hat**, nicht nur der
- * gerade offene Teil. Sonst verlöre ein Wechsel von „Person" zu „Adresse" die
- * angefangene Zeile — und das an einer Stelle, die aussieht, als hätte man
- * bloß umgeblättert.
+ * **Gespeichert wird alles, was sich geändert hat, mit einem Knopf** — und nur
+ * das. Ein PATCH mit unveränderten Feldern schriebe Zeilen ins
+ * Änderungsprotokoll, in denen alt und neu dasselbe sind.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { hole } from "../basis/api";
 import { useNeuLaden, type Ich } from "../basis/daten";
 import { melden } from "../basis/meldungen";
 import type { Profilteil, Seite } from "../basis/router";
+import { inZwischenablage, passwortBefehl } from "../basis/serverbefehl";
 import { Fehlerzeile } from "../bausteine/Fehlerzeile";
+import { Hinweis } from "../bausteine/Hinweis";
+import { Zeichen } from "../bausteine/Zeichen";
 
-type Feld = { schluessel: string; titel: string; typ?: string; hinweis?: string };
+type Feld = { schluessel: string; titel: string; typ?: string; hinweis?: string; breit?: boolean };
 
-const TEILE: { teil: Profilteil; titel: string; felder: Feld[] }[] = [
+const GRUPPEN: { teil: Exclude<Profilteil, "konto">; titel: string; hinweis?: string; felder: Feld[] }[] = [
   {
     teil: "person",
     titel: "Person",
     felder: [
-      { schluessel: "name", titel: "Name", hinweis: "Steht im Team, im Zeitnachweis und an jeder Buchung." },
-      { schluessel: "funktion", titel: "Rolle", hinweis: "Was du hier tust — nicht die Berechtigung." },
+      { schluessel: "name", titel: "Name", hinweis: "Steht im Team, im Zeitnachweis und an jeder Buchung.", breit: true },
+      { schluessel: "funktion", titel: "Rolle im Team", hinweis: "Was du hier tust — nicht die Berechtigung." },
       { schluessel: "geburtsdatum", titel: "Geburtsdatum", typ: "date" },
     ],
   },
@@ -41,19 +44,19 @@ const TEILE: { teil: Profilteil; titel: string; felder: Feld[] }[] = [
     teil: "kontakt",
     titel: "Kontakt",
     felder: [
-      { schluessel: "email", titel: "E-Mail", typ: "email", hinweis: "Damit meldest du dich an." },
-      { schluessel: "telefon", titel: "Telefon", typ: "tel" },
+      { schluessel: "email", titel: "E-Mail", typ: "email", hinweis: "Damit meldest du dich an.", breit: true },
+      { schluessel: "telefon", titel: "Telefon", typ: "tel", breit: true },
     ],
   },
   {
     teil: "adresse",
     titel: "Adresse",
+    hinweis: "Adresse und Geburtsdatum sehen nur du und ein Admin.",
     felder: [
-      { schluessel: "strasse", titel: "Straße" },
-      { schluessel: "ort", titel: "Ort" },
+      { schluessel: "strasse", titel: "Straße", breit: true },
+      { schluessel: "ort", titel: "Ort", breit: true },
     ],
   },
-  { teil: "konto", titel: "Konto", felder: [] },
 ];
 
 const ROLLENTEXT: Record<string, string> = {
@@ -62,8 +65,13 @@ const ROLLENTEXT: Record<string, string> = {
   leser: "Leser — sieht alles, ändert nichts",
 };
 
+const ROLLE_KURZ: Record<string, string> = { admin: "Admin", bearbeiter: "Bearbeiter", leser: "Leser" };
+
 const alsText = (ich: Ich, schluessel: string) =>
   (ich as unknown as Record<string, string | null>)[schluessel] ?? "";
+
+const anfang = (ich: Ich) =>
+  Object.fromEntries(GRUPPEN.flatMap((g) => g.felder).map((f) => [f.schluessel, alsText(ich, f.schluessel)]));
 
 export function Profil({
   ich,
@@ -75,135 +83,190 @@ export function Profil({
   wechseln: (seite: Seite, unter?: string | null) => void;
 }) {
   const neuLaden = useNeuLaden();
-  const [werte, setWerte] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      TEILE.flatMap((t) => t.felder).map((f) => [f.schluessel, alsText(ich, f.schluessel)]),
-    ),
-  );
+  const [werte, setWerte] = useState<Record<string, string>>(() => anfang(ich));
   const [fehler, setFehler] = useState("");
+  const [speichert, setSpeichert] = useState(false);
 
-  const offen = TEILE.find((t) => t.teil === unter) ?? TEILE[0];
+  // Ein alter Weg auf einen Teil springt zu seiner Gruppe. Die erste steht
+  // ohnehin oben — dorthin zu rollen, hieße nur, den Kopf wegzuschieben.
+  useEffect(() => {
+    if (unter && unter !== "person") document.getElementById(`profil-${unter}`)?.scrollIntoView({ block: "start" });
+  }, [unter]);
 
-  // Nur das Geänderte geht hinaus — über alle vier Teile, nicht nur über den
-  // offenen. Ein PATCH mit unveränderten Feldern schriebe außerdem Zeilen ins
-  // Änderungsprotokoll, in denen alt und neu dasselbe sind.
   const geaendert = Object.entries(werte).filter(([k, v]) => v !== alsText(ich, k));
 
   async function speichern() {
-    if (!werte.name?.trim())
-      return setFehler("Ohne Namen steht im Team und im Zeitnachweis eine leere Zeile.");
+    if (!werte.name?.trim()) return setFehler("Ohne Namen steht im Team und im Zeitnachweis eine leere Zeile.");
     setFehler("");
-    if (geaendert.length === 0) return melden("gut", "Nichts zu speichern — alles steht schon so.");
-    await hole(`/nutzer/${ich.id}/`, {
-      method: "PATCH",
-      body: JSON.stringify(Object.fromEntries(geaendert)),
-    });
-    melden("gut", "Profil gespeichert.");
-    neuLaden();
+    if (geaendert.length === 0) return;
+    setSpeichert(true);
+    try {
+      await hole(`/nutzer/${ich.id}/`, { method: "PATCH", body: JSON.stringify(Object.fromEntries(geaendert)) });
+      melden("gut", "Profil gespeichert.");
+      neuLaden();
+    } finally {
+      setSpeichert(false);
+    }
   }
 
   return (
-    <div className="profilseite">
-      <nav className="untermenue" aria-label="Profil">
-        {TEILE.map((t) => (
-          <a
-            key={t.teil}
-            href={`/profil/${t.teil}`}
-            aria-current={t.teil === offen.teil ? "page" : undefined}
-            onClick={(e) => {
-              e.preventDefault();
-              wechseln("profil", t.teil);
-            }}
-          >
-            {t.titel}
-          </a>
-        ))}
-      </nav>
+    <div className="spalte profilseite">
+      <div className="vorhabenleiste profilkopf">
+        {/* Die Farbe ist die des Kontos, wie in der Leiste — ein Datum, kein Ton der Palette. */}
+        <i className="konto-kuerzel konto-kuerzel-gross" style={{ background: ich.farbe }}>
+          {ich.initialen}
+        </i>
+        <div className="vorhaben-kopf">
+          <b>{ich.name}</b>
+          <span>{[ich.funktion, ich.email].filter(Boolean).join(" · ")}</span>
+        </div>
+        <span className="status status-laeuft">{(ich.rolle && ROLLE_KURZ[ich.rolle]) || "ohne Rolle"}</span>
+      </div>
 
-      <div className="spalte">
-        <div className="karte">
-          <h2>{offen.titel}</h2>
-
-          {offen.teil === "konto" ? (
-            <Konto ich={ich} />
-          ) : (
-            <>
-              {offen.felder.map((feld) => (
-                <label key={feld.schluessel} className="profilfeld">
-                  <span className="beschriftung-klein">{feld.titel}</span>
+      <form
+        className="karte profilformular"
+        onSubmit={(e) => {
+          e.preventDefault();
+          speichern();
+        }}
+      >
+        {GRUPPEN.map((g) => (
+          <section key={g.teil} id={`profil-${g.teil}`} className="profilgruppe">
+            <h2>
+              {g.titel}
+              {g.hinweis && (
+                <>
+                  {" "}
+                  <Hinweis worum={`Wer ${g.titel} sieht`} text={g.hinweis} />
+                </>
+              )}
+            </h2>
+            <div className="profilfelder">
+              {g.felder.map((feld) => (
+                <div key={feld.schluessel} className={feld.breit ? "profilfeld profilfeld-breit" : "profilfeld"}>
+                  <span className="beschriftung-klein">
+                    <label htmlFor={`profil-feld-${feld.schluessel}`}>{feld.titel}</label>
+                    {feld.hinweis && (
+                      <>
+                        {" "}
+                        <Hinweis worum={`Was ${feld.titel} heißt`} text={feld.hinweis} />
+                      </>
+                    )}
+                  </span>
                   <input
+                    id={`profil-feld-${feld.schluessel}`}
                     className="feld"
                     type={feld.typ ?? "text"}
                     value={werte[feld.schluessel] ?? ""}
+                    data-geaendert={werte[feld.schluessel] !== alsText(ich, feld.schluessel) ? "ja" : undefined}
                     onChange={(e) => {
                       setWerte({ ...werte, [feld.schluessel]: e.target.value });
                       setFehler("");
                     }}
                   />
-                  {feld.hinweis && <span className="feldhinweis">{feld.hinweis}</span>}
-                </label>
+                </div>
               ))}
+            </div>
+          </section>
+        ))}
 
-              {offen.teil === "adresse" && (
-                <p className="feldhinweis">
-                  Adresse und Geburtsdatum sehen nur du und ein Administrator.
-                </p>
-              )}
-
-              <div className="feld-reihe" style={{ marginTop: 16 }}>
-                <button type="button" className="knopf" onClick={speichern}>
-                  Speichern
-                </button>
-                {geaendert.length > 0 && (
-                  <span className="feldhinweis">
-                    {geaendert.length === 1
-                      ? "Eine Änderung ist noch nicht gespeichert."
-                      : `${geaendert.length} Änderungen sind noch nicht gespeichert.`}
-                  </span>
-                )}
-                <Fehlerzeile text={fehler} />
-              </div>
-            </>
+        <div className="profilfuss">
+          <span className="profilfuss-stand">
+            {geaendert.length === 0
+              ? "Alles gespeichert."
+              : geaendert.length === 1
+                ? "Eine Änderung ist noch nicht gespeichert."
+                : `${geaendert.length} Änderungen sind noch nicht gespeichert.`}
+          </span>
+          {geaendert.length > 0 && (
+            <button
+              type="button"
+              className="knopf-still"
+              onClick={() => {
+                setWerte(anfang(ich));
+                setFehler("");
+              }}
+            >
+              Verwerfen
+            </button>
           )}
+          <button type="submit" className="knopf" disabled={geaendert.length === 0 || speichert}>
+            {speichert ? "Wird gespeichert …" : "Speichern"}
+          </button>
+          <Fehlerzeile text={fehler} />
         </div>
-      </div>
+      </form>
+
+      <Konto ich={ich} wechseln={wechseln} />
     </div>
   );
 }
 
 /**
  * Was zum Konto gehört, ändert man nicht selbst: Die Rolle setzt ein Admin,
- * das Passwort geht über die Kommandozeile. Beides steht hier trotzdem — die
- * häufigste Frage an dieser Stelle ist „was darf ich eigentlich", und die
+ * das Passwort geht über die Konsole des Servers. Beides steht hier trotzdem —
+ * die häufigste Frage an dieser Stelle ist „was darf ich eigentlich", und die
  * zweithäufigste „wie ändere ich mein Passwort".
+ *
+ * Wer selbst Admin ist, bekommt den Befehl zum Kopieren — derselbe Knopf wie
+ * in Einstellungen · Konten, für das eigene Konto.
  */
-function Konto({ ich }: { ich: Ich }) {
+function Konto({ ich, wechseln }: { ich: Ich; wechseln: (seite: Seite, unter?: string | null) => void }) {
+  const [zumMarkieren, setZumMarkieren] = useState<string | null>(null);
+
+  async function kopieren() {
+    const befehl = passwortBefehl(ich.email);
+    if (await inZwischenablage(befehl)) {
+      setZumMarkieren(null);
+      melden("gut", "Der Passwort-Befehl für dein Konto ist in der Zwischenablage.");
+    } else setZumMarkieren(befehl);
+  }
+
   return (
-    <>
-      <div className="kontozeile">
-        <i className="kuerzel" style={{ background: ich.farbe }}>
-          {ich.initialen}
-        </i>
+    <section id="profil-konto" className="karte">
+      <h2>Konto</h2>
+      <dl className="kontoangaben">
         <div>
-          <b>{ich.name}</b>
-          <div className="feldhinweis">{ich.email}</div>
+          <dt>
+            Berechtigung{" "}
+            <Hinweis worum="Wer die Berechtigung setzt" text="Die Rolle setzt ein Admin unter Einstellungen · Konten." />
+          </dt>
+          <dd>
+            {(ich.rolle && ROLLENTEXT[ich.rolle]) || "Keine Rolle — melde dich bei einem Admin."}
+            {ich.darf.nutzer_verwalten && (
+              <button type="button" className="mini" onClick={() => wechseln("einstellungen", "konten")}>
+                Zu den Konten
+                <Zeichen name="zeiger" />
+              </button>
+            )}
+          </dd>
         </div>
-      </div>
-
-      <span className="beschriftung-klein">Berechtigung</span>
-      <p className="profilwert">
-        {(ich.rolle && ROLLENTEXT[ich.rolle]) || "Keine Rolle — melde dich bei einem Admin."}
-      </p>
-      <p className="feldhinweis">
-        Die Rolle setzt ein Admin unter Einstellungen · Konten. Kürzel und Farbe kommen
-        vom Konto und stehen in der Kopfleiste und im Team.
-      </p>
-
-      <span className="beschriftung-klein">Passwort</span>
-      <p className="feldhinweis">
-        Das Passwort setzt ein Admin am Server (<code>nutzer_passwort</code>). In ein
-        Formular im Browser getippt, stünde es im Verlauf und im Passwortspeicher.
-      </p>
-    </>
+        <div>
+          <dt>
+            Passwort{" "}
+            <Hinweis
+              worum="Warum das Passwort nicht hier geändert wird"
+              text="In ein Formular im Browser getippt, stünde es im Verlauf und im Passwortspeicher. Darum setzt es ein Admin an der Konsole des Servers."
+            />
+          </dt>
+          <dd>
+            {ich.darf.nutzer_verwalten ? (
+              <button type="button" className="mini" title={passwortBefehl(ich.email)} onClick={kopieren}>
+                <Zeichen name="kopie" />
+                Passwort-Befehl kopieren
+              </button>
+            ) : (
+              "Setzt ein Admin am Server."
+            )}
+          </dd>
+        </div>
+      </dl>
+      {zumMarkieren && (
+        <div className="befehlkarte">
+          <span className="beschriftung-klein">Der Browser lässt das Kopieren nicht zu — bitte markieren</span>
+          <code>{zumMarkieren}</code>
+        </div>
+      )}
+    </section>
   );
 }

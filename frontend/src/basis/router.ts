@@ -80,10 +80,9 @@ export const DOKUTEILE = [
 export type Dokuteil = (typeof DOKUTEILE)[number];
 
 /**
- * Die Teile des Profils — dieselbe Bauart wie die Rubriken der Einstellungen,
- * nur mit der Leiste auf der anderen Seite. Auch sie stehen im Weg und nicht
- * im Zustand der Ansicht: Sonst würfe die Zurück-Geste des Geräts jemanden aus
- * dem Profil heraus, statt vom Teil zum Profil zurück.
+ * Die Gruppen des Profils. Seit 2026-11-19 stehen sie alle auf einer Seite;
+ * die Wege bleiben gültig und springen zur Gruppe, damit Lesezeichen und
+ * verschickte Links wie `/profil/konto` weiter dorthin führen.
  */
 export const PROFILTEILE = ["person", "kontakt", "adresse", "konto"] as const;
 export type Profilteil = (typeof PROFILTEILE)[number];

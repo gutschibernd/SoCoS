@@ -60,6 +60,9 @@ docker compose -f betrieb/proxy.yml up -d
 ```bash
 # 5 · Konten. Kein Befehl nimmt ein Passwort als Argument — es stünde in der
 #     Shell-Historie und in der Prozessliste des Servers.
+#     Fertig zum Kopieren: Einstellungen · Konten, „Passwort-Befehl". Der
+#     Vorspann dort steht in frontend/src/basis/serverbefehl.ts — ändert sich
+#     Pfad oder Compose-Datei, dort mit.
 docker compose -f betrieb/anwendung.yml exec anwendung \
     python manage.py nutzer_anlegen anna@sopharmis.com "Anna Weissenbacher" --rolle bearbeiter
 docker compose -f betrieb/anwendung.yml exec anwendung \

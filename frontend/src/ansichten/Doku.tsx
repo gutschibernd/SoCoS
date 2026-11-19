@@ -7,8 +7,10 @@
  * die Frage stellt, bevor er auf der Seite steht, findet die Antwort nicht,
  * und wer sie zweimal gelesen hat, überfährt sie nie wieder.
  *
- * Dieselbe Bauart wie die Einstellungen: eine Seite mit einem Untermenü, jede
- * Rubrik mit eigenem Weg und eigenem Lesezeichen.
+ * Eine Seite mit einem Untermenü links, jede Rubrik mit eigenem Weg und
+ * eigenem Lesezeichen. Die Einstellungen trugen dieselbe Bauart bis
+ * 2026-11-19; dort sind es drei kurze Rubriken mit breiten Tabellen, hier elf
+ * zum Nachschlagen — für elf passt die Leiste, für drei war sie Platz für nichts.
  *
  * **Der Text steht hier und nicht in einer Datendatei.** Er ist Markup — Listen,
  * Zeichen, Statusfarben, der Baum —, und als Zeichenkette in einer Tabelle
@@ -1418,6 +1420,12 @@ function RechteDoku() {
           <code>nutzer_anlegen</code> legt das Konto an, <code>nutzer_passwort</code>{" "}
           setzt das Passwort — beides interaktiv. Sonst landete irgendwann ein Passwort
           im Browserverlauf oder in der Prozessliste des Servers.
+        </p>
+        <p className="doku-text">
+          Unter Einstellungen · Konten kopiert <b>Passwort-Befehl</b> an jeder Zeile den
+          fertigen Befehl für die Konsole des Servers, samt Pfad und Adresse. Dort
+          einfügen, das Passwort fragt die Konsole ab. <b>Befehl: Konto anlegen</b>{" "}
+          kopiert den zum Anlegen — Adresse, Name und Rolle an der Konsole ersetzen.
         </p>
         <Merke>
           Konten werden nicht gelöscht, sondern stillgelegt. Das eigene Konto kann man

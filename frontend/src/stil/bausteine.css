@@ -200,7 +200,7 @@
  */
 .pl-kartenkopf > h2,
 .tabelle th,
-.sicherung-teil h3,
+.protokoll-tag > h3,
 .klapptitel,
 .phase-kopf .phase-summe,
 .beschriftung-klein,
@@ -810,26 +810,21 @@
   .notiz-knopf, .verlauf-arten button { min-height: var(--griff); }
 }
 
-/* Zwei Abschnitte in einem Dialog — Herunterladen und Wiederherstellen. Die
-   Linie dazwischen trennt zwei Dinge, von denen das zweite den Bestand
-   ersetzt; sie sollen nicht wie ein Knopfpaar nebeneinander wirken. */
-.sicherung-teil { border-top: 1px solid var(--rand); padding-top: 14px; margin-top: 14px; }
-.sicherung-teil h3 {
-  margin: 0 0 10px;
-}
-.sicherung-teil > .knopf { display: inline-flex; }
-.sicherung-hinweis { margin: 10px 0 14px; font-size: 13px; color: var(--text-leise); }
-.sicherung-hinweis code { font-family: var(--schrift-mono); font-size: 12px; }
-
-/* Der Knopf im Dateifeld wird sonst vom System gezeichnet — hell, mit fremdem
-   Radius, und im dunklen Modus als weißer Fleck mitten im Dialog. */
-.sicherung-teil input[type="file"]::file-selector-button {
-  margin-right: 12px; padding: 6px 12px;
-  border: 1px solid var(--rand-stark); border-radius: var(--kante);
-  background: var(--flaeche-leise); color: var(--text);
-  font: inherit; font-weight: 600; cursor: pointer;
-}
-.sicherung-teil input[type="file"]::file-selector-button:hover { background: var(--rand); }
+/* --- Sicherung (bausteine/Sicherung.tsx) ---------------------------------- */
+/*
+ * Herunterladen steht als Griff in der Leiste; Wiederherstellen ist eine eigene
+ * Karte mit der Kante, die „Achtung" heißt (.karte-achtung, nur links) — der
+ * Knopf darin ersetzt den Bestand.
+ */
+.sicherung-ersetzen { border-left: 3px solid var(--warnung); }
+.sicherung-ersetzen > h2 { display: flex; align-items: center; gap: 6px; }
+/* Das Dateifeld steckt unsichtbar im Etikett, das wie ein Knopf aussieht. Das
+   System zeichnete sonst seinen eigenen — mit fremdem Radius, und im dunklen
+   Thema als weißer Fleck. Der Fokus zeigt sich am Etikett. */
+.sicherung-wahl { position: relative; }
+.sicherung-wahl > input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.sicherung-wahl:focus-within { outline: 2px solid var(--marke); outline-offset: 2px; }
+.sicherung-datei { flex: 1 1 200px; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
 
 /* --- Felder -------------------------------------------------------------- */
 
@@ -1073,11 +1068,12 @@ a.leiste-knopf { text-decoration: none; }
  */
 .leiste-schatten, .uhr-handy, .fussleiste { display: none; }
 
-/* --- Einstellungen: Untermenü und Inhalt --------------------------------- */
+/* --- Untermenü (Doku) ---------------------------------------------------- */
 
 /* Zwei Spalten am Rechner, das Menü links. Am Handy (unten) legt es sich als
-   Reihe darüber — dieselben Elemente, keine zweite Ansicht. */
-.einstellungen { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; }
+   Reihe darüber — dieselben Elemente, keine zweite Ansicht. Einstellungen und
+   Profil trugen es auch, bis 2026-11-19; dort steht jetzt der Umschalter oben
+   bzw. alles auf einer Seite. */
 .untermenue { display: flex; flex-direction: column; gap: 2px; align-content: start; }
 .untermenue a {
   display: flex; align-items: center; min-height: var(--griff);
@@ -1090,29 +1086,78 @@ a.leiste-knopf { text-decoration: none; }
   color: var(--text); font-weight: 600;
 }
 
-/* Das Profil trägt dieselbe Leiste, nur rechts: Dort wird geschrieben, und das
-   Formular soll am linken Rand beginnen wie auf jeder anderen Seite. Im Markup
-   steht die Leiste zuerst — am Handy gehört sie nach oben, und die Tastatur
-   soll sie vor dem Formular erreichen. */
-.profilseite { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; }
-.profilseite > .untermenue { order: 2; }
-
+/* Ein Feld mit Beschriftung darüber — im Profil und in vielen Anlegefenstern. */
 .profilfeld { display: block; margin-bottom: 14px; }
 .profilfeld .beschriftung-klein { margin-bottom: 4px; }
-.feldhinweis {
-  display: block; margin: 5px 0 0; font-size: 12px; color: var(--text-leise); line-height: 1.5;
+
+/* --- Konten (bausteine/Team.tsx) ----------------------------------------- */
+
+/* Rund und in der Farbe des Kontos, wie in der Leiste (.profil i). */
+.konto-kuerzel {
+  flex: 0 0 36px; width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
 }
-.feldhinweis code { font-family: var(--schrift-mono); font-size: 11px; }
-.profilwert { margin: 0 0 4px; font-size: 14px; }
-.kontozeile {
-  display: flex; align-items: center; gap: 12px;
-  padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--rand);
+.konto-kuerzel-gross { flex-basis: 48px; width: 48px; height: 48px; font-size: 15px; }
+.konto-person { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.konto-person > span { display: flex; flex-direction: column; min-width: 0; }
+.konto-person b { font-weight: 600; }
+.konto-person em { font-style: normal; font-size: 13px; color: var(--text-leise); overflow-wrap: anywhere; }
+.kontotabelle td { vertical-align: middle; }
+.kontotabelle th:nth-child(2) { width: 180px; }
+.konto-rolle { width: 160px; }
+/* Stillgelegt in der leisen Schrift statt halbdurchsichtig: Transparenz
+   halbierte auch den Kontrast der Knöpfe, mit denen man es zurückholt. */
+.kontotabelle tr[data-still] .konto-person b { color: var(--text-leise); font-weight: 500; }
+.kontotabelle tr[data-still] .konto-kuerzel { filter: grayscale(1); }
+
+/* Ein Befehl, den der Browser nicht kopieren ließ — zum Markieren. */
+.befehlkarte { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.befehlkarte code {
+  display: block; width: 100%; padding: 10px 12px; border-radius: var(--kante);
+  background: var(--flaeche-leise); font-family: var(--schrift-mono); font-size: 13px;
+  overflow-wrap: anywhere; user-select: all;
 }
-/* Im Profil steht das Kürzel groß und trägt die eigene Farbe — nicht die
-   Markenfläche wie in der Kontaktliste. */
-.kontozeile .kuerzel {
-  width: 44px; height: 44px; display: grid; place-items: center;
-  font-size: 14px; color: var(--marke-tiefer);
+.karte .befehlkarte { margin-top: 14px; }
+
+/* --- Profil (ansichten/Profil.tsx) --------------------------------------- */
+
+/* Kürzel, Name, Rolle in einer Zeile, auch am Handy — die Rolle in eine
+   eigene Zeile darunter sähe aus wie ein zweiter Eintrag. */
+.profilkopf { gap: 12px 16px; flex-wrap: nowrap; }
+.profilkopf > .vorhaben-kopf { flex: 1 1 0; }
+.profilkopf > .vorhaben-kopf > span { overflow-wrap: anywhere; }
+
+/* Drei Gruppen nebeneinander, am Handy untereinander. Jede Gruppe ein eigenes
+   kleines Raster: zwei Felder je Zeile, ein langes über die ganze Breite. */
+.profilformular { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 28px; }
+.profilgruppe { min-width: 0; }
+.profilgruppe > h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.profilfelder { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.profilfelder > .profilfeld-breit { grid-column: 1 / -1; }
+.profilfeld .beschriftung-klein { display: flex; align-items: center; gap: 6px; }
+/* Was noch nicht gespeichert ist, trägt die Kante der Handlung — man sieht,
+   welches Feld der Zähler unten meint. */
+.profilformular .feld[data-geaendert] { border-color: var(--akzent); }
+.profilfuss {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding-top: 14px; border-top: 1px solid var(--rand);
+}
+.profilfuss-stand { flex: 1 1 200px; font-size: 13.5px; color: var(--text-leise); }
+.profilfuss > .rueckmeldung { flex: 1 0 100%; margin-top: 0; }
+
+/* Angaben, die man liest und nicht ändert: Beschriftung links, Wert rechts. */
+.kontoangaben { margin: 0; display: flex; flex-direction: column; }
+.kontoangaben > div {
+  display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 4px 16px; align-items: center;
+  padding: 10px 0; border-top: 1px solid var(--rand);
+}
+.kontoangaben > div:first-child { border-top: 0; padding-top: 0; }
+.kontoangaben dt { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-leise); }
+.kontoangaben dd { margin: 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+
+@media (max-width: 1000px) {
+  .profilformular { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* --- Karte zum Auf- und Zuklappen ---------------------------------------- */
@@ -3252,13 +3297,8 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .zeitzeile-knoepfe { grid-area: knoepfe; min-width: 0; }
   .zeitzeile-knoepfe .mini, .monatswahl .mini { width: var(--griff); min-height: var(--griff); }
 
-  /* Zwei Spalten haben bei 375 px keinen Platz: Das Untermenü wird zur Reihe
-     über dem Inhalt und darf waagrecht wandern, wenn die drei Rubriken nicht
-     nebeneinander passen. */
-  .einstellungen, .profilseite { grid-template-columns: minmax(0, 1fr); }
-  /* Am Handy steht die Leiste oben — auch die des Profils, die am Rechner
-     rechts sitzt. Unter dem Formular fände sie niemand. */
-  .profilseite > .untermenue { order: 0; }
+  /* Das Untermenü der Doku wird zur Reihe über dem Inhalt und darf
+     waagrecht wandern, wenn die Rubriken nicht nebeneinander passen. */
   .untermenue { flex-direction: row; overflow-x: auto; gap: 6px; }
   .untermenue a { flex: 0 0 auto; }
 
@@ -3315,19 +3355,52 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   display: inline-flex; align-items: center; justify-content: center;
 }
 
-.team-punkt {
-  display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px;
-}
 .team-du {
   margin-left: 8px; padding: 2px 7px; border-radius: var(--kante-klein);
   background: var(--marke-hell); color: var(--marke); font-size: 11px; font-weight: 600;
 }
+
+/* --- Änderungsprotokoll (bausteine/Protokoll.tsx) ------------------------
+ *
+ * Nach Tagen gegliedert: Der Tag ist die Überschrift, die Zeile trägt nur die
+ * Uhrzeit. Drei Spalten — wann, wer, was —, am Handy wann und wer in einer
+ * Zeile über dem Was. Dasselbe Markup, keine zweite Ansicht.
+ */
+.vorhabenleiste > .vorhaben-suche { flex: 1 1 280px; max-width: 420px; margin-left: auto; }
+.protokoll { padding-top: 6px; padding-bottom: 6px; }
+.protokoll-tag > h3 { margin: 0; padding: 12px 0 8px; border-bottom: 1px solid var(--rand-stark); }
+.protokoll-tag + .protokoll-tag > h3 { padding-top: 22px; }
+.protokoll-tag ol { list-style: none; margin: 0; padding: 0; }
+.protokoll-zeile {
+  display: grid; grid-template-columns: 48px 150px minmax(0, 1fr); gap: 4px 16px;
+  padding: 10px 0; border-bottom: 1px solid var(--rand); font-size: 14px;
+}
+.protokoll-tag li:last-child { border-bottom: 0; }
+.protokoll-zeit { color: var(--text-leise); }
+.protokoll-wer { min-width: 0; overflow-wrap: anywhere; }
+.protokoll-was { min-width: 0; }
+.protokoll-was > p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.protokoll-was b { font-weight: 600; }
+.protokoll-aktion { color: var(--text-leise); }
 .protokoll-modell {
   display: inline-block; margin-right: 8px; padding: 1px 6px; border-radius: var(--kante-klein);
   background: var(--flaeche-leise); color: var(--text-leise); font-size: 11px; font-weight: 600;
 }
-.protokoll-feld { font-size: 13px; line-height: 1.5; }
-.protokoll-feld b { font-weight: 600; }
+.protokoll-felder { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.protokoll-felder li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; min-width: 0; }
+.protokoll-feld { font-weight: 600; color: var(--text-leise); }
+.protokoll-felder s { color: var(--text-leise); }
+.protokoll-felder [aria-hidden] { color: var(--text-sehr-leise); }
+.protokoll-mehr { margin: 12px 0 8px; }
+
+@media (max-width: 720px) {
+  .protokoll-zeile { grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; }
+  .protokoll-was { grid-column: 1 / -1; }
+  .protokoll-wer { color: var(--text-leise); }
+  .vorhabenleiste > .vorhaben-suche { flex: 1 1 100%; max-width: none; margin-left: 0; }
+  .kontotabelle th:nth-child(2), .konto-rolle { width: 100%; }
+  .kontoangaben > div { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* --- Förderungen ----------------------------------------------------------- */
 /*
