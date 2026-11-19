@@ -129,7 +129,7 @@ class PensumSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pensum
-        fields = ["id", "paket", "person", "person_name", "stunden", "gebuchte_sekunden"]
+        fields = ["id", "paket", "person", "person_name", "stunden", "strang", "gebuchte_sekunden"]
 
     def get_gebuchte_sekunden(self, pensum):
         summen = self.context.get("sekunden_je_paket_und_person", {})
@@ -823,7 +823,7 @@ class PraktikumsthemaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Praktikumsthema
         fields = [
-            "id", "titel", "art", "kurzbeschreibung", "punkte", "ausschreibung", "auftrag", "archiviert_am",
+            "id", "titel", "kurzbeschreibung", "punkte", "ausschreibung", "auftrag", "archiviert_am",
             "geaendert_am",
         ]
         read_only_fields = ["geaendert_am"]

@@ -6,18 +6,23 @@
  * der Übersicht noch keine Kachel, und niemand sähe warum.
  */
 
-import type { Themenart, Umfang } from "./daten";
+import type { Umfang } from "./daten";
 import type { ZeichenName } from "../bausteine/Zeichen";
 
-/**
- * Eine Liste von Themen, die man selbst anlegt — die Haupt-Aufgabenstellungen
- * der Praktikanten oder ihre sonstigen Ideen. Beide Listen sind dasselbe
- * Modell; `art` trennt sie.
- */
-export type Themenliste = { weg: string; titel: string; wozu: string; schluessel: "praktikum"; art: Themenart };
+/** Die Haupt-Aufgabenstellungen der Praktikanten: Themen mit Ausschreibung und Aushang. */
+export type Themenliste = { weg: string; titel: string; wozu: string; schluessel: "praktikum" };
 
 /** Die To-Dos der Praktikanten: kleine Pakete zum Heraussuchen, ein eigenes Modell. */
 export type Todoteil = { weg: string; titel: string; wozu: string; schluessel: "todos" };
+
+/** Meine Aufgaben: Haupt- und Nebenstränge je Praktikant (`ansichten/Praktikanten.tsx`). */
+export type Strangteil = { weg: string; titel: string; wozu: string; schluessel: "straenge" };
+
+/** Die Einschulung — eine Leerstelle, bis sie gebaut wird. */
+export type Einschulungsteil = { weg: string; titel: string; wozu: string; schluessel: "einschulung" };
+
+/** Die Teile, die auf dem Einstieg der Praktikanten als große Kachel stehen. */
+export type Praktikantenteil = Themenliste | Todoteil | Strangteil | Einschulungsteil;
 
 /** Ein Teil, der eine eigene Seite ohne Unterteile ist — Thoughts. */
 export type Kartenteil = { weg: string; titel: string; schluessel: "thoughts" };
@@ -34,7 +39,7 @@ export type Designteil = { weg: string; titel: string; schluessel: "design" };
 /** Die Bestellungen: eine Liste der Lieferanten, je Lieferant eine Seite darunter. */
 export type Bestellteil = { weg: string; titel: string; schluessel: "bestellungen" };
 
-export type Teil = Themenliste | Todoteil | Kartenteil | Foerderteil | Runwayteil | Designteil | Bestellteil;
+export type Teil = Praktikantenteil | Kartenteil | Foerderteil | Runwayteil | Designteil | Bestellteil;
 
 export type Modul = {
   /**
@@ -58,29 +63,37 @@ export const MODULE: Modul[] = [
     // der Teile sind geblieben, damit Lesezeichen auf ein Thema weiter gehen.
     weg: "praktikanten",
     titel: "Praktikanten",
-    wozu: "Aufgabenstellungen ausschreiben, To-Dos für zwischendurch sammeln",
+    wozu: "Wer woran arbeitet, To-Dos zum Aussuchen, Aufgabenstellungen ausschreiben",
     zeichen: "mappe",
+    // Seit 2026-11-19 in dieser Reihenfolge (Bernd): Wer hier hereinkommt,
+    // will zuerst wissen, woran er ist. Die Ausschreibungen braucht man vor
+    // dem Praktikum, nicht währenddessen — sie stehen hinten. Die
+    // „Sonstigen Ideen" sind in den To-Dos aufgegangen.
     teile: [
       // `wozu` ist die eine Zeile auf der Kachel des Einstiegs.
+      {
+        weg: "praktikum-aufgaben",
+        titel: "Meine Aufgaben",
+        wozu: "Hauptstrang, Nebenstränge und ihre To-Dos — und die Uhr darauf",
+        schluessel: "straenge",
+      },
+      {
+        weg: "praktikum-todos",
+        titel: "To-Dos",
+        wozu: "Ideen, die noch niemandem gehören — zum Aussuchen für zwischendurch",
+        schluessel: "todos",
+      },
+      {
+        weg: "praktikum-einschulung",
+        titel: "Einschulung",
+        wozu: "Was man bei Sopharmis wissen muss — kommt noch",
+        schluessel: "einschulung",
+      },
       {
         weg: "praktikum",
         titel: "Haupt-Aufgabenstellungen",
         wozu: "Was wir als Praktikum vergeben — mit Ausschreibung und Aushang",
         schluessel: "praktikum",
-        art: "aufgabe",
-      },
-      {
-        weg: "praktikum-ideen",
-        titel: "Sonstige Ideen",
-        wozu: "Was einmal eine Aufgabenstellung werden könnte",
-        schluessel: "praktikum",
-        art: "idee",
-      },
-      {
-        weg: "praktikum-todos",
-        titel: "To-Dos",
-        wozu: "Kleine Pakete für zwischendurch — vom Vormittag bis zur Woche",
-        schluessel: "todos",
       },
     ],
   },
@@ -144,17 +157,23 @@ export function einstiegAusWeg(unter: string | null): { modul: Modul } | null {
 }
 
 /**
- * Das Thema hinter `praktikum/12` oder `praktikum-ideen/12` — oder nichts.
+ * Das Thema hinter `praktikum/12` — oder nichts.
  *
  * Die Liste steht mit im Weg, damit „zurück" in die Liste führt, aus der man
- * kam. Welche Art das Thema wirklich hat, sagt erst der Server: Zeigt ein
- * altes Lesezeichen auf die falsche Liste, steht das Thema trotzdem da.
+ * kam. Ein altes Lesezeichen auf `praktikum-ideen/12` führt ins Leere: Die
+ * Ideen sind seit 2026-11-19 To-Dos.
  */
 export function themaAusWeg(unter: string | null): { modul: Modul; teil: Themenliste; id: number } | null {
   const treffer = /^([a-z-]+)\/(\d+)$/.exec(unter ?? "");
   const gefunden = treffer && teilZuWeg(treffer[1]);
   if (!treffer || !gefunden || gefunden.teil.schluessel !== "praktikum") return null;
   return { modul: gefunden.modul, teil: gefunden.teil, id: Number(treffer[2]) };
+}
+
+/** Die Seite eines Praktikanten hinter `praktikum-aufgaben/7` — die Nummer seines Kontos, oder nichts. */
+export function praktikantAusWeg(unter: string | null): number | null {
+  const treffer = /^praktikum-aufgaben\/(\d+)$/.exec(unter ?? "");
+  return treffer ? Number(treffer[1]) : null;
 }
 
 /**
@@ -235,17 +254,14 @@ export function entscheidungsZahl(zahl: number): string {
   return `${zahl} ${zahl === 1 ? "Entscheidung" : "Entscheidungen"}`;
 }
 
-/** „3 Themen", „1 Idee" — wie die Zeile auf der Übersicht und die Leiste zählen. */
-export function themenZahl(zahl: number, art: Themenart): string {
-  if (art === "idee") return `${zahl} ${zahl === 1 ? "Idee" : "Ideen"}`;
+/** „3 Themen" — wie die Zeile auf der Übersicht und die Leiste zählen. */
+export function themenZahl(zahl: number): string {
   return `${zahl} ${zahl === 1 ? "Thema" : "Themen"}`;
 }
 
-/** Die Liste, in der ein Thema dieser Art steht. */
-export function listeFuer(art: Themenart): Themenliste {
-  for (const modul of MODULE)
-    for (const teil of modul.teile) if (teil.schluessel === "praktikum" && teil.art === art) return teil;
-  throw new Error(`Keine Liste für ${art}`);
+/** Ob ein Teil auf dem Einstieg der Praktikanten als große Kachel steht. */
+export function istPraktikantenteil(teil: Teil): teil is Praktikantenteil {
+  return ["praktikum", "todos", "straenge", "einschulung"].includes(teil.schluessel);
 }
 
 /** Das Modul und der Teil zu einem Weg — oder nichts. */

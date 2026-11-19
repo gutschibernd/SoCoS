@@ -627,7 +627,24 @@ class Pensum(Basismodell):
     Es gibt **höchstens einen** Eintrag je Paket und Person. Zwei wären zwei
     Pensen für dieselbe Arbeit, und keine Anzeige könnte entscheiden, welches
     gilt.
+
+    **`strang` macht aus dem Pensum einen Strang eines Praktikanten** (seit
+    2026-11-19): Hauptstrang — damit beschäftigt er sich —, oder Nebenstrang.
+    Leer heißt: ein gewöhnliches Pensum. Ein eigenes Modell „Strang" wäre
+    noch einmal Person × Paket × Stunden gewesen, also dieses hier ein
+    zweites Mal; und gebucht wird ohnehin aufs Paket. Das Ziel ist die
+    Beschreibung des Pakets, die To-Dos sind seine Unteraufgaben.
+
+    **Wer Praktikant ist, wird daraus gerechnet** — wer mindestens einen
+    Strang hat —, nicht an einem Schalter am Konto gesetzt. Ein Schalter
+    stünde nach dem Praktikum noch da, und die Liste „Wessen Aufgaben?"
+    zeigte jemanden ohne eine einzige Aufgabe.
     """
+
+    class Strang(models.TextChoices):
+        KEINER = "", "kein Strang"
+        HAUPT = "haupt", "Hauptstrang"
+        NEBEN = "neben", "Nebenstrang"
 
     paket = models.ForeignKey(
         Arbeitspaket,
@@ -643,6 +660,7 @@ class Pensum(Basismodell):
     # die kleinste Einheit, die im Arbeitsplan vorkommt — zwei Nachkommastellen
     # tragen sie.
     stunden = models.DecimalField("Stunden", max_digits=7, decimal_places=2)
+    strang = models.CharField("Strang", max_length=5, choices=Strang.choices, default="", blank=True)
 
     class Meta(Basismodell.Meta):
         verbose_name = "Pensum"
@@ -1688,10 +1706,10 @@ class Praktikumsthema(Basismodell):
     nachgebessert wird: ein Wort hier, ein Punkt weniger dort, ohne jedes Mal
     das LLM zu fragen.
 
-    **Eine sonstige Idee ist ein Thema mit `art = "idee"`** und kein eigenes
-    Modell: Aus einer Idee wird irgendwann eine Haupt-Aufgabe, und dann soll
-    sie mit allem umziehen, was schon an ihr steht — ein Feld umstellen statt
-    abschreiben.
+    **Die „sonstigen Ideen" gibt es seit 2026-11-19 nicht mehr** (Bernd: „das
+    fällt jetzt unter To-Do-Ideen"). Bis dahin trug das Thema ein Feld `art`;
+    die Ideen sind beim Umbau als To-Dos (`Nebenaufgabe`) umgezogen
+    (Migration 0063), das Feld ist weg.
 
     **Archiviert ist ein Datum, kein eigener Ort**, wie `abgeschlossen_am` in
     Thoughts: Eine besetzte oder abgelaufene Stelle ist nicht falsch, bloß nicht
@@ -1699,12 +1717,7 @@ class Praktikumsthema(Basismodell):
     bleibt aber samt Ausschreibung da, falls sie wiederkommt.
     """
 
-    AUFGABE = "aufgabe"
-    IDEE = "idee"
-    ARTEN = [(AUFGABE, "Haupt-Aufgabenstellung"), (IDEE, "Sonstige Idee")]
-
     titel = models.CharField("Titel", max_length=160)
-    art = models.CharField("Art", max_length=10, choices=ARTEN, default=AUFGABE)
     kurzbeschreibung = models.TextField("Kurzbeschreibung", blank=True)
     punkte = models.TextField("Punkte", blank=True, help_text="Ein Punkt je Zeile.")
     ausschreibung = models.TextField("Ausschreibung", blank=True)

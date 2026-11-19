@@ -22,7 +22,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from socos.models import Protokolleintrag
+from socos.models import Pensum, Protokolleintrag
 
 # Baustein → die Modelle, deren Protokollzeilen für ihn sprechen. Ein leeres
 # Tupel heißt: nie aus der Nutzung vorgeschlagen, nur von Hand dazugenommen.
@@ -58,6 +58,9 @@ BAUSTEINE = {
     "geld": ("socos.Kontostand", "socos.Fixkosten", "socos.Monatskosten", "socos.Runwayplan"),
     "team": (),
     "aktivitaet": (),
+    # Nie aus der Nutzung — sondern für jeden, der einen Strang hat, als
+    # Erstes (siehe `vorschlag`).
+    "praktikum": (),
 }
 
 # Was breit steht, wenn es vorgeschlagen wird: Der Gantt und der Kontoverlauf
@@ -85,7 +88,23 @@ def _eintrag(baustein):
 
 
 def vorschlag(nutzer, jetzt=None):
-    """Die Übersicht aus der eigenen Nutzung der letzten dreißig Tage."""
+    """
+    Die Übersicht aus der eigenen Nutzung der letzten dreißig Tage.
+
+    **Wer einen Strang hat, bekommt „Mein Praktikum" als Erstes**, vor allem
+    anderen. Ein Praktikant macht SoCoS auf, um zu sehen, woran er ist, und
+    die Uhr darauf zu starten (Bernd, 2026-11-19). Aus der Nutzung käme der
+    Baustein nie: Gebucht wird auf Pakete, und die zählen für „Projekte".
+    """
+    erst = [_eintrag("praktikum")] if _hat_strang(nutzer) else []
+    return erst + _aus_nutzung(nutzer, jetzt)
+
+
+def _hat_strang(nutzer):
+    return Pensum.objects.filter(person=nutzer, paket__geloescht_am__isnull=True).exclude(strang="").exists()
+
+
+def _aus_nutzung(nutzer, jetzt):
     jetzt = jetzt or timezone.now()
     modelle = Protokolleintrag.objects.filter(
         nutzer=nutzer, zeitpunkt__gte=jetzt - timedelta(days=TAGE)

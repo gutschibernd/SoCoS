@@ -183,34 +183,14 @@ class TestSchnittstelle:
         assert Protokolleintrag.objects.filter(modell="socos.Praktikumsthema").exists()
 
     @pytest.mark.django_db
-    def test_eine_idee_wird_zur_haupt_aufgabe(self, client, bearbeiter):
-        client.force_login(bearbeiter)
-        antwort = client.post(
-            "/api/praktikumsthemen/", {"titel": "Messestand", "art": "idee"}, content_type="application/json"
-        )
-        assert antwort.json()["art"] == "idee"
-
-        client.patch(f"/api/praktikumsthemen/{antwort.json()['id']}/", {"art": "aufgabe"}, content_type="application/json")
-
-        assert Praktikumsthema.objects.get().art == Praktikumsthema.AUFGABE
-
-    @pytest.mark.django_db
-    def test_ohne_art_ist_es_eine_haupt_aufgabe(self, client, bearbeiter):
+    def test_eine_art_gibt_es_nicht_mehr(self, client, bearbeiter):
+        """Seit 2026-11-19 sind die Ideen To-Dos — ein mitgeschicktes `art` bleibt folgenlos."""
         client.force_login(bearbeiter)
 
-        client.post("/api/praktikumsthemen/", {"titel": "X"}, content_type="application/json")
+        antwort = client.post("/api/praktikumsthemen/", {"titel": "X", "art": "idee"}, content_type="application/json")
 
-        assert Praktikumsthema.objects.get().art == Praktikumsthema.AUFGABE
-
-    @pytest.mark.django_db
-    def test_eine_erfundene_art_wird_abgewiesen(self, client, bearbeiter):
-        client.force_login(bearbeiter)
-
-        antwort = client.post(
-            "/api/praktikumsthemen/", {"titel": "X", "art": "traum"}, content_type="application/json"
-        )
-
-        assert antwort.status_code == 400
+        assert antwort.status_code == 201
+        assert "art" not in antwort.json()
 
     @pytest.mark.django_db
     def test_die_ausschreibung_wird_gespeichert(self, client, bearbeiter, thema):
@@ -282,11 +262,10 @@ class TestArchivUndSammlung:
         Praktikumsthema.objects.create(titel="Spender", ausschreibung=ANTWORT)
         Praktikumsthema.objects.create(titel="Ohne Text")
         Praktikumsthema.objects.create(titel="Besetzt", ausschreibung=ANTWORT, archiviert_am=date(2026, 1, 1))
-        Praktikumsthema.objects.create(titel="Eine Idee", art=Praktikumsthema.IDEE, ausschreibung=ANTWORT)
         # Laden dürfen alle, wie das einzelne PDF.
         client.force_login(leser)
 
-        antwort = client.get("/api/praktikumsthemen/pdfs/?art=aufgabe")
+        antwort = client.get("/api/praktikumsthemen/pdfs/")
 
         assert antwort.status_code == 200
         assert antwort["Content-Type"] == "application/zip"
@@ -294,12 +273,6 @@ class TestArchivUndSammlung:
         assert self._namen(antwort) == ["Praktikum_Spender.pdf"]
         pdf = zipfile.ZipFile(io.BytesIO(antwort.content)).read("Praktikum_Spender.pdf")
         assert pdf.startswith(b"%PDF") and _seiten(pdf) == 1
-
-        # Ohne Angabe beide Listen.
-        assert self._namen(client.get("/api/praktikumsthemen/pdfs/")) == [
-            "Praktikum_Eine-Idee.pdf",
-            "Praktikum_Spender.pdf",
-        ]
 
     @pytest.mark.django_db
     def test_gleiche_titel_ueberschreiben_sich_nicht(self, client, leser):
@@ -327,7 +300,6 @@ def test_themen_wandern_durch_die_sicherung(tmp_path, settings, bearbeiter):
     settings.MEDIA_ROOT.mkdir()
     Praktikumsthema.objects.create(
         titel="Marktrecherche",
-        art=Praktikumsthema.IDEE,
         punkte="Eins\nZwei",
         ausschreibung=ANTWORT,
         archiviert_am=date(2026, 10, 12),
@@ -341,7 +313,6 @@ def test_themen_wandern_durch_die_sicherung(tmp_path, settings, bearbeiter):
     wieder_da = Praktikumsthema.objects.get(titel="Marktrecherche")
     assert wieder_da.punkte == "Eins\nZwei"
     assert wieder_da.ausschreibung == ANTWORT
-    assert wieder_da.art == Praktikumsthema.IDEE
     assert wieder_da.archiviert_am == date(2026, 10, 12)
 
 

@@ -14,14 +14,14 @@ import {
   punkteAusText,
   teilZuWeg,
   themaAusWeg,
-  listeFuer,
+  istPraktikantenteil,
   themenZahl,
 } from "./module";
 
 describe("die Wege der Module", () => {
   it("kennt die Praktikanten, Thoughts, die Förderungen, Runway, Bestellungen und Design", () => {
     expect(MODULWEGE).toEqual([
-      "praktikanten", "praktikum", "praktikum-ideen", "praktikum-todos", "thoughts", "foerderungen", "runway",
+      "praktikanten", "praktikum-aufgaben", "praktikum-todos", "praktikum-einschulung", "praktikum", "thoughts", "foerderungen", "runway",
       "bestellungen", "design",
     ]);
     expect(teilZuWeg("bestellungen")?.teil.schluessel).toBe("bestellungen");
@@ -29,6 +29,9 @@ describe("die Wege der Module", () => {
     expect(teilZuWeg("praktikum")?.modul.titel).toBe("Praktikanten");
     expect(teilZuWeg("praktikum-todos")?.teil.schluessel).toBe("todos");
     expect(teilZuWeg("praktikum")?.teil.titel).toBe("Haupt-Aufgabenstellungen");
+    expect(teilZuWeg("praktikum-aufgaben")?.teil.schluessel).toBe("straenge");
+    // Die Sonstigen Ideen sind seit 2026-11-19 To-Dos.
+    expect(teilZuWeg("praktikum-ideen")).toBeNull();
     // Die SPG Academy ist entfernt; ein altes Lesezeichen landet auf der Übersicht.
     expect(teilZuWeg("spg")).toBeNull();
     expect(teilZuWeg("pitch")).toBeNull();
@@ -36,8 +39,9 @@ describe("die Wege der Module", () => {
 
   it("hat einen Einstieg nur für ein Modul mit mehreren Teilen", () => {
     expect(einstiegAusWeg("praktikanten")?.modul.teile.map((t) => t.titel)).toEqual([
-      "Haupt-Aufgabenstellungen", "Sonstige Ideen", "To-Dos",
+      "Meine Aufgaben", "To-Dos", "Einschulung", "Haupt-Aufgabenstellungen",
     ]);
+    expect(einstiegAusWeg("praktikanten")?.modul.teile.every(istPraktikantenteil)).toBe(true);
     // Der Einstieg ist kein Teil — und ein Teil ist kein Einstieg.
     expect(teilZuWeg("praktikanten")).toBeNull();
     expect(einstiegAusWeg("praktikum")).toBeNull();
@@ -52,7 +56,8 @@ describe("die Wege der Module", () => {
 
   it("findet das Thema hinter dem Weg", () => {
     expect(themaAusWeg("praktikum/12")?.id).toBe(12);
-    expect(themaAusWeg("praktikum-ideen/7")?.teil.titel).toBe("Sonstige Ideen");
+    expect(themaAusWeg("praktikum-ideen/7")).toBeNull();
+    expect(themaAusWeg("praktikum-aufgaben/7")).toBeNull();
     expect(themaAusWeg("praktikum")).toBeNull();
     expect(themaAusWeg("praktikum/12/x")).toBeNull();
     expect(themaAusWeg("spg/12")).toBeNull();
@@ -75,16 +80,9 @@ describe("die Wege der Module", () => {
     expect(entscheidungsZahl(0)).toBe("0 Entscheidungen");
   });
 
-  it("zählt Themen und Ideen", () => {
-    expect(themenZahl(1, "aufgabe")).toBe("1 Thema");
-    expect(themenZahl(0, "aufgabe")).toBe("0 Themen");
-    expect(themenZahl(1, "idee")).toBe("1 Idee");
-    expect(themenZahl(3, "idee")).toBe("3 Ideen");
-  });
-
-  it("kennt die Liste zu jeder Art", () => {
-    expect(listeFuer("aufgabe").weg).toBe("praktikum");
-    expect(listeFuer("idee").weg).toBe("praktikum-ideen");
+  it("zählt Themen", () => {
+    expect(themenZahl(1)).toBe("1 Thema");
+    expect(themenZahl(0)).toBe("0 Themen");
   });
 });
 

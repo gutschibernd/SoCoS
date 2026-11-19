@@ -1,12 +1,11 @@
 /**
- * Module · Praktikanten: die Haupt-Aufgabenstellungen und die sonstigen
- * Ideen. Die To-Dos, der dritte Teil, stehen in `Todos.tsx`.
+ * Module · Praktikanten: die Haupt-Aufgabenstellungen. Meine Aufgaben stehen
+ * in `Praktikanten.tsx`, die To-Dos in `Todos.tsx`. Die „Sonstigen Ideen"
+ * gab es hier bis 2026-11-19; sie sind in den To-Dos aufgegangen.
  *
  * Die Haupt-Aufgaben stehen als Kacheln, zwei je Zeile, mit den Griffen, die
  * man am häufigsten braucht — Auftrag kopieren, PDF, bearbeiten. Alles
- * andere steht auf der Seite des Themas (`/module/praktikum/12`). Die Ideen
- * sind eine schlichte Liste: Sie sind noch nicht so weit, dass sie eine
- * Kachel bräuchten, und werden mit einem Griff zur Haupt-Aufgabe.
+ * andere steht auf der Seite des Themas (`/module/praktikum/12`).
  *
  * **Der Weg über das LLM geht über die Zwischenablage**, wie bei den Meetings:
  * SoCoS schickt nichts irgendwohin. Den Auftrag schreibt der Server
@@ -27,18 +26,17 @@ import {
   usePraktikumsthemen,
   type Ich,
   type Praktikumsthema,
-  type Themenart,
 } from "../basis/daten";
 import { melden } from "../basis/meldungen";
-import { listeFuer, punkteAusText, themenZahl, type Themenliste } from "../basis/module";
+import { punkteAusText, themenZahl, type Themenliste } from "../basis/module";
 import type { Wechseln } from "../basis/router";
 import { Zustand } from "../basis/Zustand";
 import { Loeschdialog } from "../bausteine/Loeschdialog";
 import { Zeichen } from "../bausteine/Zeichen";
 
 
-/** Das Fenster: zu, ein neues Thema dieser Art, oder ein bestehendes. */
-type Fenster = null | { neu: Themenart } | Praktikumsthema;
+/** Das Fenster: zu, ein neues Thema, oder ein bestehendes. */
+type Fenster = null | "neu" | Praktikumsthema;
 
 const hatAusschreibung = (t: Praktikumsthema) => t.ausschreibung.trim() !== "";
 const tagText = (d: string) => d.split("-").map(Number).reverse().join(".");
@@ -63,24 +61,22 @@ export function Praktikum({
   // Hinter der Prüfung auf die Daten selbst — siehe basis/Zustand.tsx.
   if (!themen.data) return <Zustand abfrage={themen} erneut={() => themen.refetch()} />;
 
-  const dieser = themen.data.filter((t) => t.art === teil.art);
-  const offen = dieser.filter((t) => !t.archiviert_am);
-  const archiviert = dieser.filter((t) => t.archiviert_am);
+  const offen = themen.data.filter((t) => !t.archiviert_am);
+  const archiviert = themen.data.filter((t) => t.archiviert_am);
   const liste = zeigeArchiv ? archiviert : offen;
-  const idee = teil.art === "idee";
   const oeffnen = (t: Praktikumsthema) => wechseln("module", `${teil.weg}/${t.id}`);
 
   const neu = ich.darf.bearbeiten && (
-    <button type="button" className="knopf" onClick={() => setFenster({ neu: teil.art })}>
+    <button type="button" className="knopf" onClick={() => setFenster("neu")}>
       <Zeichen name="plus" />
-      {idee ? "Idee" : "Thema"}
+      Thema
     </button>
   );
 
   // Ein Link und kein fetch, wie beim einzelnen PDF: Das ZIP soll im
   // Download-Ordner landen. Welche Themen mitgehen, entscheidet der Server.
   const allePdfs = !zeigeArchiv && offen.some(hatAusschreibung) && (
-    <a className="knopf-still" href={`/api/praktikumsthemen/pdfs/?art=${teil.art}`}>
+    <a className="knopf-still" href="/api/praktikumsthemen/pdfs/">
       <Zeichen name="pdf" />
       Alle PDFs
     </a>
@@ -99,7 +95,7 @@ export function Praktikum({
       <div className="vorhabenleiste">
         <div className="vorhaben-kopf">
           <b>{zeigeArchiv ? `${teil.titel} · Archiv` : teil.titel}</b>
-          <span>{themenZahl(liste.length, teil.art)}</span>
+          <span>{themenZahl(liste.length)}</span>
         </div>
         {(liste.length > 0 || archivKnopf) && (
           <div className="vorhaben-aktionen">
@@ -120,16 +116,10 @@ export function Praktikum({
         </div>
       ) : liste.length === 0 ? (
         <div className="karte leerstelle">
-          <b>{idee ? "Noch keine Idee" : "Noch kein Thema"}</b>
-          <p>
-            {idee
-              ? "Was man als Praktikum auch vergeben könnte — ein Titel genügt. Später wird eine Haupt-Aufgabe daraus."
-              : "Ein Titel, zwei Sätze, ein paar Punkte — daraus wird die Ausschreibung."}
-          </p>
+          <b>Noch kein Thema</b>
+          <p>Ein Titel, zwei Sätze, ein paar Punkte — daraus wird die Ausschreibung.</p>
           {neu}
         </div>
-      ) : idee ? (
-        <Ideenliste ideen={liste} darfBearbeiten={ich.darf.bearbeiten} oeffnen={oeffnen} />
       ) : (
         <div className="thema-kacheln">
           {liste.map((t) => (
@@ -146,8 +136,7 @@ export function Praktikum({
 
       {fenster !== null && (
         <Themenfenster
-          thema={"neu" in fenster ? null : fenster}
-          art={"neu" in fenster ? fenster.neu : fenster.art}
+          thema={fenster === "neu" ? null : fenster}
           darfLoeschen={ich.darf.loeschen}
           schliessen={() => setFenster(null)}
         />
@@ -209,41 +198,6 @@ function Themenkachel({
   );
 }
 
-/**
- * Die sonstigen Ideen: eine Zeile je Idee, der Titel führt auf ihre Seite,
- * rechts der eine Griff, auf den es hier ankommt.
- */
-function Ideenliste({
-  ideen,
-  darfBearbeiten,
-  oeffnen,
-}: {
-  ideen: Praktikumsthema[];
-  darfBearbeiten: boolean;
-  oeffnen: (t: Praktikumsthema) => void;
-}) {
-  return (
-    <ul className="karte themenideen">
-      {ideen.map((t) => (
-        <li key={t.id}>
-          <a
-            className="themenidee-link"
-            href={`/module/praktikum-ideen/${t.id}`}
-            onClick={(e) => {
-              e.preventDefault();
-              oeffnen(t);
-            }}
-          >
-            <b>{t.titel}</b>
-            {t.kurzbeschreibung.trim() && <span>{t.kurzbeschreibung}</span>}
-          </a>
-          {darfBearbeiten && <ArtKnopf thema={t} />}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /* --- Die Seite eines Themas ----------------------------------------------- */
 
 export function Themenseite({
@@ -285,20 +239,13 @@ export function Themenseite({
         <div className="vorhaben-kopf">
           <b className="thema-titel">{thema.titel}</b>
           <span>
-            {thema.art === "idee" ? "Sonstige Idee" : "Haupt-Aufgabenstellung"}
+            Haupt-Aufgabenstellung
             {thema.archiviert_am && ` · archiviert am ${tagText(thema.archiviert_am)}`}
           </span>
         </div>
         {ich.darf.bearbeiten && (
           <div className="vorhaben-aktionen">
             <ArchivKnopf thema={thema} />
-            <ArtKnopf
-              thema={thema}
-              // Der Weg zieht mit in die andere Liste, damit Lesezeichen und
-              // Neuladen das Thema dort finden. Er ersetzt den alten: Es ist
-              // dasselbe Thema, und „Zurück" führt weiter dorthin, woher man kam.
-              danach={(neu) => wechseln("module", `${listeFuer(neu).weg}/${thema.id}`, { ersetzen: true })}
-            />
             <button type="button" className="knopf-still" onClick={() => setBearbeiten(true)}>
               <Zeichen name="stift" />
               Bearbeiten
@@ -343,7 +290,6 @@ export function Themenseite({
       {bearbeiten && (
         <Themenfenster
           thema={thema}
-          art={thema.art}
           darfLoeschen={ich.darf.loeschen}
           schliessen={() => setBearbeiten(false)}
           // Dorthin, woher man kam — in die Liste oder dorthin, von wo aus
@@ -463,44 +409,6 @@ function ArchivKnopf({ thema }: { thema: Praktikumsthema }) {
   );
 }
 
-/** Aus einer Idee eine Haupt-Aufgabe machen — oder zurück zu den Ideen. */
-function ArtKnopf({ thema, danach }: { thema: Praktikumsthema; danach?: (art: Themenart) => void }) {
-  const neuLaden = useNeuLaden();
-  const [laeuft, setLaeuft] = useState(false);
-  const neu: Themenart = thema.art === "idee" ? "aufgabe" : "idee";
-  const beschriftung = neu === "aufgabe" ? "Zur Haupt-Aufgabe" : "Zu den Ideen";
-
-  async function umstellen() {
-    setLaeuft(true);
-    try {
-      await hole(`/praktikumsthemen/${thema.id}/`, { method: "PATCH", body: JSON.stringify({ art: neu }) });
-      neuLaden();
-      melden("gut", `„${thema.titel}“ steht jetzt unter ${listeFuer(neu).titel}.`);
-      danach?.(neu);
-    } catch {
-      // `hole` hat den Grund schon gemeldet.
-    } finally {
-      setLaeuft(false);
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      className="knopf-still art-knopf"
-      onClick={umstellen}
-      disabled={laeuft}
-      aria-label={beschriftung}
-      title={beschriftung}
-    >
-      <Zeichen name={neu === "aufgabe" ? "hoch" : "idee"} />
-      {/* In der Ideenliste am Handy nur der Pfeil — sonst bleibt vom Titel
-          daneben ein Wort je Zeile. */}
-      <span className="art-text">{beschriftung}</span>
-    </button>
-  );
-}
-
 /**
  * Hinaus mit dem Auftrag, herein mit der Antwort, daraus das PDF.
  *
@@ -602,14 +510,11 @@ type Entwurf = { titel: string; kurzbeschreibung: string; punkte: string };
  */
 function Themenfenster({
   thema,
-  art,
   darfLoeschen,
   schliessen,
   nachLoeschen,
 }: {
   thema: Praktikumsthema | null;
-  /** Wohin ein neues Thema kommt — für ein bestehendes ohne Belang. */
-  art: Themenart;
   darfLoeschen: boolean;
   schliessen: () => void;
   /** Auf der Seite des Themas: wohin danach, denn die Seite gibt es dann nicht mehr. */
@@ -641,7 +546,7 @@ function Themenfenster({
     try {
       await hole(thema ? `/praktikumsthemen/${thema.id}/` : "/praktikumsthemen/", {
         method: thema ? "PATCH" : "POST",
-        body: JSON.stringify(thema ? daten : { ...daten, art }),
+        body: JSON.stringify(daten),
       });
       neuLaden();
       melden("gut", `„${daten.titel}“ ist gespeichert.`);
@@ -710,7 +615,7 @@ function Themenfenster({
         >
           <div className="dialog-kopf">
             <div className="dialog-kopf-text">
-              <h2>{thema ? thema.titel : art === "idee" ? "Neue Idee" : "Neues Thema"}</h2>
+              <h2>{thema ? thema.titel : "Neues Thema"}</h2>
               {geaendert && <span className="dialog-offen">Nicht gespeichert</span>}
             </div>
             <div className="dialog-knoepfe">

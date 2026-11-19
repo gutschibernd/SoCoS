@@ -503,7 +503,8 @@ def test_pensen_und_phasenlaufzeit_wandern_mit(tmp_path, medien, bearbeiter):
         titel="AP02 – Vereinzelungsmechanik",
         beschreibung="Das größte Paket, weil es den kritischen Pfad enthält.",
     )
-    Pensum.objects.create(paket=paket, person=bearbeiter, stunden=Decimal("270.00"))
+    # Mit Strang: Daran hängt, was ein Praktikant unter „Meine Aufgaben" sieht.
+    Pensum.objects.create(paket=paket, person=bearbeiter, stunden=Decimal("270.00"), strang=Pensum.Strang.HAUPT)
 
     archiv = tmp_path / "archiv.tar.gz"
     call_command("sicherung_erstellen", ziel=str(archiv), verbosity=0)
@@ -524,6 +525,7 @@ def test_pensen_und_phasenlaufzeit_wandern_mit(tmp_path, medien, bearbeiter):
 
     pensum = Pensum.objects.get(paket__titel="AP02 – Vereinzelungsmechanik")
     assert pensum.stunden == Decimal("270.00")
+    assert pensum.strang == Pensum.Strang.HAUPT
     assert pensum.person.email == bearbeiter.email
     assert "kritischen Pfad" in pensum.paket.beschreibung
 

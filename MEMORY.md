@@ -7,6 +7,55 @@ betrifft.
 
 ---
 
+## 2026-11-19 — Praktikanten: Meine Aufgaben, Stränge am Pensum (Migration 0063)
+
+**Bernd:** 2027 kommen drei Praktikanten (Niki, Karla, Paula). Vorher sollen
+klar definierte Pakete und Stränge stehen: je Person ein Hauptstrang und
+Nebenstränge, mit Zielen und To-Dos, grafisch, und vom Dashboard aus mit einem
+Klick Stunden darauf buchen. Gliederung: Meine Aufgaben · To-Dos ·
+Einschulung (später) · Haupt-Aufgabenstellungen hinten. Die „Sonstigen Ideen"
+fallen weg — „das fällt jetzt unter To-Do-Ideen".
+
+**Ein Strang ist ein `Pensum` mit `strang` (`haupt`/`neben`), kein eigenes
+Modell.** Ein Modell „Strang" wäre Person × Paket × Stunden gewesen — genau
+das Pensum, ein zweites Mal. Das Ziel ist `Arbeitspaket.beschreibung`, die
+To-Dos sind seine `Unteraufgabe`n (je Person die eigenen und die ohne
+Verantwortlichen), gebucht wird aufs Paket wie überall. Damit stehen
+Praktikumsstunden auch im Zeitnachweis und — wenn das Paket an einem Antrag
+hängt — in der Förderabrechnung, ohne dass eine Auswertung einen zweiten Topf
+kennen muss. Gelesen wird alles aus `/api/projekte/`; keine eigene
+Schnittstelle.
+
+**Wer Praktikant ist, wird gerechnet: wer mindestens einen Strang hat.** Kein
+Schalter am Konto, keine Rolle. Ein Schalter stünde nach dem Praktikum noch
+da. Folge: Wer einen Strang hat, landet unter Meine Aufgaben auf seiner Seite
+(`/module/praktikum-aufgaben/<id>`), alle anderen auf der Wahl — kein
+Rollenwissen im Frontend. Und `uebersicht.vorschlag` stellt „Mein Praktikum"
+für jeden mit Strang an die erste Stelle (nur solange die Übersicht nicht
+selbst zusammengestellt ist).
+
+**Ein neues Paket entsteht in einer gewählten Phase**, nicht in einem still
+angelegten Projekt „Praktikum": Arbeitet ein Praktikant an einem echten Paket
+mit, gehört seine Zeit dorthin. „Kein Strang mehr" setzt nur `strang` zurück;
+Paket und Stunden bleiben.
+
+**Die Ideen sind beim Umbau als To-Dos umgezogen** (`Nebenaufgabe`, Umfang
+„Größer", Beschreibung aus Kurzbeschreibung und Punkten, archiviert →
+erledigt), das Thema ist weich gelöscht, das Feld `Praktikumsthema.art` ist
+weg. „Größer" ist die Stufe für „weiß nicht" — eine kleinere wäre erfunden.
+Test: `test_straenge.py::test_die_sonstigen_ideen_ziehen_als_todos_um`.
+
+**Berechtigung unverändert:** Buchen und Abhaken brauchen `darf_bearbeiten`.
+Praktikanten bekommen also die Rolle Bearbeiter — und sehen damit wie Anna
+alles, auch Runway und Kontostand. Ist das nicht gewollt, braucht es eine
+eigene Rolle; das ist eine Entscheidung, keine Kleinigkeit.
+
+**Bewusst weggelassen:** eine eigene Rolle „Praktikant", Umbenennen und
+Entfernen von To-Dos auf dieser Seite (geht auf der Projektseite), die
+Einschulung selbst (nur die Kachel steht).
+
+---
+
 ## 2026-11-16 — Runway: Kontostand von heute, Vergangenes archiviert
 
 **Bernd:** Oben einen Knopf, um den aktuellen Kontostand einzutragen und mit

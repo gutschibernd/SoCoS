@@ -812,8 +812,7 @@ class PraktikumsthemaViewSet(SocosViewSet):
     @action(detail=False, methods=["get"])
     def pdfs(self, request):
         """
-        Alle Aushänge auf einmal, als ZIP. `?art=aufgabe` oder `?art=idee`
-        nimmt nur die eine Liste — ohne Angabe kommen beide.
+        Alle Aushänge auf einmal, als ZIP.
 
         Archivierte Themen gehen nicht mit: Wer „alle“ druckt, will die, die
         gerade ausgeschrieben sind, und nicht die besetzten vom letzten Jahr.
@@ -822,9 +821,6 @@ class PraktikumsthemaViewSet(SocosViewSet):
         from socos.services import ausschreibung
 
         themen = self.get_queryset().filter(archiviert_am__isnull=True)
-        art = request.query_params.get("art")
-        if art:
-            themen = themen.filter(art=art)
         themen = [t for t in themen if t.ausschreibung.strip()]
         if not themen:
             raise ValidationError({"ausschreibung": "Noch kein Thema mit Ausschreibung — es gibt kein PDF zu laden."})

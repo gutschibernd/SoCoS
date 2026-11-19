@@ -36,6 +36,7 @@ import { graph, lage, offeneKarte } from "../basis/lagekarte";
 import { melden } from "../basis/meldungen";
 import { alsPfad, type Seite, type Wechselart } from "../basis/router";
 import type { Bausteinname } from "../basis/uebersicht";
+import { straengeVon, stundenText, todoStand } from "../basis/straenge";
 import { alsDauer, uhrzeitAusZeitpunkt, wannKurz } from "../basis/zeit";
 import { Zustand } from "../basis/Zustand";
 import { Finanzeingabe } from "../bausteine/Finanzeingabe";
@@ -44,6 +45,7 @@ import { Kontostandlinie } from "../bausteine/Kontostandlinie";
 import { Leerstelle } from "../bausteine/Leerstelle";
 import { Uhrstart } from "../bausteine/Uhrstart";
 import { Zeichen } from "../bausteine/Zeichen";
+import { Strangstart } from "./Praktikanten";
 
 export type Wechseln = (seite: Seite, unter?: string | null, art?: Wechselart) => void;
 type Teile = { ich: Ich; wechseln: Wechseln };
@@ -413,6 +415,51 @@ function Zeit({ ich, wechseln }: Teile) {
   return <Uhrstart projekte={projekte.data ?? []} meine={meine.data ?? []} />;
 }
 
+/* --- Mein Praktikum ------------------------------------------------------- */
+
+/**
+ * Die eigenen Stränge, der Hauptstrang zuerst, mit dem Start daneben. Wer als
+ * Praktikant SoCoS aufmacht, soll mit einem Klick auf seinem Strang buchen —
+ * ohne erst zu wissen, in welchem Projekt das Paket steht (Bernd, 2026-11-19).
+ * Ziel, To-Dos und Abhaken stehen auf der Seite, nicht hier.
+ */
+function Praktikum({ ich, wechseln }: Teile) {
+  const projekte = useProjekte();
+  if (!projekte.data) return <Zustand abfrage={projekte} erneut={() => projekte.refetch()} />;
+  const straenge = straengeVon(projekte.data, ich.id);
+  if (straenge.length === 0) {
+    return (
+      <Leerstelle
+        was="Dir ist noch kein Strang zugeteilt"
+        satz="Unter Praktikanten · Meine Aufgaben steht, wer woran arbeitet."
+        aktion={{ text: "Zu Meine Aufgaben", tun: () => wechseln("module", "praktikum-aufgaben") }}
+      />
+    );
+  }
+  return (
+    <>
+    <ul className="ue-liste">
+      {straenge.slice(0, ZEILEN).map((s) => {
+        const stand = todoStand(s);
+        return (
+          <li key={s.pensum.id}>
+            <button type="button" className="ue-zeile" onClick={() => wechseln("module", `praktikum-aufgaben/${ich.id}`)}>
+              <b>{s.paket.titel}</b>
+              <em>
+                {s.art === "haupt" ? "Hauptstrang" : "Nebenstrang"} ·{" "}
+                {stand.gesamt === 0 ? "keine To-Dos" : `${stand.gesamt - stand.erledigt} To-Dos offen`} · {stundenText(s)}
+              </em>
+            </button>
+            {ich.darf.bearbeiten && <Strangstart paket={s.paket} />}
+          </li>
+        );
+      })}
+    </ul>
+    <Weitere zahl={straenge.length - ZEILEN} tun={() => wechseln("module", `praktikum-aufgaben/${ich.id}`)} />
+    </>
+  );
+}
+
 /* --- Team, Zuletzt passiert, Geld: aus der Auskunft des Dashboards --------- */
 
 /** Wer eingestempelt ist und wie viel diese Woche zusammenkam. */
@@ -528,6 +575,7 @@ export const BAUSTEINE: Record<Bausteinname, (teile: Teile) => JSX.Element> = {
   team: Team,
   geld: Geld,
   aktivitaet: Aktivitaet,
+  praktikum: Praktikum,
 };
 
 /** Wohin „Alle" im Kopf eines Bausteins führt — wo es fehlt, gibt es keine Seite dafür. */
@@ -540,4 +588,5 @@ export const ZIELE: Partial<Record<Bausteinname, { seite: Seite; unter?: string 
   projekte: { seite: "projekt" },
   zeit: { seite: "zeit" },
   geld: { seite: "module", unter: "runway" },
+  praktikum: { seite: "module", unter: "praktikum-aufgaben" },
 };

@@ -2,8 +2,9 @@
  * Module: zusätzliche Werkzeuge, die mit Projekt und Zeit nichts zu tun haben.
  *
  * `/module` ist die Übersicht aller Module, `/module/praktikanten` der
- * Einstieg der Praktikanten mit einer Kachel je Teil — die Haupt-Aufgaben
- * und Ideen in `Praktikum.tsx`, die To-Dos in `Todos.tsx` —, `/module/thoughts`,
+ * Einstieg der Praktikanten mit einer Kachel je Teil — Meine Aufgaben in
+ * `Praktikanten.tsx`, die To-Dos in `Todos.tsx`, die Haupt-Aufgaben in
+ * `Praktikum.tsx` —, `/module/thoughts`,
  * `/module/foerderungen` und `/module/design` je eine
  * eigene Seite.
  */
@@ -15,14 +16,18 @@ import {
   useLieferanten,
   useNebenaufgaben,
   usePraktikumsthemen,
+  useProjekte,
   useRunway,
+  useTeam,
   type Ich,
 } from "../basis/daten";
+import { praktikanten } from "../basis/straenge";
 import {
   MODULE,
   designAusWeg,
   einstiegAusWeg,
   entscheidungsZahl,
+  istPraktikantenteil,
   themenZahl,
   todoZahl,
   teilZuWeg,
@@ -32,20 +37,22 @@ import {
   foerderplanungAusWeg,
   foerderungAusWeg,
   lieferantAusWeg,
+  praktikantAusWeg,
   type Bestellteil,
   type Designteil,
   type Foerderteil,
   type Runwayteil,
   type Kartenteil,
   type Modul,
+  type Praktikantenteil,
   type Teil,
-  type Themenliste,
-  type Todoteil,
 } from "../basis/module";
 import type { Wechseln } from "../basis/router";
 import { Zeichen } from "../bausteine/Zeichen";
 import { Thoughts } from "./Thoughts";
 import { Praktikum, Themenseite } from "./Praktikum";
+import { Praktikanten } from "./Praktikanten";
+import { Leerstelle } from "../bausteine/Leerstelle";
 import { Todos } from "./Todos";
 import { Foerderauslastung } from "./Foerderauslastung";
 import { Bisherseite } from "./Bisher";
@@ -68,6 +75,18 @@ export function Module({
   /** Nach dem Entfernen einer Einzelseite: dorthin, woher man kam. */
   zurueck: () => void;
 }) {
+  const praktikant = praktikantAusWeg(unter);
+  const strangteil = teilZuWeg("praktikum-aufgaben");
+  if (praktikant !== null && strangteil)
+    return (
+      <Praktikanten
+        key={praktikant}
+        ich={ich}
+        person={praktikant}
+        wechseln={wechseln}
+        umschalter={<Teilwahl modul={strangteil.modul} teil={strangteil.teil} wechseln={wechseln} />}
+      />
+    );
   const thema = themaAusWeg(unter);
   if (thema) return <Themenseite key={thema.id} ich={ich} id={thema.id} teil={thema.teil} wechseln={wechseln} zurueck={zurueck} />;
   if (foerderauslastungAusWeg(unter)) return <Foerderauslastung ich={ich} wechseln={wechseln} />;
@@ -96,6 +115,30 @@ export function Module({
   if (teil.schluessel === "bestellungen") return <Lieferantenliste ich={ich} wechseln={wechseln} />;
   if (teil.schluessel === "todos")
     return <Todos ich={ich} umschalter={<Teilwahl modul={modul} teil={teil} wechseln={wechseln} />} />;
+  if (teil.schluessel === "straenge")
+    return (
+      <Praktikanten
+        ich={ich}
+        person={null}
+        wechseln={wechseln}
+        umschalter={<Teilwahl modul={modul} teil={teil} wechseln={wechseln} />}
+      />
+    );
+  if (teil.schluessel === "einschulung")
+    return (
+      <div className="spalte">
+        <Teilwahl modul={modul} teil={teil} wechseln={wechseln} />
+        {/* Bernd, 2026-11-19: „das bauen wir aber später". Die Kachel steht
+            schon, damit die Reihenfolge der Teile feststeht. */}
+        <div className="karte">
+          <Leerstelle
+            was="Die Einschulung kommt noch"
+            satz="Hier entsteht der Weg durch alles, was man bei Sopharmis wissen muss. Bis dahin: Meine Aufgaben zeigt, woran du bist."
+            aktion={{ text: "Zu Meine Aufgaben", tun: () => wechseln("module", "praktikum-aufgaben") }}
+          />
+        </div>
+      </div>
+    );
   return (
     <Praktikum
       key={teil.weg}
@@ -138,10 +181,8 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
           </a>
           <ul className="modul-teile">
             {m.teile.map((teil, i) =>
-              teil.schluessel === "praktikum" ? (
-                <Themenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
-              ) : teil.schluessel === "todos" ? (
-                <Todozeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
+              istPraktikantenteil(teil) ? (
+                <Praktikantenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "thoughts" ? (
                 <Kartenzeile key={teil.weg} teil={teil} stelle={i} wechseln={wechseln} />
               ) : teil.schluessel === "runway" ? (
@@ -174,16 +215,20 @@ function Uebersicht({ wechseln }: { wechseln: Wechseln }) {
 
 /* --- Der Einstieg eines Moduls mit mehreren Teilen ------------------------ */
 
+/** Das Zeichen auf der großen Kachel eines Teils der Praktikanten. */
+const TEILZEICHEN = { straenge: "aufgaben", todos: "haken", einschulung: "buch", praktikum: "mappe" } as const;
+
 /**
  * Eine große Kachel je Teil — die ganze Kachel ist der Link. Bernd,
- * 2026-11-09: „drei große Kacheln, die man auswählen kann". Wie die
- * Übersicht wartet der Einstieg auf nichts; nur die Zahl kommt nach.
+ * 2026-11-09: „drei große Kacheln, die man auswählen kann", seit 2026-11-19
+ * vier. Wie die Übersicht wartet der Einstieg auf nichts; nur die Zahl kommt
+ * nach.
  */
 function Einstieg({ modul, wechseln }: { modul: Modul; wechseln: Wechseln }) {
   return (
     <div className="einstieg-kacheln">
       {modul.teile.map((teil) =>
-        teil.schluessel === "praktikum" || teil.schluessel === "todos" ? (
+        istPraktikantenteil(teil) ? (
           <a
             key={teil.weg}
             className="einstieg-kachel"
@@ -194,12 +239,12 @@ function Einstieg({ modul, wechseln }: { modul: Modul; wechseln: Wechseln }) {
             }}
           >
             <i className="modul-siegel">
-              <Zeichen name={teil.schluessel === "todos" ? "haken" : teil.art === "idee" ? "idee" : "mappe"} />
+              <Zeichen name={TEILZEICHEN[teil.schluessel]} />
             </i>
             <b>{teil.titel}</b>
             <em>{teil.wozu}</em>
             <span className="einstieg-fuss">
-              {teil.schluessel === "todos" ? <TodoStand /> : <ThemenStand teil={teil} />}
+              <Teilstand teil={teil} />
               <Zeichen name="zeiger" klasse="modul-zeiger" />
             </span>
           </a>
@@ -209,10 +254,18 @@ function Einstieg({ modul, wechseln }: { modul: Modul; wechseln: Wechseln }) {
   );
 }
 
-function ThemenStand({ teil }: { teil: Themenliste }) {
+/** Der Stand eines Teils der Praktikanten — eine Zahl, die nachkommt. */
+function Teilstand({ teil }: { teil: Praktikantenteil }) {
+  if (teil.schluessel === "todos") return <TodoStand />;
+  if (teil.schluessel === "praktikum") return <ThemenStand />;
+  if (teil.schluessel === "straenge") return <StrangStand />;
+  return <span className="modul-stand">später</span>;
+}
+
+function ThemenStand() {
   const themen = usePraktikumsthemen();
-  const zahl = themen.data?.filter((t) => t.art === teil.art && !t.archiviert_am).length;
-  return <span className="modul-stand">{zahl === undefined ? "" : themenZahl(zahl, teil.art)}</span>;
+  const zahl = themen.data?.filter((t) => !t.archiviert_am).length;
+  return <span className="modul-stand">{zahl === undefined ? "" : themenZahl(zahl)}</span>;
 }
 
 function TodoStand() {
@@ -221,38 +274,16 @@ function TodoStand() {
   return <span className="modul-stand">{zahl === undefined ? "" : `${todoZahl(zahl)} offen`}</span>;
 }
 
-/** Eine Zeile der Kachel für die To-Dos: wie viele noch offen sind. */
-function Todozeile({ teil, stelle, wechseln }: { teil: Todoteil; stelle: number; wechseln: Wechseln }) {
-  return (
-    <li>
-      <a
-        href={`/module/${teil.weg}`}
-        onClick={(e) => {
-          e.preventDefault();
-          wechseln("module", teil.weg);
-        }}
-      >
-        <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
-        {teil.titel}
-        <TodoStand />
-        <Zeichen name="zeiger" klasse="modul-zeiger" />
-      </a>
-    </li>
-  );
+function StrangStand() {
+  const projekte = useProjekte();
+  const team = useTeam();
+  if (!projekte.data || !team.data) return <span className="modul-stand" />;
+  const zahl = praktikanten(projekte.data, team.data).length;
+  return <span className="modul-stand">{zahl === 1 ? "1 Praktikant" : `${zahl} Praktikanten`}</span>;
 }
 
-/** Eine Zeile der Kachel für eine Themenliste: wie viele Themen es gibt. */
-function Themenzeile({
-  teil,
-  stelle,
-  wechseln,
-}: {
-  teil: Themenliste;
-  stelle: number;
-  wechseln: Wechseln;
-}) {
-  const themen = usePraktikumsthemen();
-  const zahl = themen.data?.filter((t) => t.art === teil.art && !t.archiviert_am).length;
+/** Eine Zeile der Kachel für einen Teil der Praktikanten, mit seinem Stand. */
+function Praktikantenzeile({ teil, stelle, wechseln }: { teil: Praktikantenteil; stelle: number; wechseln: Wechseln }) {
   return (
     <li>
       <a
@@ -264,9 +295,7 @@ function Themenzeile({
       >
         <span className="zahl">{String(stelle + 1).padStart(2, "0")}</span>
         {teil.titel}
-        <span className="modul-stand">
-          {zahl === undefined ? "" : themenZahl(zahl, teil.art)}
-        </span>
+        <Teilstand teil={teil} />
         <Zeichen name="zeiger" klasse="modul-zeiger" />
       </a>
     </li>

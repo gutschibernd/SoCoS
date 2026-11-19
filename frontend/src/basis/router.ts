@@ -28,6 +28,7 @@ import {
   foerderungAusWeg,
   lieferantAusWeg,
   teilZuWeg,
+  praktikantAusWeg,
   themaAusWeg,
 } from "./module";
 
@@ -107,7 +108,7 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   meetings: (unter) => /^\d+$/.test(unter),
   // Ein Teil eines Moduls: `/module/praktikum`, `/module/thoughts`. Die
   // Liste steht in basis/module.ts und nicht ein zweites Mal hier. Dazu ein
-  // einzelnes Praktikumsthema: `/module/praktikum/12`, `/module/praktikum-ideen/7`,
+  // einzelnes Praktikumsthema: `/module/praktikum/12`, ein Praktikant: `/module/praktikum-aufgaben/7`,
   // Fördergeber, Programm und Antrag: `/module/foerderungen/2`, `/2/1`, `/2/1/3`,
   // und Auslastung und Planung daneben: `/module/foerderungen/auslastung`,
   // `/module/foerderungen/planung`, `/module/foerderungen/bisher`, eine
@@ -115,6 +116,7 @@ const UNTERWEG: Partial<Record<Seite, (unter: string) => boolean>> = {
   module: (unter) =>
     MODULWEGE.includes(unter) ||
     themaAusWeg(unter) !== null ||
+    praktikantAusWeg(unter) !== null ||
     foerderungAusWeg(unter) !== null ||
     foerderauslastungAusWeg(unter) !== null ||
     foerderplanungAusWeg(unter) !== null ||

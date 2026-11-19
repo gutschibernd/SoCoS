@@ -4,6 +4,7 @@ import {
   designAusWeg,
   einstiegAusWeg,
   lieferantAusWeg,
+  praktikantAusWeg,
   foerderauslastungAusWeg,
   foerderbisherAusWeg,
   foerderplanungAusWeg,
@@ -64,9 +65,10 @@ const UNTERTITEL: Record<string, { titel: string; unter: string }> = {
   // anderen Seite aus.
   "aufgaben/ideen": { titel: "Aufgaben", unter: "Ideen — was möglich wäre, noch nicht entschieden" },
   "aufgaben/archiv": { titel: "Aufgaben", unter: "Archiv — was abgehakt ist" },
+  "module/praktikum-aufgaben": { titel: "Praktikanten", unter: "Meine Aufgaben — Haupt- und Nebenstränge" },
+  "module/praktikum-todos": { titel: "Praktikanten", unter: "To-Dos — Ideen zum Aussuchen" },
+  "module/praktikum-einschulung": { titel: "Praktikanten", unter: "Einschulung" },
   "module/praktikum": { titel: "Praktikanten", unter: "Haupt-Aufgabenstellungen" },
-  "module/praktikum-ideen": { titel: "Praktikanten", unter: "Sonstige Ideen" },
-  "module/praktikum-todos": { titel: "Praktikanten", unter: "To-Dos — kleine Pakete für zwischendurch" },
   "module/thoughts": { titel: "Thoughts", unter: "Was frei ist, was wartet" },
   "module/foerderungen": { titel: "Förderungen", unter: "Fördergeber, Programme, Anträge" },
   "module/runway": { titel: "Runway-Planung", unter: "Wie lange das Geld reicht" },
@@ -108,6 +110,8 @@ export function App() {
   const modul = ort.seite === "module" ? (teilZuWeg(ort.unter) ?? einstiegAusWeg(ort.unter))?.modul : undefined;
   const kopfzeile =
     UNTERTITEL[`${ort.seite}/${ort.unter}`] ??
+    // Die Seite eines Praktikanten: wessen, steht groß auf der Seite selbst.
+    (ort.seite === "module" && praktikantAusWeg(ort.unter) !== null ? UNTERTITEL["module/praktikum-aufgaben"] : null) ??
     // Ein einzelnes Thema: Sein Titel steht groß auf der Seite selbst.
     (thema ? { titel: thema.modul.titel, unter: thema.teil.titel } : null) ??
     (modul ? { titel: modul.titel, unter: modul.wozu } : null) ??

@@ -22,6 +22,39 @@ Die Liste steht **neueste zuerst**.
 
 VERSIONEN = [
     {
+        "version": "2026-11-19",
+        "titel": "Praktikanten: Meine Aufgaben",
+        "punkte": [
+            {
+                "titel": "Hauptstrang, Nebenstränge, To-Dos",
+                "text": (
+                    "Unter Praktikanten steht jetzt zuerst „Meine Aufgaben“: je Praktikant ein Hauptstrang "
+                    "und Nebenstränge, jeder mit Ziel, Stunden und To-Dos, oben als Linien gezeichnet. "
+                    "Wer selbst Stränge hat, landet auf seiner Seite; alle anderen wählen, wessen sie sehen wollen."
+                ),
+                "wo": "module/praktikum-aufgaben",
+            },
+            {
+                "titel": "Stunden direkt auf den Strang",
+                "text": (
+                    "Ein Strang ist ein gewöhnliches Arbeitspaket — „Start“ auf der eigenen Seite oder im "
+                    "neuen Baustein „Mein Praktikum“ der Übersicht lässt die Uhr darauf laufen. Wer einen "
+                    "Strang hat, bekommt den Baustein von selbst als ersten."
+                ),
+                "wo": "start",
+            },
+            {
+                "titel": "Die Sonstigen Ideen sind To-Dos",
+                "text": (
+                    "Die Kachel „Sonstige Ideen“ ist weg. Was dort stand, steht jetzt unter To-Dos, mit dem "
+                    "Umfang „Größer“ — bitte bei Gelegenheit nachschätzen. Die Haupt-Aufgabenstellungen stehen "
+                    "jetzt hinten, davor kommt Platz für die Einschulung."
+                ),
+                "wo": "module/praktikum-todos",
+            },
+        ],
+    },
+    {
         "version": "2026-11-18",
         "titel": "Zeit: Kalender neben der Liste",
         "punkte": [
@@ -524,7 +557,7 @@ VERSIONEN = [
                     "noch nicht sind. „Zur Haupt-Aufgabe“ macht aus einer Idee eine "
                     "Kachel, mit allem, was schon an ihr steht."
                 ),
-                "wo": "module/praktikum-ideen",
+                "wo": "module/praktikum-todos",
             },
             {
                 "titel": "Ein neuer Aushang",

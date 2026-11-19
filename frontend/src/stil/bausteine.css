@@ -2280,7 +2280,8 @@ a.mini { text-decoration: none; }
  * Kacheln der Modulübersicht, weil hier nichts anderes steht: Die Seite ist
  * nur die Wahl.
  */
-.einstieg-kacheln { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Zwei Spalten für vier Teile (seit 2026-11-19): In dreien stand der vierte allein in der zweiten Zeile. */
+.einstieg-kacheln { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .einstieg-kachel {
   display: flex; flex-direction: column; gap: 6px; min-height: 196px; padding: 20px;
   background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--kante-karte);
@@ -2405,24 +2406,96 @@ button.todo-text:focus-visible { outline: 2px solid var(--akzent); outline-offse
 .thema-kachel-zeiger { margin-left: auto; width: 0.9em; height: 0.9em; color: var(--marke); }
 .thema-kachel:hover .thema-kachel-zeiger { color: var(--akzent); }
 
-/* Die sonstigen Ideen: eine Zeile je Idee, der Griff rechts. */
-.themenideen { list-style: none; margin: 0; padding: 0 16px; }
-.themenideen li {
-  display: flex; align-items: center; gap: 12px; min-height: var(--griff);
-  border-bottom: 1px solid var(--rand);
+/* --- Praktikanten · Meine Aufgaben -------------------------------------- */
+/*
+ * Grundoptik. Das Bild der Stränge ist aus Kästchen und Kanten gezeichnet:
+ * Halte sind Kreise, Strecken Balken dazwischen. Der Hauptstrang ist breiter,
+ * die Nebenstränge zweigen links von ihm ab. Gefüllt in --marke heißt
+ * erledigt — „läuft" ist hier „ist geschafft", und die Zahl daneben sagt es
+ * ohne Farbe.
+ */
+.personenwahl { align-self: flex-start; max-width: 100%; overflow-x: auto; }
+.personenwahl button { min-height: var(--griff); }
+.strang-leer-knopf { display: flex; justify-content: center; padding: 0 0 20px; }
+
+.praktikanten-wahl { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.praktikant-karte { display: flex; flex-direction: column; gap: 16px; color: inherit; text-decoration: none; }
+.praktikant-karte:hover { border-color: var(--rand-stark); }
+.praktikant-karte:hover b, .praktikant-karte:hover .modul-zeiger { color: var(--akzent); }
+.praktikant-karte:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+.praktikant-kopf { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.praktikant-kopf > span:nth-child(2) { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.praktikant-kopf b { font-size: 15px; font-weight: 600; }
+.praktikant-kopf em { font-style: normal; font-size: 13px; color: var(--text-leise); overflow-wrap: anywhere; }
+/* Wie das Kürzel in der Leiste (.profil i): Grund ist die Farbe des Kontos. */
+.praktikant-kuerzel {
+  flex: 0 0 36px; width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; font-style: normal; color: var(--marke-tiefer);
 }
-.themenideen li:last-child { border-bottom: 0; }
-.themenidee-link {
-  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;
-  padding: 10px 0; color: var(--text); text-decoration: none;
+
+.strangbild { --abstand: 14px; display: flex; flex-direction: column; gap: var(--abstand); }
+.strangbild[data-knapp] { --abstand: 10px; }
+.strangbild-zeile { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.strangbild-zeile[data-zweig] { margin-left: 28px; }
+/* Die Abzweigung: von der Mitte des ersten Halts darüber herunter und in
+   die eigene Linie hinein. 7 px ist die halbe Höhe des großen Halts. */
+.strangbild-zeile[data-zweig]::before {
+  content: ""; position: absolute;
+  left: -22px; width: 22px; top: calc(-1 * var(--abstand) - 7px); bottom: 5px;
+  border-left: 2px solid var(--rand-stark); border-bottom: 2px solid var(--rand-stark);
+  border-bottom-left-radius: var(--kante-karte);
 }
-.themenidee-link b { font-weight: 600; font-size: 14.5px; }
-.themenidee-link span {
-  font-size: 13px; color: var(--text-leise);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.strangbild-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
+.strangbild-name b { font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
+.strangbild-name em { font-style: normal; font-size: 12.5px; color: var(--text-leise); }
+.strangbild-bahn { display: flex; align-items: center; min-width: 0; }
+.strangbild-halt {
+  flex: 0 0 auto; box-sizing: border-box; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--rand-stark); background: var(--flaeche);
 }
-.themenidee-link:hover b { color: var(--akzent); }
-.themenideen .knopf-still { flex: 0 0 auto; }
+.strangbild-halt[data-erledigt] { background: var(--marke); border-color: var(--marke); }
+.strangbild-strecke { flex: 1 1 0; min-width: 3px; height: 4px; background: var(--rand); }
+.strangbild-strecke[data-erledigt] { background: var(--marke); }
+.strangbild-zeile[data-art="neben"] .strangbild-halt { width: 10px; height: 10px; }
+.strangbild-zeile[data-art="neben"] .strangbild-strecke { height: 2px; }
+.strangbild-ziel { flex: 0 0 auto; width: 18px; height: 18px; margin-left: 2px; color: var(--text-leise); }
+
+.strang { display: flex; flex-direction: column; gap: 6px; }
+.strang[data-art="haupt"] { border-left: 3px solid var(--marke); }
+.strang-kopf { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: start; }
+.strang-art, .strang-kopf h2, .strang-wo { grid-column: 1; }
+.strang-art { font-size: 12.5px; font-weight: 600; color: var(--marke); }
+.strang[data-art="neben"] .strang-art { color: var(--text-leise); }
+.strang-kopf h2 { margin: 0; font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+.strang-wo { font-size: 13px; color: var(--text-leise); }
+.strang-knoepfe {
+  grid-column: 2; grid-row: 1 / span 3;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px;
+}
+.strang > .beschriftung-klein { margin: 12px 0 0; }
+.strang-ziel { margin: 0; font-size: 14.5px; line-height: 1.55; white-space: pre-line; }
+.strang-zahlen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; margin-top: 8px; font-size: 13.5px; color: var(--text-leise); }
+.strang-zahlen b { font-weight: 600; color: var(--text); }
+.strang-stunden { display: inline-flex; align-items: center; gap: 8px; }
+.strang-stunden .balken { width: 120px; }
+.strang-gesperrt { margin: 0; font-size: 13px; color: var(--warnung); }
+.strang-laeuft {
+  display: inline-flex; align-items: center; gap: 6px; min-height: var(--griff);
+  font-size: 13.5px; font-weight: 600; color: var(--marke);
+}
+.strang-laeuft .punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--gut); }
+.strang-todos { list-style: none; margin: 0; padding: 0; }
+.strang-todos li { border-bottom: 1px solid var(--flaeche-leise); }
+.strang-todos label { display: flex; align-items: center; gap: 10px; min-height: var(--griff); font-size: 14.5px; cursor: pointer; }
+.strang-todos input { flex: 0 0 auto; width: 18px; height: 18px; margin: 0; accent-color: var(--marke); }
+.strang-todos li[data-erledigt] span { color: var(--text-leise); text-decoration: line-through; }
+.strang-dazu { display: flex; gap: 8px; margin-top: 8px; }
+.strang-dazu .feld { flex: 1 1 auto; min-width: 0; }
+.strang-wahl { width: fit-content; max-width: 100%; margin-top: 4px; }
+.strang-wahl button { min-height: var(--griff); }
+.strang-stunden-feld { max-width: 180px; }
+.strang-feldfehler { font-size: 13px; color: var(--warnung); }
 
 /* Die Seite eines Themas. */
 .thema-titel { overflow-wrap: anywhere; }
@@ -3083,8 +3156,6 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .anlegeknoepfe > .knopf { flex: 1 1 auto; }
 
   .raster-4, .raster-3, .raster-2, .modul-kacheln, .thema-kacheln, .doku-wege { grid-template-columns: 1fr; }
-  .themenideen .art-text { display: none; }
-  .themenideen .art-knopf { min-width: var(--griff); justify-content: center; }
   /* Am Handy nur der Haken — sonst bleibt vom Titel daneben ein Wort je Zeile. */
   .todo-haken .art-text { display: none; }
   .todo-haken { min-width: var(--griff); justify-content: center; }
@@ -3093,6 +3164,9 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
   .umfangswahl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Die Gruppe trägt ihren Abstand in Kopf und Liste — `.karte` darüber gäbe ihn doppelt. */
   .todo-gruppe { padding: 0; }
+  .praktikanten-wahl { grid-template-columns: 1fr; gap: 12px; }
+  /* Die Knöpfe unter den Titel: Daneben bliebe vom Titel ein Wort je Zeile. */
+  .strang-knoepfe { grid-column: 1; grid-row: auto; justify-content: flex-start; margin-top: 6px; }
 
   /* Mehrere Teile passen am Handy nicht immer in eine Zeile — und
      `overflow: hidden` am Umschalter schnitte den letzten still ab. Gleiche
@@ -3109,6 +3183,12 @@ textarea.lk-eingabe { resize: vertical; line-height: 1.4; }
        zur Not irgendwo — beides besser als ein halbes Wort. */
     hyphens: auto; overflow-wrap: anywhere;
   }
+  /* Vier Teile (Praktikanten, seit 2026-11-19) in zwei Zeilen zu zwei: In
+     einer Zeile blieb ein Viertel von 375 px, und „Haupt-Aufgabenstellungen"
+     zerfiel in fünf Silben untereinander. */
+  .workshopwahl:has(> :nth-child(4)) { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workshopwahl:has(> :nth-child(4)) button:nth-child(odd) { border-left: 0; }
+  .workshopwahl:has(> :nth-child(4)) button:nth-child(n + 3) { border-top: 1px solid var(--rand-stark); }
   .workshopwahl .zahl { overflow-wrap: normal; white-space: nowrap; }
   .vorhaben-kopf { flex: 1 1 100%; }
   .vorhaben-aktionen { margin-left: 0; }

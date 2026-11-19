@@ -238,7 +238,7 @@ function Ueberblick({ wechseln }: { wechseln: (seite: Seite, unter?: string | nu
             { seite: "module" as const, unter: "runway", zeichen: "kurve" as const, titel: "Runway-Planung", text: "Was herein- und hinausgeht, wie lange das Geld reicht." },
             { seite: "module" as const, unter: "bestellungen", zeichen: "wagen" as const, titel: "Bestellungen", text: "Unter Extern: Sammelbestellungen je Lieferant, Mails mit Herstellern." },
             { seite: "module" as const, unter: "design", zeichen: "schild" as const, titel: "Designentscheidungen", text: "Unter Ablage: begründen, belegen, als PDF in die Akte." },
-            { seite: "module" as const, unter: "praktikanten", zeichen: "mappe" as const, titel: "Praktikanten", text: "Unter Ablage: Aufgabenstellungen ausschreiben, To-Dos für zwischendurch sammeln." },
+            { seite: "module" as const, unter: "praktikanten", zeichen: "mappe" as const, titel: "Praktikanten", text: "Unter Ablage: wer woran arbeitet, To-Dos zum Aussuchen, Aufgabenstellungen ausschreiben." },
           ].map((w) => (
             <button
               key={`${w.seite}/${"unter" in w ? w.unter : ""}`}
@@ -875,9 +875,48 @@ function ModuleDoku() {
       </Abschnitt>
 
       <Abschnitt
+        zeichen="aufgaben"
+        titel="Praktikanten: Meine Aufgaben"
+        vorspann="Unter Ablage · Praktikanten stehen vier Kacheln: Meine Aufgaben, To-Dos, Einschulung (kommt noch) und Haupt-Aufgabenstellungen. Unter Meine Aufgaben hat jeder Praktikant einen Hauptstrang — damit beschäftigt er sich — und Nebenstränge daneben, jeder mit Ziel, Stunden und To-Dos."
+      >
+        <Schritte
+          schritte={[
+            "Wer selbst Stränge hat, landet gleich auf seiner Seite. Alle anderen sehen zuerst, wen es gibt, mit seinen Strängen als Linien, und wählen. Oben stehen die Namen als Reiter — sehen darf jeder jeden.",
+            "„+ Strang“ legt einen an: für wen, Haupt- oder Nebenstrang, ein Arbeitspaket — neu in einer Phase, die du wählst, oder eines, das es schon gibt —, das Ziel und die Stunden dafür.",
+            "In jedem Strang die To-Dos abhaken oder unten ein neues dazuschreiben und Enter. Die Linie oben füllt sich mit.",
+            "„Start“ auf der eigenen Seite lässt die Uhr auf diesem Strang laufen. Dasselbe steht im Baustein „Mein Praktikum“ der Übersicht — wer einen Strang hat, bekommt ihn als ersten.",
+          ]}
+        />
+        <Merke>
+          Ein Strang ist ein ganz gewöhnliches Arbeitspaket. Die Stunden darauf stehen auch auf der
+          Projektseite und im Zeitnachweis; umbenannt, geplant und entfernt werden seine To-Dos dort.
+        </Merke>
+        <Begriffe
+          paare={[
+            {
+              begriff: "Das Bild",
+              text: "Jeder Strang eine Linie, jedes To-Do ein Punkt darauf, am Ende die Fahne. Gefüllt ist, was erledigt ist. Der Hauptstrang ist breiter, die Nebenstränge zweigen von ihm ab.",
+            },
+            {
+              begriff: "Gemeinsame Pakete",
+              text: "Arbeiten zwei an einem Paket, hat jeder seinen eigenen Strang darauf. Jeder sieht seine To-Dos und die, die niemandem gehören — nicht die des anderen.",
+            },
+            {
+              begriff: "Kein Strang mehr",
+              text: "Unter „Bearbeiten“: Das Paket und die gebuchten Stunden bleiben, nur steht es nicht mehr unter Meine Aufgaben. Das ist der mildere Weg statt Entfernen.",
+            },
+            {
+              begriff: "Wer was darf",
+              text: "Sehen dürfen alle. Stränge anlegen, ändern, To-Dos abhaken und buchen dürfen Admin und Bearbeiter — ein Praktikant braucht also die Rolle Bearbeiter.",
+            },
+          ]}
+        />
+      </Abschnitt>
+
+      <Abschnitt
         zeichen="mappe"
         titel="Praktikanten: vom Thema zum Aushang"
-        vorspann="Unter Ablage · Praktikanten stehen drei Kacheln. Unter Haupt-Aufgabenstellungen sammeln wir, was wir als Praktikum vergeben wollen, unter Sonstige Ideen, was es werden könnte. Aus jedem Thema wird über ein LLM eine Ausschreibung und daraus ein Aushang auf einer Seite A4. Die dritte Kachel, To-Dos, steht weiter unten."
+        vorspann="Unter Haupt-Aufgabenstellungen sammeln wir, was wir als Praktikum vergeben wollen. Aus jedem Thema wird über ein LLM eine Ausschreibung und daraus ein Aushang auf einer Seite A4."
       >
         <Schritte
           schritte={[
@@ -911,10 +950,6 @@ function ModuleDoku() {
               text: "Auf Kachel und Seite steht „Ausschreibung da“, sobald eine gespeichert ist. Das PDF gibt es nur für den gespeicherten Stand; solange nichts gespeichert oder etwas geändert ist, bleibt der Knopf grau.",
             },
             {
-              begriff: "Sonstige Ideen",
-              text: "Themen, die noch nicht so weit sind — eine Zeile je Idee, ein Titel genügt. „Zur Haupt-Aufgabe“ macht eine Kachel daraus, samt allem, was schon dasteht; „Zu den Ideen“ auf der Seite eines Themas legt es zurück.",
-            },
-            {
               begriff: "Archiv",
               text: "Eine besetzte oder abgelaufene Stelle kommt mit „Archivieren“ auf der Seite des Themas aus der Liste und aus „Alle PDFs“ — samt Ausschreibung, nichts geht verloren. „Archiv“ oben in der Liste zeigt sie, „Aus dem Archiv holen“ stellt sie zurück. Das ist auch der mildere Weg statt Entfernen.",
             },
@@ -928,8 +963,8 @@ function ModuleDoku() {
 
       <Abschnitt
         zeichen="haken"
-        titel="Praktikanten: To-Dos für zwischendurch"
-        vorspann="Kleine Arbeitspakete, die uns jetzt einfallen — eine Instagram-Seite anlegen, ein liegengebliebenes Thema wieder aufnehmen. Haben Praktikanten gerade nichts zu tun, suchen sie sich hier eines heraus. Die To-Dos sind von den Haupt-Aufgabenstellungen getrennt: keine Ausschreibung, kein Aushang."
+        titel="Praktikanten: To-Dos zum Aussuchen"
+        vorspann="Ideen, die noch niemandem gehören — eine Instagram-Seite anlegen, ein liegengebliebenes Thema wieder aufnehmen. Haben Praktikanten neben ihren Strängen Luft, suchen sie sich hier eines heraus. Die To-Dos hängen an keinem Strang und an keiner Aufgabenstellung. Die früheren „Sonstigen Ideen“ stehen seit 19. November 2026 hier, mit dem Umfang „Größer“."
       >
         <Schritte
           schritte={[

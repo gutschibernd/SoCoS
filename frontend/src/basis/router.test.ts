@@ -39,8 +39,8 @@ describe("ausPfad", () => {
 
   it("liest ein Praktikumsthema als dritte Stufe", () => {
     expect(ausPfad("/module/praktikum/12")).toEqual({ seite: "module", unter: "praktikum/12" });
-    expect(ausPfad("/module/praktikum-ideen")).toEqual({ seite: "module", unter: "praktikum-ideen" });
-    expect(ausPfad("/module/praktikum-ideen/7")).toEqual({ seite: "module", unter: "praktikum-ideen/7" });
+    expect(ausPfad("/module/praktikum-aufgaben")).toEqual({ seite: "module", unter: "praktikum-aufgaben" });
+    expect(ausPfad("/module/praktikum-aufgaben/7")).toEqual({ seite: "module", unter: "praktikum-aufgaben/7" });
     expect(ausPfad("/module/praktikum/quatsch")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/spg/12")).toEqual({ seite: "module", unter: null });
     expect(ausPfad("/module/design/7")).toEqual({ seite: "module", unter: "design/7" });

@@ -113,6 +113,8 @@ export type Pensum = {
   stunden: string;
   /** Was diese Person auf dieses Paket schon gebucht hat. */
   gebuchte_sekunden: number;
+  /** Haupt- oder Nebenstrang eines Praktikanten — leer bei einem gewöhnlichen Pensum. */
+  strang: "" | "haupt" | "neben";
 };
 export type Paket = {
   id: number;
@@ -480,13 +482,9 @@ export const useMeetings = () =>
   useQuery({ queryKey: ["meetings"], queryFn: () => hole<Meeting[]>("/meetings/") });
 
 /** Ein Thema für ein Praktikum — eine der Haupt-Aufgabenstellungen. */
-/** Haupt-Aufgabenstellung oder sonstige Idee — dasselbe Thema, eine andere Liste. */
-export type Themenart = "aufgabe" | "idee";
-
 export type Praktikumsthema = {
   id: number;
   titel: string;
-  art: Themenart;
   kurzbeschreibung: string;
   /** Ein Punkt je Zeile. */
   punkte: string;

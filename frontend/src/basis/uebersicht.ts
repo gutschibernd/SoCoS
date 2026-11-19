@@ -21,7 +21,8 @@ export type Bausteinname =
   | "zeit"
   | "geld"
   | "team"
-  | "aktivitaet";
+  | "aktivitaet"
+  | "praktikum";
 
 export type Platz = { baustein: Bausteinname; breit: boolean };
 
@@ -39,6 +40,9 @@ export const KATALOG: { name: Bausteinname; titel: string; wozu: string }[] = [
   { name: "team", titel: "Team", wozu: "Wer eingestempelt ist, Stunden diese Woche" },
   { name: "geld", titel: "Geld", wozu: "Kontostand, Kosten, Runway" },
   { name: "aktivitaet", titel: "Zuletzt passiert", wozu: "Was die anderen angelegt und geändert haben" },
+  // Hinten: Wer einen Strang hat, bekommt ihn ohnehin als Ersten vorgeschlagen
+  // (socos/services/uebersicht.py); von Hand nimmt ihn kaum jemand dazu.
+  { name: "praktikum", titel: "Mein Praktikum", wozu: "Haupt- und Nebenstränge, offene To-Dos — und die Uhr darauf" },
 ];
 
 const BEKANNT = new Set<string>(KATALOG.map((k) => k.name));
