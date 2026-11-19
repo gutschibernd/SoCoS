@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Zeichen } from "./Zeichen";
 
 /**
- * Die Firmendaten zum Kopieren — Rechnungsadresse, UID, Steuernummer, IBAN,
- * Anschrift, Firmenbuch.
+ * Die Firmendaten zum Kopieren — Rechnungsadresse, UID, Steuernummer, EORI,
+ * IBAN, Anschrift, Firmenbuch.
  *
  * Nur, was ohnehin öffentlich ist und auf jedem Briefkopf steht. Darum steht
  * es hier im Code und nicht in `daten/` oder in der Datenbank: Es ändert sich
@@ -29,6 +29,8 @@ const STRASSE = "Hermann-Findenegg Weg 7";
 const ORT = "9500 Villach";
 const UID = "ATU83918619";
 const FN = "FN 690473 b";
+/** Für Zollanmeldungen bei Sendungen aus Nicht-EU-Ländern. */
+const EORI = "ATEOS1000170021";
 /**
  * Angezeigt in Vierergruppen, wie sie auf Papier gelesen wird; kopiert ohne
  * Leerzeichen, weil manche Bankformulare die Lücken als ungültig abweisen —
@@ -70,10 +72,11 @@ export function firmendaten(sprache: Sprache): Firmengruppe[] {
   const t = TEXTE[sprache];
   return [
     {
-      titel: "Steuer",
+      titel: "Steuer und Zoll",
       zeilen: [
         { was: "UID-Nummer", wert: UID },
         { was: "Steuernummer", wert: "613397991" },
+        { was: "EORI-Nummer", wert: EORI },
         { was: "IBAN", wert: IBAN, kopie: IBAN.replace(/\s/g, "") },
       ],
     },

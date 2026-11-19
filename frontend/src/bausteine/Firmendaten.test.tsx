@@ -19,6 +19,13 @@ describe("Firmendaten", () => {
     expect(await screen.findByText("Kopiert")).toBeInTheDocument();
   });
 
+  it("kopiert die EORI-Nummer", async () => {
+    const schreiben = zwischenablage(async () => {});
+    render(<Firmendaten schliessen={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /EORI-Nummer kopieren/ }));
+    await waitFor(() => expect(schreiben).toHaveBeenCalledWith("ATEOS1000170021"));
+  });
+
   it("kopiert die IBAN ohne Leerzeichen, und ihre Prüfziffer stimmt", async () => {
     const schreiben = zwischenablage(async () => {});
     render(<Firmendaten schliessen={() => {}} />);
